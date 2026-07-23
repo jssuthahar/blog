@@ -247,7 +247,26 @@ export const NEWSLETTER = {
  */
 export const FIREBASE = {
   projectId: 'msdevbuild-blog',
+  /**
+   * Needed only by /admin — Firebase Authentication requires it, while the
+   * Firestore REST calls on public pages do not. It is a public identifier by
+   * design (Google documents it as safe in client code) but GitHub's scanner
+   * flags the `AIza` prefix regardless, so restrict it by HTTP referrer to
+   * blog.msdevbuild.com in Google Cloud Console → Credentials.
+   */
+  apiKey: 'AIzaSyC1oOQOPnd4i-6W0vXkhDHrzRAFYpd0nDk',
 } as const;
+
+/**
+ * Admin console access. `uid` is the Firebase Auth UID allowed to moderate —
+ * paste it from Authentication → Users after creating the account, and put the
+ * same value in firestore.rules. The rules are the real gate; this constant
+ * only decides what the UI offers.
+ */
+export const ADMIN = {
+  uid: 'BVDLfgqNvJSZORv2zRitolBU3Cn2',
+} as const;
+
 
 /**
  * Contact form endpoint. A static site cannot process a POST, so this needs a

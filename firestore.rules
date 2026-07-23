@@ -6,6 +6,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // The admin console signs in with Firebase Auth and moderates through
+    // these rules. Replace ADMIN_UID_HERE with the UID from
+    // Authentication → Users, and keep ADMIN.uid in src/config.ts in step.
+    // Until it is set, no account matches and every admin path stays closed.
+    function isAdmin() {
+      return request.auth != null && request.auth.uid == 'BVDLfgqNvJSZORv2zRitolBU3Cn2';
+    }
+
     match /views/{slug} {
       // Counts are public.
       allow read: if true;
@@ -28,9 +36,11 @@ service cloud.firestore {
     // The document ID is the email address, which makes a repeat signup a
     // no-op instead of a duplicate row.
     match /subscribers/{email} {
-      // Never readable. A public read here would publish the entire mailing
-      // list to anyone who knows the collection name.
-      allow read, update, delete: if false;
+      // Never publicly readable — a public read here would publish the entire
+      // mailing list to anyone who knows the collection name. The signed-in
+      // admin may read the list and remove entries.
+      allow read, delete: if isAdmin();
+      allow update: if false;
 
       allow create: if request.resource.data.keys().hasOnly(['email', 'source', 'createdAt'])
                     && request.resource.data.email is string
@@ -50,7 +60,8 @@ service cloud.firestore {
     // cannot approve its own submission, and a query that does not filter to
     // approved is rejected outright rather than returning a filtered set.
     match /testimonials/{id} {
-      allow read: if resource.data.status == 'approved';
+      // Public sees approved only; the admin sees pending and rejected too.
+      allow read: if resource.data.status == 'approved' || isAdmin();
 
       allow create: if request.resource.data.keys().hasOnly(
                          ['message', 'name', 'company', 'role', 'article',
@@ -72,8 +83,13 @@ service cloud.firestore {
                     // Server-stamped, so a submission cannot be backdated.
                     && request.resource.data.createdAt == request.time;
 
-      // Approving, editing, and deleting happen in the Firebase console only.
-      allow update, delete: if false;
+      // Moderation: the admin may change status and featured, nothing else.
+      allow update: if isAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['status', 'featured'])
+                    && request.resource.data.status in ['pending', 'approved', 'rejected'];
+
+      allow delete: if isAdmin();
     }
 
     // The submitter's email, kept OUT of the testimonial document.
@@ -84,7 +100,8 @@ service cloud.firestore {
     // into the static HTML by the sync. It lives here instead, where nothing
     // can read it, keyed by the testimonial's own id.
     match /testimonialContacts/{id} {
-      allow read, update, delete: if false;
+      allow read, delete: if isAdmin();
+      allow update: if false;
 
       allow create: if request.resource.data.keys().hasOnly(['email', 'createdAt'])
                     && request.resource.data.email is string

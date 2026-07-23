@@ -1,0 +1,91 @@
+---
+interface Props {
+  /** The 11-character video id, not the full URL. */
+  id: string;
+  title: string;
+  /** Start position in seconds. */
+  start?: number;
+}
+
+const { id, title, start } = Astro.props;
+
+/**
+ * Click-to-load YouTube embed.
+ *
+ * A bare <iframe> loads ~1MB of YouTube JavaScript and sets cookies on every
+ * page view, whether or not anyone presses play. This shows the thumbnail and
+ * only creates the iframe on click — so an article with three videos still
+ * loads like an article.
+ *
+ * youtube-nocookie.com is used so no tracking cookie is set even after play.
+ */
+const params = new URLSearchParams({ autoplay: '1', rel: '0' });
+if (start) params.set('start', String(start));
+
+const src = `https://www.youtube-nocookie.com/embed/${id}?${params}`;
+const poster = `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`;
+const fallback = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+---
+
+<figure class="not-prose my-8">
+  <div
+    class="group relative aspect-video w-full overflow-hidden rounded-xl border border-default bg-black"
+    data-youtube
+    data-src={src}
+  >
+    <img
+      src={poster}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      referrerpolicy="no-referrer"
+      class="size-full object-cover transition-opacity group-hover:opacity-85"
+      onerror={`this.onerror=null;this.src='${fallback}'`}
+    />
+
+    <button
+      type="button"
+      data-play
+      class="absolute inset-0 flex items-center justify-center"
+      aria-label={`Play video: ${title}`}
+    >
+      <span class="flex size-16 items-center justify-center rounded-full shadow-lg transition-transform group-hover:scale-110" style="background: #f00;">
+        <svg class="ml-1 size-7" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+          <path d="M8 5.5v13l10-6.5-10-6.5Z" />
+        </svg>
+      </span>
+    </button>
+  </div>
+
+  <figcaption class="mt-2 text-center text-sm text-muted">
+    {title} —
+    <a href={`https://www.youtube.com/watch?v=${id}`} rel="noopener" class="text-accent hover:underline">
+      watch on YouTube
+    </a>
+  </figcaption>
+</figure>
+
+<script>
+  function initYouTube() {
+    document.querySelectorAll<HTMLElement>('[data-youtube]').forEach((holder) => {
+      if (holder.dataset.bound === '') return;
+      holder.dataset.bound = '';
+
+      holder.querySelector('[data-play]')?.addEventListener('click', () => {
+        const iframe = document.createElement('iframe');
+        iframe.src = holder.dataset.src!;
+        iframe.title = 'YouTube video player';
+        iframe.allow =
+          'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+        iframe.allowFullscreen = true;
+        iframe.className = 'absolute inset-0 size-full';
+        iframe.setAttribute('frameborder', '0');
+
+        holder.replaceChildren(iframe);
+      });
+    });
+  }
+
+  initYouTube();
+  document.addEventListener('astro:page-load', initYouTube);
+</script>

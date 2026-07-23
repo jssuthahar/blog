@@ -1,0 +1,30 @@
+---
+interface Props {
+  type?: 'note' | 'tip' | 'warning';
+  title?: string;
+}
+
+const { type = 'note', title } = Astro.props;
+
+const STYLES = {
+  note: { hue: 252, label: 'Note' },
+  tip: { hue: 155, label: 'Tip' },
+  warning: { hue: 60, label: 'Warning' },
+} as const;
+
+const { hue, label } = STYLES[type];
+---
+
+<aside
+  class="not-prose my-6 rounded-lg border p-5"
+  style={`border-color: oklch(0.62 0.15 ${hue} / 0.35);
+          background: oklch(0.62 0.15 ${hue} / 0.07);
+          border-left: 3px solid oklch(0.55 0.16 ${hue});`}
+>
+  <p class="text-xs font-bold tracking-wider uppercase" style={`color: oklch(0.5 0.16 ${hue});`}>
+    {title ?? label}
+  </p>
+  <div class="mt-2 leading-relaxed text-pretty">
+    <slot />
+  </div>
+</aside>

@@ -102,7 +102,7 @@ const { slides, label = 'Featured highlights' } = Astro.props;
         </svg>
       </button>
 
-      <div class="ml-1 flex gap-1.5" role="tablist" aria-label="Choose slide">
+      <div class="ml-1 flex items-center gap-3" role="tablist" aria-label="Choose slide">
         {slides.map((slide, index) => (
           <button
             type="button"
@@ -152,15 +152,22 @@ const { slides, label = 'Featured highlights' } = Astro.props;
     color: var(--text);
   }
 
+  /* The visible bar stays 4px, but the tap area is padded out to 24px tall and
+     the padding kept transparent with background-clip, so touch targets meet
+     the 24px minimum without changing the look. */
   .carousel-dot {
     width: 1.5rem;
     height: 0.25rem;
+    box-sizing: content-box;
+    padding: 0.625rem 0;
     border-radius: 999px;
     background: var(--border);
+    background-clip: content-box;
     transition: background-color 0.2s;
   }
   .carousel-dot[aria-selected='true'] {
     background: var(--accent);
+    background-clip: content-box;
   }
 
   @media (prefers-reduced-motion: reduce) {

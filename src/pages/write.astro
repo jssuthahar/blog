@@ -1,0 +1,474 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { CATEGORIES } from '../lib/posts';
+
+/**
+ * Standalone post editor. No login — it only produces a Markdown file, which
+ * you commit yourself. Fully client-side; nothing is sent anywhere.
+ */
+const today = new Date().toISOString().slice(0, 10);
+
+// The toolbar buttons. `wrap` surrounds the selection; `block` prefixes each
+// line; `insert` drops a snippet at the cursor. `{sel}` is the selected text.
+const TOOLBAR = [
+  { key: 'b', label: 'B', title: 'Bold  ⌘B', kind: 'wrap', a: '**', b: '**', cls: 'font-bold' },
+  { key: 'i', label: 'I', title: 'Italic  ⌘I', kind: 'wrap', a: '_', b: '_', cls: 'italic' },
+  { key: 'code', label: '</>', title: 'Inline code', kind: 'wrap', a: '`', b: '`', cls: 'font-mono text-xs' },
+  { key: 'h2', label: 'H2', title: 'Heading 2', kind: 'block', a: '## ' },
+  { key: 'h3', label: 'H3', title: 'Heading 3', kind: 'block', a: '### ' },
+  { key: 'ul', label: '• List', title: 'Bullet list', kind: 'block', a: '- ' },
+  { key: 'ol', label: '1. List', title: 'Numbered list', kind: 'block', a: '1. ' },
+  { key: 'quote', label: '❝', title: 'Quote', kind: 'block', a: '> ' },
+  { key: 'link', label: '🔗', title: 'Link  ⌘K', kind: 'link' },
+  { key: 'codeblock', label: 'Code block', title: 'Fenced code block', kind: 'insert',
+    snippet: '\n```csharp\n{sel}\n```\n' },
+  { key: 'table', label: 'Table', title: 'Table', kind: 'insert',
+    snippet: '\n| Column | Column |\n| --- | --- |\n| Cell | Cell |\n' },
+  { key: 'callout', label: 'Callout', title: 'Callout (needs .mdx)', kind: 'insert',
+    snippet: '\n<Callout type="warning">\n{sel}\n</Callout>\n' },
+  { key: 'video', label: 'Video', title: 'YouTube (needs .mdx)', kind: 'insert',
+    snippet: '\n<YouTube id="VIDEO_ID" title="Title" />\n' },
+  { key: 'image', label: 'Image', title: 'Image', kind: 'insert',
+    snippet: '\n![alt text](./images/name.png)\n' },
+  { key: 'hr', label: '―', title: 'Divider', kind: 'insert', snippet: '\n---\n' },
+];
+---
+
+<BaseLayout title="Write a post" description="Post editor." noindex wide>
+  <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <header class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p class="eyebrow">Editor</p>
+        <h1 class="display mt-1.5 text-2xl">Write a post</h1>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <span id="autosave" class="text-xs text-muted"></span>
+        <button id="btn-guide" class="btn btn-outline btn-sm" aria-expanded="false" aria-controls="guide">Guide</button>
+        <button id="btn-mdx" class="btn btn-outline btn-sm" title="Toggle .md / .mdx">.md</button>
+        <button id="btn-clear" class="btn btn-outline btn-sm">New</button>
+        <button id="btn-copy" class="btn btn-outline btn-sm">Copy</button>
+        <button id="btn-download" class="btn btn-accent btn-sm">Download</button>
+      </div>
+    </header>
+
+    <!-- Reference, collapsed by default. Toggled by the Guide button. -->
+    <section id="guide" hidden class="mt-4 rounded-lg border border-default bg-subtle p-5 text-sm">
+      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <h2 class="text-xs font-bold tracking-wider uppercase text-muted">Markdown</h2>
+          <table class="mt-2 w-full">
+            <tbody class="[&_td]:py-0.5 [&_td:first-child]:pr-3 [&_code]:rounded [&_code]:bg-[var(--bg)] [&_code]:px-1 [&_code]:font-mono [&_code]:text-xs">
+              <tr><td><code>## Heading</code></td><td class="text-muted">section (use questions)</td></tr>
+              <tr><td><code>**bold**</code></td><td class="text-muted">bold</td></tr>
+              <tr><td><code>_italic_</code></td><td class="text-muted">italic</td></tr>
+              <tr><td><code>`code`</code></td><td class="text-muted">inline code</td></tr>
+              <tr><td><code>[text](url)</code></td><td class="text-muted">link</td></tr>
+              <tr><td><code>- item</code></td><td class="text-muted">bullet list</td></tr>
+              <tr><td><code>&gt; quote</code></td><td class="text-muted">blockquote</td></tr>
+              <tr><td><code>| a | b |</code></td><td class="text-muted">table</td></tr>
+            </tbody>
+          </table>
+          <p class="mt-2 text-xs text-muted">Fenced code: <code class="rounded bg-[var(--bg)] px-1 font-mono">```csharp</code> … <code class="rounded bg-[var(--bg)] px-1 font-mono">```</code> — name the language for highlighting.</p>
+        </div>
+
+        <div>
+          <h2 class="text-xs font-bold tracking-wider uppercase text-muted">HTML in Markdown</h2>
+          <p class="mt-2 leading-relaxed text-muted">
+            Raw HTML works inside a <code class="rounded bg-[var(--bg)] px-1 font-mono">.md</code> file — drop in
+            <code class="rounded bg-[var(--bg)] px-1 font-mono">&lt;div&gt;</code>,
+            <code class="rounded bg-[var(--bg)] px-1 font-mono">&lt;kbd&gt;</code>,
+            <code class="rounded bg-[var(--bg)] px-1 font-mono">&lt;table&gt;</code> wherever Markdown falls short.
+          </p>
+          <p class="mt-2 leading-relaxed text-muted">
+            <strong>Gotcha:</strong> Markdown syntax is <em>not</em> parsed inside a raw HTML block — put finished
+            HTML there, keep Markdown outside it.
+          </p>
+          <p class="mt-2 leading-relaxed text-muted">
+            A standalone <code class="rounded bg-[var(--bg)] px-1 font-mono">.html</code> file is <strong>not</strong> a
+            post. Put the HTML inside a <code class="rounded bg-[var(--bg)] px-1 font-mono">.md</code> instead.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-xs font-bold tracking-wider uppercase text-muted">Images, video, callouts</h2>
+          <p class="mt-2 leading-relaxed text-muted">
+            <strong>Image:</strong> file in <code class="rounded bg-[var(--bg)] px-1 font-mono">src/content/blog/images/</code>,
+            then <code class="rounded bg-[var(--bg)] px-1 font-mono">![alt](./images/x.png)</code>. Always add alt text.
+          </p>
+          <p class="mt-2 leading-relaxed text-muted">
+            <strong>Video / Callout</strong> use the toolbar buttons — they switch the file to
+            <code class="rounded bg-[var(--bg)] px-1 font-mono">.mdx</code> and add the import on download.
+          </p>
+          <p class="mt-2 leading-relaxed text-muted">
+            <strong>Cover</strong> is optional — posts without one get a generated gradient.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="text-xs font-bold tracking-wider uppercase text-muted">Structure that ranks</h2>
+          <ol class="mt-2 list-decimal space-y-1 pl-4 leading-relaxed text-muted">
+            <li>Open with the problem in one paragraph.</li>
+            <li><code class="rounded bg-[var(--bg)] px-1 font-mono">##</code> headings as real questions.</li>
+            <li>Answer in the first two sentences, then explain.</li>
+            <li>Tables for comparisons.</li>
+            <li>End with a <strong>Key takeaways</strong> list.</li>
+          </ol>
+          <p class="mt-2 text-xs text-muted">The <strong>Highlight</strong> field is your TL;DR — don't repeat it in the body.</p>
+        </div>
+
+        <div>
+          <h2 class="text-xs font-bold tracking-wider uppercase text-muted">Frontmatter limits</h2>
+          <ul class="mt-2 space-y-1 leading-relaxed text-muted">
+            <li><strong>Description:</strong> 50–200 characters (required).</li>
+            <li><strong>Highlight:</strong> up to 400 characters.</li>
+            <li><strong>Category:</strong> one of the six in the dropdown.</li>
+            <li><strong>Slug:</strong> lowercase, hyphens — becomes the URL.</li>
+            <li><strong>Cover alt</strong> is required if a cover is set.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="text-xs font-bold tracking-wider uppercase text-muted">Shortcuts &amp; publishing</h2>
+          <ul class="mt-2 space-y-1 leading-relaxed text-muted">
+            <li><kbd class="rounded border border-default bg-[var(--bg)] px-1 text-xs">⌘/Ctrl</kbd>+<kbd class="rounded border border-default bg-[var(--bg)] px-1 text-xs">B</kbd> bold, <kbd class="rounded border border-default bg-[var(--bg)] px-1 text-xs">I</kbd> italic, <kbd class="rounded border border-default bg-[var(--bg)] px-1 text-xs">K</kbd> link.</li>
+            <li><strong>Tab</strong> indents inside the editor.</li>
+            <li>Draft auto-saves to this browser.</li>
+            <li><strong>Download</strong> → drop in <code class="rounded bg-[var(--bg)] px-1 font-mono">src/content/blog/</code> → commit → push.</li>
+            <li>Uncheck <strong>Draft</strong> when it's ready to go live.</li>
+          </ul>
+          <p class="mt-2 text-xs">
+            <a href="https://github.com/jssuthahar/blog/blob/main/WRITING.md" class="text-accent hover:underline">Full guide → WRITING.md</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Frontmatter fields -->
+    <div class="mt-6 grid gap-3 rounded-lg border border-default p-4 sm:grid-cols-12">
+      <div class="sm:col-span-8">
+        <input id="f-title" placeholder="Post title" maxlength="120"
+          class="w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-lg font-semibold" />
+      </div>
+      <div class="sm:col-span-4">
+        <div class="flex items-center rounded-lg border border-default bg-[var(--bg)] px-3 text-sm text-muted">
+          <span class="shrink-0 font-mono text-xs">/blog/</span>
+          <input id="f-slug" placeholder="slug" class="w-full bg-transparent py-2 font-mono text-xs" />
+        </div>
+      </div>
+
+      <div class="sm:col-span-12">
+        <textarea id="f-description" rows="2" maxlength="220" placeholder="Description — 50 to 200 characters. Used for the card, meta description, and RSS."
+          class="w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm"></textarea>
+        <p class="mt-1 text-xs"><span id="desc-count" class="text-muted">0</span> / 200</p>
+      </div>
+
+      <div class="sm:col-span-12">
+        <textarea id="f-highlight" rows="2" maxlength="400" placeholder="Highlight (optional) — the answer in 2–3 sentences, shown in a box at the top of the post."
+          class="w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm"></textarea>
+      </div>
+
+      <div class="sm:col-span-3">
+        <label class="block text-xs text-muted">Category</label>
+        <select id="f-category" class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm">
+          {Object.entries(CATEGORIES).map(([id, c]) => <option value={id}>{c.label}</option>)}
+        </select>
+      </div>
+      <div class="sm:col-span-3">
+        <label class="block text-xs text-muted">Published</label>
+        <input id="f-date" type="date" value={today} class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      </div>
+      <div class="sm:col-span-6">
+        <label class="block text-xs text-muted">Tags (comma separated)</label>
+        <input id="f-tags" placeholder="ASP.NET Core, Azure" class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      </div>
+
+      <div class="sm:col-span-6">
+        <label class="block text-xs text-muted">Cover image path (optional)</label>
+        <input id="f-cover" placeholder="./images/cover.png" class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 font-mono text-xs" />
+      </div>
+      <div class="sm:col-span-6">
+        <label class="block text-xs text-muted">Cover alt text</label>
+        <input id="f-coverAlt" placeholder="Describe the cover image" class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      </div>
+
+      <div class="flex flex-wrap items-center gap-4 sm:col-span-12">
+        <label class="flex items-center gap-2 text-sm"><input id="f-draft" type="checkbox" checked /> Draft</label>
+        <label class="flex items-center gap-2 text-sm"><input id="f-featured" type="checkbox" /> Featured</label>
+        <label class="flex items-center gap-2 text-sm"><input id="f-updated" type="date" class="rounded border border-default bg-[var(--bg)] px-2 py-1 text-xs" /> Updated date (optional)</label>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="mt-4 flex flex-wrap gap-1 rounded-t-lg border border-b-0 border-default bg-subtle p-2">
+      {TOOLBAR.map((t) => (
+        <button
+          type="button"
+          class="rounded px-2.5 py-1.5 text-sm text-muted transition-colors hover:bg-[var(--bg)] hover:text-accent"
+          data-tool={t.key}
+          data-kind={t.kind}
+          data-a={t.kind === 'wrap' || t.kind === 'block' ? t.a : undefined}
+          data-b={t.kind === 'wrap' ? t.b : undefined}
+          data-snippet={t.kind === 'insert' ? t.snippet : undefined}
+          title={t.title}
+        >
+          <span class={t.cls}>{t.label}</span>
+        </button>
+      ))}
+    </div>
+
+    <!-- Editor + preview -->
+    <div class="grid gap-0 rounded-b-lg border border-default lg:grid-cols-2">
+      <div class="border-b border-default lg:border-b-0 lg:border-r">
+        <textarea
+          id="editor"
+          spellcheck="true"
+          placeholder="Write in Markdown. Open with the problem, use ## question headings, answer first, end with Key takeaways."
+          class="block h-[60vh] w-full resize-none bg-[var(--bg)] p-4 font-mono text-sm leading-relaxed focus:outline-none"
+        ></textarea>
+      </div>
+      <div class="overflow-auto" style="max-height: 60vh;">
+        <div class="flex items-center justify-between border-b border-default bg-subtle px-4 py-1.5 text-xs text-muted">
+          <span>Preview</span>
+          <span id="stats"></span>
+        </div>
+        <article id="preview" class="prose-reading max-w-none p-5"></article>
+      </div>
+    </div>
+
+    <!-- Validation + generated file -->
+    <div id="issues" class="mt-4"></div>
+
+    <details class="mt-4 rounded-lg border border-default">
+      <summary class="cursor-pointer px-4 py-3 text-sm font-medium">Generated file</summary>
+      <pre id="filecode" class="overflow-auto border-t border-default bg-subtle p-4 font-mono text-xs whitespace-pre-wrap"></pre>
+    </details>
+
+    <p class="mt-6 text-sm leading-relaxed text-muted">
+      <strong>To publish:</strong> Download the file, put it in
+      <code>src/content/blog/</code> (images go in
+      <code>src/content/blog/images/</code>), then commit and push. GitHub Actions
+      deploys it. Set <strong>Draft</strong> off when it's ready. Full reference:
+      <a href="https://github.com/jssuthahar/blog/blob/main/WRITING.md" class="text-accent hover:underline">WRITING.md</a>.
+    </p>
+  </div>
+</BaseLayout>
+
+<script>
+  import { marked } from 'marked';
+  import {
+    emptyDraft, slugify, toMarkdown, validate, readingStats, type PostDraft,
+  } from '../lib/postdoc';
+
+  function initWriter() {
+    const editor = document.getElementById('editor') as HTMLTextAreaElement | null;
+    if (!editor) return;
+
+    const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+    const field = (id: string) => $(id) as HTMLInputElement;
+    const DRAFT_KEY = 'writer:draft';
+    const GUIDE_KEY = 'writer:guide';
+
+    let mdx = false;
+
+    // Guide panel — remembers whether it was left open.
+    const guide = $('guide');
+    const guideBtn = $('btn-guide');
+    const setGuide = (open: boolean) => {
+      guide.hidden = !open;
+      guideBtn.setAttribute('aria-expanded', String(open));
+      localStorage.setItem(GUIDE_KEY, open ? '1' : '0');
+    };
+    setGuide(localStorage.getItem(GUIDE_KEY) === '1');
+    guideBtn.addEventListener('click', () => setGuide(guide.hidden));
+
+    const readForm = (): PostDraft => ({
+      slug: field('f-slug').value,
+      title: field('f-title').value,
+      description: field('f-description').value,
+      highlight: field('f-highlight').value,
+      category: field('f-category').value,
+      tags: field('f-tags').value,
+      publishedAt: field('f-date').value,
+      updatedAt: field('f-updated').value,
+      draft: field('f-draft').checked,
+      featured: field('f-featured').checked,
+      cover: field('f-cover').value,
+      coverAlt: field('f-coverAlt').value,
+      body: editor.value,
+    });
+
+    const writeForm = (d: PostDraft) => {
+      field('f-slug').value = d.slug;
+      field('f-title').value = d.title;
+      field('f-description').value = d.description;
+      field('f-highlight').value = d.highlight;
+      field('f-category').value = d.category;
+      field('f-tags').value = d.tags;
+      field('f-date').value = d.publishedAt;
+      field('f-updated').value = d.updatedAt;
+      field('f-draft').checked = d.draft;
+      field('f-featured').checked = d.featured;
+      field('f-cover').value = d.cover;
+      field('f-coverAlt').value = d.coverAlt;
+      editor.value = d.body;
+    };
+
+    // ---- restore last session -------------------------------------------
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) writeForm({ ...emptyDraft(), ...JSON.parse(saved) });
+    } catch {}
+
+    // ---- render loop ----------------------------------------------------
+    let saveTimer: number | undefined;
+
+    const render = () => {
+      const d = readForm();
+
+      // Preview: highlight box on top, then the rendered body.
+      const hl = (d.highlight || d.description)
+        ? `<aside style="border-left:3px solid var(--accent);background:var(--bg-subtle);padding:1rem 1.25rem;border-radius:.5rem;margin-bottom:1.5rem"><p style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">Highlight</p><p style="margin-top:.4rem">${d.highlight || d.description}</p></aside>`
+        : '';
+      // Strip the two MDX component tags so the preview does not show raw JSX.
+      const bodyForPreview = d.body
+        .replace(/<(Callout|YouTube)[^>]*>/g, '')
+        .replace(/<\/(Callout|YouTube)>/g, '');
+      $('preview').innerHTML = hl + marked.parse(bodyForPreview, { async: false });
+
+      const { words, minutes } = readingStats(d.body);
+      $('stats').textContent = `${words} words · ${minutes} min`;
+      $('desc-count').textContent = String(d.description.trim().length);
+
+      $('filecode').textContent = toMarkdown(d);
+
+      const issues = validate(d);
+      $('issues').innerHTML = issues.length
+        ? `<div class="rounded-lg border p-4 text-sm" style="border-color:oklch(0.6 0.16 60 / .4);background:oklch(0.6 0.16 60 / .06)"><p class="font-semibold">Before publishing:</p><ul class="mt-2 list-disc space-y-1 pl-5 text-muted">${issues.map((i) => `<li>${i.message}</li>`).join('')}</ul></div>`
+        : '<p class="text-sm" style="color:oklch(0.55 0.15 155)">✓ Ready to publish.</p>';
+
+      clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(() => {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+        $('autosave').textContent = 'Saved locally';
+        setTimeout(() => ($('autosave').textContent = ''), 1500);
+      }, 500);
+    };
+
+    document.querySelectorAll('#editor, .grid input, .grid textarea, .grid select')
+      .forEach((el) => el.addEventListener('input', render));
+
+    // Slug follows the title until edited by hand.
+    field('f-title').addEventListener('input', () => {
+      if (!field('f-slug').dataset.touched) field('f-slug').value = slugify(field('f-title').value);
+      render();
+    });
+    field('f-slug').addEventListener('input', () => { field('f-slug').dataset.touched = ''; });
+
+    // ---- toolbar --------------------------------------------------------
+    const apply = (kind: string, a = '', b = '', snippet = '') => {
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const value = editor.value;
+      const sel = value.slice(start, end);
+
+      let replacement = '';
+      let caret = start;
+
+      if (kind === 'wrap') {
+        replacement = a + sel + b;
+        caret = start + a.length + sel.length + (sel ? b.length : 0);
+      } else if (kind === 'block') {
+        const lines = (sel || value.slice(value.lastIndexOf('\n', start - 1) + 1, end) || '').split('\n');
+        replacement = lines.map((l) => a + l).join('\n');
+        caret = start + replacement.length;
+      } else if (kind === 'link') {
+        const url = prompt('Link URL:', 'https://');
+        if (url === null) return;
+        replacement = `[${sel || 'text'}](${url})`;
+        caret = start + replacement.length;
+      } else if (kind === 'insert') {
+        replacement = snippet.replace('{sel}', sel);
+        caret = start + replacement.length;
+      }
+
+      editor.setRangeText(replacement, start, end, 'end');
+      editor.selectionStart = editor.selectionEnd = caret;
+      editor.focus();
+
+      // MDX-only snippets flip the file type so the imports are valid.
+      if ((snippet.includes('<Callout') || snippet.includes('<YouTube')) && !mdx) toggleMdx(true);
+      render();
+    };
+
+    document.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach((btn) => {
+      btn.addEventListener('click', () =>
+        apply(btn.dataset.kind!, btn.dataset.a ?? '', btn.dataset.b ?? '', btn.dataset.snippet ?? ''),
+      );
+    });
+
+    // ---- keyboard shortcuts ---------------------------------------------
+    editor.addEventListener('keydown', (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === 'b') { e.preventDefault(); apply('wrap', '**', '**'); }
+      else if (mod && e.key === 'i') { e.preventDefault(); apply('wrap', '_', '_'); }
+      else if (mod && e.key === 'k') { e.preventDefault(); apply('link'); }
+      else if (e.key === 'Tab') {
+        // Tab indents instead of leaving the textarea — expected in an editor.
+        e.preventDefault();
+        editor.setRangeText('  ', editor.selectionStart, editor.selectionEnd, 'end');
+        render();
+      }
+    });
+
+    // ---- file type ------------------------------------------------------
+    function toggleMdx(on: boolean) {
+      mdx = on;
+      $('btn-mdx').textContent = mdx ? '.mdx' : '.md';
+    }
+    $('btn-mdx').addEventListener('click', () => toggleMdx(!mdx));
+
+    const filename = () => `${field('f-slug').value || 'untitled'}.${mdx ? 'mdx' : 'md'}`;
+
+    // The imports MDX needs, prepended only on download of an .mdx file.
+    const withImports = (md: string) => {
+      if (!mdx) return md;
+      const needs = [
+        md.includes('<Callout') && "import Callout from '../../components/mdx/Callout.astro';",
+        md.includes('<YouTube') && "import YouTube from '../../components/mdx/YouTube.astro';",
+      ].filter(Boolean);
+      if (!needs.length) return md;
+      // Insert imports right after the closing frontmatter fence.
+      const end = md.indexOf('\n---', 3) + 4;
+      return md.slice(0, end) + '\n' + needs.join('\n') + '\n' + md.slice(end);
+    };
+
+    // ---- actions --------------------------------------------------------
+    $('btn-download').addEventListener('click', () => {
+      const md = withImports(toMarkdown(readForm()));
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([md], { type: 'text/markdown' }));
+      a.download = filename();
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    $('btn-copy').addEventListener('click', async () => {
+      await navigator.clipboard.writeText(withImports(toMarkdown(readForm())));
+      $('autosave').textContent = 'Copied';
+      setTimeout(() => ($('autosave').textContent = ''), 1500);
+    });
+
+    $('btn-clear').addEventListener('click', () => {
+      if (!confirm('Start a new post? The current draft is saved locally but the fields will clear.')) return;
+      localStorage.removeItem(DRAFT_KEY);
+      writeForm(emptyDraft());
+      field('f-slug').removeAttribute('data-touched');
+      render();
+    });
+
+    render();
+  }
+
+  initWriter();
+  document.addEventListener('astro:page-load', initWriter);
+</script>

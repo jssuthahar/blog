@@ -1,0 +1,59 @@
+---
+# Copy this file into src/content/blog/, rename it to your URL slug, and delete
+# anything you do not need. Full reference: ../WRITING.md
+title: 'Your Title Here — Max 120 Characters'
+description: 'One or two sentences, 50 to 200 characters. This becomes the card text, the search result, and the RSS summary.'
+highlight: 'The answer in two or three sentences. This renders in the box at the top of the post and is the passage most often quoted by search engines and AI assistants.'
+publishedAt: 2026-07-24
+# updatedAt: 2026-08-15
+category: dotnet          # dotnet | csharp | azure | ai | devops | career
+tags: ['ASP.NET Core', 'Azure']
+draft: true               # set false to publish
+
+# --- optional ---------------------------------------------------------------
+# cover: './images/my-cover.png'
+# coverAlt: 'Describe what the image shows'
+# featured: true
+# series: 'minimal-api-production'
+# seriesOrder: 3
+# redirectFrom: ['/2023/05/old-blogger-url.html']
+# faq:
+#   - q: 'A question someone would actually search for'
+#     a: 'A direct, self-contained answer.'
+---
+
+{/* Delete these two imports if you use neither. They only work in .mdx files. */}
+import YouTube from '../../components/mdx/YouTube.astro';
+import Callout from '../../components/mdx/Callout.astro';
+
+Open with the problem, in one short paragraph. Say who hits it and why the obvious
+approach falls short.
+
+## How does the thing actually work?
+
+Answer in the first two sentences. Then explain.
+
+```csharp
+// Name the language after the fence so it gets highlighted.
+var builder = WebApplication.CreateBuilder(args);
+```
+
+<Callout type="warning">
+  The trap worth calling out — the default that silently does the wrong thing.
+</Callout>
+
+![Describe what the screenshot shows](./images/example.png)
+
+## What are the trade-offs?
+
+| Option | Good for | Cost |
+| --- | --- | --- |
+| A | … | … |
+| B | … | … |
+
+<YouTube id="VIDEO_ID_HERE" title="Walkthrough of this setup" />
+
+## Key takeaways
+
+- One point per line.
+- Each should stand alone if quoted.

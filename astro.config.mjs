@@ -13,8 +13,13 @@ export default defineConfig({
   integrations: [
     mdx(),
     sitemap({
-      // Drafts and the Blogger redirect stubs must never enter the sitemap.
-      filter: (page) => !page.includes('/draft/'),
+      // Pages marked noindex must not be advertised in the sitemap either —
+      // submitting a URL you also tell crawlers to ignore is a contradiction.
+      filter: (page) =>
+        !page.includes('/draft/') &&
+        !page.includes('/admin') &&
+        !page.includes('/write') &&
+        !page.includes('/search'),
     }),
   ],
 

@@ -15,14 +15,19 @@ export const SUBSCRIBED_KEY = 'newsletter:subscribed';
 export const isEnabled = () =>
   FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
 
-async function saveToFirestore(email: string, source: string): Promise<void> {
-  if (!FIREBASE.projectId) return;
+/** Resolves to true when this was a new signup, false when already on the list. */
+async function saveToFirestore(email: string, source: string): Promise<boolean> {
+  if (!FIREBASE.projectId) return true;
 
   const base = `https://firestore.googleapis.com/v1/projects/${FIREBASE.projectId}/databases/(default)/documents`;
-  const key = FIREBASE.apiKey ? `?key=${FIREBASE.apiKey}` : '';
-  const docId = encodeURIComponent(email);
 
-  const res = await fetch(`${base}:commit${key}`, {
+  // The document name travels in the JSON body, not a URL path, so it must NOT
+  // be percent-encoded — encoding produced IDs like `name%40example.com`.
+  // Firestore accepts `@` and `.` in IDs; `/` is the only character that would
+  // break the path, and an email cannot contain one.
+  const docId = email;
+
+  const res = await fetch(`${base}:commit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -46,11 +51,14 @@ async function saveToFirestore(email: string, source: string): Promise<void> {
     }),
   });
 
-  if (res.ok) return;
+  if (res.ok) return true;
 
   const body = await res.json().catch(() => ({}));
-  // Already on the list — from the reader's side that is still success.
-  if (body?.error?.status === 'FAILED_PRECONDITION') return;
+
+  // A failed `exists: false` precondition comes back as ALREADY_EXISTS (409).
+  // That means they are already on the list — not an error to show anyone.
+  const status = body?.error?.status;
+  if (status === 'ALREADY_EXISTS' || status === 'FAILED_PRECONDITION') return false;
 
   throw new Error(body?.error?.message || `HTTP ${res.status}`);
 }
@@ -69,17 +77,24 @@ async function sendToProvider(email: string): Promise<void> {
   });
 }
 
+export type SubscribeResult = 'subscribed' | 'already-subscribed';
+
 /**
  * Stores the address and hands it to the email provider.
- * Rejects only when the address could not be stored.
+ * Rejects only when the address is invalid or could not be stored.
  */
-export async function subscribe(rawEmail: string, source: string): Promise<void> {
+export async function subscribe(rawEmail: string, source: string): Promise<SubscribeResult> {
   const email = rawEmail.trim().toLowerCase();
 
   if (!EMAIL_RE.test(email)) {
     throw new Error('invalid-email');
   }
 
-  await Promise.all([saveToFirestore(email, source), sendToProvider(email)]);
+  const [isNew] = await Promise.all([
+    saveToFirestore(email, source),
+    sendToProvider(email),
+  ]);
+
   localStorage.setItem(SUBSCRIBED_KEY, '1');
+  return isNew ? 'subscribed' : 'already-subscribed';
 }

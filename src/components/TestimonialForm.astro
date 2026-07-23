@@ -1,0 +1,227 @@
+---
+import { FIREBASE } from '../config';
+
+interface Props {
+  compact?: boolean;
+}
+
+const { compact = false } = Astro.props;
+const enabled = FIREBASE.projectId.length > 0;
+---
+
+<section
+  id="write-testimonial"
+  class:list={['scroll-mt-24 rounded-xl border border-default', compact ? 'p-6' : 'p-8']}
+  aria-labelledby="testimonial-form-heading"
+>
+  <p class="eyebrow">Your turn</p>
+  <h2 id="testimonial-form-heading" class="display mt-2 text-2xl">
+    How did Suthahar's articles help you?
+  </h2>
+  <p class="mt-2 max-w-xl text-sm leading-relaxed text-muted">
+    If something here saved you time or unblocked a real project, I'd love to hear about it.
+    Submissions are reviewed before they appear on the site.
+  </p>
+
+  <form id="testimonial-form" class="mt-6 space-y-4" novalidate>
+    <div>
+      <label for="t-message" class="block text-sm font-medium">
+        Your feedback <span style="color: var(--accent);">*</span>
+      </label>
+      <textarea
+        id="t-message"
+        name="message"
+        rows="5"
+        required
+        maxlength="1500"
+        disabled={!enabled}
+        placeholder="Suthahar's article helped me complete my work faster. The explanation was clear, practical, and easy to apply in a real project."
+        class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
+      ></textarea>
+      <p class="mt-1 text-xs text-muted">
+        <span data-count>0</span>/1500 · minimum 10 characters
+      </p>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label for="t-name" class="block text-sm font-medium">
+          Name <span style="color: var(--accent);">*</span>
+        </label>
+        <input
+          id="t-name"
+          name="name"
+          type="text"
+          required
+          maxlength="80"
+          autocomplete="name"
+          disabled={!enabled}
+          class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
+        />
+      </div>
+      <div>
+        <label for="t-company" class="block text-sm font-medium">
+          Company <span class="font-normal text-muted">(optional)</span>
+        </label>
+        <input
+          id="t-company"
+          name="company"
+          type="text"
+          maxlength="100"
+          autocomplete="organization"
+          disabled={!enabled}
+          class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
+        />
+      </div>
+      <div>
+        <label for="t-role" class="block text-sm font-medium">
+          Role <span class="font-normal text-muted">(optional)</span>
+        </label>
+        <input
+          id="t-role"
+          name="role"
+          type="text"
+          maxlength="100"
+          autocomplete="organization-title"
+          disabled={!enabled}
+          class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
+        />
+      </div>
+      <div>
+        <label for="t-article" class="block text-sm font-medium">
+          Article name or link <span class="font-normal text-muted">(optional)</span>
+        </label>
+        <input
+          id="t-article"
+          name="article"
+          type="text"
+          maxlength="300"
+          disabled={!enabled}
+          class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
+        />
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-4">
+      <button type="submit" disabled={!enabled} class="btn btn-accent disabled:opacity-60">
+        Submit testimonial
+      </button>
+      <p id="testimonial-status" role="status" aria-live="polite" class="text-sm"></p>
+    </div>
+
+    <p class="text-xs text-muted">
+      Your name, company, and role appear publicly if published. Nothing else is collected.
+    </p>
+
+    {!enabled && (
+      <p class="text-sm text-muted">
+        Set <code>FIREBASE.projectId</code> in <code>src/config.ts</code> to enable this form.
+      </p>
+    )}
+  </form>
+</section>
+
+<script>
+  import { FIREBASE } from '../config';
+
+  function initTestimonialForm() {
+    const form = document.getElementById('testimonial-form') as HTMLFormElement | null;
+    if (!form || form.dataset.bound === '') return;
+    form.dataset.bound = '';
+
+    const status = document.getElementById('testimonial-status')!;
+    const message = form.querySelector<HTMLTextAreaElement>('#t-message')!;
+    const counter = form.querySelector<HTMLElement>('[data-count]')!;
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+
+    message.addEventListener('input', () => {
+      counter.textContent = String(message.value.length);
+    });
+
+    const say = (text: string, tone: 'ok' | 'error' | 'muted') => {
+      status.textContent = text;
+      status.style.color = tone === 'muted' ? 'var(--text-muted)' : 'var(--accent)';
+    };
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const fields = {
+        message: message.value.trim(),
+        name: (form.querySelector('#t-name') as HTMLInputElement).value.trim(),
+        company: (form.querySelector('#t-company') as HTMLInputElement).value.trim(),
+        role: (form.querySelector('#t-role') as HTMLInputElement).value.trim(),
+        article: (form.querySelector('#t-article') as HTMLInputElement).value.trim(),
+      };
+
+      if (fields.message.length < 10) {
+        say('Please write at least 10 characters.', 'error');
+        message.focus();
+        return;
+      }
+      if (fields.name.length < 2) {
+        say('Please add your name.', 'error');
+        return;
+      }
+
+      button.disabled = true;
+      say('Sending…', 'muted');
+
+      // A client-generated ID lets this use commit(), which supports the
+      // server-timestamp transform the rules require.
+      const id = crypto.randomUUID();
+      const base = `https://firestore.googleapis.com/v1/projects/${FIREBASE.projectId}/databases/(default)/documents`;
+
+      try {
+        const res = await fetch(`${base}:commit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            writes: [
+              {
+                update: {
+                  name: `projects/${FIREBASE.projectId}/databases/(default)/documents/testimonials/${id}`,
+                  fields: {
+                    message: { stringValue: fields.message },
+                    name: { stringValue: fields.name },
+                    company: { stringValue: fields.company },
+                    role: { stringValue: fields.role },
+                    article: { stringValue: fields.article },
+                    // Moderation state is fixed here and enforced by the rules;
+                    // a submission can never arrive pre-approved.
+                    status: { stringValue: 'pending' },
+                    featured: { booleanValue: false },
+                  },
+                },
+                updateMask: {
+                  fieldPaths: ['message', 'name', 'company', 'role', 'article', 'status', 'featured'],
+                },
+                updateTransforms: [
+                  { fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME' },
+                ],
+                currentDocument: { exists: false },
+              },
+            ],
+          }),
+        });
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.error?.message || `HTTP ${res.status}`);
+        }
+
+        form.querySelectorAll('input, textarea').forEach((el) => {
+          (el as HTMLInputElement).value = '';
+        });
+        counter.textContent = '0';
+        say('Thank you — your testimonial has been sent for review.', 'ok');
+      } catch (error) {
+        button.disabled = false;
+        say('Something went wrong. Please try again later.', 'error');
+      }
+    });
+  }
+
+  initTestimonialForm();
+  document.addEventListener('astro:page-load', initTestimonialForm);
+</script>

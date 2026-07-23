@@ -30,6 +30,13 @@ jobs:
 
       - run: npm ci
 
+      # Picks up testimonials approved in the Firebase console since the last
+      # deploy. Non-fatal: a Firestore hiccup must not block a release, and the
+      # committed cache is used instead.
+      - name: Refresh approved testimonials
+        run: npm run sync:testimonials
+        continue-on-error: true
+
       - name: Type check
         run: npx astro check
 

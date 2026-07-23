@@ -223,17 +223,16 @@ export const NEWSLETTER = {
 } as const;
 
 /**
- * Firestore project for view counts. The counter talks to the REST API
- * directly, so no Firebase SDK ships to the browser. Empty projectId disables
- * the counter entirely.
+ * Firestore project for view counts, subscribers, and testimonials. Everything
+ * talks to the REST API directly, so no Firebase SDK ships to the browser.
+ * Empty projectId disables those features.
  *
- * Access is governed by firestore.rules, not by the key: Firebase web API keys
- * are public identifiers that Google documents as safe to ship in client code.
- * The rules are the security boundary, which is why they must stay strict.
+ * No API key: the Firestore REST endpoint accepts unauthenticated requests and
+ * firestore.rules decides what they may do. Shipping a key added nothing except
+ * a Google-shaped credential in a public repo for scanners to flag.
  */
 export const FIREBASE = {
   projectId: 'msdevbuild-blog',
-  apiKey: 'AIzaSyC1oOQOPnd4i-6W0vXkhDHrzRAFYpd0nDk',
 } as const;
 
 /**

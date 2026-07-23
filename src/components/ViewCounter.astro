@@ -27,11 +27,9 @@ const enabled = FIREBASE.projectId.length > 0;
 )}
 
 {enabled && (
-  <script is:inline define:vars={{ projectId: FIREBASE.projectId, apiKey: FIREBASE.apiKey }}>
+  <script is:inline define:vars={{ projectId: FIREBASE.projectId }}>
     (() => {
       const BASE = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
-      // The key identifies the project for quota; the rules do the authorising.
-      const KEY = apiKey ? `?key=${apiKey}` : '';
 
       const format = (n) =>
         n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
@@ -43,7 +41,7 @@ const enabled = FIREBASE.projectId.length > 0;
 
         const slug = el.dataset.viewCounter;
         const output = el.querySelector('[data-view-count]');
-        const docPath = `${BASE}/views/${encodeURIComponent(slug)}${KEY}`;
+        const docPath = `${BASE}/views/${encodeURIComponent(slug)}`;
 
         // One view per post per browser session, so a refresh does not inflate counts.
         const sessionKey = `viewed:${slug}`;
@@ -55,7 +53,7 @@ const enabled = FIREBASE.projectId.length > 0;
             sessionStorage.setItem(sessionKey, '1');
 
             // updateTransforms upserts: it creates the doc if missing, then increments.
-            const res = await fetch(`${BASE}:commit${KEY}`, {
+            const res = await fetch(`${BASE}:commit`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

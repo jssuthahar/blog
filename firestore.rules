@@ -43,6 +43,39 @@ service cloud.firestore {
                     && request.resource.data.createdAt == request.time;
     }
 
+    // Reader testimonials.
+    //
+    // Moderation lives entirely in these rules: anyone may submit, but only
+    // as `pending`, and only `approved` documents are readable. A client
+    // cannot approve its own submission, and a query that does not filter to
+    // approved is rejected outright rather than returning a filtered set.
+    match /testimonials/{id} {
+      allow read: if resource.data.status == 'approved';
+
+      allow create: if request.resource.data.keys().hasOnly(
+                         ['message', 'name', 'company', 'role', 'article',
+                          'status', 'featured', 'createdAt'])
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.featured == false
+                    && request.resource.data.message is string
+                    && request.resource.data.message.size() >= 10
+                    && request.resource.data.message.size() <= 1500
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() >= 2
+                    && request.resource.data.name.size() <= 80
+                    && request.resource.data.company is string
+                    && request.resource.data.company.size() <= 100
+                    && request.resource.data.role is string
+                    && request.resource.data.role.size() <= 100
+                    && request.resource.data.article is string
+                    && request.resource.data.article.size() <= 300
+                    // Server-stamped, so a submission cannot be backdated.
+                    && request.resource.data.createdAt == request.time;
+
+      // Approving, editing, and deleting happen in the Firebase console only.
+      allow update, delete: if false;
+    }
+
     // Everything else is closed.
     match /{document=**} {
       allow read, write: if false;

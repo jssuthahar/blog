@@ -1,0 +1,133 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TestimonialCard from '../components/TestimonialCard.astro';
+import TestimonialForm from '../components/TestimonialForm.astro';
+import { SITE, AUTHOR } from '../config';
+import { allTestimonials, reviewSchema, testimonialIndex } from '../lib/testimonials';
+
+const testimonials = allTestimonials();
+const featured = testimonials.filter((t) => t.featured);
+const rest = testimonials.filter((t) => !t.featured);
+
+const schema =
+  testimonials.length > 0
+    ? [
+        {
+          '@type': 'CollectionPage',
+          '@id': `${SITE.url}/testimonials#page`,
+          name: `Reader testimonials — ${AUTHOR.name}`,
+          description: `What readers say about the articles published by ${AUTHOR.name}.`,
+        },
+        ...reviewSchema(testimonials, `${SITE.url}/#person`),
+      ]
+    : [];
+---
+
+<BaseLayout
+  title="Testimonials"
+  description={`What readers say about ${AUTHOR.name}'s articles on .NET, Azure, and AI — real feedback from developers who used them in production work.`}
+  schema={schema}
+  wide
+>
+  <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <header class="max-w-3xl">
+      <p class="eyebrow">Testimonials</p>
+      <h1 class="display mt-3 text-3xl sm:text-4xl">What readers say</h1>
+      <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">
+        Feedback from developers who used these articles in real projects — what helped,
+        what saved time, and what shipped.
+      </p>
+
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <a href="#write-testimonial" class="btn btn-accent btn-sm">Write a testimonial</a>
+        {testimonialIndex.count > 0 && (
+          <span class="text-sm text-muted">
+            {testimonialIndex.count} published
+          </span>
+        )}
+      </div>
+    </header>
+
+    {testimonials.length > 0 ? (
+      <>
+        <div class="mt-10 max-w-xl">
+          <label for="testimonial-search" class="sr-only">Search testimonials</label>
+          <input
+            id="testimonial-search"
+            type="search"
+            autocomplete="off"
+            placeholder="Search by keyword, name, company, or article…"
+            class="w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-3 text-base"
+          />
+          <p id="testimonial-count" role="status" aria-live="polite" class="mt-2 text-sm text-muted">
+            Showing all {testimonials.length}
+          </p>
+        </div>
+
+        {featured.length > 0 && (
+          <section class="mt-10" aria-labelledby="featured-heading">
+            <h2 id="featured-heading" class="sr-only">Featured testimonials</h2>
+            <div class="grid gap-5 md:grid-cols-2">
+              {featured.map((t) => <TestimonialCard testimonial={t} highlight />)}
+            </div>
+          </section>
+        )}
+
+        {rest.length > 0 && (
+          <section class="mt-6" aria-labelledby="all-heading">
+            <h2 id="all-heading" class="sr-only">All testimonials</h2>
+            <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {rest.map((t) => <TestimonialCard testimonial={t} />)}
+            </div>
+          </section>
+        )}
+
+        <p id="testimonial-empty" hidden class="mt-8 rounded-lg border border-default bg-subtle p-6 text-muted">
+          No testimonials match that search.
+        </p>
+      </>
+    ) : (
+      <div class="mt-10 rounded-xl border border-default bg-subtle p-8 text-center">
+        <p class="font-medium">No testimonials published yet.</p>
+        <p class="mx-auto mt-2 max-w-md text-sm text-muted">
+          If an article here helped you ship something, yours could be the first.
+        </p>
+      </div>
+    )}
+
+    <div class="mt-14">
+      <TestimonialForm />
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  function initTestimonialSearch() {
+    const search = document.getElementById('testimonial-search') as HTMLInputElement | null;
+    if (!search) return;
+
+    const cards = [...document.querySelectorAll<HTMLElement>('[data-testimonial]')];
+    const count = document.getElementById('testimonial-count');
+    const empty = document.getElementById('testimonial-empty');
+
+    search.addEventListener('input', () => {
+      const query = search.value.trim().toLowerCase();
+      let shown = 0;
+
+      for (const card of cards) {
+        const match = query === '' || card.dataset.search!.includes(query);
+        card.hidden = !match;
+        if (match) shown++;
+      }
+
+      if (count) {
+        count.textContent =
+          shown === cards.length ? `Showing all ${cards.length}` : `Showing ${shown} of ${cards.length}`;
+      }
+      if (empty) empty.hidden = shown > 0;
+    });
+  }
+
+  initTestimonialSearch();
+  document.addEventListener('astro:page-load', initTestimonialSearch);
+</script>

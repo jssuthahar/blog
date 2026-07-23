@@ -147,12 +147,15 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
       status.style.color = 'var(--text-muted)';
 
       try {
-        await subscribe(input.value, 'home-popup');
+        const result = await subscribe(input.value, 'home-popup');
 
         // `subscribe` sets the subscribed flag; SEEN keeps the popup closed
         // even if that key is later cleared.
         localStorage.setItem(DONE, '1');
-        status.textContent = "Thanks — you're subscribed. Check your inbox.";
+        status.textContent =
+          result === 'already-subscribed'
+            ? "You're already on the list — nothing more to do."
+            : "Thanks — you're subscribed. Check your inbox.";
         status.style.color = 'var(--accent)';
         form.hidden = true;
 

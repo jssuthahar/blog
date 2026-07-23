@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import FollowCTA from '../components/FollowCTA.astro';
 import { SITE, AUTHOR, MAIN_SITE } from '../config';
 import {
   allArticles,
@@ -39,6 +40,8 @@ const schema = [
         <a href={MAIN_SITE.url} class="text-accent hover:underline">{MAIN_SITE.label}</a>,
         organised by topic. These open on the main site.
       </p>
+
+      <FollowCTA variant="row" heading="Follow along:" class="mt-6" />
     </header>
 
     <!-- Filtering is client-side over static HTML: every article is in the

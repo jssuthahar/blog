@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Welcome to MSDevBuild!</title>
+<!--
+  Welcome email for new newsletter subscribers.
+
+  Paste this into your email provider's welcome-automation template
+  (Kit, MailerLite, Brevo — all have a "paste HTML" option).
+
+  Written for email clients, not browsers: tables for layout, inline styles
+  only, 600px max width, no flexbox/grid, no external CSS, no web fonts.
+  Outlook renders none of those. Replace {{unsubscribe_url}} and
+  {{first_name}} with your provider's own merge tags.
+-->
+<style>
+  /* Only a handful of clients honour <style>; every critical style is also
+     inline. This block just improves the ones that do. */
+  @media (max-width: 620px) {
+    .container { width: 100% !important; }
+    .px { padding-left: 24px !important; padding-right: 24px !important; }
+    .h1 { font-size: 26px !important; line-height: 32px !important; }
+    .stack { display: block !important; width: 100% !important; }
+  }
+  @media (prefers-color-scheme: dark) {
+    .body-bg { background: #12161f !important; }
+    .card { background: #1a1f2b !important; }
+    .ink { color: #eef2f8 !important; }
+    .muted { color: #9aa6b8 !important; }
+    .hair { border-color: #2b3342 !important; }
+  }
+</style>
+</head>
+<body class="body-bg" style="margin:0; padding:0; background:#f4f6fa; -webkit-font-smoothing:antialiased;">
+
+  <!-- Preheader: the grey preview line next to the subject in the inbox. -->
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0;">
+    You're in. Expect new articles, Azure AI and GitHub Copilot updates, and event invites.
+    &#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;&#8203;
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f6fa;">
+    <tr>
+      <td align="center" style="padding:32px 12px;">
+
+        <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px;">
+
+          <!-- Brand bar -->
+          <tr>
+            <td class="px" style="padding:0 8px 20px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="left" style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-size:17px; font-weight:700; letter-spacing:-0.3px; color:#0f172a;">
+                    <span style="color:#1160d4;">MS</span>DEVBUILD
+                    <span style="font-weight:400; color:#64748b;">/ blog</span>
+                  </td>
+                  <td align="right" style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-size:12px; color:#64748b;">
+                    by Suthahar
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Card -->
+          <tr>
+            <td class="card" style="background:#ffffff; border-radius:14px; border:1px solid #e2e8f0;">
+
+              <!-- Accent rule -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td style="height:4px; line-height:4px; font-size:0; background:#1160d4; border-radius:14px 14px 0 0;">&nbsp;</td></tr>
+              </table>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="px" style="padding:36px 40px 8px;">
+                    <p style="margin:0 0 10px; font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-size:12px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:#1160d4;">
+                      Subscription confirmed
+                    </p>
+                    <h1 class="h1 ink" style="margin:0; font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-size:30px; line-height:36px; font-weight:700; letter-spacing:-0.6px; color:#0f172a;">
+                      Welcome to MSDevBuild!
+                    </h1>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td class="px muted" style="padding:16px 40px 0; font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#475569;">
+                    <!-- Plain greeting on purpose: merge-tag syntax differs per
+                         provider, and an unresolved tag renders as literal text
+                         in the reader's inbox. Swap in yours if you want a name. -->
+                    <p style="margin:0 0 14px;">Hi there,</p>
+                    <p style="margin:0 0 14px;">
+                      Thank you for subscribing. You'll now get an email whenever something
+                      new is published — practical, hands-on material drawn from real
+                      production work, never filler.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- What you'll receive -->
+                <tr>
+                  <td class="px" style="padding:22px 40px 0;">
+                    <p class="ink" style="margin:0 0 14px; font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-size:14px; font-weight:700; color:#0f172a;">
+                      Here's what will land in your inbox
+                    </p>
+
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+                      <tr>
+                        <td valign="top" width="26" style="padding:9px 0; font-size:16px; color:#1160d4; line-height:24px;">&#10003;</td>
+                        <td valign="top" class="muted" style="padding:9px 0; font-size:15px; line-height:24px; color:#475569;">
+                          <strong class="ink" style="color:#0f172a;">New technical articles</strong> — .NET, C#, Azure, and architecture deep dives
+                        </td>
+                      </tr>
+                      <tr>
+                        <td valign="top" width="26" style="padding:9px 0; font-size:16px; color:#1160d4; line-height:24px;">&#10003;</td>
+                        <td valign="top" class="muted" style="padding:9px 0; font-size:15px; line-height:24px; color:#475569;">
+                          <strong class="ink" style="color:#0f172a;">GitHub Copilot updates</strong> — agent mode, conventions, and what actually changes delivery
+                        </td>
+                      </tr>
+                      <tr>
+                        <td valign="top" width="26" style="padding:9px 0; font-size:16px; color:#1160d4; line-height:24px;">&#10003;</td>
+                        <td valign="top" class="muted" style="padding:9px 0; font-size:15px; line-height:24px; color:#475569;">
+                          <strong class="ink" style="color:#0f172a;">Azure AI content</strong> — Azure OpenAI, RAG pipelines, and grounding that holds up
+                        </td>
+                      </tr>
+                      <tr>
+                        <td valign="top" width="26" style="padding:9px 0; font-size:16px; color:#1160d4; line-height:24px;">&#10003;</td>
+                        <td valign="top" class="muted" style="padding:9px 0; font-size:15px; line-height:24px; color:#475569;">
+                          <strong class="ink" style="color:#0f172a;">Upcoming events and webinars</strong> — conference sessions and community talks
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- CTA (bulletproof button: VML for Outlook, padded anchor elsewhere) -->
+                <tr>
+                  <td class="px" style="padding:30px 40px 6px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" bgcolor="#1160d4" style="border-radius:999px;">
+                          <a href="https://blog.msdevbuild.com/articles"
+                             style="display:inline-block; padding:14px 30px; font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-size:15px; font-weight:700; color:#ffffff; text-decoration:none; border-radius:999px;">
+                            Start reading &rarr;
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td class="px muted" style="padding:16px 40px 0; font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-size:14px; line-height:22px; color:#64748b;">
+                    In the meantime, 500+ articles are already waiting at
+                    <a href="https://blog.msdevbuild.com/articles" style="color:#1160d4; text-decoration:none;">blog.msdevbuild.com</a>.
+                  </td>
+                </tr>
+
+                <!-- Follow -->
+                <tr>
+                  <td class="px" style="padding:26px 40px 34px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e2e8f0;" class="hair">
+                      <tr>
+                        <td style="padding-top:20px; font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:22px; color:#64748b;">
+                          Also worth following:
+                          <a href="https://www.youtube.com/@MSDEVBUILD?sub_confirmation=1" style="color:#1160d4; text-decoration:none; font-weight:600;">YouTube</a> &nbsp;·&nbsp;
+                          <a href="https://my.linkedin.com/in/jssuthahar" style="color:#1160d4; text-decoration:none; font-weight:600;">LinkedIn</a> &nbsp;·&nbsp;
+                          <a href="https://github.com/jssuthahar" style="color:#1160d4; text-decoration:none; font-weight:600;">GitHub</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td class="px" style="padding:22px 8px 0; font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-size:12px; line-height:20px; color:#94a3b8;">
+              <p style="margin:0 0 6px;">
+                You're receiving this because you subscribed at blog.msdevbuild.com.
+              </p>
+              <p style="margin:0;">
+                <a href="{{unsubscribe_url}}" style="color:#94a3b8; text-decoration:underline;">Unsubscribe</a>
+                &nbsp;·&nbsp; Suthahar Jegatheesan &nbsp;·&nbsp; Malaysia
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -1,6 +1,7 @@
 ---
 title: 'Building a RAG Pipeline in .NET with Azure OpenAI and Azure AI Search'
 description: 'End-to-end retrieval-augmented generation in C#: chunking strategy, embeddings, hybrid vector search, and grounding a chat completion so it cites its sources.'
+highlight: 'Chunk on semantic boundaries at 500-800 tokens with 15% overlap, retrieve with hybrid search plus semantic reranking, then instruct the model to answer only from the supplied context. Retrieval quality decides whether a RAG system is any good - not the prompt.'
 publishedAt: 2026-07-18
 category: ai
 tags: ['Azure OpenAI', 'RAG', 'Azure AI Search', 'C#', 'Embeddings']
@@ -10,8 +11,6 @@ faq:
   - q: 'Do I need a vector database for RAG in .NET?'
     a: 'Not necessarily. Azure AI Search supports vector and hybrid search directly, and for small corpora an in-memory index is enough. A dedicated vector database matters when you need millions of vectors or independent scaling of the index.'
 ---
-
-**TL;DR** — Chunk documents to 500–800 tokens with overlap, embed with `text-embedding-3-small`, store in Azure AI Search with a vector profile, retrieve using hybrid search plus semantic reranking, then pass the top chunks into a chat completion with an instruction to answer only from the provided context.
 
 Retrieval-augmented generation is how you get an LLM to answer questions about data it was never trained on. The pattern is simple; the quality lives almost entirely in the retrieval half.
 

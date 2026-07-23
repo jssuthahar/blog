@@ -1,0 +1,192 @@
+---
+import { FIREBASE, NEWSLETTER } from '../config';
+
+/**
+ * One-time subscription invitation.
+ *
+ * Uses the native <dialog> element rather than a hand-rolled overlay: it gives
+ * focus trapping, ESC-to-close, inert background, and correct screen-reader
+ * semantics without any of it being reimplemented (and subtly wrong).
+ */
+
+const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
+---
+
+{enabled && (
+  <dialog
+    id="subscribe-popup"
+    class="subscribe-dialog rounded-xl border border-default p-0"
+    aria-labelledby="subscribe-title"
+  >
+    <form method="dialog" class="absolute right-2 top-2">
+      <button
+        class="rounded-md p-2 text-muted transition-colors hover:bg-subtle"
+        aria-label="Close"
+        value="dismiss"
+      >
+        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </form>
+
+    <div class="p-7">
+      <p class="eyebrow">Stay in the loop</p>
+      <h2 id="subscribe-title" class="display mt-2 text-2xl">
+        New articles and events, straight to your inbox
+      </h2>
+      <p class="mt-3 text-sm leading-relaxed text-muted">
+        Get notified when a new technical article goes live and when I'm speaking at an
+        upcoming event. No spam — unsubscribe anytime.
+      </p>
+
+      <ul class="mt-4 space-y-1.5 text-sm">
+        {[
+          'New technical articles',
+          'GitHub Copilot updates',
+          'Azure AI content',
+          'Upcoming events and webinars',
+        ].map((item) => (
+          <li class="flex items-start gap-2">
+            <svg class="mt-0.5 size-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" style="color: var(--accent);" aria-hidden="true">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.86-9.47a.75.75 0 0 0-1.22-.86l-3.24 4.53-1.62-1.62a.75.75 0 0 0-1.06 1.06l2.24 2.24a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
+            </svg>
+            {item}
+          </li>
+        ))}
+      </ul>
+
+      <form id="subscribe-popup-form" class="mt-6 flex flex-col gap-2 sm:flex-row" novalidate>
+        <label for="popup-email" class="sr-only">Email address</label>
+        <input
+          id="popup-email"
+          name="email"
+          type="email"
+          required
+          autocomplete="email"
+          placeholder="you@example.com"
+          class="flex-1 rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm"
+        />
+        <button type="submit" class="btn btn-accent btn-sm">Subscribe</button>
+      </form>
+
+      <p id="subscribe-popup-status" role="status" aria-live="polite" class="mt-3 min-h-5 text-sm"></p>
+
+      <button type="button" data-dismiss class="mt-1 text-xs text-muted underline">
+        No thanks
+      </button>
+    </div>
+  </dialog>
+)}
+
+<style>
+  .subscribe-dialog {
+    width: min(30rem, calc(100vw - 2rem));
+    /* A modal <dialog> centres itself via `margin: auto`, which the CSS reset
+       zeroes out — without this it pins to the top-left corner. */
+    margin: auto;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .subscribe-dialog::backdrop {
+    background: oklch(0 0 0 / 0.45);
+    backdrop-filter: blur(2px);
+  }
+  .subscribe-dialog[open] {
+    animation: popup-in 0.25s ease;
+  }
+  @keyframes popup-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .subscribe-dialog[open] { animation: none; }
+  }
+</style>
+
+<script>
+  // Shares the signup logic with every inline form, so a change to the
+  // Firestore write or the provider hand-off applies in both places.
+  import { subscribe } from '../lib/subscribe';
+
+  function initSubscribePopup() {
+    const found = document.getElementById('subscribe-popup') as HTMLDialogElement | null;
+    if (!found) return;
+    // Re-bound so the non-null type survives into the hoisted helpers below.
+    const dialog = found;
+
+    // Two separate flags: a dismissal may be reconsidered later, a completed
+    // subscription never should be.
+    const SEEN = 'newsletter:seen';
+    const DONE = 'newsletter:subscribed';
+
+    const seen = () => localStorage.getItem(SEEN) || localStorage.getItem(DONE);
+
+    const form = document.getElementById('subscribe-popup-form') as HTMLFormElement | null;
+    const input = document.getElementById('popup-email') as HTMLInputElement;
+    const status = document.getElementById('subscribe-popup-status') as HTMLElement;
+
+    const close = () => {
+      localStorage.setItem(SEEN, '1');
+      if (dialog.open) dialog.close();
+    };
+
+    dialog.querySelector('[data-dismiss]')?.addEventListener('click', close);
+    // Covers the × button and the ESC key, both of which fire `close`.
+    dialog.addEventListener('close', () => localStorage.setItem(SEEN, '1'));
+
+    // Click outside the card dismisses, matching the expectation set by <dialog>.
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) close();
+    });
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      status.textContent = 'Subscribing…';
+      status.style.color = 'var(--text-muted)';
+
+      try {
+        await subscribe(input.value, 'home-popup');
+
+        // `subscribe` sets the subscribed flag; SEEN keeps the popup closed
+        // even if that key is later cleared.
+        localStorage.setItem(DONE, '1');
+        status.textContent = "Thanks — you're subscribed. Check your inbox.";
+        status.style.color = 'var(--accent)';
+        form.hidden = true;
+
+        setTimeout(() => dialog.open && dialog.close(), 2600);
+      } catch (error) {
+        status.textContent =
+          error instanceof Error && error.message === 'invalid-email'
+            ? 'Please enter a valid email address.'
+            : 'Something went wrong. Please try again later.';
+        status.style.color = 'var(--accent)';
+        input.focus();
+      }
+    });
+
+    // Trigger: whichever comes first — a short dwell, or scrolling far enough
+    // to show intent. Never on a first paint, which reads as an ambush.
+    function open() {
+      if (seen() || dialog.open) return;
+      dialog.showModal();
+      window.removeEventListener('scroll', onScroll);
+    }
+
+    function onScroll() {
+      const progress =
+        window.scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight);
+      if (progress > 0.35) open();
+    }
+
+    if (!seen()) {
+      setTimeout(open, 12000);
+      window.addEventListener('scroll', onScroll, { passive: true });
+    }
+  }
+
+  initSubscribePopup();
+  document.addEventListener('astro:page-load', initSubscribePopup);
+</script>

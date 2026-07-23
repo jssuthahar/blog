@@ -34,6 +34,10 @@ export const GET: APIRoute = ({ props }) => {
     '',
     '---',
     '',
+    // The highlight is the passage most often quoted, and it no longer lives
+    // in the body — emit it so the Markdown twin is not missing the summary.
+    `**Highlight:** ${data.highlight ?? data.description}`,
+    '',
     '',
   ]
     .filter((line) => line !== null)

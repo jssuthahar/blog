@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Avatar from '../components/Avatar.astro';
 import EventCard from '../components/EventCard.astro';
 import Newsletter from '../components/Newsletter.astro';
+import SubscribePopup from '../components/SubscribePopup.astro';
 import { SITE, AUTHOR, BOOKING, SPEAKING_TOPICS } from '../config';
 import { CATEGORIES, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
 import { allArticles, articleCategories } from '../lib/articles';
@@ -431,4 +432,7 @@ const schema = [
       </div>
     </div>
   </section>
+
+  <!-- Home page only, once per visitor. -->
+  <SubscribePopup />
 </BaseLayout>

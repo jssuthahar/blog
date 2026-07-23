@@ -1,0 +1,27 @@
+---
+interface Props {
+  text: string;
+}
+
+const { text } = Astro.props;
+---
+
+<!--
+  Every post opens with this. It gives a scanning reader the answer before they
+  commit to the article, and it is the passage retrieval systems most often
+  lift when quoting the page.
+-->
+<aside
+  class="rounded-lg border border-default p-5"
+  style="border-left: 3px solid var(--accent); background: var(--bg-subtle);"
+  aria-labelledby="post-highlight"
+>
+  <p
+    id="post-highlight"
+    class="text-xs font-bold tracking-[0.12em] uppercase"
+    style="color: var(--accent);"
+  >
+    Highlight
+  </p>
+  <p class="mt-2 leading-relaxed text-pretty">{text}</p>
+</aside>

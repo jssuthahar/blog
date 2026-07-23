@@ -1,6 +1,7 @@
 ---
 title: 'Structuring a .NET Minimal API Project That Survives Growth'
 description: 'Program.cs stops scaling around twenty endpoints. Here is a vertical-slice layout for Minimal APIs that keeps routing, validation, and handlers organised as the project grows.'
+highlight: 'Give every feature its own folder holding its endpoints, records, and handler, register each through an IEndpointModule extension method, and keep Program.cs to composition only. Program.cs stops scaling at roughly twenty endpoints.'
 publishedAt: 2026-06-28
 category: dotnet
 tags: ['ASP.NET Core', 'Minimal API', 'Architecture', 'Vertical Slice']
@@ -10,8 +11,6 @@ faq:
   - q: 'Are Minimal APIs suitable for large applications?'
     a: 'Yes, provided you move endpoint definitions out of Program.cs into feature modules registered via extension methods. The performance and simplicity benefits hold at scale; only the default single-file layout does not.'
 ---
-
-**TL;DR** — Give every feature its own folder containing its endpoints, request/response records, and handler. Register each with an `IEndpointModule` extension method, and keep `Program.cs` to composition only. Roughly the same discipline as controllers, without the base-class overhead.
 
 The Minimal API tutorials all put endpoints in `Program.cs`. That is fine for a demo and untenable by the twentieth endpoint.
 

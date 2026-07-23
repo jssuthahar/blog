@@ -1,19 +1,25 @@
 ---
-import { SITE, AUTHOR, MAIN_SITE } from '../config';
+import { SITE, AUTHOR, MAIN_SITE, SOCIAL } from '../config';
 import { CATEGORIES } from '../lib/posts';
+import FollowCTA from './FollowCTA.astro';
 
 const year = new Date().getFullYear();
-const social = [
+
+// Follow targets come from SOCIAL so the verbs stay consistent with the CTA.
+const elsewhere = [
+  ...SOCIAL.map(({ label, action, href }) => ({ label: `${action} on ${label}`, href })),
   { label: `Main site — ${MAIN_SITE.label}`, href: MAIN_SITE.url },
-  { label: 'YouTube', href: 'https://www.youtube.com/@MSDEVBUILD' },
-  { label: 'GitHub', href: 'https://github.com/jssuthahar' },
-  { label: 'LinkedIn', href: 'https://my.linkedin.com/in/jssuthahar' },
   { label: 'Profile', href: 'https://suthahar.msdevbuild.com' },
   { label: 'RSS', href: '/rss.xml' },
 ];
 ---
 
 <footer class="mt-24 border-t border-default bg-subtle">
+  <!-- Site-wide follow ask: present on every page without each page adding it. -->
+  <div class="mx-auto max-w-6xl border-b border-default px-4 py-10 sm:px-6">
+    <FollowCTA />
+  </div>
+
   <div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[2fr_1fr_1fr]">
     <div>
       <p class="font-semibold tracking-tight">
@@ -39,7 +45,7 @@ const social = [
     <nav aria-labelledby="footer-elsewhere">
       <h2 id="footer-elsewhere" class="text-sm font-semibold">Elsewhere</h2>
       <ul class="mt-3 space-y-2 text-sm text-muted">
-        {social.map(({ label, href }) => (
+        {elsewhere.map(({ label, href }) => (
           <li><a href={href} class="hover:text-accent" rel="me noopener">{label}</a></li>
         ))}
       </ul>

@@ -22,6 +22,14 @@ const blog = defineCollection({
       series: z.string().optional(),
       seriesOrder: z.number().int().positive().optional(),
 
+      /**
+       * The one-paragraph takeaway shown in a highlight box at the top of the
+       * post. Falls back to `description` when omitted, so every post always
+       * opens with a summary — this is also the passage most often quoted by
+       * search engines and AI answer engines.
+       */
+      highlight: z.string().max(400).optional(),
+
       draft: z.boolean().default(false),
       featured: z.boolean().default(false),
 

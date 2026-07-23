@@ -115,6 +115,37 @@ export const IMPACT = [
   { value: '54', label: 'Markets with shipped products' },
 ] as const;
 
+/**
+ * Follow targets. Each carries its own verb — "subscribe" on YouTube, "follow"
+ * elsewhere — because the ask should match what the platform actually calls it.
+ */
+export const SOCIAL = [
+  {
+    id: 'linkedin',
+    label: 'LinkedIn',
+    handle: 'in/jssuthahar',
+    action: 'Follow',
+    href: 'https://my.linkedin.com/in/jssuthahar',
+    blurb: 'Architecture notes and career posts',
+  },
+  {
+    id: 'github',
+    label: 'GitHub',
+    handle: '@jssuthahar',
+    action: 'Follow',
+    href: 'https://github.com/jssuthahar',
+    blurb: 'Sample code and open-source projects',
+  },
+  {
+    id: 'youtube',
+    label: 'YouTube',
+    handle: '@MSDEVBUILD',
+    action: 'Subscribe',
+    href: 'https://www.youtube.com/@MSDEVBUILD?sub_confirmation=1',
+    blurb: 'Video walkthroughs in English and Tamil',
+  },
+] as const;
+
 export const NAV = [
   { label: 'Articles', href: '/articles' },
   { label: 'Blog', href: '/blog' },
@@ -192,13 +223,17 @@ export const NEWSLETTER = {
 } as const;
 
 /**
- * Firestore project for view counts. Only the project ID is needed — the
- * counter talks to the REST API directly, so no Firebase SDK ships to the
- * browser. Empty disables the counter entirely.
- * Access is governed by firestore.rules, not by a key.
+ * Firestore project for view counts. The counter talks to the REST API
+ * directly, so no Firebase SDK ships to the browser. Empty projectId disables
+ * the counter entirely.
+ *
+ * Access is governed by firestore.rules, not by the key: Firebase web API keys
+ * are public identifiers that Google documents as safe to ship in client code.
+ * The rules are the security boundary, which is why they must stay strict.
  */
 export const FIREBASE = {
-  projectId: '',
+  projectId: 'msdevbuild-blog',
+  apiKey: 'AIzaSyC1oOQOPnd4i-6W0vXkhDHrzRAFYpd0nDk',
 } as const;
 
 /**
@@ -210,5 +245,9 @@ export const CONTACT_FORM = {
   action: '',
 } as const;
 
-/** GA4 measurement ID, e.g. 'G-XXXXXXXXXX'. Empty disables the script. */
-export const GA_ID = '';
+/**
+ * GA4 measurement ID — the `measurementId` from the Firebase web config.
+ * Firebase's getAnalytics() is a wrapper around GA4, so loading gtag directly
+ * reports identical data without shipping the Firebase SDK to every visitor.
+ */
+export const GA_ID = 'G-X0V2Y2GH4D';

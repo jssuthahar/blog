@@ -1,6 +1,7 @@
 ---
 title: 'How to Secure a .NET Minimal API with JWT Bearer Authentication'
 description: 'A complete, working setup for JWT bearer auth in ASP.NET Core Minimal APIs — token validation, role policies, and the configuration mistakes that silently disable security.'
+highlight: 'Register AddJwtBearer with all four validation flags set explicitly, call UseAuthentication() before UseAuthorization(), and protect route groups rather than individual endpoints. The two failures that bite most teams are a silently weakened signature check and middleware ordering.'
 publishedAt: 2026-07-10
 updatedAt: 2026-07-21
 category: dotnet
@@ -14,8 +15,6 @@ faq:
   - q: 'Why does my JWT return 401 even though the token looks valid?'
     a: 'The most common cause is a mismatch between the issuer or audience in the token and the TokenValidationParameters, followed by calling UseAuthorization() before UseAuthentication(). Enable IdentityModelEventSource.ShowPII in development to see the exact validation failure.'
 ---
-
-**TL;DR** — Register `AddAuthentication().AddJwtBearer()`, set explicit `TokenValidationParameters`, call `UseAuthentication()` **before** `UseAuthorization()`, and protect endpoints with `.RequireAuthorization()`. The two failures that bite most teams are a silently disabled signature check and middleware ordering.
 
 Minimal APIs removed a lot of ceremony from ASP.NET Core, but authentication is one area where the reduced ceremony makes it easier to ship something insecure without noticing. This post walks through a production-shaped setup.
 

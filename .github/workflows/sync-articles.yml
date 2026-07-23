@@ -1,0 +1,39 @@
+name: Sync articles
+
+on:
+  schedule:
+    # Every Monday at 02:00 UTC. The list only changes when something is
+    # published on the main site, so daily polling would be wasted runs.
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fetch the Blogger feed
+        run: node scripts/sync-blogger.mjs
+
+      - name: Commit if the list changed
+        run: |
+          if git diff --quiet -- src/data/articles.json; then
+            echo "Article list unchanged; nothing to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/articles.json
+
+          COUNT=$(node -p "require('./src/data/articles.json').count")
+          git commit -m "chore: sync articles (${COUNT} total)"
+          git push

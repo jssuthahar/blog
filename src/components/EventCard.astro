@@ -1,0 +1,57 @@
+---
+import { FORMAT_LABELS, dateBadge, formatEventDate, type SpeakingEvent } from '../lib/events';
+
+interface Props {
+  event: SpeakingEvent;
+  past?: boolean;
+}
+
+const { event, past = false } = Astro.props;
+const { data } = event;
+const badge = dateBadge(event);
+const href = data.registrationUrl ?? data.url;
+---
+
+<article
+  class:list={[
+    'group relative flex gap-5 rounded-xl border border-default p-5 transition-colors hover:bg-subtle',
+    past && 'opacity-75',
+  ]}
+>
+  <!-- Calendar-style date block: scannable down a column of events. -->
+  <div class="flex size-14 shrink-0 flex-col items-center justify-center rounded-lg border border-default bg-subtle">
+    <span class="text-lg leading-none font-bold tabular-nums">{badge.day}</span>
+    <span class="mt-0.5 text-[0.65rem] font-medium tracking-wider text-muted">{badge.month}</span>
+  </div>
+
+  <div class="min-w-0 flex-1">
+    <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
+      <span class="rounded px-1.5 py-0.5 font-medium" style="background: var(--accent-soft); color: var(--accent);">
+        {FORMAT_LABELS[data.format]}
+      </span>
+      <span class="text-muted">{formatEventDate(event)}</span>
+      {data.online && <span class="text-muted">· Online</span>}
+    </div>
+
+    <h3 class="mt-1.5 leading-snug font-semibold tracking-tight">
+      {href ? (
+        <a href={href} class="after:absolute after:inset-0 group-hover:text-accent" rel="noopener">
+          {data.talk ?? data.title}
+        </a>
+      ) : (
+        data.talk ?? data.title
+      )}
+    </h3>
+
+    {data.talk && <p class="mt-1 text-sm text-muted">{data.title}</p>}
+
+    <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+      {!data.online && <span>{data.venue ? `${data.venue}, ${data.location}` : data.location}</span>}
+      {data.audience && <span>· {data.audience}</span>}
+    </div>
+
+    {data.topics.length > 0 && (
+      <p class="mt-2 text-xs text-muted">{data.topics.join(' · ')}</p>
+    )}
+  </div>
+</article>

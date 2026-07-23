@@ -1,0 +1,171 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Avatar from '../components/Avatar.astro';
+import Newsletter from '../components/Newsletter.astro';
+import { SITE, AUTHOR, MAIN_SITE, IMPACT } from '../config';
+
+const schema = [
+  {
+    '@type': 'ProfilePage',
+    '@id': `${SITE.url}/about#profile`,
+    mainEntity: { '@id': `${SITE.url}/#person` },
+  },
+  // Extends the site-wide Person node with the credential detail that belongs
+  // on this page. Both use the same @id, so they merge into one entity.
+  {
+    '@type': 'Person',
+    '@id': `${SITE.url}/#person`,
+    jobTitle: AUTHOR.jobTitle,
+    homeLocation: { '@type': 'Place', name: AUTHOR.location },
+    knowsAbout: [...AUTHOR.expertise],
+    award: [...AUTHOR.awards],
+    hasCredential: AUTHOR.certifications.map((name) => ({
+      '@type': 'EducationalOccupationalCredential',
+      name,
+    })),
+  },
+];
+
+const links = [
+  { label: 'Full profile', value: 'suthahar.msdevbuild.com', href: 'https://suthahar.msdevbuild.com' },
+  { label: 'Main site', value: MAIN_SITE.label, href: MAIN_SITE.url },
+  { label: 'YouTube', value: '@MSDEVBUILD', href: 'https://www.youtube.com/@MSDEVBUILD' },
+  { label: 'LinkedIn', value: 'jssuthahar', href: 'https://my.linkedin.com/in/jssuthahar' },
+  { label: 'GitHub', value: 'jssuthahar', href: 'https://github.com/jssuthahar' },
+  { label: 'Contact', value: 'Send a message', href: '/contact' },
+];
+---
+
+<BaseLayout
+  title={`About ${AUTHOR.name}`}
+  description={`${AUTHOR.jobTitle} based in ${AUTHOR.location}, with ${AUTHOR.yearsExperience}+ years in enterprise architecture across Microsoft Azure, .NET MAUI, and applied AI. Creator of MSDEVBUILD.`}
+  schema={schema}
+>
+  <div class="mx-auto max-w-4xl">
+    <header class="flex flex-col gap-7 sm:flex-row sm:items-start">
+      <Avatar size={128} eager class="ring-1 ring-[var(--border)]" />
+
+      <div>
+        <p class="eyebrow">{AUTHOR.jobTitle}</p>
+        <h1 class="display mt-2 text-4xl sm:text-5xl">{AUTHOR.name}</h1>
+        <p class="mt-4 max-w-2xl text-lg leading-relaxed text-muted text-pretty">
+          {AUTHOR.yearsExperience}+ years in enterprise architecture, based in {AUTHOR.location} and
+          shipping across 54 markets. I work across Microsoft Azure, .NET MAUI, and applied AI —
+          and I have been publishing what I learn as <strong>MSDEVBUILD</strong> since 2007.
+        </p>
+      </div>
+    </header>
+
+    <section class="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-default bg-[var(--border)] sm:grid-cols-3" aria-label="Reach">
+      {IMPACT.map(({ value, label }) => (
+        <div class="bg-[var(--bg)] p-5">
+          <div class="text-2xl font-bold tracking-tight text-accent">{value}</div>
+          <div class="mt-1 text-sm leading-snug text-muted">{label}</div>
+        </div>
+      ))}
+    </section>
+
+    <div class="mt-14 grid gap-12 md:grid-cols-[1.6fr_1fr]">
+      <div class="prose-reading">
+        <h2>What I work on</h2>
+        <p>
+          My day work is enterprise cloud and mobile architecture: Azure platform design,
+          identity with Microsoft Entra ID, and .NET MAUI applications shipped to a global
+          user base. More recently that has extended into applied AI — Azure OpenAI,
+          retrieval-augmented generation, and agent patterns inside real products rather
+          than demos.
+        </p>
+
+        <h2>Why this blog exists</h2>
+        <p>
+          Across 500+ published articles the pattern that keeps recurring is this: the
+          tutorial gets you to "hello world", then leaves before the hard part. This blog is
+          the other half — the configuration that silently disables your security, the
+          layout that stops scaling at twenty endpoints, the retrieval step that quietly
+          decides whether your RAG system is any good.
+        </p>
+        <p>
+          Every post carries runnable code, the reasoning behind each choice, and an honest
+          account of what breaks.
+        </p>
+
+        <h2>Community</h2>
+        <p>
+          Alongside writing, I have delivered 50+ conference sessions reaching 15,000+
+          developers, publishing in both English and Tamil so the material reaches people
+          who are usually served last. Most of my community work sits at the point where
+          cloud architecture meets people meeting it for the first time.
+        </p>
+        <p>
+          The <a href="/contributions">contributions log</a> is the dated record of that
+          work.
+        </p>
+
+        <h2>Get in touch</h2>
+        <p>
+          Corrections, questions, speaking invitations, and topic requests are all welcome —
+          use the <a href="/contact">contact page</a> or
+          <a href={AUTHOR.linkedin}>message me on LinkedIn</a>.
+        </p>
+      </div>
+
+      <aside class="space-y-8">
+        <section aria-labelledby="recognition">
+          <h2 id="recognition" class="text-xs font-semibold tracking-wider uppercase text-muted">
+            Recognition
+          </h2>
+          <ul class="mt-3 space-y-2">
+            {AUTHOR.awards.map((award) => (
+              <li class="rounded-lg border border-default px-3 py-2 text-sm">{award}</li>
+            ))}
+          </ul>
+        </section>
+
+        <section aria-labelledby="certifications">
+          <h2 id="certifications" class="text-xs font-semibold tracking-wider uppercase text-muted">
+            Certifications
+          </h2>
+          <ul class="mt-3 space-y-1.5 text-sm text-muted">
+            {AUTHOR.certifications.map((cert) => (
+              <li class="flex gap-2">
+                <span class="text-accent" aria-hidden="true">✓</span>
+                <span>{cert}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section aria-labelledby="expertise">
+          <h2 id="expertise" class="text-xs font-semibold tracking-wider uppercase text-muted">
+            Expertise
+          </h2>
+          <ul class="mt-3 flex flex-wrap gap-1.5">
+            {AUTHOR.expertise.map((skill) => (
+              <li class="rounded-full border border-default px-2.5 py-1 text-xs text-muted">
+                {skill}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section aria-labelledby="elsewhere">
+          <h2 id="elsewhere" class="text-xs font-semibold tracking-wider uppercase text-muted">
+            Elsewhere
+          </h2>
+          <dl class="mt-3 space-y-2 text-sm">
+            {links.map(({ label, value, href }) => (
+              <div class="flex justify-between gap-3">
+                <dt class="text-muted">{label}</dt>
+                <dd class="truncate"><a href={href} class="hover:text-accent">{value}</a></dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      </aside>
+    </div>
+
+    <div class="mt-16">
+      <Newsletter compact />
+    </div>
+  </div>
+</BaseLayout>

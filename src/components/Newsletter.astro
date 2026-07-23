@@ -1,0 +1,57 @@
+---
+import { NEWSLETTER } from '../config';
+
+interface Props {
+  compact?: boolean;
+}
+
+const { compact = false } = Astro.props;
+const configured = NEWSLETTER.action.length > 0;
+---
+
+<section
+  class:list={['rounded-xl border border-default bg-subtle', compact ? 'p-6' : 'p-8 md:p-12']}
+  aria-labelledby="newsletter-heading"
+>
+  <div class="mx-auto max-w-xl text-center">
+    <h2 id="newsletter-heading" class:list={['font-semibold tracking-tight', compact ? 'text-lg' : 'text-2xl']}>
+      Get new posts by email
+    </h2>
+    <p class="mt-2 text-sm text-muted">
+      Practical .NET, Azure, and AI walkthroughs delivered when they publish. No spam, unsubscribe anytime.
+    </p>
+
+    <form
+      action={NEWSLETTER.action}
+      method="post"
+      target="_blank"
+      class="mt-5 flex flex-col gap-2 sm:flex-row"
+    >
+      <label for="newsletter-email" class="sr-only">Email address</label>
+      <input
+        id="newsletter-email"
+        type="email"
+        name="email_address"
+        required
+        autocomplete="email"
+        placeholder="you@example.com"
+        disabled={!configured}
+        class="flex-1 rounded-md border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
+      />
+      <button
+        type="submit"
+        disabled={!configured}
+        class="rounded-md px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+        style="background: var(--accent);"
+      >
+        Subscribe
+      </button>
+    </form>
+
+    {!configured && (
+      <p class="mt-3 text-xs text-muted">
+        Set <code>NEWSLETTER.action</code> in <code>src/config.ts</code> to enable this form.
+      </p>
+    )}
+  </div>
+</section>

@@ -1,0 +1,94 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { CATEGORIES, getPublishedPosts, postUrl, formatDate } from '../lib/posts';
+
+const posts = await getPublishedPosts();
+
+// A tiny build-time index. At a few hundred posts this stays well under
+// 100 KB gzipped, which is cheaper and simpler than a search service.
+const index = posts.map((post) => ({
+  title: post.data.title,
+  description: post.data.description,
+  url: postUrl(post),
+  category: CATEGORIES[post.data.category].label,
+  tags: post.data.tags,
+  date: formatDate(post.data.publishedAt),
+}));
+---
+
+<BaseLayout title="Search" description="Search every article on MSDEVBUILD." noindex>
+  <div class="mx-auto max-w-3xl">
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Search</h1>
+
+    <label for="search-input" class="sr-only">Search articles</label>
+    <input
+      id="search-input"
+      type="search"
+      autocomplete="off"
+      autofocus
+      placeholder="Search titles, topics, and tags…"
+      class="mt-6 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-3 text-base"
+      aria-describedby="search-count"
+    />
+
+    <p id="search-count" role="status" aria-live="polite" class="mt-3 text-sm text-muted">
+      {posts.length} articles
+    </p>
+
+    <ul id="search-results" class="mt-6 space-y-4"></ul>
+  </div>
+
+  <script is:inline define:vars={{ index }}>
+    (() => {
+      const input = document.getElementById('search-input');
+      const results = document.getElementById('search-results');
+      const count = document.getElementById('search-count');
+
+      const render = (items) => {
+        results.innerHTML = items
+          .map(
+            (item) => `
+              <li class="rounded-lg border border-default p-4 transition-colors hover:bg-subtle">
+                <a href="${item.url}" class="block">
+                  <div class="text-xs text-muted">${item.category} · ${item.date}</div>
+                  <div class="mt-1 font-medium">${item.title}</div>
+                  <p class="mt-1 text-sm text-muted">${item.description}</p>
+                </a>
+              </li>`,
+          )
+          .join('');
+      };
+
+      const search = (query) => {
+        const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+        if (terms.length === 0) return index;
+
+        // Every term must appear somewhere in the record; title hits rank first.
+        return index
+          .map((item) => {
+            const haystack = `${item.title} ${item.description} ${item.category} ${item.tags.join(' ')}`.toLowerCase();
+            if (!terms.every((t) => haystack.includes(t))) return null;
+
+            const titleHits = terms.filter((t) => item.title.toLowerCase().includes(t)).length;
+            return { item, score: titleHits };
+          })
+          .filter(Boolean)
+          .sort((a, b) => b.score - a.score)
+          .map(({ item }) => item);
+      };
+
+      const update = () => {
+        const matches = search(input.value);
+        render(matches);
+        count.textContent = `${matches.length} ${matches.length === 1 ? 'article' : 'articles'}`;
+      };
+
+      input.addEventListener('input', update);
+
+      // Deep-link support: /search?q=jwt
+      const initial = new URLSearchParams(location.search).get('q');
+      if (initial) input.value = initial;
+      update();
+    })();
+  </script>
+</BaseLayout>

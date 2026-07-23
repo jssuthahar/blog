@@ -1,0 +1,51 @@
+---
+// Thin progress bar pinned under the sticky header.
+---
+
+<div
+  id="reading-progress"
+  class="fixed inset-x-0 top-16 z-40 h-0.5 origin-left scale-x-0"
+  style="background: var(--accent); will-change: transform;"
+  role="progressbar"
+  aria-label="Reading progress"
+  aria-valuemin="0"
+  aria-valuemax="100"
+  aria-valuenow="0"
+></div>
+
+<script>
+  function initProgress() {
+    const bar = document.getElementById('reading-progress');
+    const article = document.querySelector('article');
+    if (!bar || !article) return;
+
+    let ticking = false;
+
+    const update = () => {
+      ticking = false;
+
+      // Progress is measured across the article, not the whole document,
+      // so it reaches 100% at the end of the text rather than the footer.
+      const start = article.offsetTop;
+      const distance = article.offsetHeight - window.innerHeight;
+      const scrolled = window.scrollY - start;
+      const ratio = distance <= 0 ? 1 : Math.min(Math.max(scrolled / distance, 0), 1);
+
+      bar.style.transform = `scaleX(${ratio})`;
+      bar.setAttribute('aria-valuenow', String(Math.round(ratio * 100)));
+    };
+
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    update();
+  }
+
+  initProgress();
+  document.addEventListener('astro:page-load', initProgress);
+</script>

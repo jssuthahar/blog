@@ -1,0 +1,74 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE, AUTHOR, MAIN_SITE } from '../config';
+
+interface Props {
+  title: string;
+  description: string;
+  canonical?: string;
+  image?: string;
+  type?: 'website' | 'article';
+  publishedAt?: Date;
+  updatedAt?: Date;
+  schema?: Record<string, unknown>[];
+  markdownUrl?: string;
+  noindex?: boolean;
+  /** Wide pages (home, listings) opt out of the narrow reading column. */
+  wide?: boolean;
+}
+
+const { wide = false, schema = [], ...head } = Astro.props;
+
+// Site-level identity nodes, emitted on every page so search engines and
+// LLMs consistently resolve the same entity.
+const baseSchema = [
+  {
+    '@type': 'WebSite',
+    '@id': `${SITE.url}/#website`,
+    url: SITE.url,
+    name: SITE.title,
+    description: SITE.description,
+    publisher: { '@id': `${SITE.url}/#person` },
+    inLanguage: SITE.lang,
+  },
+  {
+    '@type': 'Person',
+    '@id': `${SITE.url}/#person`,
+    name: AUTHOR.name,
+    alternateName: AUTHOR.alternateName,
+    description: AUTHOR.bio,
+    // The canonical home of the person entity is the main domain, not the
+    // blog subdomain — this is what merges authority across both properties.
+    url: MAIN_SITE.url,
+    image: new URL(AUTHOR.avatar, SITE.url).href,
+    sameAs: [...AUTHOR.sameAs],
+  },
+];
+---
+
+<html lang={SITE.lang} data-theme="light">
+  <head>
+    <BaseHead {...head} schema={[...baseSchema, ...schema]} />
+    <ClientRouter />
+  </head>
+
+  <body class="flex min-h-dvh flex-col">
+    <a href="#main" class="skip-link">Skip to content</a>
+    <Header />
+
+    <main id="main" class="flex-1">
+      {wide ? (
+        <slot />
+      ) : (
+        <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+          <slot />
+        </div>
+      )}
+    </main>
+
+    <Footer />
+  </body>
+</html>

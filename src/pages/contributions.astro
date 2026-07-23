@@ -1,0 +1,278 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ContributionTimeline from '../components/ContributionTimeline.astro';
+import { SITE, AUTHOR, MAIN_SITE } from '../config';
+import { getPublishedPosts, postUrl, formatDate } from '../lib/posts';
+import { allArticles, primaryCategory } from '../lib/articles';
+import { repoIndex } from '../lib/repos';
+import { getUpcomingEvents, getPastEvents } from '../lib/events';
+import { contributionPillars, publishingSpan, recentActivity } from '../lib/evidence';
+
+const KIND_LABELS = {
+  talk: 'Session',
+  video: 'Video',
+  article: 'Article',
+  oss: 'Open source',
+  course: 'Course',
+  community: 'Community',
+  book: 'Book',
+} as const;
+
+const logged = (await getCollection('contributions'))
+  .filter((c) => c.id.toLowerCase() !== 'readme')
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+const posts = await getPublishedPosts();
+const articles = allArticles();
+const span = publishingSpan();
+const pillars = contributionPillars();
+const recent = recentActivity();
+const upcoming = await getUpcomingEvents();
+const past = await getPastEvents();
+
+// One merged, dated record. Reviewers want links and dates, not adjectives.
+type Item = {
+  title: string;
+  kind: keyof typeof KIND_LABELS;
+  date: Date;
+  venue?: string;
+  url: string;
+  external: boolean;
+  meta?: string;
+};
+
+const items: Item[] = [
+  ...logged.map((c) => ({
+    title: c.data.title,
+    kind: c.data.kind,
+    date: c.data.date,
+    venue: c.data.venue,
+    url: c.data.url ?? '',
+    external: true,
+    meta: c.data.reach,
+  })),
+  ...[...upcoming, ...past].map((e) => ({
+    title: e.data.talk ?? e.data.title,
+    kind: 'talk' as const,
+    date: e.data.date,
+    venue: e.data.venue ?? e.data.location,
+    url: e.data.url ?? '/speaking',
+    external: Boolean(e.data.url),
+    meta: e.data.audience,
+  })),
+  ...posts.map((p) => ({
+    title: p.data.title,
+    kind: 'article' as const,
+    date: p.data.publishedAt,
+    venue: SITE.title,
+    url: postUrl(p),
+    external: false,
+  })),
+  ...articles.map((a) => ({
+    title: a.title,
+    kind: 'article' as const,
+    date: new Date(a.published),
+    venue: MAIN_SITE.label,
+    url: a.url,
+    external: true,
+    meta: primaryCategory(a),
+  })),
+].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+const recentCount = items.filter((i) => i.date >= recent.since).length;
+
+const byYear = items.reduce<Map<number, Item[]>>((acc, item) => {
+  const year = item.date.getFullYear();
+  acc.set(year, [...(acc.get(year) ?? []), item]);
+  return acc;
+}, new Map());
+
+const years = [...byYear.keys()].sort((a, b) => b - a);
+
+const schema = [
+  {
+    '@type': 'CollectionPage',
+    '@id': `${SITE.url}/contributions#page`,
+    name: `Community contribution record — ${AUTHOR.name}`,
+    about: { '@id': `${SITE.url}/#person` },
+    description: `A dated record of ${items.length} public contributions by ${AUTHOR.name} across writing, speaking, open source, and community work.`,
+  },
+];
+---
+
+<BaseLayout
+  title="Contribution record"
+  description={`${items.length} dated public contributions by ${AUTHOR.name} — ${articles.length} articles, ${repoIndex.count} open-source repositories, and 50+ conference sessions across the developer community since ${span.firstYear}.`}
+  schema={schema}
+  wide
+>
+  <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <header class="max-w-3xl">
+      <p class="eyebrow">Contribution record</p>
+      <h1 class="display mt-3 text-3xl sm:text-4xl">
+        {span.activeYears} years of contribution to the developer community
+      </h1>
+      <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">
+        Every public contribution — writing, speaking, open source, and community work —
+        in one dated, linkable record. Compiled automatically from the sources, so the
+        numbers below match what the platforms actually report.
+      </p>
+    </header>
+
+    <!-- Pillars: each headline number links to the evidence behind it. -->
+    <section
+      class="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-default bg-[var(--border)] md:grid-cols-3 lg:grid-cols-6"
+      aria-label="Contribution summary"
+    >
+      {pillars.map(({ value, label, detail, href }) => (
+        <a href={href} class="group bg-[var(--bg)] p-5 transition-colors hover:bg-subtle">
+          <div class="text-2xl font-bold tracking-tight text-accent">{value}</div>
+          <div class="mt-1 text-sm font-medium group-hover:text-accent">{label}</div>
+          <div class="mt-0.5 text-xs leading-snug text-muted">{detail}</div>
+        </a>
+      ))}
+    </section>
+
+    <div class="mt-12 grid gap-10 lg:grid-cols-[1.3fr_1fr]">
+      <section class="rounded-lg border border-default p-6" aria-labelledby="consistency">
+        <h2 id="consistency" class="text-lg font-semibold tracking-tight">
+          Sustained over {span.years} years
+        </h2>
+        <p class="mt-2 text-sm leading-relaxed text-muted">
+          Publishing continuously since {span.firstYear} — through framework generations
+          from Xamarin to .NET MAUI, and from Cognitive Services to Azure OpenAI.
+        </p>
+        <div class="mt-6">
+          <ContributionTimeline />
+        </div>
+      </section>
+
+      <section class="rounded-lg border border-default p-6" aria-labelledby="recent">
+        <h2 id="recent" class="text-lg font-semibold tracking-tight">Last 12 months</h2>
+        <p class="mt-2 text-sm leading-relaxed text-muted">
+          The window award reviews weight most heavily.
+        </p>
+
+        <dl class="mt-5 space-y-3">
+          {[
+            { label: 'Contributions logged', value: recentCount },
+            { label: 'Articles published', value: recent.articles.length },
+            { label: 'Repositories updated', value: recent.repos.length },
+            { label: 'Sessions scheduled', value: upcoming.length },
+          ].map(({ label, value }) => (
+            <div class="flex items-baseline justify-between gap-4 border-b border-default pb-2">
+              <dt class="text-sm text-muted">{label}</dt>
+              <dd class="text-xl font-bold tabular-nums">{value}</dd>
+            </div>
+          ))}
+        </dl>
+
+        {recent.repos.length > 0 && (
+          <div class="mt-5">
+            <p class="text-xs font-semibold tracking-wider uppercase text-muted">
+              Recently active projects
+            </p>
+            <ul class="mt-2 flex flex-wrap gap-1.5">
+              {recent.repos.slice(0, 8).map((repo) => (
+                <li>
+                  <a
+                    href={repo.url}
+                    rel="noopener"
+                    class="inline-block rounded-full border border-default px-2.5 py-1 text-xs transition-colors hover:bg-subtle"
+                  >
+                    {repo.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+    </div>
+
+    <!-- Recognition already earned: context for the record above. -->
+    <section class="mt-12 rounded-lg border border-default" aria-labelledby="recognition">
+      <h2 id="recognition" class="border-b border-default px-6 py-3 text-sm font-semibold tracking-wider uppercase text-muted">
+        Recognition &amp; credentials
+      </h2>
+      <div class="grid gap-6 p-6 md:grid-cols-2">
+        <div>
+          <h3 class="text-sm font-semibold">Awards</h3>
+          <ul class="mt-3 space-y-2">
+            {AUTHOR.awards.map((award) => (
+              <li class="flex items-start gap-2.5 text-sm">
+                <svg class="mt-0.5 size-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" style="color: var(--accent);" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.86-9.47a.75.75 0 0 0-1.22-.86l-3.24 4.53-1.62-1.62a.75.75 0 0 0-1.06 1.06l2.24 2.24a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
+                </svg>
+                {award}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold">Certifications</h3>
+          <ul class="mt-3 grid gap-x-6 gap-y-1.5 text-sm text-muted sm:grid-cols-2">
+            {AUTHOR.certifications.map((cert) => (
+              <li>{cert}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- The dated log itself. -->
+    <section class="mt-14" aria-labelledby="log">
+      <div class="section-head">
+        <div>
+          <h2 id="log" class="text-xl font-semibold tracking-tight">Full record</h2>
+          <p class="mt-1 text-sm text-muted">
+            {items.length} contributions, newest first.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-8 space-y-10">
+        {years.map((year) => (
+          <section aria-labelledby={`y-${year}`}>
+            <h3
+              id={`y-${year}`}
+              class="sticky top-16 z-10 flex items-baseline gap-2 border-b border-default py-2 text-base font-semibold backdrop-blur-md"
+              style="background: color-mix(in oklch, var(--bg) 88%, transparent);"
+            >
+              {year}
+              <span class="text-sm font-normal text-muted">{byYear.get(year)!.length}</span>
+            </h3>
+
+            <ul class="divide-y divide-[var(--border)]">
+              {byYear.get(year)!.map((item) => (
+                <li class="group relative flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2.5">
+                  <span class="w-24 shrink-0 text-xs font-medium text-accent">
+                    {KIND_LABELS[item.kind]}
+                  </span>
+                  <p class="min-w-0 flex-1 text-sm">
+                    {item.url ? (
+                      <a
+                        href={item.url}
+                        rel={item.external ? 'noopener' : undefined}
+                        class="after:absolute after:inset-0 group-hover:text-accent"
+                      >
+                        {item.title}
+                      </a>
+                    ) : (
+                      item.title
+                    )}
+                  </p>
+                  {item.meta && <span class="shrink-0 text-xs text-muted">{item.meta}</span>}
+                  <span class="w-28 shrink-0 text-right text-xs text-muted">
+                    {formatDate(item.date)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </section>
+  </div>
+</BaseLayout>

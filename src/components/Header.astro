@@ -1,0 +1,102 @@
+---
+import { SITE, NAV, MAIN_SITE } from '../config';
+import ThemeToggle from './ThemeToggle.astro';
+import Avatar from './Avatar.astro';
+
+const path = Astro.url.pathname;
+const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+---
+
+<header
+  class="sticky top-0 z-50 border-b border-default backdrop-blur-md"
+  style="background: color-mix(in oklch, var(--bg) 85%, transparent);"
+>
+  <div class="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
+    <a
+      href="/"
+      class="flex shrink-0 items-center gap-2.5"
+      aria-label={`${SITE.title} blog ${SITE.byline} — home`}
+    >
+      <Avatar size={32} eager class="ring-1 ring-[var(--border)]" />
+      <span class="leading-tight">
+        <span class="block font-semibold tracking-tight">
+          <span class="text-accent">MS</span>DEVBUILD
+          <span class="font-normal text-muted">/ blog</span>
+        </span>
+        <span class="block text-[0.7rem] text-muted">{SITE.byline}</span>
+      </span>
+    </a>
+
+    <nav class="ml-auto hidden items-center gap-1 sm:flex" aria-label="Main">
+      {NAV.map(({ label, href }) => (
+        <a
+          href={href}
+          aria-current={isActive(href) ? 'page' : undefined}
+          class:list={[
+            'rounded-md px-3 py-2 text-sm transition-colors hover:bg-subtle',
+            isActive(href) ? 'font-medium text-accent' : 'text-muted',
+          ]}
+        >
+          {label}
+        </a>
+      ))}
+
+      <a
+        href={MAIN_SITE.url}
+        class="ml-2 rounded-md border border-default px-3 py-1.5 text-sm text-muted transition-colors hover:text-accent hover:bg-subtle"
+      >
+        Main site ↗
+      </a>
+    </nav>
+
+    <div class="ml-auto flex items-center gap-1 sm:ml-0">
+      <a href="/search" class="rounded-md p-2 transition-colors hover:bg-subtle" aria-label="Search">
+        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+        </svg>
+      </a>
+      <ThemeToggle />
+      <button
+        id="menu-toggle"
+        type="button"
+        class="rounded-md p-2 transition-colors hover:bg-subtle sm:hidden"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobile-nav"
+      >
+        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <nav id="mobile-nav" class="hidden border-t border-default px-4 py-2 sm:hidden" aria-label="Mobile">
+    {NAV.map(({ label, href }) => (
+      <a href={href} class="block rounded-md px-3 py-2.5 text-sm transition-colors hover:bg-subtle">
+        {label}
+      </a>
+    ))}
+    <a
+      href={MAIN_SITE.url}
+      class="block rounded-md px-3 py-2.5 text-sm text-muted transition-colors hover:bg-subtle"
+    >
+      Main site ↗
+    </a>
+  </nav>
+</header>
+
+<script>
+  function initMenu() {
+    const button = document.getElementById('menu-toggle');
+    const nav = document.getElementById('mobile-nav');
+    button?.addEventListener('click', () => {
+      const open = nav?.classList.toggle('hidden') === false;
+      button.setAttribute('aria-expanded', String(open));
+      button.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    });
+  }
+
+  initMenu();
+  document.addEventListener('astro:after-swap', initMenu);
+</script>

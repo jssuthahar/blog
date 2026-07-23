@@ -1,0 +1,45 @@
+---
+import CoverArt from './CoverArt.astro';
+import { CATEGORIES, formatDate, postUrl, readingTime, type Post } from '../lib/posts';
+
+interface Props {
+  post: Post;
+  eager?: boolean;
+}
+
+const { post, eager = false } = Astro.props;
+const { data } = post;
+const minutes = readingTime(post.body ?? '');
+const category = CATEGORIES[data.category];
+---
+
+<article class="group relative flex flex-col overflow-hidden rounded-xl border border-default transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl">
+  <div class="aspect-[16/10] overflow-hidden">
+    <CoverArt post={post} eager={eager} class="transition-transform duration-500 group-hover:scale-[1.04]" />
+  </div>
+
+  <div class="flex flex-1 flex-col p-5">
+    <div class="flex items-center gap-2 text-xs">
+      <span
+        class="rounded-full px-2 py-0.5 font-medium"
+        style={`background: oklch(0.62 0.17 ${category.hue} / 0.14); color: oklch(0.62 0.17 ${category.hue});`}
+      >
+        {category.label}
+      </span>
+      <span class="text-muted">{minutes} min</span>
+    </div>
+
+    <h3 class="mt-2.5 text-lg leading-snug font-semibold tracking-tight">
+      <a href={postUrl(post)} class="after:absolute after:inset-0 group-hover:text-accent">
+        {data.title}
+      </a>
+    </h3>
+
+    <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{data.description}</p>
+
+    <div class="mt-4 flex items-center gap-3 border-t border-default pt-3 text-xs text-muted">
+      <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time>
+      {data.series && <span>· Part {data.seriesOrder}</span>}
+    </div>
+  </div>
+</article>

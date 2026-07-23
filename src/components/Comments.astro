@@ -1,0 +1,57 @@
+---
+import { GISCUS } from '../config';
+
+const configured = GISCUS.repoId.length > 0 && GISCUS.categoryId.length > 0;
+---
+
+<section aria-labelledby="comments-heading">
+  <h2 id="comments-heading" class="text-xl font-semibold tracking-tight">Comments</h2>
+
+  {configured ? (
+    <div class="mt-6">
+      <script
+        is:inline
+        src="https://giscus.app/client.js"
+        data-repo={GISCUS.repo}
+        data-repo-id={GISCUS.repoId}
+        data-category={GISCUS.category}
+        data-category-id={GISCUS.categoryId}
+        data-mapping="pathname"
+        data-strict="1"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="top"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        data-loading="lazy"
+        crossorigin="anonymous"
+        async
+      ></script>
+    </div>
+  ) : (
+    <p class="mt-4 rounded-lg border border-default bg-subtle p-5 text-sm text-muted">
+      Comments are not configured yet. Enable Discussions on
+      <code>{GISCUS.repo}</code>, install the giscus app, then fill in
+      <code>GISCUS.repoId</code> and <code>GISCUS.categoryId</code> in <code>src/config.ts</code>.
+    </p>
+  )}
+</section>
+
+<script>
+  // giscus renders in an iframe that does not know about our data-theme
+  // attribute, so push theme changes to it explicitly.
+  function syncGiscusTheme() {
+    const frame = document.querySelector<HTMLIFrameElement>('iframe.giscus-frame');
+    if (!frame?.contentWindow) return;
+
+    const theme = document.documentElement.dataset.theme === 'dark' ? 'dark_dimmed' : 'light';
+    frame.contentWindow.postMessage({ giscus: { setConfig: { theme } } }, 'https://giscus.app');
+  }
+
+  new MutationObserver(syncGiscusTheme).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  });
+
+  document.addEventListener('astro:page-load', syncGiscusTheme);
+</script>

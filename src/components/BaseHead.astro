@@ -1,0 +1,111 @@
+---
+import '@fontsource-variable/inter';
+import '@fontsource-variable/source-serif-4';
+import '../styles/global.css';
+import { SITE, GA_ID } from '../config';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Absolute or site-relative. Defaults to the current page. */
+  canonical?: string;
+  image?: string;
+  type?: 'website' | 'article';
+  publishedAt?: Date;
+  updatedAt?: Date;
+  /** Any JSON-LD graph nodes this page wants to emit. */
+  schema?: Record<string, unknown>[];
+  /** Path to the raw Markdown twin of this page, for AI crawlers. */
+  markdownUrl?: string;
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description,
+  canonical,
+  image = '/og-default.png',
+  type = 'website',
+  publishedAt,
+  updatedAt,
+  schema = [],
+  markdownUrl,
+  noindex = false,
+} = Astro.props;
+
+const canonicalUrl = new URL(canonical ?? Astro.url.pathname, SITE.url);
+const imageUrl = new URL(image, SITE.url);
+// The blog is always attributed, so a search result or a shared link names the
+// author without the reader having to click through.
+const brand = `${SITE.title} blog ${SITE.byline}`;
+const fullTitle = title === SITE.title ? brand : `${title} | ${brand}`;
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="generator" content={Astro.generator} />
+
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalUrl} />
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+
+<!-- Point AI crawlers at the clean Markdown twin of this page. -->
+{markdownUrl && (
+  <link rel="alternate" type="text/markdown" href={new URL(markdownUrl, SITE.url)} title={`${title} (Markdown)`} />
+)}
+
+<link rel="sitemap" href="/sitemap-index.xml" />
+<link rel="alternate" type="application/rss+xml" title={`${SITE.title} RSS Feed`} href={new URL('/rss.xml', SITE.url)} />
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<!-- Open Graph -->
+<meta property="og:site_name" content={brand} />
+<meta property="og:type" content={type} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:image" content={imageUrl} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:locale" content={SITE.locale} />
+{publishedAt && <meta property="article:published_time" content={publishedAt.toISOString()} />}
+{updatedAt && <meta property="article:modified_time" content={updatedAt.toISOString()} />}
+
+<!-- Twitter/X -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={imageUrl} />
+
+{schema.length > 0 && (
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify({ '@context': 'https://schema.org', '@graph': schema })}
+  />
+)}
+
+<!-- Theme applied before first paint: no flash of the wrong theme. -->
+<script is:inline>
+  (() => {
+    const stored = localStorage.getItem('theme');
+    const theme =
+      stored ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.dataset.theme = theme;
+  })();
+</script>
+
+{GA_ID && (
+  <>
+    <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
+    <script is:inline define:vars={{ GA_ID }}>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag('js', new Date());
+      gtag('config', GA_ID);
+    </script>
+  </>
+)}

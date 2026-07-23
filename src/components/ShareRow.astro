@@ -1,0 +1,107 @@
+---
+import { SITE } from '../config';
+
+interface Props {
+  title: string;
+  path: string;
+}
+
+const { title, path } = Astro.props;
+const url = new URL(path, SITE.url).href;
+const encodedUrl = encodeURIComponent(url);
+const encodedTitle = encodeURIComponent(title);
+
+// All plain share URLs — no third-party scripts, no tracking, no cost.
+const targets = [
+  { label: 'X', href: `https://x.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`, path: 'M18.9 2H22l-7 8 8.2 12h-6.4l-5-7.3L5.9 22H2.8l7.5-8.6L2.4 2h6.6l4.6 6.6L18.9 2Z' },
+  { label: 'LinkedIn', href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, path: 'M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9h4v12H3V9Zm7 0h3.8v1.7h.05c.53-1 1.83-2.05 3.75-2.05C21.6 8.65 22 11.1 22 14.3V21h-4v-6c0-1.4-.03-3.2-2-3.2s-2.3 1.5-2.3 3.1V21h-4V9Z' },
+  { label: 'WhatsApp', href: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`, path: 'M12 2a10 10 0 0 0-8.7 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1a13 13 0 0 1-6.3-5.5C6.9 10.6 6.6 9.6 6.6 9c0-.6.3-1.5.8-1.9.2-.2.4-.2.6-.2h.5c.2 0 .4 0 .6.4l.8 2c.1.2 0 .4-.1.5l-.4.5c-.1.2-.3.3-.1.6.5.9 1.5 2 2.6 2.5.3.2.5.1.6 0l.7-.8c.2-.2.3-.2.6-.1l1.9.9c.3.1.4.2.4.4.1.2.1.7-.1 1.3Z' },
+  { label: 'Reddit', href: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodedTitle}`, path: 'M22 12a2.2 2.2 0 0 0-3.7-1.6 10.8 10.8 0 0 0-5.4-1.7l.9-4.2 3 .6a1.8 1.8 0 1 0 .2-1.3l-3.6-.8c-.2 0-.4.1-.5.3l-1 4.9v.2a10.8 10.8 0 0 0-5.5 1.7 2.2 2.2 0 1 0-2.6 3.5 4 4 0 0 0 0 .6c0 3.1 3.6 5.6 8 5.6s8-2.5 8-5.6a4 4 0 0 0 0-.6A2.2 2.2 0 0 0 22 12ZM7.5 13.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm8.3 4c-1 1-3.1 1.1-3.8 1.1s-2.8 0-3.8-1.1a.4.4 0 0 1 .6-.6c.6.7 2 .9 3.2.9s2.5-.2 3.2-.9a.4.4 0 1 1 .6.6Zm-.3-2.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z' },
+];
+---
+
+<div class="flex flex-wrap items-center gap-2" data-share-row data-url={url} data-title={title}>
+  <span class="mr-1 text-sm font-medium text-muted">Share</span>
+
+  {targets.map(({ label, href, path }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Share on ${label}`}
+      title={`Share on ${label}`}
+      class="rounded-md border border-default p-2 text-muted transition-colors hover:text-accent hover:bg-subtle"
+    >
+      <svg class="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={path} /></svg>
+    </a>
+  ))}
+
+  <button
+    type="button"
+    data-copy-link
+    class="rounded-md border border-default p-2 text-muted transition-colors hover:text-accent hover:bg-subtle"
+    aria-label="Copy link"
+    title="Copy link"
+  >
+    <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+      <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" />
+      <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" />
+    </svg>
+  </button>
+
+  <!-- Native share sheet on mobile; revealed only where supported. -->
+  <button
+    type="button"
+    data-native-share
+    hidden
+    class="rounded-md border border-default p-2 text-muted transition-colors hover:text-accent hover:bg-subtle"
+    aria-label="Share"
+    title="Share"
+  >
+    <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+      <path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" />
+    </svg>
+  </button>
+
+  <span data-share-status role="status" aria-live="polite" class="text-sm text-accent"></span>
+</div>
+
+<script>
+  function initShare() {
+    const row = document.querySelector<HTMLElement>('[data-share-row]');
+    if (!row) return;
+
+    const url = row.dataset.url!;
+    const title = row.dataset.title!;
+    const status = row.querySelector<HTMLElement>('[data-share-status]')!;
+
+    const flash = (message: string) => {
+      status.textContent = message;
+      setTimeout(() => (status.textContent = ''), 2000);
+    };
+
+    row.querySelector('[data-copy-link]')?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(url);
+        flash('Copied');
+      } catch {
+        flash('Copy failed');
+      }
+    });
+
+    const nativeButton = row.querySelector<HTMLButtonElement>('[data-native-share]');
+    if (nativeButton && 'share' in navigator) {
+      nativeButton.hidden = false;
+      nativeButton.addEventListener('click', async () => {
+        // A cancelled share sheet rejects; that is not an error worth surfacing.
+        try {
+          await navigator.share({ title, url });
+        } catch {}
+      });
+    }
+  }
+
+  initShare();
+  document.addEventListener('astro:page-load', initShare);
+</script>

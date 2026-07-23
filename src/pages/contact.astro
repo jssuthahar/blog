@@ -1,0 +1,185 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE, AUTHOR, MAIN_SITE, CONTACT_FORM, BOOKING } from '../config';
+
+const configured = CONTACT_FORM.action.length > 0;
+
+// Every route points at the form or LinkedIn. No address is published, so
+// there is nothing on the page for a scraper to harvest.
+const target = configured ? '#message-form' : AUTHOR.linkedin;
+
+const routes = [
+  {
+    title: 'Speaking invitation',
+    description:
+      'Conference sessions, webinars, and community meetups on Azure, applied AI, and .NET.',
+    cta: 'Send a speaking invitation',
+    href: target,
+  },
+  {
+    title: 'Article feedback',
+    description:
+      'Corrections, questions on a post, or a topic you would like covered next.',
+    cta: 'Send feedback',
+    href: target,
+  },
+  {
+    title: 'Community & collaboration',
+    description:
+      'User groups, student communities, open-source projects, and podcast invitations.',
+    cta: 'Start a conversation',
+    href: target,
+  },
+];
+
+const elsewhere = [
+  { label: 'LinkedIn', value: 'in/jssuthahar', href: AUTHOR.linkedin },
+  { label: 'GitHub', value: '@jssuthahar', href: 'https://github.com/jssuthahar' },
+  { label: 'YouTube', value: '@MSDEVBUILD', href: 'https://www.youtube.com/@MSDEVBUILD' },
+  { label: 'Main site', value: MAIN_SITE.label, href: MAIN_SITE.url },
+];
+
+const schema = [
+  {
+    '@type': 'ContactPage',
+    '@id': `${SITE.url}/contact#page`,
+    name: `Contact ${AUTHOR.name}`,
+    description: `Get in touch with ${AUTHOR.name} about speaking invitations, community events, or the blog.`,
+    about: { '@id': `${SITE.url}/#person` },
+  },
+];
+---
+
+<BaseLayout
+  title="Contact"
+  description={`Get in touch with ${AUTHOR.name} about speaking invitations, community events, or feedback on an article.`}
+  schema={schema}
+>
+  <header class="max-w-3xl">
+    <p class="eyebrow">Contact</p>
+    <h1 class="display mt-3 text-4xl sm:text-5xl">Let's talk</h1>
+    <p class="mt-5 text-lg leading-relaxed text-muted text-pretty">
+      Speaking invitations, community events, or a question about something I wrote —
+      all welcome.
+    </p>
+    {BOOKING.available && (
+      <p class="mt-4 inline-flex items-center gap-2 text-sm text-muted">
+        <span class="relative flex size-2">
+          <span class="absolute inline-flex size-full animate-ping rounded-full opacity-60" style="background: var(--accent);"></span>
+          <span class="relative inline-flex size-2 rounded-full" style="background: var(--accent);"></span>
+        </span>
+        {BOOKING.availabilityNote} · {BOOKING.responseTime}
+      </p>
+    )}
+  </header>
+
+  <section class="mt-12 grid gap-5 md:grid-cols-3" aria-label="What can I help with">
+    {routes.map(({ title, description, cta, href }) => (
+      <article class="group relative flex flex-col rounded-xl border border-default p-6 transition-all hover:-translate-y-1 hover:shadow-xl">
+        <h2 class="font-semibold tracking-tight">{title}</h2>
+        <p class="mt-2 flex-1 text-sm leading-relaxed text-muted">{description}</p>
+        <p class="mt-4 text-sm font-semibold text-accent">
+          <a href={href} class="after:absolute after:inset-0">{cta} →</a>
+        </p>
+      </article>
+    ))}
+  </section>
+
+  <div class="mt-16 grid gap-12 md:grid-cols-[1.4fr_1fr]">
+    <section id="message-form" class="scroll-mt-24" aria-labelledby="form-heading">
+      <h2 id="form-heading" class="text-xl font-semibold tracking-tight">Send a message</h2>
+
+      <form
+        action={CONTACT_FORM.action}
+        method="post"
+        class="mt-6 space-y-4"
+      >
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="name" class="block text-sm font-medium">Name</label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              autocomplete="name"
+              disabled={!configured}
+              class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
+            />
+          </div>
+          <div>
+            <label for="email" class="block text-sm font-medium">Email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autocomplete="email"
+              disabled={!configured}
+              class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="subject" class="block text-sm font-medium">Subject</label>
+          <select
+            id="subject"
+            name="subject"
+            disabled={!configured}
+            class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
+          >
+            <option>Speaking invitation</option>
+            <option>Article feedback</option>
+            <option>Community &amp; collaboration</option>
+            <option>Something else</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="message" class="block text-sm font-medium">Message</label>
+          <textarea
+            id="message"
+            name="message"
+            rows="6"
+            required
+            disabled={!configured}
+            class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
+          ></textarea>
+        </div>
+
+        <button type="submit" disabled={!configured} class="btn btn-accent disabled:opacity-60">
+          Send message
+        </button>
+
+        {!configured && (
+          <p class="text-sm text-muted">
+            This form is not live yet — a static site can't process a POST. Add a free
+            Formspree or Web3Forms endpoint to <code>CONTACT_FORM.action</code> in
+            <code>src/config.ts</code> to switch it on. In the meantime,
+            <a href={AUTHOR.linkedin} rel="noopener" class="text-accent hover:underline">
+              message me on LinkedIn</a>.
+          </p>
+        )}
+      </form>
+    </section>
+
+    <aside>
+      <h2 class="text-xl font-semibold tracking-tight">Elsewhere</h2>
+      <dl class="mt-6 space-y-3 text-sm">
+        {elsewhere.map(({ label, value, href }) => (
+          <div class="flex justify-between gap-4 border-b border-default pb-3">
+            <dt class="text-muted">{label}</dt>
+            <dd class="truncate font-medium">
+              <a href={href} class="hover:text-accent" rel="noopener">{value}</a>
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      <p class="mt-6 text-sm leading-relaxed text-muted">
+        Based in {AUTHOR.location}, working with teams globally.
+      </p>
+    </aside>
+  </div>
+</BaseLayout>

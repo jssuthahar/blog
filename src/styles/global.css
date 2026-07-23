@@ -1,0 +1,393 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/* Dark mode is driven by a `data-theme` attribute set before paint,
+   so there is never a flash of the wrong theme. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Source Serif 4 Variable', ui-serif, Georgia, Cambria, serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'JetBrains Mono', Menlo, monospace;
+
+  /* Reading measure. 68ch lands around 75 characters per line at our body size,
+     the range that tests fastest for sustained reading. */
+  --container-prose: 68ch;
+
+  --color-brand-50: oklch(0.97 0.02 255);
+  --color-brand-100: oklch(0.93 0.04 255);
+  --color-brand-300: oklch(0.78 0.11 255);
+  --color-brand-500: oklch(0.58 0.18 255);
+  --color-brand-600: oklch(0.51 0.19 258);
+  --color-brand-700: oklch(0.44 0.17 260);
+  --color-brand-900: oklch(0.3 0.11 262);
+}
+
+/* ---------- Design tokens (light) ----------
+   Light-first, high-contrast: near-black ink on white, one vivid accent,
+   and saturated support colours reserved for full-bleed feature bands. */
+:root {
+  --bg: oklch(1 0 0);
+  --bg-subtle: oklch(0.972 0.002 265);
+  --bg-code: oklch(0.968 0.003 265);
+  --border: oklch(0.9 0.004 265);
+  --text: oklch(0.22 0.01 265);
+  --text-muted: oklch(0.5 0.012 265);
+
+  /* One restrained corporate blue. Colour marks actions and state — it is
+     never decoration, which is what separates enterprise UI from consumer. */
+  --accent: oklch(0.52 0.17 252);
+  --accent-soft: oklch(0.955 0.025 252);
+
+  /* Ink is the primary button surface; it inverts in dark mode. */
+  --ink: oklch(0.19 0.012 265);
+  --ink-text: oklch(1 0 0);
+
+  /* Deep neutral for feature bands — contrast without hue noise. */
+  --navy: oklch(0.245 0.028 258);
+  --navy-soft: oklch(0.32 0.03 258);
+
+  color-scheme: light;
+  scrollbar-gutter: stable;
+}
+
+/* ---------- Design tokens (dark) ---------- */
+[data-theme='dark'] {
+  --bg: oklch(0.165 0.01 265);
+  --bg-subtle: oklch(0.215 0.012 265);
+  --bg-code: oklch(0.205 0.012 265);
+  --border: oklch(0.31 0.014 265);
+  --text: oklch(0.95 0.004 265);
+  --text-muted: oklch(0.7 0.01 265);
+
+  --accent: oklch(0.72 0.14 250);
+  --accent-soft: oklch(0.3 0.06 252);
+
+  --ink: oklch(0.97 0 0);
+  --ink-text: oklch(0.18 0.012 265);
+
+  --navy: oklch(0.22 0.025 258);
+  --navy-soft: oklch(0.3 0.028 258);
+
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* Offset for the sticky header when jumping to a heading anchor. */
+    scroll-padding-top: 5.5rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: var(--accent-soft);
+    color: var(--text);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  hr {
+    border-color: var(--border);
+  }
+}
+
+@layer components {
+  /* ---------- Buttons ----------
+     Fully-rounded pills. Primary is solid ink, accent is reserved for the
+     single highest-intent action on a page so it keeps its weight. */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold whitespace-nowrap transition-all duration-150;
+  }
+  .btn-sm {
+    @apply px-4 py-2 text-sm;
+  }
+
+  .btn-primary {
+    background: var(--ink);
+    color: var(--ink-text);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px -8px oklch(0 0 0 / 0.45);
+  }
+
+  .btn-accent {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-accent:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px -10px var(--accent);
+  }
+
+  .btn-outline {
+    background: var(--bg);
+    color: var(--text);
+    border: 1.5px solid var(--text);
+  }
+  .btn-outline:hover {
+    background: var(--text);
+    color: var(--bg);
+  }
+
+  /* Eyebrow label above section headings. */
+  .eyebrow {
+    @apply text-xs font-bold tracking-[0.14em] uppercase;
+    color: var(--accent);
+  }
+
+  /* Display headline: tight, but sized for density rather than spectacle. */
+  .display {
+    @apply font-bold text-balance;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+  }
+
+  /* Consistent vertical rhythm. Enterprise pages earn trust through
+     information density, so sections stay compact rather than airy. */
+  .section {
+    @apply py-12 md:py-14;
+  }
+
+  .section-head {
+    @apply flex flex-wrap items-end justify-between gap-4 border-b pb-4;
+    border-color: var(--border);
+  }
+
+  /* Small outlined chip used to label feature bands. */
+  .badge-chip {
+    @apply inline-block rounded border px-2 py-0.5 text-xs font-semibold tracking-wide uppercase;
+    border-color: currentColor;
+  }
+
+  /* Skip link — keyboard users land here first. */
+  .skip-link {
+    @apply sr-only;
+  }
+  .skip-link:focus {
+    @apply not-sr-only fixed top-3 left-3 z-100 rounded-md px-4 py-2 text-sm font-medium;
+    background: var(--accent);
+    color: white;
+  }
+
+  /* ---------- The article body ---------- */
+  .prose-reading {
+    /* Serif at 19px with generous leading: the single biggest lever on
+       long-form readability. */
+    font-family: var(--font-serif);
+    font-size: 1.1875rem;
+    line-height: 1.75;
+    letter-spacing: -0.003em;
+    color: var(--text);
+    max-width: var(--container-prose);
+  }
+
+  @media (max-width: 640px) {
+    .prose-reading {
+      font-size: 1.0625rem;
+      line-height: 1.7;
+    }
+  }
+
+  .prose-reading > * + * {
+    margin-block-start: 1.4em;
+  }
+
+  .prose-reading h2,
+  .prose-reading h3,
+  .prose-reading h4 {
+    font-family: var(--font-sans);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    scroll-margin-top: 5.5rem;
+  }
+
+  .prose-reading h2 {
+    font-size: 1.6rem;
+    margin-block-start: 2.4em;
+    margin-block-end: 0.7em;
+    padding-block-end: 0.3em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prose-reading h3 {
+    font-size: 1.28rem;
+    margin-block-start: 2em;
+    margin-block-end: 0.6em;
+  }
+
+  .prose-reading h4 {
+    font-size: 1.09rem;
+    margin-block-start: 1.8em;
+  }
+
+  /* Heading anchors: visible on hover, always reachable by keyboard. */
+  .prose-reading .heading-anchor {
+    @apply ml-2 opacity-0 transition-opacity no-underline;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+  .prose-reading h2:hover .heading-anchor,
+  .prose-reading h3:hover .heading-anchor,
+  .prose-reading .heading-anchor:focus-visible {
+    @apply opacity-100;
+  }
+
+  .prose-reading a:not(.heading-anchor) {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    text-decoration-color: color-mix(in oklch, var(--accent) 40%, transparent);
+    transition: text-decoration-color 0.15s;
+  }
+  .prose-reading a:not(.heading-anchor):hover {
+    text-decoration-color: var(--accent);
+  }
+
+  .prose-reading strong {
+    font-weight: 650;
+  }
+
+  .prose-reading ul,
+  .prose-reading ol {
+    padding-inline-start: 1.5em;
+  }
+  .prose-reading ul {
+    list-style: disc;
+  }
+  .prose-reading ol {
+    list-style: decimal;
+  }
+  .prose-reading li + li {
+    margin-block-start: 0.5em;
+  }
+  .prose-reading li::marker {
+    color: var(--text-muted);
+  }
+
+  .prose-reading blockquote {
+    border-inline-start: 3px solid var(--accent);
+    padding-inline-start: 1.15em;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
+  .prose-reading img,
+  .prose-reading video {
+    @apply rounded-lg;
+    border: 1px solid var(--border);
+    margin-inline: auto;
+  }
+
+  .prose-reading figure figcaption {
+    @apply mt-2 text-center text-sm;
+    font-family: var(--font-sans);
+    color: var(--text-muted);
+  }
+
+  /* Inline code stays sans-adjacent so it doesn't fight the serif body. */
+  .prose-reading :not(pre) > code {
+    font-family: var(--font-mono);
+    font-size: 0.855em;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    word-break: break-word;
+  }
+
+  .prose-reading pre {
+    @apply rounded-lg p-4 text-sm;
+    font-family: var(--font-mono);
+    line-height: 1.6;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    /* Code blocks break the measure — they get the full column. */
+    max-width: 100%;
+  }
+  .prose-reading pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+  }
+
+  /* Shiki dual-theme swap, no JS. */
+  [data-theme='dark'] .astro-code,
+  [data-theme='dark'] .astro-code span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
+  }
+
+  /* Tables are high-value for both readers and AI extraction — make them legible. */
+  .prose-reading table {
+    @apply w-full text-left text-base;
+    font-family: var(--font-sans);
+    border-collapse: collapse;
+    display: block;
+    overflow-x: auto;
+  }
+  .prose-reading th,
+  .prose-reading td {
+    padding: 0.6em 0.8em;
+    border: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .prose-reading th {
+    background: var(--bg-subtle);
+    font-weight: 620;
+  }
+
+  .prose-reading kbd {
+    @apply rounded px-1.5 py-0.5 text-xs;
+    font-family: var(--font-mono);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+  }
+}
+
+@layer utilities {
+  .text-muted {
+    color: var(--text-muted);
+  }
+  .bg-subtle {
+    background-color: var(--bg-subtle);
+  }
+  .border-default {
+    border-color: var(--border);
+  }
+  .text-accent {
+    color: var(--accent);
+  }
+}

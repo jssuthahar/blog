@@ -1,0 +1,240 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE, AUTHOR, MAIN_SITE } from '../config';
+import {
+  allArticles,
+  articleCategories,
+  groupByCategory,
+  normaliseCategory,
+  slugifyCategory,
+} from '../lib/articles';
+
+const articles = allArticles();
+const categories = articleCategories();
+const groups = groupByCategory(articles);
+
+const schema = [
+  {
+    '@type': 'CollectionPage',
+    '@id': `${SITE.url}/articles#page`,
+    name: `Articles by ${AUTHOR.name}`,
+    description: `${articles.length} articles published on ${MAIN_SITE.label} across Azure, AI, Xamarin, and .NET MAUI.`,
+    about: { '@id': `${SITE.url}/#person` },
+    isPartOf: { '@id': `${SITE.url}/#website` },
+  },
+];
+---
+
+<BaseLayout
+  title="Articles"
+  description={`All ${articles.length} articles published by ${AUTHOR.name} on ${MAIN_SITE.label} — Azure, AI, Xamarin, .NET MAUI, and more.`}
+  schema={schema}
+  wide
+>
+  <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <header class="max-w-3xl">
+      <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Articles</h1>
+      <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">
+        {articles.length} articles published on
+        <a href={MAIN_SITE.url} class="text-accent hover:underline">{MAIN_SITE.label}</a>,
+        organised by topic. These open on the main site.
+      </p>
+    </header>
+
+    <!-- Filtering is client-side over static HTML: every article is in the
+         initial response, so crawlers see all of them whether or not JS runs. -->
+    <div class="mt-10 space-y-4">
+      <div>
+        <label for="articles-search" class="sr-only">Search articles</label>
+        <input
+          id="articles-search"
+          type="search"
+          autocomplete="off"
+          placeholder="Search all articles…"
+          class="w-full max-w-xl rounded-lg border border-default bg-[var(--bg)] px-4 py-3 text-base"
+        />
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          data-filter="all"
+          aria-pressed="true"
+          class="filter-chip rounded-full border border-default px-3 py-1.5 text-sm transition-colors hover:bg-subtle"
+        >
+          All <span class="text-xs text-muted">{articles.length}</span>
+        </button>
+        {categories.map(({ label, count, slug }) => (
+          <button
+            type="button"
+            data-filter={slug}
+            aria-pressed="false"
+            class="filter-chip rounded-full border border-default px-3 py-1.5 text-sm transition-colors hover:bg-subtle"
+          >
+            {label} <span class="text-xs text-muted">{count}</span>
+          </button>
+        ))}
+      </div>
+
+      <p id="articles-count" role="status" aria-live="polite" class="text-sm text-muted">
+        Showing all {articles.length} articles
+      </p>
+    </div>
+
+    <div class="mt-10 space-y-12">
+      {groups.map(([category, categoryArticles]) => (
+        <section
+          data-section
+          id={slugifyCategory(category)}
+          aria-labelledby={`cat-${slugifyCategory(category)}`}
+        >
+          <h2
+            id={`cat-${slugifyCategory(category)}`}
+            class="sticky top-16 z-10 border-b-2 border-default py-2 text-lg font-semibold tracking-tight backdrop-blur-md"
+            style="background: color-mix(in oklch, var(--bg) 88%, transparent);"
+          >
+            {category}
+            <span class="ml-2 text-sm font-normal text-muted">{categoryArticles.length}</span>
+          </h2>
+
+          <ul class="mt-4 divide-y divide-[var(--border)]">
+            {categoryArticles.map((article) => (
+              <li
+                class="group relative py-4"
+                data-article
+                data-categories={[
+                  ...new Set(article.categories.map((c) => slugifyCategory(normaliseCategory(c)))),
+                ].join(' ')}
+                data-title={article.title.toLowerCase()}
+              >
+                <div class="flex gap-4">
+                  {article.image && (
+                    <img
+                      src={article.image}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      width="96"
+                      height="64"
+                      referrerpolicy="no-referrer"
+                      class="hidden size-16 w-24 shrink-0 rounded-md border border-default object-cover sm:block"
+                    />
+                  )}
+
+                  <div class="min-w-0 flex-1">
+                    <h3 class="leading-snug font-medium">
+                      <a
+                        href={article.url}
+                        class="after:absolute after:inset-0 group-hover:text-accent"
+                        rel="noopener"
+                      >
+                        {article.title}
+                      </a>
+                    </h3>
+
+                    <p class="mt-1 line-clamp-2 text-sm leading-relaxed text-muted">
+                      {article.excerpt}
+                    </p>
+
+                    <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                      {[...new Set(article.categories.map(normaliseCategory))]
+                        .slice(0, 4)
+                        .map((label) => (
+                          <span class="rounded-full border border-default px-2 py-0.5">{label}</span>
+                        ))}
+                      {article.comments > 0 && <span>{article.comments} comments</span>}
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+
+    <p id="articles-empty" hidden class="mt-10 rounded-lg border border-default bg-subtle p-6 text-muted">
+      No articles match that search.
+    </p>
+  </div>
+</BaseLayout>
+
+<style>
+  .filter-chip[aria-pressed='true'] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .filter-chip[aria-pressed='true'] span {
+    color: rgb(255 255 255 / 0.75);
+  }
+</style>
+
+<script>
+  function initArticleFilters() {
+    const search = document.getElementById('articles-search') as HTMLInputElement | null;
+    const chips = [...document.querySelectorAll<HTMLButtonElement>('.filter-chip')];
+    const items = [...document.querySelectorAll<HTMLElement>('[data-article]')];
+    const sections = [...document.querySelectorAll<HTMLElement>('[data-section]')];
+    const count = document.getElementById('articles-count');
+    const empty = document.getElementById('articles-empty');
+
+    if (!search || items.length === 0) return;
+
+    // Deep link support: /articles?category=azure arrives pre-filtered, so the
+    // topic chips on the home page land somewhere useful.
+    const requested = new URLSearchParams(location.search).get('category');
+    const known = chips.some((c) => c.dataset.filter === requested);
+    let activeFilter = requested && known ? requested : 'all';
+
+    for (const chip of chips) {
+      chip.setAttribute('aria-pressed', String(chip.dataset.filter === activeFilter));
+    }
+
+    const apply = () => {
+      const query = search.value.trim().toLowerCase();
+      let shown = 0;
+
+      for (const item of items) {
+        const matchesText = query === '' || item.dataset.title!.includes(query);
+        const matchesFilter =
+          activeFilter === 'all' || item.dataset.categories!.split(' ').includes(activeFilter);
+        const visible = matchesText && matchesFilter;
+
+        item.hidden = !visible;
+        if (visible) shown++;
+      }
+
+      // Hide a category heading once every article under it is filtered out.
+      for (const section of sections) {
+        section.hidden =
+          section.querySelectorAll<HTMLElement>('[data-article]:not([hidden])').length === 0;
+      }
+
+      if (count) {
+        count.textContent =
+          shown === items.length
+            ? `Showing all ${items.length} articles`
+            : `Showing ${shown} of ${items.length} articles`;
+      }
+      if (empty) empty.hidden = shown > 0;
+    };
+
+    search.addEventListener('input', apply);
+
+    for (const chip of chips) {
+      chip.addEventListener('click', () => {
+        activeFilter = chip.dataset.filter!;
+        for (const other of chips) {
+          other.setAttribute('aria-pressed', String(other === chip));
+        }
+        apply();
+      });
+    }
+
+    apply();
+  }
+
+  initArticleFilters();
+  document.addEventListener('astro:page-load', initArticleFilters);
+</script>

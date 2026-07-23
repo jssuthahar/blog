@@ -1,0 +1,96 @@
+---
+import { articlesByYear, publishingSpan } from '../lib/evidence';
+
+/**
+ * Articles published per year.
+ *
+ * Two stacked series: what the feed can verify, and an estimate of output on
+ * platforms this site cannot index. They are kept visually distinct — and named
+ * in the legend — because merging an assumption into a measured number is how a
+ * chart stops being evidence.
+ */
+
+const series = articlesByYear();
+const span = publishingSpan();
+const max = Math.max(...series.map((y) => y.total));
+const hasEstimate = series.some((y) => y.elsewhere > 0);
+
+const PLOT = 108;
+const scale = (n: number) => (n / max) * PLOT;
+---
+
+<figure class="not-prose">
+  <figcaption class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+    <span class="text-sm font-semibold">Articles published per year</span>
+    <span class="text-xs text-muted">{span.firstYear}–{span.lastYear}</span>
+  </figcaption>
+
+  {hasEstimate && (
+    <!-- Two series means a legend is mandatory; identity is never colour alone. -->
+    <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+      <li class="inline-flex items-center gap-1.5">
+        <span class="size-2.5 rounded-sm" style="background: var(--accent);"></span>
+        Indexed on this site
+      </li>
+      <li class="inline-flex items-center gap-1.5">
+        <span
+          class="size-2.5 rounded-sm"
+          style="background: color-mix(in oklch, var(--accent) 32%, transparent);"
+        ></span>
+        Other platforms (estimated)
+      </li>
+    </ul>
+  )}
+
+  <div
+    class="mt-4 flex items-end gap-[2px]"
+    style={`height: ${PLOT + 24}px;`}
+    role="img"
+    aria-label={`Stacked column chart of articles published per year, ${span.firstYear} to ${span.lastYear}. ${series
+      .map((y) => `${y.year}: ${y.tracked} indexed${y.elsewhere ? ` plus ${y.elsewhere} estimated elsewhere` : ''}`)
+      .join('; ')}.`}
+  >
+    {series.map(({ year, tracked, elsewhere, total }) => (
+      <div class="group relative flex h-full flex-1 flex-col justify-end">
+        <span
+          class="pointer-events-none absolute inset-x-0 -top-1 text-center text-[0.65rem] font-semibold opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          {total}
+        </span>
+
+        <!-- Columns cap at 24px: the band's leftover width is deliberate air. -->
+        <div class="mx-auto flex w-full max-w-[24px] flex-col justify-end">
+          {elsewhere > 0 && (
+            <div
+              class="rounded-t"
+              style={`height: ${scale(elsewhere)}px;
+                      background: color-mix(in oklch, var(--accent) 32%, transparent);`}
+            >
+            </div>
+          )}
+
+          <!-- 2px surface gap separates the stacked segments. -->
+          {elsewhere > 0 && tracked > 0 && <div style="height: 2px;"></div>}
+
+          {tracked > 0 && (
+            <div
+              class:list={['rounded-b', elsewhere === 0 && 'rounded-t']}
+              style={`height: ${Math.max(3, scale(tracked))}px; background: var(--accent);`}
+            >
+            </div>
+          )}
+        </div>
+
+        <span class="mt-1.5 text-center text-[0.6rem] tabular-nums text-muted">
+          {String(year).slice(2)}
+        </span>
+      </div>
+    ))}
+  </div>
+
+  <p class="mt-3 text-xs text-muted">
+    {`${span.activeYears} of ${span.years} years with work indexed here${
+      hasEstimate ? `, alongside an estimated ${series[0].elsewhere}+ per year published elsewhere` : ''
+    }.`}
+  </p>
+</figure>

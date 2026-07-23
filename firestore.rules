@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// View counters only. No auth, no personal data — the rules themselves are
+// the entire security boundary, so they must be strict about what a write
+// is allowed to change.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /views/{slug} {
+      // Counts are public.
+      allow read: if true;
+
+      // A write may only ever set `count`, and only to exactly one more than
+      // its current value (or 1 if the document does not exist yet). That
+      // makes the worst case "someone scripts extra page views", not
+      // "someone writes arbitrary data or zeroes the counter".
+      allow create: if request.resource.data.keys().hasOnly(['count'])
+                    && request.resource.data.count == 1;
+
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count'])
+                    && request.resource.data.count == resource.data.count + 1;
+
+      allow delete: if false;
+    }
+
+    // Everything else is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

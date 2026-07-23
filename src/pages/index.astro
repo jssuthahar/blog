@@ -1,0 +1,434 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Avatar from '../components/Avatar.astro';
+import EventCard from '../components/EventCard.astro';
+import Newsletter from '../components/Newsletter.astro';
+import { SITE, AUTHOR, BOOKING, SPEAKING_TOPICS } from '../config';
+import { CATEGORIES, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
+import { allArticles, articleCategories } from '../lib/articles';
+import { featuredRepos, repoIndex, languageColor } from '../lib/repos';
+import { getUpcomingEvents, eventSchema } from '../lib/events';
+import { contributionPillars, publishingSpan } from '../lib/evidence';
+import ContributionTimeline from '../components/ContributionTimeline.astro';
+import HeroCarousel, { type Slide } from '../components/HeroCarousel.astro';
+import { formatEventDate, FORMAT_LABELS } from '../lib/events';
+
+const posts = await getPublishedPosts();
+const recentPosts = posts.slice(0, 4);
+
+// The main-site library is the deepest proof of expertise — lead with it
+// rather than leaving 236 articles one click away.
+const articles = allArticles();
+const spotlight = articles.filter((a) => a.image).slice(0, 3);
+
+// A dense second tier: showing 12 more titles proves the depth of the library
+// in roughly the height three more cards would have cost.
+const spotlightUrls = new Set(spotlight.map((a) => a.url));
+const moreArticles = articles.filter((a) => !spotlightUrls.has(a.url)).slice(0, 12);
+const topics = articleCategories(8).slice(0, 9);
+const repos = featuredRepos(4);
+const upcoming = await getUpcomingEvents();
+
+const pillars = contributionPillars();
+const span = publishingSpan();
+
+/**
+ * Banner slides, interleaved so the first three cover all three kinds — a
+ * visitor sees an article, a post, and an event without waiting through a
+ * run of the same type.
+ */
+const articleSlides: Slide[] = articles.slice(0, 3).map((a) => ({
+  kind: 'Latest article',
+  title: a.title,
+  description: a.excerpt,
+  href: a.url,
+  external: true,
+  image: a.image,
+  meta: a.categories[0],
+  cta: 'Read the article',
+}));
+
+const blogSlides: Slide[] = posts.slice(0, 2).map((p) => ({
+  kind: 'From the blog',
+  title: p.data.title,
+  description: p.data.description,
+  href: postUrl(p),
+  meta: CATEGORIES[p.data.category].label,
+  cta: 'Read the post',
+}));
+
+const eventSlides: Slide[] = upcoming.slice(0, 2).map((e) => ({
+  kind: 'Upcoming event',
+  title: e.data.talk ?? e.data.title,
+  description: e.data.talk ? e.data.title : `${e.data.venue ?? ''} ${e.data.location}`.trim(),
+  href: e.data.registrationUrl ?? e.data.url ?? '/speaking',
+  external: Boolean(e.data.registrationUrl ?? e.data.url),
+  meta: `${FORMAT_LABELS[e.data.format]} · ${formatEventDate(e)}`,
+  cta: 'Event details',
+}));
+
+const slides: Slide[] = [];
+for (let i = 0; i < 3; i++) {
+  for (const group of [articleSlides, blogSlides, eventSlides]) {
+    if (group[i]) slides.push(group[i]);
+  }
+}
+
+// No email is published; booking goes to the scheduler or the contact page.
+const bookingHref = BOOKING.scheduler || '/contact';
+
+const schema = [
+  {
+    '@type': 'Blog',
+    '@id': `${SITE.url}/#blog`,
+    name: SITE.title,
+    description: SITE.description,
+    url: SITE.url,
+    author: { '@id': `${SITE.url}/#person` },
+    blogPost: posts.slice(0, 10).map((p) => ({
+      '@type': 'BlogPosting',
+      headline: p.data.title,
+      description: p.data.description,
+      datePublished: p.data.publishedAt.toISOString(),
+      url: new URL(postUrl(p), SITE.url).href,
+    })),
+  },
+  ...eventSchema(upcoming, SITE.url, `${SITE.url}/#person`),
+];
+---
+
+<BaseLayout title={SITE.title} description={SITE.description} schema={schema} wide>
+  <!-- ══════════════ Hero: claim, proof, and action on one screen ══════════════ -->
+  <section class="mx-auto max-w-6xl px-4 pt-12 pb-10 sm:px-6 lg:pt-16 lg:pb-12">
+    <div class="grid items-center gap-10 lg:grid-cols-[1.3fr_0.9fr]">
+      <div>
+        <div class="flex items-center gap-3">
+          <Avatar size={40} />
+          <div class="text-sm">
+            <p class="font-semibold">{AUTHOR.name}</p>
+            <p class="text-muted">{AUTHOR.jobTitle} · {AUTHOR.location}</p>
+          </div>
+        </div>
+
+        <h1 class="display mt-6 text-[2.25rem] sm:text-[2.75rem] lg:text-[3rem]">
+          {span.activeYears} years contributing to the
+          <span style="color: var(--accent);">developer community</span>
+        </h1>
+
+        <p class="mt-4 max-w-xl leading-relaxed text-muted text-pretty">
+          {AUTHOR.yearsExperience}+ years as a solutions architect shipping Azure and .NET
+          across 54 markets — and {span.activeYears} years publishing what I learn.
+          {articles.length} articles, 50+ conference sessions, {repoIndex.count} open-source
+          projects, 15,000+ developers reached.
+        </p>
+
+        <!-- Recognition moved inline so the panel slot can carry the banner. -->
+        <ul class="mt-6 flex flex-wrap gap-2">
+          {[...AUTHOR.awards, 'Microsoft Certified Trainer'].map((award) => (
+            <li class="inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1.5 text-xs font-medium">
+              <svg class="size-3.5 shrink-0" viewBox="0 0 20 20" fill="currentColor" style="color: var(--accent);" aria-hidden="true">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.86-9.47a.75.75 0 0 0-1.22-.86l-3.24 4.53-1.62-1.62a.75.75 0 0 0-1.06 1.06l2.24 2.24a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
+              </svg>
+              {award}
+            </li>
+          ))}
+        </ul>
+
+        <div class="mt-6 flex flex-wrap items-center gap-3">
+          <a href={bookingHref} class="btn btn-primary">Book me to speak</a>
+          <a href="/about" class="btn btn-outline">Full profile</a>
+          {BOOKING.available && (
+            <span class="inline-flex items-center gap-2 text-sm text-muted">
+              <span class="size-2 rounded-full" style="background: var(--accent);"></span>
+              {BOOKING.availabilityNote}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <HeroCarousel slides={slides} label="Latest articles, blog posts and events" />
+
+    </div>
+  </section>
+
+  <!-- ══════════════ Contribution at a glance ══════════════
+       Each number links to the evidence behind it, so the claim and the proof
+       are never more than one click apart. -->
+  <section class="border-y border-default bg-subtle" aria-labelledby="impact-heading">
+    <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+      <div class="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 id="impact-heading" class="text-sm font-semibold tracking-wider uppercase text-muted">
+          Contribution to the developer community
+        </h2>
+        <a href="/contributions" class="text-sm font-semibold text-accent hover:underline">
+          Full contribution record →
+        </a>
+      </div>
+
+      <div class="mt-6 grid grid-cols-2 gap-x-6 gap-y-7 md:grid-cols-3 lg:grid-cols-6">
+        {pillars.map(({ value, label, detail, href }) => (
+          <a href={href} class="group">
+            <div class="text-[1.75rem] leading-none font-bold tracking-tight text-accent">
+              {value}
+            </div>
+            <div class="mt-1.5 text-sm font-medium group-hover:text-accent">{label}</div>
+            <div class="mt-0.5 text-xs leading-snug text-muted">{detail}</div>
+          </a>
+        ))}
+      </div>
+
+      <div class="mt-10 border-t border-default pt-6">
+        <ContributionTimeline />
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ Articles ══════════════ -->
+  <section class="mx-auto max-w-6xl px-4 section sm:px-6" aria-labelledby="articles-heading">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Articles</p>
+        <h2 id="articles-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">
+          500+ articles, written from production
+        </h2>
+      </div>
+      <a href="/articles" class="btn btn-outline btn-sm">Browse all {articles.length}</a>
+    </div>
+
+    <!-- Topic chips double as an at-a-glance map of what the library covers. -->
+    <ul class="mt-5 flex flex-wrap gap-2">
+      {topics.map(({ label, count, slug }) => (
+        <li>
+          <a
+            href={`/articles?category=${slug}`}
+            class="inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1 text-xs transition-colors hover:bg-subtle"
+          >
+            {label}
+            <span class="text-muted">{count}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <!-- Featured three with artwork, then a dense list. More on screen, less scrolling. -->
+    <div class="mt-6 grid gap-5 md:grid-cols-3">
+      {spotlight.map((article) => (
+        <article class="group relative flex gap-4 md:block">
+          <div class="aspect-[4/3] w-28 shrink-0 overflow-hidden rounded-md border border-default md:aspect-[16/9] md:w-full">
+            <img
+              src={article.image!}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              referrerpolicy="no-referrer"
+              class="size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+            />
+          </div>
+          <div class="min-w-0 md:mt-3">
+            <div class="flex flex-wrap items-center gap-2 text-xs text-muted">
+              {article.categories.slice(0, 2).map((label) => (
+                <span class="rounded-full border border-default px-2 py-0.5">{label}</span>
+              ))}
+            </div>
+            <h3 class="mt-1 leading-snug font-semibold tracking-tight">
+              <a href={article.url} rel="noopener" class="after:absolute after:inset-0 group-hover:text-accent">
+                {article.title}
+              </a>
+            </h3>
+            <p class="mt-1 line-clamp-2 text-sm leading-relaxed text-muted">{article.excerpt}</p>
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <!-- Second tier: 12 more titles in two dense columns. -->
+    <div class="mt-8 border-t border-default pt-5">
+      <ul class="grid gap-x-10 sm:grid-cols-2">
+        {moreArticles.map((article) => (
+          <li class="group relative flex items-baseline gap-3 border-b border-default py-2.5">
+            <a
+              href={article.url}
+              rel="noopener"
+              class="min-w-0 flex-1 truncate text-sm after:absolute after:inset-0 group-hover:text-accent"
+            >
+              {article.title}
+            </a>
+            <span class="shrink-0 text-xs text-muted">
+              {article.categories[0] ?? ''}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <a href="/articles" class="mt-4 inline-block text-sm font-semibold text-accent hover:underline">
+        See all {articles.length} articles →
+      </a>
+    </div>
+
+    {recentPosts.length > 0 && (
+      <div class="mt-10">
+        <div class="flex items-baseline justify-between border-b border-default pb-2">
+          <h3 class="text-sm font-semibold tracking-wider uppercase text-muted">Latest on the blog</h3>
+          <a href="/blog" class="text-sm font-semibold text-accent hover:underline">All posts →</a>
+        </div>
+
+        <ul class="divide-y divide-[var(--border)]">
+          {recentPosts.map((post) => {
+            const category = CATEGORIES[post.data.category];
+            return (
+              <li class="group relative flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
+                <span class="w-16 shrink-0 text-xs font-medium" style={`color: oklch(0.55 0.15 ${category.hue});`}>
+                  {category.label}
+                </span>
+                <h4 class="min-w-0 flex-1 font-medium">
+                  <a href={postUrl(post)} class="after:absolute after:inset-0 group-hover:text-accent">
+                    {post.data.title}
+                  </a>
+                </h4>
+                <span class="text-xs text-muted">{formatDate(post.data.publishedAt)}</span>
+                <span class="w-14 text-right text-xs text-muted">{readingTime(post.body ?? '')} min</span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    )}
+  </section>
+
+  <!-- ══════════════ Speaker ══════════════
+       A deep neutral band rather than a saturated gradient: it separates the
+       section without introducing a second brand colour. -->
+  <section
+    id="speaking"
+    class="scroll-mt-16"
+    style="background: var(--navy); color: oklch(0.96 0.004 265);"
+    aria-labelledby="speaking-heading"
+  >
+    <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+      <div class="grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
+        <div>
+          <span class="badge-chip" style="opacity: 0.7;">Speaker</span>
+          <h2 id="speaking-heading" class="display mt-4 text-2xl sm:text-[2rem]">
+            50+ sessions. 15,000+ developers reached.
+          </h2>
+          <p class="mt-3 max-w-md leading-relaxed" style="opacity: 0.72;">
+            Conference sessions, webinars, and community meetups on Azure, applied AI,
+            and .NET — in English or Tamil, on site or online.
+          </p>
+
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a href={bookingHref} class="btn" style="background: #fff; color: var(--navy);">
+              Book an appointment
+            </a>
+            <a
+              href="/speaking"
+              class="btn"
+              style="background: transparent; color: #fff; border: 1.5px solid rgb(255 255 255 / 0.35);"
+            >
+              Talks &amp; topics
+            </a>
+          </div>
+
+          <p class="mt-3 text-sm" style="opacity: 0.6;">{BOOKING.responseTime}</p>
+        </div>
+
+        <div>
+          <h3 class="text-xs font-semibold tracking-wider uppercase" style="opacity: 0.6;">
+            {upcoming.length > 0 ? 'Upcoming' : 'Talks I give'}
+          </h3>
+
+          {upcoming.length > 0 ? (
+            <div class="mt-3 space-y-2">
+              {upcoming.slice(0, 3).map((event) => (
+                <div class="rounded-lg bg-white/95 p-1" style="color: var(--navy);">
+                  <EventCard event={event} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <ul class="mt-3 grid gap-x-6 sm:grid-cols-2">
+              {SPEAKING_TOPICS.map(({ title, description }) => (
+                <li class="border-t py-3.5" style="border-color: rgb(255 255 255 / 0.16);">
+                  <h4 class="text-sm font-semibold">{title}</h4>
+                  <p class="mt-1 text-sm leading-relaxed" style="opacity: 0.66;">{description}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ Open source ══════════════ -->
+  <section class="mx-auto max-w-6xl px-4 section sm:px-6" aria-labelledby="oss-heading">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Open source</p>
+        <h2 id="oss-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">Code you can read</h2>
+      </div>
+      <p class="text-sm text-muted">
+        {repoIndex.count} repos · {repoIndex.totalStars} stars · {repoIndex.totalForks} forks
+        <a href="/open-source" class="ml-3 font-semibold text-accent hover:underline">All projects →</a>
+      </p>
+    </div>
+
+    <ul class="mt-2 divide-y divide-[var(--border)]">
+      {repos.map((repo) => (
+        <li class="group relative flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3.5">
+          <a href={repo.url} rel="noopener" class="font-semibold after:absolute after:inset-0 group-hover:text-accent">
+            {repo.name}
+          </a>
+          <p class="min-w-0 flex-1 truncate text-sm text-muted">{repo.description}</p>
+          {repo.language && (
+            <span class="inline-flex items-center gap-1.5 text-xs text-muted">
+              <span class="size-2.5 rounded-full" style={`background: ${languageColor(repo.language)};`}></span>
+              {repo.language}
+            </span>
+          )}
+          <span class="w-16 text-right text-xs text-muted">{repo.stars}★ {repo.forks}⑂</span>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <!-- ══════════════ Contact + Subscribe ══════════════ -->
+  <section class="border-t border-default bg-subtle" aria-labelledby="contact-heading">
+    <div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2">
+      <div>
+        <p class="eyebrow">Contact</p>
+        <h2 id="contact-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">
+          Invite me to your event
+        </h2>
+        <p class="mt-3 max-w-lg leading-relaxed text-muted text-pretty">
+          Based in {AUTHOR.location}, speaking globally. Conference sessions, webinars,
+          and community meetups — or just feedback on something I wrote.
+        </p>
+
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="/contact" class="btn btn-primary">Get in touch</a>
+          <a href={bookingHref} class="btn btn-outline">Book an appointment</a>
+        </div>
+
+        <dl class="mt-8 grid max-w-md grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          {[
+            { label: 'LinkedIn', value: 'in/jssuthahar', href: AUTHOR.linkedin },
+            { label: 'GitHub', value: '@jssuthahar', href: 'https://github.com/jssuthahar' },
+            { label: 'YouTube', value: '@MSDEVBUILD', href: 'https://www.youtube.com/@MSDEVBUILD' },
+            { label: 'Contact', value: 'Send a message', href: '/contact' },
+          ].map(({ label, value, href }) => (
+            <div class="min-w-0">
+              <dt class="text-xs text-muted">{label}</dt>
+              <dd class="truncate font-medium">
+                <a href={href} rel="noopener" class="hover:text-accent">{value}</a>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      <div id="subscribe" class="scroll-mt-20 self-center">
+        <Newsletter compact />
+      </div>
+    </div>
+  </section>
+</BaseLayout>

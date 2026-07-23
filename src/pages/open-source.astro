@@ -1,0 +1,85 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import RepoCard from '../components/RepoCard.astro';
+import { SITE, AUTHOR } from '../config';
+import { allRepos, repoIndex } from '../lib/repos';
+
+const repos = allRepos();
+const withDescription = repos.filter((r) => r.description.length > 0);
+const rest = repos.filter((r) => r.description.length === 0);
+
+const languages = [...new Set(repos.map((r) => r.language).filter(Boolean))];
+
+const schema = [
+  {
+    '@type': 'CollectionPage',
+    '@id': `${SITE.url}/open-source#page`,
+    name: `Open source — ${AUTHOR.name}`,
+    description: `Public repositories maintained by ${AUTHOR.name}, covering .NET, Xamarin, Azure, and developer tooling.`,
+    about: { '@id': `${SITE.url}/#person` },
+  },
+];
+---
+
+<BaseLayout
+  title="Open source"
+  description={`${repoIndex.count} public repositories by ${AUTHOR.name} — .NET, Xamarin, Azure samples, Visual Studio extensions, and developer tools.`}
+  schema={schema}
+>
+  <header class="max-w-3xl">
+    <p class="eyebrow">Open source</p>
+    <h1 class="display mt-3 text-4xl sm:text-5xl">Code you can read</h1>
+    <p class="mt-5 text-lg leading-relaxed text-muted text-pretty">
+      Learning repositories, Visual Studio extensions, and tools — {repoIndex.count} public
+      projects covering {languages.slice(0, 4).join(', ')}, and more.
+    </p>
+  </header>
+
+  <section class="mt-10 flex flex-wrap gap-3" aria-label="Totals">
+    {[
+      { value: repoIndex.count, label: 'public repositories' },
+      { value: repoIndex.totalStars, label: 'stars' },
+      { value: repoIndex.totalForks, label: 'forks' },
+    ].map(({ value, label }) => (
+      <div class="rounded-xl border border-default px-5 py-4">
+        <div class="text-2xl font-bold tracking-tight text-accent">{value}</div>
+        <div class="mt-0.5 text-xs text-muted">{label}</div>
+      </div>
+    ))}
+
+    <a href={`https://github.com/${repoIndex.user}`} rel="noopener" class="btn btn-outline self-center">
+      View on GitHub ↗
+    </a>
+  </section>
+
+  <section class="mt-12" aria-labelledby="projects-heading">
+    <h2 id="projects-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
+      Projects
+    </h2>
+    <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {withDescription.map((repo) => <RepoCard repo={repo} />)}
+    </div>
+  </section>
+
+  {rest.length > 0 && (
+    <section class="mt-14" aria-labelledby="more-heading">
+      <h2 id="more-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
+        Also on GitHub
+      </h2>
+      <ul class="mt-5 flex flex-wrap gap-2">
+        {rest.map((repo) => (
+          <li>
+            <a
+              href={repo.url}
+              rel="noopener"
+              class="inline-flex items-center gap-2 rounded-full border border-default px-3 py-1.5 text-sm transition-colors hover:bg-subtle"
+            >
+              {repo.name}
+              {repo.stars > 0 && <span class="text-xs text-muted">{repo.stars}★</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+</BaseLayout>

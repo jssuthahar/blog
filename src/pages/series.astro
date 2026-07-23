@@ -1,0 +1,60 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getPublishedPosts, postUrl } from '../lib/posts';
+
+const definitions = await getCollection('series');
+const posts = await getPublishedPosts();
+
+// A series exists if posts reference it, whether or not it has a definition file.
+const ids = new Set(posts.map((p) => p.data.series).filter((s): s is string => Boolean(s)));
+
+const series = [...ids]
+  .map((id) => {
+    const meta = definitions.find((d) => d.id === id);
+    const parts = posts
+      .filter((p) => p.data.series === id)
+      .sort((a, b) => (a.data.seriesOrder ?? 0) - (b.data.seriesOrder ?? 0));
+
+    return {
+      id,
+      title: meta?.data.title ?? id.replace(/-/g, ' '),
+      description: meta?.data.description ?? '',
+      order: meta?.data.order ?? 99,
+      parts,
+    };
+  })
+  .sort((a, b) => a.order - b.order);
+---
+
+<BaseLayout
+  title="Series"
+  description="Multi-part guides that build a complete system step by step, on .NET, Azure, and AI."
+>
+  <header class="max-w-2xl">
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Series</h1>
+    <p class="mt-3 text-muted">
+      Multi-part guides meant to be read in order, each building on the last.
+    </p>
+  </header>
+
+  <div class="mt-10 space-y-8">
+    {series.map(({ title, description, parts }) => (
+      <section class="rounded-xl border border-default p-6">
+        <h2 class="text-xl font-semibold tracking-tight capitalize">{title}</h2>
+        {description && <p class="mt-2 text-muted">{description}</p>}
+        <ol class="mt-5 space-y-3">
+          {parts.map((post) => (
+            <li class="flex gap-3">
+              <span class="text-muted tabular-nums">{post.data.seriesOrder}.</span>
+              <div>
+                <a href={postUrl(post)} class="font-medium hover:text-accent">{post.data.title}</a>
+                <p class="mt-0.5 text-sm text-muted">{post.data.description}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+    ))}
+  </div>
+</BaseLayout>

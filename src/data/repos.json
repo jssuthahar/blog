@@ -1,0 +1,278 @@
+{
+  "user": "jssuthahar",
+  "syncedAt": "2026-07-23T13:33:51.362Z",
+  "totalStars": 44,
+  "totalForks": 58,
+  "count": 19,
+  "repos": [
+    {
+      "name": "Article",
+      "description": "MSDEVBUILD is a blog dedicated to sharing knowledge on Microsoft technologies, software development, cloud computing, mobile applications, AI, and more.The blog features in-depth technical articles, tutorials, and best practices for developers.",
+      "url": "https://github.com/jssuthahar/Article",
+      "homepage": "https://www.msdevbuild.com",
+      "language": "HTML",
+      "stars": 20,
+      "forks": 13,
+      "topics": [
+        "azure",
+        "cloud",
+        "csharp",
+        "maui",
+        "programming",
+        "python",
+        "sql",
+        "wpf"
+      ],
+      "updated": "2026-07-22T01:04:32Z"
+    },
+    {
+      "name": "Xamarin",
+      "description": "Learn to develop mobile applications from zero to deployment with these in-depth guides  and sample application",
+      "url": "https://github.com/jssuthahar/Xamarin",
+      "homepage": null,
+      "language": "C#",
+      "stars": 10,
+      "forks": 16,
+      "topics": [],
+      "updated": "2022-12-07T19:35:37Z"
+    },
+    {
+      "name": "VisualStudioExtension",
+      "description": "Open Source VisualStudioExtension",
+      "url": "https://github.com/jssuthahar/VisualStudioExtension",
+      "homepage": null,
+      "language": "C#",
+      "stars": 3,
+      "forks": 24,
+      "topics": [],
+      "updated": "2018-07-26T17:19:38Z"
+    },
+    {
+      "name": "Malaysia",
+      "description": "Niki and Bhavi Vlog is a fun and engaging YouTube channel where two Tamil brothers, Niki and Bhavi, share their experiences in Malaysia. Our content covers travel, food, culture, and everyday life, bringing entertainment and valuable insights to our Tamil-speaking audience worldwide.",
+      "url": "https://github.com/jssuthahar/Malaysia",
+      "homepage": "https://www.msdevbuild.com",
+      "language": null,
+      "stars": 3,
+      "forks": 1,
+      "topics": [
+        "best",
+        "jobs",
+        "malaysia",
+        "places",
+        "tourism",
+        "travel",
+        "video",
+        "visa",
+        "vlog"
+      ],
+      "updated": "2025-09-05T03:09:42Z"
+    },
+    {
+      "name": "malaysialivingcost",
+      "description": "🇲🇾 Malaysia Living Cost & Savings Calculator",
+      "url": "https://github.com/jssuthahar/malaysialivingcost",
+      "homepage": "https://jssuthahar.github.io/malaysialivingcost/",
+      "language": "C++",
+      "stars": 2,
+      "forks": 1,
+      "topics": [
+        "cost-of-living",
+        "expat-living-malaysia",
+        "food-cost-malaysia",
+        "housing-cost",
+        "kuala-lumpur-living",
+        "malaysia-expenses",
+        "malaysia-living-cost",
+        "monthly-budget",
+        "student-budget-malaysia",
+        "transportation-cost"
+      ],
+      "updated": "2026-01-24T05:05:02Z"
+    },
+    {
+      "name": "Azure",
+      "description": "Azure",
+      "url": "https://github.com/jssuthahar/Azure",
+      "homepage": null,
+      "language": "Java",
+      "stars": 2,
+      "forks": 0,
+      "topics": [],
+      "updated": "2018-12-24T19:45:24Z"
+    },
+    {
+      "name": "malaysiatax",
+      "description": "Malaysia Tax Calculator: Estimate income tax, PCB, and take-home salary for locals & expats",
+      "url": "https://github.com/jssuthahar/malaysiatax",
+      "homepage": "https://jssuthahar.github.io/malaysiatax/",
+      "language": "JavaScript",
+      "stars": 2,
+      "forks": 0,
+      "topics": [
+        "182-days-rule",
+        "flutter-web-app",
+        "hasil",
+        "income-tax-malaysia",
+        "lhdn",
+        "malaysia-expat-life",
+        "malaysia-foreigner-tax",
+        "malaysia-resident-tax",
+        "malaysia-salary-tax",
+        "malaysia-tax",
+        "malaysia-tax-calculator",
+        "net-income-malaysia",
+        "progressive-tax-malaysia",
+        "salary-calculator-malaysia"
+      ],
+      "updated": "2025-11-23T11:38:50Z"
+    },
+    {
+      "name": "DotnetCore",
+      "description": "",
+      "url": "https://github.com/jssuthahar/DotnetCore",
+      "homepage": null,
+      "language": "C#",
+      "stars": 1,
+      "forks": 1,
+      "topics": [],
+      "updated": "2025-09-24T14:46:48Z"
+    },
+    {
+      "name": "csharp",
+      "description": "",
+      "url": "https://github.com/jssuthahar/csharp",
+      "homepage": null,
+      "language": null,
+      "stars": 1,
+      "forks": 0,
+      "topics": [],
+      "updated": "2025-03-19T08:34:27Z"
+    },
+    {
+      "name": "Microsoft-Cognitive-Service",
+      "description": "",
+      "url": "https://github.com/jssuthahar/Microsoft-Cognitive-Service",
+      "homepage": null,
+      "language": "JavaScript",
+      "stars": 0,
+      "forks": 2,
+      "topics": [],
+      "updated": "2018-03-05T16:21:00Z"
+    },
+    {
+      "name": "JSON-Studio",
+      "description": "Every JSON tool you need, in one place Format, diagram, diff, query, validate and convert JSON — into CSV, YAML, XML, SQL or typed classes for seven languages. No account, no uploads, no waiting on a server.",
+      "url": "https://github.com/jssuthahar/JSON-Studio",
+      "homepage": "https://jsonstudio.msdevbuild.com/",
+      "language": "HTML",
+      "stars": 0,
+      "forks": 0,
+      "topics": [
+        "json",
+        "json-formatter-validator",
+        "json-inspect-debug"
+      ],
+      "updated": "2026-07-23T06:52:13Z"
+    },
+    {
+      "name": "Malaysia-Life-Guide",
+      "description": "🇲🇾🇮🇳 NikiBhavi is a free, open-source project built by Indians living in Malaysia to provide honest, accurate, and up-to-date guidance on Employee Pass, Tourist Visa, Tax, EPF, Salary, Remittance, Housing, and everyday life in Malaysia.",
+      "url": "https://github.com/jssuthahar/Malaysia-Life-Guide",
+      "homepage": "http://nikibhavi.msdevbuild.com/",
+      "language": "JavaScript",
+      "stars": 0,
+      "forks": 0,
+      "topics": [
+        "firebase",
+        "flutter",
+        "react-native"
+      ],
+      "updated": "2026-06-03T13:32:57Z"
+    },
+    {
+      "name": "spinwheel",
+      "description": "This project goes beyond a simple game.  It is a fully customizable engagement platform that allows organizations to:  🎡 Engage users through gamification 🎁 Deliver rewards with excitement 🔐 Unlock hidden digital experiences via QR 🏢 Showcase their company branding",
+      "url": "https://github.com/jssuthahar/spinwheel",
+      "homepage": "http://spinwheel.msdevbuild.com/",
+      "language": "HTML",
+      "stars": 0,
+      "forks": 0,
+      "topics": [
+        "lucky",
+        "luckybox",
+        "randomqr",
+        "spin",
+        "spinwheel",
+        "wheel"
+      ],
+      "updated": "2026-04-11T05:51:27Z"
+    },
+    {
+      "name": "video-downloader",
+      "description": "video-downloader",
+      "url": "https://github.com/jssuthahar/video-downloader",
+      "homepage": null,
+      "language": "HTML",
+      "stars": 0,
+      "forks": 0,
+      "topics": [],
+      "updated": "2025-12-13T19:03:58Z"
+    },
+    {
+      "name": "MyDemo",
+      "description": "MyDemo Profile",
+      "url": "https://github.com/jssuthahar/MyDemo",
+      "homepage": null,
+      "language": "HTML",
+      "stars": 0,
+      "forks": 0,
+      "topics": [],
+      "updated": "2025-10-14T01:22:22Z"
+    },
+    {
+      "name": "Product-Management",
+      "description": "Product-Management",
+      "url": "https://github.com/jssuthahar/Product-Management",
+      "homepage": null,
+      "language": "C#",
+      "stars": 0,
+      "forks": 0,
+      "topics": [],
+      "updated": "2025-09-24T14:07:04Z"
+    },
+    {
+      "name": "WPF",
+      "description": "",
+      "url": "https://github.com/jssuthahar/WPF",
+      "homepage": null,
+      "language": "C#",
+      "stars": 0,
+      "forks": 0,
+      "topics": [],
+      "updated": "2025-09-18T14:52:09Z"
+    },
+    {
+      "name": "Shopping",
+      "description": "",
+      "url": "https://github.com/jssuthahar/Shopping",
+      "homepage": null,
+      "language": "C#",
+      "stars": 0,
+      "forks": 0,
+      "topics": [],
+      "updated": "2023-06-08T13:07:12Z"
+    },
+    {
+      "name": "Bot-Framework",
+      "description": "Bot Framework",
+      "url": "https://github.com/jssuthahar/Bot-Framework",
+      "homepage": null,
+      "language": "C#",
+      "stars": 0,
+      "forks": 0,
+      "topics": [],
+      "updated": "2018-07-14T13:15:07Z"
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import EventCard from '../components/EventCard.astro';
+import BookSpeaking from '../components/BookSpeaking.astro';
+import { SITE, AUTHOR, SPEAKING_TOPICS, SESSION_FORMATS } from '../config';
+import { getUpcomingEvents, getPastEvents, eventSchema } from '../lib/events';
+
+const upcoming = await getUpcomingEvents();
+const past = await getPastEvents();
+
+const schema = [
+  {
+    '@type': 'WebPage',
+    '@id': `${SITE.url}/speaking#page`,
+    name: `Speaking — ${AUTHOR.name}`,
+    description: `Conference sessions, webinars, and community meetups delivered by ${AUTHOR.name} on Azure, applied AI, and .NET.`,
+    about: { '@id': `${SITE.url}/#person` },
+  },
+  ...eventSchema(upcoming, SITE.url, `${SITE.url}/#person`),
+];
+---
+
+<BaseLayout
+  title="Speaking"
+  description={`Invite ${AUTHOR.name} to speak — conference sessions, webinars, and community meetups on Microsoft Azure, applied AI, and .NET, in English or Tamil.`}
+  schema={schema}
+>
+  <header class="max-w-3xl">
+    <p class="eyebrow">Speaking</p>
+    <h1 class="display mt-3 text-3xl sm:text-4xl">
+      Sessions for your conference or community
+    </h1>
+    <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">
+      50+ sessions delivered to 15,000+ developers across Microsoft Azure, applied AI,
+      and .NET. Available in English or Tamil, on site or online.
+    </p>
+  </header>
+
+  <div class="mt-10">
+    <BookSpeaking />
+  </div>
+
+  {upcoming.length > 0 && (
+    <section class="mt-16" aria-labelledby="upcoming-heading">
+      <h2 id="upcoming-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
+        Upcoming
+      </h2>
+      <div class="mt-6 space-y-3">
+        {upcoming.map((event) => <EventCard event={event} />)}
+      </div>
+    </section>
+  )}
+
+  <section class="mt-16" aria-labelledby="topics-heading">
+    <h2 id="topics-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
+      Talks I give
+    </h2>
+    <div class="mt-6 grid gap-4 sm:grid-cols-2">
+      {SPEAKING_TOPICS.map(({ title, description }) => (
+        <article class="rounded-xl border border-default p-5">
+          <h3 class="font-semibold tracking-tight">{title}</h3>
+          <p class="mt-2 text-sm leading-relaxed text-muted">{description}</p>
+        </article>
+      ))}
+    </div>
+    <p class="mt-4 text-sm text-muted">
+      Sessions are tailored to the audience — happy to build something specific to your event.
+    </p>
+  </section>
+
+  <section class="mt-16" aria-labelledby="formats-heading">
+    <h2 id="formats-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
+      Formats
+    </h2>
+    <dl class="mt-6 grid gap-5 sm:grid-cols-3">
+      {SESSION_FORMATS.map(({ title, description }) => (
+        <div>
+          <dt class="font-semibold">{title}</dt>
+          <dd class="mt-1.5 text-sm leading-relaxed text-muted">{description}</dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+
+  {past.length > 0 && (
+    <section class="mt-16" aria-labelledby="past-heading">
+      <h2 id="past-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
+        Past events
+      </h2>
+      <div class="mt-6 space-y-3">
+        {past.map((event) => <EventCard event={event} past />)}
+      </div>
+    </section>
+  )}
+
+  <p class="mt-10 text-sm text-muted">
+    The full dated record of talks, articles, and community work lives on the
+    <a href="/contributions" class="text-accent hover:underline">contributions page</a>.
+  </p>
+</BaseLayout>

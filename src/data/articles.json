@@ -1,0 +1,3084 @@
+{
+  "source": "https://www.msdevbuild.com/feeds/posts/default",
+  "blogTitle": "MSDEVBUILD",
+  "syncedAt": "2026-07-23T14:48:20.006Z",
+  "count": 236,
+  "posts": [
+    {
+      "title": "Copilot Isn't Autocomplete Anymore: Inside Agent Mode",
+      "url": "https://www.msdevbuild.com/2026/07/copilot-isnt-autocomplete-anymore.html",
+      "published": "2026-07-23T09:01:04.567+08:00",
+      "updated": "2026-07-23T09:01:04.567+08:00",
+      "categories": [
+        "AI",
+        "Github Copilot"
+      ],
+      "excerpt": "A few months ago I was helping a teammate set up Copilot for the first time. He typed a comment, waited for the ghost text, hit tab, and said \"cool, so it's like a smarter autocomplete.\" I…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Why LLMs Don’t Have Memory — But Still Feel Smart",
+      "url": "https://www.msdevbuild.com/2026/02/why-llms-dont-have-memory-but-still.html",
+      "published": "2026-02-19T20:31:00.001+08:00",
+      "updated": "2026-02-19T20:31:22.859+08:00",
+      "categories": [
+        "AI"
+      ],
+      "excerpt": "Every day, millions of people use AI tools like ChatGPT and Copilot. If you want to understand modern artificial intelligence, you can’t ignore Large Language Models (LLMs) . They power…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiq2alGLYYtA27iN1lzWtEN7lc3W7qKkJmYiQ6zCYh4A-eQD2Ar_HZiWNVLgIY1tYiBjdHUYrov7aHFJkGp_T7zjjgJcS2q-y8mcCcHxJkf9CRwKPkiT4aDR4Ls4wh1HQEcRrgbLltoUL2MnwLaLEXIw0lFCUPE1mTB2kYbzLBSSWuLbXpfbiU_akuKMHw2/s72-w640-h256-c/01%20Why%20LLMs%20Don%E2%80%99t%20Have%20Memory.jpg",
+      "comments": 0
+    },
+    {
+      "title": "AI Evolution Explained: GenAI vs LLMs vs AI Agents vs Agentic AI vs Intelligent AI",
+      "url": "https://www.msdevbuild.com/2025/09/ai-evolution-genai-llms-agents-agentic-intelligent.html",
+      "published": "2025-09-16T13:15:00.000+08:00",
+      "updated": "2025-09-16T13:15:04.585+08:00",
+      "categories": [
+        "AI",
+        "Azure AI",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Artificial Intelligence (AI) is one of the most exciting technologies in our world today. But the terms that come with it like GenAI, LLMs, AI Agents, Agentic AI, and Intelligent AI can…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiYDDB7UqhxrI1bQ3XW7VswG-zG7g3-C-Xgd49cpzX5hh0_zs0fUoqBhtFnMqAnu-1TE95NVmPLwSqJnr3zEWvWdREfSAUqIigb-0WrGpWYoOmpetj4H1mdUbsbBKsaRqQfmT1nGzO636jPj5imP4BNtojva5vyF8k8vIb4tnR_VNXEy_LdK-kYVO2so7rc/s72-w640-h360-c/1%202.png",
+      "comments": 0
+    },
+    {
+      "title": "Azure AI Service, Studio, ML & Foundry – Which One Do You Need?",
+      "url": "https://www.msdevbuild.com/2025/08/azure-ai-service-studio-ml-foundry.html",
+      "published": "2025-08-10T09:41:00.002+08:00",
+      "updated": "2025-08-10T10:10:03.483+08:00",
+      "categories": [
+        "Azure AI"
+      ],
+      "excerpt": "If you have used Microsoft AI tools in the past, you might remember popular services like Cognitive Services and the Bot Framework. These tools were widely used to add features like speech…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjXJpVeOwcBaEUo5XlOTkCiJtSQmM7Em17z0PyB3gjYvZTR8XCsyhNoFqyMUbS6IeWAXRLGuO4rmdpm1H2UN6R_yisUxVyFcoAFhefk1hQmG3Fn4GcWEGKqcEpiC3UPkPxqIWQMPgAsM0E0iU599iSJRXg-R0pLBaf0yF32UZBDnx3YTCboISzz-1sznx67/s72-w640-h406-c/01%20Azure%20AI%20Foundaru.png",
+      "comments": 0
+    },
+    {
+      "title": "How to Get an Free Azure Subscription for Learning",
+      "url": "https://www.msdevbuild.com/2025/04/how-to-get-azure-subscription-for.html",
+      "published": "2025-04-19T02:01:00.008+08:00",
+      "updated": "2025-05-17T12:31:45.039+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "This guide will help you get started with Microsoft Azure for free. It explains three easy ways: using a Free Azure Account Signing up for Azure for Students (no credit card needed),…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi3m5C2quIA5t0ZUoQHoDbWLYTPlfaGzZcbSLNjDyob3R1d3ZmRbXfcHml-1pHUS69s-1NiozpDd4Zx1f-BGg5nclyRKocwA8v4ZvUk-a31FcVZfzrWhr5ydAK6QANBUFRJvPiTxWJegWPxKBd3QfyTXpRrl61LVCp2q3qDN-CmiwGsjWHQ_ZERCnHkugg/s72-w640-h240-c/3%20ways%20to%20get%20%20Free%20Azure%20Subscription.png",
+      "comments": 0
+    },
+    {
+      "title": "C# Object and Dynamic Types",
+      "url": "https://www.msdevbuild.com/2025/02/c-object-and-dynamic-types.html",
+      "published": "2025-02-20T16:34:00.004+08:00",
+      "updated": "2025-02-20T16:34:48.309+08:00",
+      "categories": [
+        "C#",
+        "C# Tips"
+      ],
+      "excerpt": "This blog provides an in-depth explanation of object and dynamic types in C#. Object Type 1. Overview object is the base class for all data types in C#. It can store any type of value,…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": " Improving C# Performance by Using AsSpan and Avoiding Substring",
+      "url": "https://www.msdevbuild.com/2023/10/CPerformance-by-Using-AsSpan-and-Avoiding-Substring.html",
+      "published": "2023-10-22T18:12:00.005+08:00",
+      "updated": "2023-10-22T18:17:52.194+08:00",
+      "categories": [
+        "C# Tips"
+      ],
+      "excerpt": "During development and everyday use, Substring is often the go-to choice for string manipulation. However, there are cases where Substring can negatively impact performance and result in…",
+      "image": "https://lh6.googleusercontent.com/T_jWAU91oEiMzZQ4gG-umTCbujYhKB-2SXyGRmqu5VaoZut7gQW3-JBBAv03IdH8I2xnpPoKRaj93bzXXJ5MR5uq-uYqhMEcHChqJDJzCtDk1BqLYRBIA2X41C05bPbNla6d2ge-IN8QAWfqgXVZRumCDIv4-7sD=s72-w640-h360-c",
+      "comments": 0
+    },
+    {
+      "title": "Free Microsoft Certification : C#",
+      "url": "https://www.msdevbuild.com/2023/09/Free-Microsoft-Certifications.html",
+      "published": "2023-09-03T12:18:00.005+08:00",
+      "updated": "2023-09-03T12:23:58.657+08:00",
+      "categories": [
+        "C#",
+        "certification"
+      ],
+      "excerpt": "Microsoft announced a new Foundational C# certification in collaboration with FreeCodeCamp. The Foundational C# certification is completely free for individuals in all regions. The…",
+      "image": "https://lh6.googleusercontent.com/S_e3sjgcUYUaYvhuSYsdipvofpB9Y0-Y0RaPWcTUV6Y-FsRy2REU6Veb4FZVxh-YU6SJuA8_gE7BqZzPkUgNWJG4S64wnVI7AuRGOzehN7_0h95UUE0k0QZ-8e4f5ozqh-8TlkGlW_W2Tt7NfNTClHeJE08Jam-Q=s72-w640-h359-c",
+      "comments": 0
+    },
+    {
+      "title": "Visual Studio 2022: C# Global Namespace ",
+      "url": "https://www.msdevbuild.com/2023/08/visual-studio-2022-c-global-namespace.html",
+      "published": "2023-08-26T23:33:00.007+08:00",
+      "updated": "2023-08-26T23:38:05.802+08:00",
+      "categories": [
+        "C#"
+      ],
+      "excerpt": "Global usings were introduced in C# 10 and .NET Core 6.0 and later versions. This feature proves to be highly beneficial as it allows you to incorporate commonly used namespaces. As a…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEic_4ZvlObgXyMnDnrre15NtNS7iph6bZVv9HPF1ZupRs7P_Kb-aKsqr0cQjQoQjpHhPSZ9hP0xFkb7WUaGZLBmLx8Z0YDTX6xQbkxeJNwOatZhxku9ZyOnQBzDjp239dl1bjMNIogqcLx1nkyZ_jlPOeAPVZucssAK_NWIycypYUtCZQn4IFu4MP0WBz4f/s72-w640-h360-c/Global%20Namespace%20.png",
+      "comments": 0
+    },
+    {
+      "title": "DateOnly And TimeOnly Types In .NET 6 -.NET Core",
+      "url": "https://www.msdevbuild.com/2023/07/dateonly-and-timeonly-types-in-net-6.html",
+      "published": "2023-07-22T13:31:00.005+08:00",
+      "updated": "2023-07-26T10:00:51.541+08:00",
+      "categories": [
+        "C#"
+      ],
+      "excerpt": "In this article, we will discuss Microsoft introduced new types DateOnly and TimeOnly in C# and examine the unique functionalities offered by each, and assist in determining the suitable…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhOm8H3vby05iCGE6mMebaPh4E4YjQ22C6lFh7Zb8ztV61htBEKxvZmCXLW0TrPhGPUFpgN59M-dTDpCqViKKyHlk9qcxnG0e8arAkJBpGRMZuV1_7tkAPERLNGIcJNuuw4ORRrjcnAs5GMChcH7c-FL0GPGLkNGD_76BHaJVlJcNaKW41MEF17eZ8G4SVq/s72-w564-h640-c/Blue%20Grey%20Violet%20Town%20Hall%20Meeting%20Flyer%20(300%20%C3%97%20297%20mm)%20(1).png",
+      "comments": 0
+    },
+    {
+      "title": " .NET MAUI App:  MAUI app icon,  MAUI splash screen, and MAUI image to different mobile platforms.",
+      "url": "https://www.msdevbuild.com/2022/11/NET-MAUI-App Project-MAUIappicon-MAUIsplashscreen-and-MAUIimage-to-different-mobile-platform.html",
+      "published": "2022-11-26T13:35:00.003+08:00",
+      "updated": "2022-11-26T15:35:26.576+08:00",
+      "categories": [
+        "MAUI",
+        "Xamarin"
+      ],
+      "excerpt": "Managing images, icons, and splash screens cross-platform is more challenging since we need to manage assert and resource folders specific to each platform, as well as image folders for…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzNKGa4QnJ1i9yJEgjPlWDIru3uemc3sXZEMM_pKDgNQi5RxDlunSMjJCtTb95Ne5huBTozINjtVfIbK1oKD02E3eoAI57au1lXeABJix0H2q8pmqi1sL7t9hi4bPUnZZfclqWnJdup5hcTWan0oJp0_Cpmm2zqnnZ72kpuB5Fm3092Zki_vD-LA6h8A/s72-w640-h360-c/MAUI%20Resources.png",
+      "comments": 0
+    },
+    {
+      "title": ".NET MAUI : Runs on multiple platforms in one project  (iOS, Android, and Windows)",
+      "url": "https://www.msdevbuild.com/2022/11/NET-MAUI-Runs-on-multiple-platforms-in-one-project-Xamarin-ios.html",
+      "published": "2022-11-18T23:13:00.002+08:00",
+      "updated": "2022-11-19T01:07:38.182+08:00",
+      "categories": [
+        "MAUI",
+        "Xamarin"
+      ],
+      "excerpt": "The name MAUI stands for .NET Multi-platform App UI. Many IT companies struggle with deciding whether to migrate from XAMARIN or to start from scratch with a new hybrid application. You…",
+      "image": "https://lh4.googleusercontent.com/57r4VQqpG3hflbU5WpmOzBxvxN-uh-I35vKmzT_LqwVUWifHDPdok2hql1DQeiKniWYzcE6IjA3gtZS2w6GJUQiUEO2yMmxOznFkrAN0Y7VFlvd7Eea6gJehK6F-k5IryW-RuGhiI_gcAeW1BORL5CDVx5VLVXANd-YwUZxffkCmj0ua8KyxsWgDCByFXwX9pcaWuWmuNw=s72-w640-h320-c",
+      "comments": 0
+    },
+    {
+      "title": "How to use .Net MAUI Secure storage in your Mobile application ( iOS, Android and Windows )",
+      "url": "https://www.msdevbuild.com/2022/07/How-to-use-Net-MAUI-Secure-storage-in-your-Mobile-application-iOS-Android-Windows.html",
+      "published": "2022-07-08T09:54:00.007+08:00",
+      "updated": "2022-07-08T10:41:21.391+08:00",
+      "categories": [
+        "MAUI",
+        "Xamarin"
+      ],
+      "excerpt": ".NET MAUI provides different techniques for local storage, in my previous article, explain preferences. This article will explain how to use secure storage in your mobile iOS, Android, and…",
+      "image": "https://lh5.googleusercontent.com/EESFNkwMlpRlUsup2p34I8s7agmA-q23CNq74MbSFQG5swhpPrwSPYKQnHzfVjGivfITeASzJ5oEMH6S3zNF3kkxtPacfIlYyh2VvQRuX6EbEBEVr0mjOKCQa1LmybrQOVkGzUgi1BB5XlIEPvFJZ8Mh7Ttd=s72-w640-h360-c",
+      "comments": 1
+    },
+    {
+      "title": ".Net MAUI : Mobile local Storage Preferences using .NET MAUI",
+      "url": "https://www.msdevbuild.com/2022/06/net-maui-store-local-data-with.html",
+      "published": "2022-06-22T21:30:00.006+08:00",
+      "updated": "2022-06-26T21:22:14.716+08:00",
+      "categories": [
+        "MAUI",
+        "Xamarin"
+      ],
+      "excerpt": ".NET MAUI provides 4 techniques for local storage options for storing data in locally on a device, depending on the nature, structure, and size of the data. The most used following 4 ways…",
+      "image": "https://lh4.googleusercontent.com/qHAj9T6vP1_sOVt7o81nxJZSf10aC9KB_Ql4U8tFjtKSiUrZ1xXp7sVKnFL0Q080KqUyxVTacRRv-ceXoaiURNA9TY1j_w5cuEO5WLFZLxJBuCuHfqehccV8o40sN_eVGknBS9YcTmm-18JafjFVGn_IyzdP=s72-w640-h360-c",
+      "comments": 0
+    },
+    {
+      "title": "How to learn Azure without paid subscription",
+      "url": "https://www.msdevbuild.com/2020/08/how-to-learn-azure-without-paidsubscription.html",
+      "published": "2022-06-21T00:19:00.000+08:00",
+      "updated": "2022-08-19T20:07:09.614+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "Microsoft Azure is a cloud service that is constantly expanding to help your organization meet business challenges. You can build, and manage to deploy applications using the following…",
+      "image": "https://lh3.googleusercontent.com/Aojc0WIXJTY_14NJ08njrIB8xNqpERl0FC4rKpVP0TOqKdhoT4e6YSAsTF7JH9GglAjGBNqQyqUaR6-WU_S7WaJBb87md_PH2FfbEeifPv_dEj12vL041csGsLs3ksEQqK2y2LFjRDyZQZhiBA=s72-w640-h314-c",
+      "comments": 0
+    },
+    {
+      "title": ".NET MAUI : VerticalStackLayout and HorizontalStackLayout Layout using Visual Studio 2022",
+      "url": "https://www.msdevbuild.com/2022/05/MAUI-VerticalStackLayout-and-HorizontalStackLayout-Layout-using-VisualStudio-2022.html",
+      "published": "2022-05-24T23:31:00.003+08:00",
+      "updated": "2022-05-24T23:32:19.129+08:00",
+      "categories": [
+        "MAUI",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "This article provides an understanding of VerticalStacklayout and HorzontalStackLayout using .NET Multi-platform APP UI (MAUI), which is a cross-platform framework for creating native…",
+      "image": "https://lh5.googleusercontent.com/PzHXUb1wSnOrRLMSWI2nLylX3uKE_YWBDK5cLrp-4Lr9Eo_bgNpGdp7f9bHDV26G62IIp7sp110weJYyLAinP_-x3uy2bZstkGDrf31LK3T_4ncRIEzFYYju3LfkbwuwoiVmsV00lAcc2we3TWRqy6YutE8_=s72-w640-h360-c",
+      "comments": 0
+    },
+    {
+      "title": "Microsoft Enterprise Skills Initiative: Free Live training, Free Exam Voucher, and Free Practice exam simulations for Corporate Employee",
+      "url": "https://www.msdevbuild.com/2022/04/Microsoft-Enterprise-Skills-Initiative-Free-Live-training-Free-Exam-Voucher-and-Free-Practice-exam-simulations-for-Corporate-Employee.html",
+      "published": "2022-04-30T12:58:00.005+08:00",
+      "updated": "2022-04-30T20:55:49.728+08:00",
+      "categories": [
+        "Azure",
+        "certification"
+      ],
+      "excerpt": "The Microsoft certification is become more trend because of a lot of job openings for whose completed certification, same time most employees searching the internet “Free Azure dumps”,”…",
+      "image": "https://lh5.googleusercontent.com/zMhN8PNn9U6OIi2zJKHqQlxe6kg4hWLVIuzTW4kzEwkoNB4q5dBGL1lWqHWYD_KV96gHchPqfbWsc8UeCR_HKkFrxa-xsv5lGBL2igWJZ2jt-PyFqytoRQ8oc5ZwJ0BDwK-JaoRme6pWVCE1FkY=s72-w640-h380-c",
+      "comments": 1
+    },
+    {
+      "title": "Xamarin MAUI: Pair to Mac M1 chip from Windows machine for iOS development using Visual Studio 2022 Preview ",
+      "url": "https://www.msdevbuild.com/2022/03/Xamarin MAUI-Pair-to-Mac-M1-chip-from-Windows-machine-for-iOS-development-using-Visual-Studio-2022-Preview .html",
+      "published": "2022-03-27T22:58:00.003+08:00",
+      "updated": "2022-03-27T23:12:18.010+08:00",
+      "categories": [
+        "MAUI",
+        "Xamarin",
+        "Xamarin.iOS"
+      ],
+      "excerpt": ".Net MAUI is a cross-platform framework for creating native mobile and desktop apps with c# and XAML. You can refer to my previous article for getting started with the Dotnet MAUI…",
+      "image": "https://lh5.googleusercontent.com/v-Ab8MbWPo8m7M_r4qb5a173UX4-SVxg8AbeFPy3NRZCDPbGbJmVkZN5MF4Q78Vfzd7a2PGmW4C35uZxj4asibxvoZlRACWRnneLA0kwIjSuXhtC4YHsUYlZ58enRREqs6lYnhKtL_8H3vTRP8Q=s72-w640-h352-c",
+      "comments": 0
+    },
+    {
+      "title": "Xamarin MAUI: First iOS, Android and Windows Mobile App using Visual studio 2022",
+      "url": "https://www.msdevbuild.com/2021/11/First-Xamarin-MAUI-Mobile-App-Ios-android-windwos-visual-studio-2022.html",
+      "published": "2021-11-23T12:27:00.002+08:00",
+      "updated": "2021-11-23T12:27:46.471+08:00",
+      "categories": [
+        "MAUI",
+        "Xamarin",
+        "Xamarin.Android",
+        "Xamarin.Forms"
+      ],
+      "excerpt": ".Net MAUI is a cross-platform framework for creating native mobile and desktop app with c# and Xaml. In my previous article, we did warn welcome to Dotnet MAUI and shared information about…",
+      "image": "https://lh3.googleusercontent.com/cdsAOUizx4DOp-D9lalntRjCZ6wyHMQ1z3YuT-1ufhXPKtm-l5eWHJCGYXh5ae_hKr8OgT6fB1JIvZgYq64i75NWq-iTHPAB496Q4Jx5iao62ygjuNWxR2HZwDjK_R4w_8QW97NVsuODn3c6ft4=s72-w640-h362-c",
+      "comments": 18
+    },
+    {
+      "title": " Microsoft Azure : Create a key vault",
+      "url": "https://www.msdevbuild.com/2021/08/azure-portal-create-key-vault.html",
+      "published": "2021-08-02T09:21:00.011+08:00",
+      "updated": "2021-08-02T09:46:46.938+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "An Azure key vault is a cloud service for securely storing and accessing secrets. A secret is anything that you want to tightly control access to such as API Key and Subscription, Password,…",
+      "image": "https://lh6.googleusercontent.com/kie7x1msI_VEq-K4Rznf6t9Zw-_noOs9mOOMy62rFIUIL8Cjvv-AaKlmdDe4kBPshngw0eE2gaHDwNbpRiUNFrwVz6U4ZSaeMSYuKtStRJbDTDK3LE52p45rEYwgd88CBoZdZPCd=w640",
+      "comments": 0
+    },
+    {
+      "title": "Microsoft Azure: Configure Azure App Service Logging",
+      "url": "https://www.msdevbuild.com/2021/05/Configure-Azure-App-Service-Logging-using-Microsoft-Azure.html",
+      "published": "2021-05-24T03:41:00.003+08:00",
+      "updated": "2021-05-24T03:42:57.432+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "Azure App service logging are the output of runtime trace statement in the different app code. logging feature will help you might only want to see a logged message when a particular level…",
+      "image": "https://lh5.googleusercontent.com/Bw1Jv5ePltdv6Ywkh03yRHy1668vQ9A_T4u1VTSTXy7yVBdgp-CSxwlFianyHs6P74nryV8A8IqrM_ifZn4_eTcVvA6qMoRV5BhHCvNDAyDNM8Tk9h_xMXPFFbOpk3xucJRJHDZv7NU_owOz_A=s72-w640-h323-c",
+      "comments": 0
+    },
+    {
+      "title": "Microsoft Azure:  Create an App Service by using Azure Portal",
+      "url": "https://www.msdevbuild.com/2021/05/microsoft-azure-create-app-service-by.html",
+      "published": "2021-05-23T00:44:00.001+08:00",
+      "updated": "2021-05-23T00:44:04.484+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "The Azure App Service is an HTTP-based service for hosting web applications, REST APIs, and mobile back ends. We can create and deploy using different languages like .Net, .Net Core, Java,…",
+      "image": "https://lh6.googleusercontent.com/Mo9EPdojdL3tzps08suauJmPSAuGzs0u9Id_PvKnzLpqAZjxNo7-w3CHVxXDfGMDOXwRpEVM0dXwKfLg3-Unfckkrsw-SzMLinQhq-yeDcPaoMFil9YpTasqNIoLIKbYW3GqyxXHcr1-MT9RjQ=s72-w640-h360-c",
+      "comments": 0
+    },
+    {
+      "title": "Microsoft Azure: Avoid unknown or accidental deletion of Azure resources ",
+      "url": "https://www.msdevbuild.com/2021/05/Microsoft-Azure-Avoid-unknown-or-accidental-deletion-of-Azure-resources .html",
+      "published": "2021-05-15T20:04:00.002+08:00",
+      "updated": "2021-05-15T22:46:54.870+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "Azure has role-based access control (RBAC) to restrict access to resources and management features, but it can’t be used to quickly prevent the users from accidentally deleting a resource.…",
+      "image": "https://lh5.googleusercontent.com/7sGIIQHap8aFD97lplRBzk7env2HbZ-KEgTYb8gnwifSl4SuHxyrRbNBSs-PmG-Fe2vhkP0pdCuGSj-A9CNzBSG7oS8koF48fUhPNK7blV6PCp45VcEv7sD75HyEMGI68ibqqpyXTg_zWa6GZg=s72-w640-h351-c",
+      "comments": 0
+    },
+    {
+      "title": "Microsoft Azure: Create a Storage Account",
+      "url": "https://www.msdevbuild.com/2021/05/MicrosoftAzureCreatingStorageAccounts.html",
+      "published": "2021-05-15T01:05:00.006+08:00",
+      "updated": "2021-05-15T01:32:28.300+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "An Azure storage account contains all of the storage data objects like blobs, files, queues, tables, and disks. The storage account provides a unique namespace for azure storage data that…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEilVFVaPlQIixN3DpHNEAmDO3TJQAPYzIzwcYpYDpmUjM9UkVGveU2F2V2OevexNZCJP7dqDwUyBD8paoCzS1XF14BLuQW-i2WKxibaVn78KOIZ6QrDLTiaUDniEh-dHte_arPuCavBYHLZ/s72-w640-h350-c/Azure+logo.png",
+      "comments": 0
+    },
+    {
+      "title": "MSDEVBUILD in Feedspot Top 100 Microsoft Azure Blogs",
+      "url": "https://www.msdevbuild.com/2021/04/top-50-azure-blogs-msdevbuild.html",
+      "published": "2021-04-26T00:08:00.012+08:00",
+      "updated": "2021-05-02T22:22:33.022+08:00",
+      "categories": [
+        "Awards",
+        "News"
+      ],
+      "excerpt": "I am pleased to announce my blog msdevbuild.com again has been listed on the popular Feedspot website as one of the Top 100 Microsoft Azure Blogs, Websites, and Influencers in 2021!…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgPFiu8tW6h05s51DjWpyHCc-IrZmBhnjYdNt2Xa8Z6YE1xBNj4gcC1BH2xfjHl-8EhPTOO1UsSbWZb43G7P5wUbVKNDr7Fe4Gcf-dpazt3EZLgHJEKBWMsqt0SPJ3KU5MkyZKGDWvGiu_J/s72-w640-h334-c/MSDEVBUILD_top+50+azure+blog.png",
+      "comments": 0
+    },
+    {
+      "title": "Xamarin : Step-by-Step Guide To Building .NET Multi-platform App (MAUI) using Visual Studio 2019 Preview 16.10",
+      "url": "https://www.msdevbuild.com/2021/04/Step-by-Step-Guide-To-Building-NET-Multi-platform-App-using-Visual-Studio-2019.html",
+      "published": "2021-04-15T00:29:00.004+08:00",
+      "updated": "2021-04-15T00:36:22.000+08:00",
+      "categories": [
+        "MAUI",
+        "Xamarin"
+      ],
+      "excerpt": "Xamarin was released 10 years before, it has helped many developers to develop mobile apps with multi-platform with native feel but now it’s time to say goodbye to Xamarin and happily…",
+      "image": "https://lh4.googleusercontent.com/-pD_FL9_qSwICNXGILslwyONsbE1CcjWdexk2aaX35mz8o0JxBvLZxrsQ_LnKrGOBwddU55fQMO5dmf2LcuuOIx2UCX2z_niZY-XUth7N1LNBd9YKcQfPl55TseyIkpnh-W8F4XQLQg8zP904w=w640",
+      "comments": 85
+    },
+    {
+      "title": "Microsoft Azure : Setup new Active Directory B2C tenant",
+      "url": "https://www.msdevbuild.com/2021/04/Microsoft-Azure-Setup-new-Active-Directory-B2C-tenant.html",
+      "published": "2021-04-11T02:51:00.006+08:00",
+      "updated": "2021-04-11T03:08:59.795+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "Azure AD B2C stands for azure active directory Business to consumer. AZURE AD B2C has its own login portal management which can be customized to a certain extent to change the look and feel…",
+      "image": "https://lh5.googleusercontent.com/qx4RSV-ZcFTTgBk1Q5Sr_CPtGC_5jqQQRcq5g95d-j-fMa6xBTHTdIOPjfjSmhvFxvIGQqjKCZsBLR7vjN0zzXuijWMOinWh-bEAS_2gJrpbCUhQll6MPn1YA9xxRovOwuI2Fn_VW8noMoUing=s72-w640-h291-c",
+      "comments": 0
+    },
+    {
+      "title": "Azure: How do I add a chat bot to Blogger ",
+      "url": "https://www.msdevbuild.com/2021/03/azure-how-do-i-add-chat-bot-to-blogger.html",
+      "published": "2021-03-28T19:45:00.000+08:00",
+      "updated": "2021-03-28T19:45:03.929+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "The Bot Application runs inside Skype, web chat, Facebook, Message, etc. Users can interact with bots by sending them messages, commands, and inline requests. You control your bots using…",
+      "image": "https://lh3.googleusercontent.com/YRi-eUDxCsDb9jarm0WtSmrZwBfAczDMW5_6ziFlSxmz2M9k4bbo8HcH6zZud1jKwzhYFNEtJzuABBTHIPT8ryp18dUTXUGRNeR2metyBWxiZ-nViZ0gxUaU94ESYk9OcC_UxOqIWfZBS4-72g=s72-w640-h311-c",
+      "comments": 0
+    },
+    {
+      "title": "Azure: Develop Azure Functions using Visual Studio",
+      "url": "https://www.msdevbuild.com/2021/03/Develop-Azure-Functions-using-Visual-Studio.html",
+      "published": "2021-03-23T02:09:00.003+08:00",
+      "updated": "2021-03-23T02:09:42.319+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "The azure function is a serverless concept of cloud-native design that allows a piece of code to be deployed and executed without any need for server infrastructure, web server, or any…",
+      "image": "https://lh3.googleusercontent.com/zy9cX5_vThOUNxqaIB1BwmEyHNk1GNEBfExIbedWbO1jSG62mrZDIlUsvSJ93utbwiN33mATcHLEPdZR5SyfilWZI7Enc0K2hBrmwu8HJKxXLTQIwUbbpQ3IzdZ7S9mQeC-dht0w4cVD2kpRbA=w640",
+      "comments": 0
+    },
+    {
+      "title": "Microsoft Exam : Free Retake Exam (Second Shot) and Free Practice Test",
+      "url": "https://www.msdevbuild.com/2021/03/MicrosoftExam-Free-Retake-Exam-Second-Shot-and-Practice-Test.html",
+      "published": "2021-03-21T16:52:00.005+08:00",
+      "updated": "2021-03-21T17:55:29.719+08:00",
+      "categories": [],
+      "excerpt": "The Microsoft Certified Professional or MCP Program is the certification program offered by Microsoft that enables IT Professionals and Developers to validate their technical expertise.…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgxYgd73ANmJEKJDYUIBZk_UKovMcH9Xu_NqeNOhxZ-HszW94kb52AWUajgkFolZk1PUP6yKtIAITrr64GfnyqkZIzwPr-YFqfDg_FD5H3TUKS2tn8QdIF7GttOtisbxJNG6BFJ9tHKsbJ8/s72-w640-h320-c/Microsoft+Exam.png",
+      "comments": 0
+    },
+    {
+      "title": "Latest Windows 10 Update Is Now Breaking WiFi and IE, Edge, UWP App, Mobile Emulator and office 365 No Internet – Microsoft Shared new update Version 1903 with Fix",
+      "url": "https://www.msdevbuild.com/2021/02/fixed-windows-10-wifi-connected-but-no-internet.html",
+      "published": "2021-02-15T08:01:00.004+08:00",
+      "updated": "2021-02-15T08:06:04.799+08:00",
+      "categories": [
+        "Azure",
+        "Issue",
+        "Windows"
+      ],
+      "excerpt": "I have encountered lost Internet connection, network connectivity issue when using Microsoft Office, Office 365, Outlook, Teams, Internet Explorer 11 (IE11), and some version of Microsoft…",
+      "image": "https://lh3.googleusercontent.com/r20-OTVKlSqURlMpHpmQ3M9JR5QKcNVaywZ8dGujuoG8JMy9FG9EA5Tt8In0P1VgmvTP7uTs8ajv_VDRcWuj7-yy0dpWHVUWwhBXP2X9shkNYGDcv9U27wM2YVX7OO32sEwhMwBMSSR_GJfneg=s72-w640-h443-c",
+      "comments": 0
+    },
+    {
+      "title": "Azure App Service:  Publish Asp.net Core Web App",
+      "url": "https://www.msdevbuild.com/2021/02/azure-app-service-publish-aspnet-core.html",
+      "published": "2021-02-08T01:01:00.005+08:00",
+      "updated": "2021-02-08T01:01:56.949+08:00",
+      "categories": [
+        "Azure",
+        "Web"
+      ],
+      "excerpt": "Introduction Azure App service is an HTTP based service for hosting web applications, Rest APIs and mobile back ends, you can develop in your known language using .Net, .Net core, Java,…",
+      "image": "https://lh5.googleusercontent.com/09Dj7KyX-WgggPU_ocFT6aKR6Fg3jmranhrMglGJ2IRDMsNkdXf7xqeH2w-C9xgGHICI5bxmIE96IctGc6D4_uooZGxyGHX4h3akl4rZQFZoO770IOQ6wX69_A8bZH_JfaUDbVQ2SZB09GXBWQ=w640",
+      "comments": 0
+    },
+    {
+      "title": "Power Virtual Agents: customize the bot conversation messages",
+      "url": "https://www.msdevbuild.com/2020/12/power-virtual-agents-customize-bot.html",
+      "published": "2020-12-25T18:07:00.006+08:00",
+      "updated": "2020-12-26T00:42:56.548+08:00",
+      "categories": [
+        "Bot",
+        "Power Virtual Agent"
+      ],
+      "excerpt": "Power Virtual Agents are an easily created powerful bot and no-code graphical interface without the need for data scientists or developers. It eliminates the gap between the subject matter…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh-_ihJoj49ArriK2_UH_sdc4du0SDOxNmmu5LOHdRVg3w8haA0Tp4CbDaNzU-Ber7Sklq_60p8XW0yPdVtcoP-R7SrQirb1yqrZplX-uZqS_oTNBZLS0wY4B3r4GRR2Y70GWHFBiKOmJHW/s72-w640-h230-c/image.png",
+      "comments": 0
+    },
+    {
+      "title": " Microsoft certification: Free renewal at no Cost and no new exam",
+      "url": "https://www.msdevbuild.com/2020/12/ Microsoft-certification-Free-renewal-at-no-Cost-and-no-new-exam.html",
+      "published": "2020-12-23T10:08:00.001+08:00",
+      "updated": "2020-12-26T00:41:45.653+08:00",
+      "categories": [
+        "Azur",
+        "certification"
+      ],
+      "excerpt": "Microsoft introduced a new approach to help learners stay current, those who have an Microsoft active certificate and are expiring within six month can renew their certification annually at…",
+      "image": "https://lh6.googleusercontent.com/RsNBZJuA35rJXrtzTbXpRZxkviIVjO5uDmy-xm7azOvTgzS2hyW96VWyy729q5J_iYxlxiVOlbhWwm6vYGvowr1NAVO-sLE7xf5-zDRw4UgdjY_dzmc0cgLmDNg9yQfTaqgZzSTU1Mk7VJWBAg=w640",
+      "comments": 1
+    },
+    {
+      "title": "Automatic OTP verification in iOS using Xamarin Forms ",
+      "url": "https://www.msdevbuild.com/2020/12/automatic-otp-verification-in-ios.html",
+      "published": "2020-12-23T01:08:00.009+08:00",
+      "updated": "2020-12-26T00:42:47.568+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms",
+        "Xamarin.iOS"
+      ],
+      "excerpt": "Introduction The Passwords and Security Codes (OTP) are a modern necessity required for security and privacy but initially iOS does not support auto read feature. iOS 12 eases the tedious…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzX4mkaLRDee05RGTU3bwjd8SvumErCgTuh8sPj9qrlcqDkmmUr_BVj5UWplF_Kg1LvXpTYFpS1Cgh9Z9PRTbVJSAwJBgv3KKHQ-qIGGuhP_aPrXqrd3QLw9UCkvXzr75hyphenhyphenIYGkt-EwN-t/s72-w640-h294-c/image.png",
+      "comments": 1
+    },
+    {
+      "title": "Azure Active Directory(AD) with Custom domain",
+      "url": "https://www.msdevbuild.com/2020/12/Azure-Active-Directory-with-Custom-domain.html",
+      "published": "2020-12-20T15:46:00.002+08:00",
+      "updated": "2020-12-23T01:23:03.292+08:00",
+      "categories": [
+        "Azure",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction Azure AD is cloud-based identity and access management service, which helps employees to sign in and access company resources such as Microsoft 365, the Azure portal, and…",
+      "image": "https://lh5.googleusercontent.com/bvuSa9PwqV-Nlw8W_VDlNMFeG8nEfxbtIKkmBxIPeTIyi57d5v747LfFqSzApF-g3HPnzQ779zPhz5cMux90rcOagJRbaiHql_7IkfcuHTQHl1Kq-ne6rud_qESZXkcJr5cmiirSAYAUmBP-5A=w640",
+      "comments": 0
+    },
+    {
+      "title": "Understanding about Azure Region, Geographies, Availability Zones and Region Pairs",
+      "url": "https://www.msdevbuild.com/2020/06/Understanding-about-Azure-Region-Geographies-Availability-Zones-and-Region-Pairs.html",
+      "published": "2020-06-09T03:40:00.005+08:00",
+      "updated": "2020-06-10T23:47:57.900+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "Introduction Microsoft Azure services are available in 53 regions around the world, with plans announced for 7 additional regions and 140+ available country. Select Azure region is more…",
+      "image": "https://lh3.googleusercontent.com/Y3PfMx766Y2UzMhCof5s6EQ_Z2_YDhhWg4Yb1gJ9M-ObOixkkoIbhX3cAGkzWQao1j5oSeAzktQLiENkK4Zc44ahNK3GDsmNJntPrAORGJ9wTjnUqJ5pykJF3g7ET7rm0n_8u1b15DKjwu7ZeQ=s72-w640-h523-c",
+      "comments": 1
+    },
+    {
+      "title": "Building a FAQ bot using Power Virtual Agents",
+      "url": "https://www.msdevbuild.com/2020/04/building-faq-bot-using-power-virtual-Agents.html",
+      "published": "2020-04-19T00:55:00.001+08:00",
+      "updated": "2020-04-19T01:05:41.218+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI",
+        "Power Virtual Agent"
+      ],
+      "excerpt": "Power Virtual Agents is an easy to create, powerful bot with a no-code graphical interface. This means there isn't necessarily a need for data scientists or developers. It eliminates the…",
+      "image": "https://lh5.googleusercontent.com/QiI2ZZDV9o2utVABLKuqDUIbcBU6w_jCPYBlBEeL4XVxjf5Xgst8GN2fGgWod6c245T2MEVUz1p_jcAtHumxNknM05SJPArSPlg3iRbReFnuow_7ZlbBYmviM9uRHO4FBVeViEjf1eL_ju04Nw=w640",
+      "comments": 0
+    },
+    {
+      "title": "Suthahar Become a Microsoft Certified Trainer 2020",
+      "url": "https://www.msdevbuild.com/2020/04/suthahar-become-microsoft-certified-trainers-MCT.html",
+      "published": "2020-04-15T11:02:00.003+08:00",
+      "updated": "2020-12-25T15:45:01.675+08:00",
+      "categories": [
+        "Awards"
+      ],
+      "excerpt": "I am happy to share with you that I Just received the email confirmation saying I am becoming a Microsoft Certified Trainer (MCT) . I am very happy to be part world biggest learning MCT…",
+      "image": "https://lh4.googleusercontent.com/6ZoaNuZ1s2Lgq7EgzfMF6WhvWodQgDeoYQEPU8vMYHXpWRT_A2WOr-5g62mHjMqbh3SKgnmD54VVHAaBFLuvN3XB_E7VpHFvQiNb3QiAFeLX4aRJCwqnqa1siNzcfHpQqYt48Xu5QTtuF1qEpA=s72-w640-h274-c",
+      "comments": 0
+    },
+    {
+      "title": "Customize the Bot conversation message with power virtual agent",
+      "url": "https://www.msdevbuild.com/2020/04/customize-bot-conversation-message-with-Power-virtual-agent.html",
+      "published": "2020-04-13T23:53:00.000+08:00",
+      "updated": "2020-04-14T00:02:39.780+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI",
+        "Power Virtual Agent"
+      ],
+      "excerpt": "Power Virtual Agents are an easily created powerful bot and no-code graphical interface without the need for data scientists or developers. It eliminates the gap between the subject matter…",
+      "image": "https://lh5.googleusercontent.com/q2Gk2RIfdr9193lTsuRyM9O66YQeQIvNQ_qo7CkPcpKBCEU3N5CayiGuHt5sf0Y8of8ohGxOvi_sMaspllmEfLfw89WMq-Y6CebSpNixrCOWVCZJnpTV3szWTYUxKqfvNgfdS3RhR1kgMAnl9Q=w640",
+      "comments": 0
+    },
+    {
+      "title": "Power Virtual Agents: Build a Microsoft Bot Application",
+      "url": "https://www.msdevbuild.com/2020/04/build-microsoft-Bot-Application-with-Power-Virtual-Agents.html",
+      "published": "2020-04-12T06:46:00.001+08:00",
+      "updated": "2020-12-25T15:41:02.966+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI",
+        "Power Virtual Agent"
+      ],
+      "excerpt": "Power Virtual Agents is an easily created powerful bot and no-code graphical interface without the need for data scientists or developers. It eliminates the gap between the subject matter…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj61DnDzf2OQ_nEgojU5oIXb1CXCj5CSU1g60jz1_vjWVa6MhNLz0BqS6_BQHL_ZLmLCek0HQtN45wK-zCqlTTCypAQnmLRVQdANcVngtlbM-p3KBoOMxo2rBTkknWcFXm1RqKPnJAUTFxq/s72-w640-h393-c/Build+a+Microsoft+Bot+Application+with+Power+Virtual+Agents.png",
+      "comments": 0
+    },
+    {
+      "title": "Building Bot Application with Azure AD Login Authentication using AuthBot",
+      "url": "https://www.msdevbuild.com/2020/01/building-bot-application-with-azure-ad.html",
+      "published": "2020-04-08T05:18:00.001+08:00",
+      "updated": "2020-12-25T20:12:53.562+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "The Azure AD is the identity provider, responsible for verifying the identity of users and applications and providing security tokens upon successful authentication of those users and…",
+      "image": "https://lh4.googleusercontent.com/lpygYH4fdeermwHY75d9Zux1UHxD4fbGejdTPWFnAg7AS7yss30QFdqNSKqIjLIbuAiMsRJva4u_H_DNyxt32al9_RjJVg19UjqoFcPUDf-iE5GcIeVKVj6-OQ1kYNXNMlWDiYmtSlQJQakfwQ=w640",
+      "comments": 0
+    },
+    {
+      "title": "Cognitive Computer Vision API: Intelligent Image Object Detection Bot",
+      "url": "https://www.msdevbuild.com/2018/12/intelligent-image-object-detection-bot.html",
+      "published": "2020-04-01T23:42:00.001+08:00",
+      "updated": "2020-12-25T18:16:07.058+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Visual Studio"
+      ],
+      "excerpt": "Microsoft Cognitive services is set of cloud based intelligence APIs for building richer and smarter application development. Cognitive API will use for Search meta data from Photos and…",
+      "image": "https://lh6.googleusercontent.com/Ju8vhAGqRK_PYGAf-Ijk0za57nrKdFyHQdoMF6_FsDP0-_vwAnrPKRSFLyZluIISFJFZpv2IkDenuXbO2UYLKaRvy_xRPXPXVPPox7iP0LIKGZdSq9J-03X8tExIiYtrdRWO6EeB5vak1281iA=s72-w640-h554-c",
+      "comments": 0
+    },
+    {
+      "title": "Microsoft AI: Facebook Messenger Bots for Business",
+      "url": "https://www.msdevbuild.com/2020/02/microsoft-ai-facebook-messenger-microsoft-bots.html",
+      "published": "2020-02-26T13:02:00.000+08:00",
+      "updated": "2020-02-26T13:11:27.573+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "The Bot Application runs in an application, like Skype, web chat, Facebook, Message, etc. Users can interact with bots by sending them messages, commands, and inline requests. You control…",
+      "image": "https://lh3.googleusercontent.com/zE_GSfkuKe9vYx7q2Vkge71AsPLULCiDn_8wQwmGx35XxNOdrQyQbV8nOM4-XElaIF7nWeb57Tcj9r7eg1Hk4YUIw3o3Ab2cs2x1_xw7SZLDhJaSURSX0LPjmCvsCl4oF3hk6Sg8i-nuZ4REyg=w640",
+      "comments": 0
+    },
+    {
+      "title": "Microsoft AI: Mobile Emotion Recognition Application",
+      "url": "https://www.msdevbuild.com/2020/02/microsoft-ai-xamarin-emotion-recognition-Cognitive-Services.html",
+      "published": "2020-02-25T23:24:00.003+08:00",
+      "updated": "2020-12-26T00:42:33.505+08:00",
+      "categories": [
+        "Azure",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Microsoft Cognitive Services offers awesome APIs and services for developers to create more intelligent applications. You can add interesting features, like people's emotions and video…",
+      "image": "https://lh5.googleusercontent.com/Hl-kiOdaB5oS0r8C0c2-Ij5SswiukJO8Uin5an6u9LsOz9xO2Xd7-9qu5oEJHCS1LAgaRLOMy42YQb3dEA8tcKR79Ol0OnOm33i7Jb1j14pknA2zkRQ8-sP3Si_PrM1nXEKAxG1MI7f8IZmm9w=s72-w640-h454-c",
+      "comments": 0
+    },
+    {
+      "title": "Microsoft AI: Sentiment Analysis for Customer Feedback",
+      "url": "https://www.msdevbuild.com/2020/02/Microsoft-AI-Sentiment-Analysis-Customer-Feedback-xamarin.html",
+      "published": "2020-02-20T02:10:00.000+08:00",
+      "updated": "2020-02-20T02:10:11.708+08:00",
+      "categories": [
+        "Azure",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Sentiment analysis seeks to understand a subject’s attitude or emotional reaction towards a specific topic or brand. Sentiment analysis does not have to be complicated and technical. It…",
+      "image": "https://lh4.googleusercontent.com/dtLa_Sfsc4xZLQH04SP8eAldI5urXQX--AuWQLIm2YpLANkZJKQwT4MfviuUB74Ggn7FZ4zNycLTDu7aC0UNHrchTDB_QvWNfML6scPjrZ_NXbM8cm4Gx3mQTz7ml7PXbQXFR9z3CsZfjv1OgA=w640",
+      "comments": 10
+    },
+    {
+      "title": "Register to listen to Microsoft CEO Satya Nadella at Future Decoded 2020",
+      "url": "https://www.msdevbuild.com/2020/02/Satya-Nadella-Future-Decoded-2020.html",
+      "published": "2020-02-19T13:55:00.002+08:00",
+      "updated": "2020-12-25T18:40:00.619+08:00",
+      "categories": [
+        "MicrosoftAI"
+      ],
+      "excerpt": "Microsoft is hosting its Future Decoded summit in Mumbai and Bengaluru on February 24 and 25, 2020 respectively, and Microsoft CEO Satya Nadella will keynote the event. On 25 February 2020…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhwGDAD9I-ezpmv5WuUnXgYw0ZJRnVVb4vVB7tAVsOjlDU5diE0jA2pM_G5_q-RkNQmKBsb7I-F29e9OugIj4WSd0lpamxKtXVWoZ2Q4pko1AhbVMBdxHlwUT0-Iv8aZnLFSgJN-ZQ2KHfT/s72-w640-h393-c/Screenshot+2020-02-19+at+6.46.25+AM.png",
+      "comments": 0
+    },
+    {
+      "title": "Bot Framework Composer: Prompt for user input",
+      "url": "https://www.msdevbuild.com/2020/02/bot-framework-composer-prompt-for-user-input-user.html",
+      "published": "2020-02-19T03:41:00.000+08:00",
+      "updated": "2020-02-19T03:41:25.901+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "The Bot Framework Composer is a fantastic tool for creating/developing Microsoft bots, as it gives you the ability to sketch out and compose the whole simple and complex Bot applications…",
+      "image": "https://lh3.googleusercontent.com/-7Ymvo6cV4vmNZqb7nZRDt8QMvY0SpqXeVVf6vgTnz2bSY0uyxTGJY07FIq3Bz7PPHShKRAywinEebS9swT1P7SbrUNM4TQPvtxPJf65kNbDM0P-N8Bi_Y7fhjIaA7KG9WaQeLFBpD15ZUtUBQ=w640",
+      "comments": 1
+    },
+    {
+      "title": "Microsoft Azure Bot: Deploy to Line App",
+      "url": "https://www.msdevbuild.com/2019/03/conversational-ai-bot-deploy-to-line.html",
+      "published": "2020-02-18T11:23:00.008+08:00",
+      "updated": "2020-12-26T00:35:38.209+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI"
+      ],
+      "excerpt": "The Bot Application runs inside an application in different channel like Cortana, Skype, web chat, Facebook, Message, etc. Users can interact with bots by sending them messages, commands,…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjQV67edy-bOwBG8V5Ce73tpjd3jSVTFD3y3siq0nrOOZhKa_q5_T-Hq580OSK1jB7I3ecJwVXaELvVoGc4iZKq9mkI7F3ydo2-7ozvyNr4Dx919JzC4hU3GISfpS0VerZN7usPc7g_QJms/s72-w640-h232-c/FAQ+Line+App.png",
+      "comments": 3
+    },
+    {
+      "title": "Bot Framework Composer: Send welcome message to users ",
+      "url": "https://www.msdevbuild.com/2020/02/Bot-Framework-Composer-send-welcome-message.html",
+      "published": "2020-02-16T06:57:00.002+08:00",
+      "updated": "2020-12-26T00:27:39.086+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "The Bot Framework Composer is a fantastic tool for creating/developing Microsoft bots, as it gives you the ability to sketch out and compose the whole simple and complex Bot applications…",
+      "image": "https://lh5.googleusercontent.com/MDrFZJj6pT2SdrqgI_vF2OxqdfXaWAP5biWrzDk1EJNUg_UElQrt_vsVD4CoXALQ3c7whVI809J549UOx0ZwEmxAh7y1Xe2b1OY-pV1wkFdx_wxZ5YYq6E2-pKQr1BUxPtbRvEhOJTQ-IG1awg=s72-w640-h305-c",
+      "comments": 0
+    },
+    {
+      "title": "Offline Ignite Learning Paths - Developers Guide to Microsoft AI, Machine Learning, DevOps to Data Science",
+      "url": "https://www.msdevbuild.com/2020/02/offline-ignite-learning-paths.html",
+      "published": "2020-02-14T22:27:00.002+08:00",
+      "updated": "2020-12-25T18:42:33.395+08:00",
+      "categories": [
+        "Azure",
+        "MicrosoftAI"
+      ],
+      "excerpt": "You weren't able to attend the Microsoft Ignite or any of the world tour events. Microsoft Shared AI presentations, demo, Video, learning paths and more as a full github repo. It's amazing…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiGXEtdODCcbm8U3ESV6N-PMzwyAgdR1ARdwb_TUV3w8m1Af3zbbpNlejSJ-qULh8mpX9fGc_PzMQnzAKnLaR201uXgniOyLUewtmNb9ZHnulHAAxQQg6jeLoLjUT5GhLDI8T7tNjBXyHMZ/s72-w640-h356-c/Screenshot+2020-02-14+at+3.28.35+PM.png",
+      "comments": 0
+    },
+    {
+      "title": "Bot Framework Composer: Setup and Build a bot",
+      "url": "https://www.msdevbuild.com/2020/02/setup-and-build-bot-with-bot-framework.html",
+      "published": "2020-02-09T19:54:00.001+08:00",
+      "updated": "2020-12-26T00:33:39.856+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Bot Framework Composer is a fantastic tool for creating/developing Microsoft bots, as it gives you the ability to sketch out and compose the whole simple and complex Bot applications within…",
+      "image": "https://lh4.googleusercontent.com/vH_rAvRmL-NGjh4f2g8br9Hlpn0a9imBA66MTxZNurl_6qXVRSIdIoK4OLUxqJi5x0jnNLyazw0Kk_HhcJD3dsZcMwQWbcjBgLUXNGnh8oTBSgSGsGQEwJyTII0dsXqp9tvxcTmjC3_vga25Ag=s72-w640-h450-c",
+      "comments": 4
+    },
+    {
+      "title": "Azure secrets content mask for presentations and screen recordings",
+      "url": "https://www.msdevbuild.com/2020/02/azure-secrets-content-mask-for.html",
+      "published": "2020-02-02T05:24:00.001+08:00",
+      "updated": "2020-12-26T00:38:56.679+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "Create Azure article is not a problem, we can take a screenshot and mask using a paint application or other tools, but while doing Live presentation or screen recording is a big challenge,…",
+      "image": "https://lh4.googleusercontent.com/W-G7r_YacxaFpavyasQcwmbY9siC8gI7ijy307euItlt0sLS02zaijeUDU6no0bTCcgHQn46IJwWpsSguM40012B0jLqGP1hu1iv-IfpqDDknkcheD3ELjLlJ_n35nGMSDc3ua-9c0SBzlSOiQ=s72-w640-h514-c",
+      "comments": 0
+    },
+    {
+      "title": "Microsoft Azure Cloud and AI Symbol / Icon Set Available",
+      "url": "https://www.msdevbuild.com/2020/02/microsoft-azure-cloud-and-ai-symbol.html",
+      "published": "2020-02-01T19:31:00.002+08:00",
+      "updated": "2020-12-26T00:43:40.961+08:00",
+      "categories": [
+        "Azure",
+        "MicrosoftAI"
+      ],
+      "excerpt": "The Microsoft Azure, Cloud, MicrosoftAI and Enterprise Symbol / Icon Set is a free download from Microsoft website, the folder included set of symbols/icons as an SVG. Microsoft Word,…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjczgcz9oXGVbH7r9P5vOFXvgKmn-8G7jTxZclEr57QJRIva0nUUpbEt_5Qp839liriQnGi1oU1a0t2ZlVvSwGLkgxSJTOmczzbi-RHavxwIewKb1mzciCKgxp6jlgekBOhaIEc1vVHc7xb/s72-w640-h225-c/msdevbuild_microsoftAi_icon.png",
+      "comments": 4
+    },
+    {
+      "title": "Building Chat Bots with Bing search results using Bot Framework ",
+      "url": "https://www.msdevbuild.com/2020/01/building-chat-bots-with-bing-search.html",
+      "published": "2020-02-01T01:46:00.004+08:00",
+      "updated": "2020-12-26T00:49:25.086+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "The Bot Framework supports different types of rich cards, Azure AD authentication and provides a richer interaction experience to the users, I have already shared about message design,…",
+      "image": "https://lh3.googleusercontent.com/hos01vmnex9LIi77u_hllMxT0FPixhK4jJHa45Tbxwd2PdUo24GELZvVSpNLH2GYHx9B39B1IP8qQ3QlnS0_jEFa7DSRseSo5CC1VDhUQTcdUgcrX-QCrRdfbfaVjywITrcJJZqpoMNLxKZGIQ=s72-w640-h302-c",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started Adaptive Card Design Using Microsoft Bot Framework",
+      "url": "https://www.msdevbuild.com/2017/10/getting-started-adaptive-card-design.html",
+      "published": "2020-02-01T01:18:00.002+08:00",
+      "updated": "2020-12-26T18:43:40.109+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "The Bot Framework has supported the different type of rich cards and provides a richer interaction experience to the user. In this article, I will share about how to integrate adaptive card…",
+      "image": "https://lh4.googleusercontent.com/Q88cvbD35D6TVElIrxDmmNBSe6yBek2wqtXQnoMhUJyF0sLzwIXOP1CeLQpcpy6GwexrevudpEdQNziA3eolLkIBava3ggjemye_DpMCLOwSTvIEXL43ZxE97q33XJuAkULd0jWLQvf1tncS7w=s72-w640-h628-c",
+      "comments": 0
+    },
+    {
+      "title": "Deploy Xamarin.iOS App to iOS Device without an Apple Developer Account",
+      "url": "https://www.msdevbuild.com/2020/01/deploy-xamarinios-app-to-ios-device.html",
+      "published": "2020-02-01T00:32:00.002+08:00",
+      "updated": "2020-12-26T00:55:08.812+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.iOS"
+      ],
+      "excerpt": "On 2011 at Xamarin announced great and happy news to all c#.net developer, can develop ios application using xamarin . On 2016 Microsoft announced that they had acquired Xamarin and all the…",
+      "image": "https://lh4.googleusercontent.com/rOM-oyk8nDKebkdw5dJ1qxJ-Dc2o0fcDVJY_U4VvNSVpo5APj96cw0RTzZ3IaEGbSehqTLR1ATf_kI0SUcevp9zWRZzwpXXMmfoEziTQD1tUk6jeXsAf9dAHiwrNkPIyOhLTZ9s35X4M4xiogQ=w640",
+      "comments": 26
+    },
+    {
+      "title": "Xamarin.Forms: Platform specific code in SAP and PCL ",
+      "url": "https://www.msdevbuild.com/2020/01/xamarinforms-platform-specific-code-in.html",
+      "published": "2020-01-31T02:47:00.002+08:00",
+      "updated": "2020-12-26T00:55:25.056+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": ".Net Class and API or some features that behave differently on each platform so we need to write some code on platform specific. Below two library for sharing code between multiple platform…",
+      "image": "https://lh4.googleusercontent.com/Hzvm4LomBw6y8C4b5hO74yuD7mXQ2AWJy6UM2brwlFz7zns6yG5pgPv4gx_zx_qkwLAcg5hwofIDpG8v3Lti1gBtF29Qh3jCYvsgmAh6hN10LNlynL0XjvD9E8bA1Vlf6lNZWTXadaTlBaOtew=w640",
+      "comments": 0
+    },
+    {
+      "title": "Prevent memory leak and Profiling in Xamarin applications",
+      "url": "https://www.msdevbuild.com/2020/01/prevent-memory-leak-and-profiling-in.html",
+      "published": "2020-01-29T04:59:00.001+08:00",
+      "updated": "2020-12-26T00:55:35.679+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Mobile Application planning, development, testing and deployment go well as per the customer estimation but after a while the client was clamoring that the app is getting slower and slower…",
+      "image": "https://lh3.googleusercontent.com/qKBpYJV0L17sODYdUbVxBSeGKzGEWPnGBICpqFxL5ZIQI5N826ebiFFohFmTMu3eFZyKI10IU2vZUD4mzceTvibiXtl8rrt4TDUhPw8cuhoerpsDra7p_nhbV4_WckJU-eZst5t_Snr6wmuxoQ=w640",
+      "comments": 0
+    },
+    {
+      "title": "Build FAQ Chatbot using Azure Bot Service",
+      "url": "https://www.msdevbuild.com/2019/01/build-faq-chatbot-using-azure-bot.html",
+      "published": "2020-01-28T02:05:00.001+08:00",
+      "updated": "2020-12-26T00:56:01.386+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Visual Studio"
+      ],
+      "excerpt": "Introduction : Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be free. Your bot can also have…",
+      "image": "https://lh3.googleusercontent.com/ZSR5jwLd1CG1DSLYBP1wGSS6uE2WXaziemkDyC3z3xLeEmHKSaDLRhQDrVcWdv-WJmqbBgn2CN8idIBx9gOEILAGICecVJDsFih-nxLZvXvbHycn7rXgji82z9QDSE1vRCqg_T5cAipJpT3Fhw=w640",
+      "comments": 1
+    },
+    {
+      "title": "Intelligent Image Object Detection Bot using Cognitive Computer Vision API",
+      "url": "https://www.msdevbuild.com/2019/01/intelligent-image-object-detection-bot.html",
+      "published": "2020-01-27T00:17:00.000+08:00",
+      "updated": "2020-01-26T15:28:36.047+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Visual Studio"
+      ],
+      "excerpt": "Introduction: Microsoft Cognitive services is set of cloud based intelligence APIs for building richer and smarter application development. Cognitive API will use for Search meta data from…",
+      "image": "https://lh6.googleusercontent.com/Ju8vhAGqRK_PYGAf-Ijk0za57nrKdFyHQdoMF6_FsDP0-_vwAnrPKRSFLyZluIISFJFZpv2IkDenuXbO2UYLKaRvy_xRPXPXVPPox7iP0LIKGZdSq9J-03X8tExIiYtrdRWO6EeB5vak1281iA=w640",
+      "comments": 0
+    },
+    {
+      "title": "How to Develop Bot Application Using Visual Studio Mac",
+      "url": "https://www.msdevbuild.com/2019/01/how-to-develop-bot-application-using.html",
+      "published": "2020-01-26T23:13:00.000+08:00",
+      "updated": "2020-01-26T15:30:07.023+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Visual Studio"
+      ],
+      "excerpt": "Introduction : Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be free. Your bot can also have…",
+      "image": "https://lh4.googleusercontent.com/Q2jgXH0C4x4FESeyDbdi2F85IXdqk5IAhmpOUhX1oPUNlXDZnMLs5q9xJFhtj2nR355V7vwkSYgkTJVqzcb5FPl5IVeFIMhbRL23bhxzCw0SJLu_zQEwxZQzcezpjqGEMsDSIT9d6KNGYn-3yw=w640",
+      "comments": 2
+    },
+    {
+      "title": "Xamarin FAQ Bot Available in Line App",
+      "url": "https://www.msdevbuild.com/2019/03/xamarin-faq-bot-available-in-line-app.html",
+      "published": "2020-01-26T11:18:00.000+08:00",
+      "updated": "2020-01-26T15:15:39.865+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI",
+        "Xamarin"
+      ],
+      "excerpt": "Xamarin Developer Interview questions and answers Bot is ready to use in Line app. Xamarin FAQ Bot will be ready with 7000+ more Xamarin QnA’s. Now you can start open your Line App and >…",
+      "image": "https://lh6.googleusercontent.com/aKqkR8-UExSF3JwuJk3SVp1BgDCtwmeqCwMca0Su_KzYMLFRwu4Texi1NqnjSEfeVwDMZC-DyHAC8eaEY8zhvb9NOGb26VHCr5dBxfevLpm_g5FtrbXSRyhljGbTxMVZk6caxd6Uha_3AtpBXg=w640",
+      "comments": 1
+    },
+    {
+      "title": "Azure and Data & AI Certifications changes Coming Soon",
+      "url": "https://www.msdevbuild.com/2020/01/azure-and-data-ai-certifications.html",
+      "published": "2020-01-25T09:37:00.001+08:00",
+      "updated": "2020-01-26T14:48:11.956+08:00",
+      "categories": [
+        "Azure",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Microsoft Learning blog posted, Microsoft Azure and Data and AI certification changes will be there on March 2020 . Currently finalizing the updates related to Azure Administrator,…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgoyQRTkhlJuSKGET_2cvQFQ5qoO6TlnwEpHe65WmRlqhke63_boqCE6L7ExWbMoz8hIxnDuIqCctRjD2HHMkj-Zf4dVprVE4hqmMolO3wqyoBQ8mUKH3nlOvfHCnTlIWgixtjrAJ7f71Kr/w640/Picture1.png",
+      "comments": 0
+    },
+    {
+      "title": "Quick Look Cognitive Service Content Moderator Web Application ",
+      "url": "https://www.msdevbuild.com/2020/01/testing-site.html",
+      "published": "2020-01-22T02:41:00.001+08:00",
+      "updated": "2020-01-25T07:35:02.437+08:00",
+      "categories": [
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: Azure Content Moderator API is a cognitive service that checks text, image, and video content for material that is potentially offensive, risky, or otherwise undesirable. When…",
+      "image": "https://lh5.googleusercontent.com/XqJrzogJJbyC6-gcVNNHDvszyUQ42uqX4CTfHPt45NGWAjfxpfNySW87m6_PiAWtp7ptfzo0sh7QZgROKWVLFGGmP1I3DkNaYA_cxe3yTIAw04jaetUDiaLvd6ZiTgK7nWRB85B7aMM9wwVblQ=w640",
+      "comments": 0
+    },
+    {
+      "title": "Just spend 15 min to complete Xamarin and Azure Functions Challenge",
+      "url": "https://www.msdevbuild.com/2019/09/just-spend-15-min-to-complete-xamarin.html",
+      "published": "2019-09-28T04:10:00.000+08:00",
+      "updated": "2020-01-28T00:38:17.191+08:00",
+      "categories": [
+        "Azure",
+        "Xamarin"
+      ],
+      "excerpt": "****The challenge begins 23 September 2019, and ends on 23 October 2019.***** I have successfully completed the Xamairn Azure Function Challenge and the goal of the challenge is to create a…",
+      "image": "https://lh3.googleusercontent.com/rOXDGVk3eQ4CBlwFI7LnpCtAo-j1LSrsEESSOzFZHiY4NvihAHPiG-e-b4ZhBBDZoSCeYEUobkj8z-h8vVX6AVIT3jJOGAEejhVIDvQOcfuI-Az-U9c1hFNU_kRn_IgW1Ba9oGcOTX_wivbzLw=w640",
+      "comments": 5
+    },
+    {
+      "title": "Building a Cross Platform MVVM Pattern with ReactiveUI and Xamarin.Forms",
+      "url": "https://www.msdevbuild.com/2019/09/building-cross-platform-mvvm-pattern.html",
+      "published": "2019-09-27T02:56:00.000+08:00",
+      "updated": "2020-01-25T10:57:13.676+08:00",
+      "categories": [
+        "Xamarin"
+      ],
+      "excerpt": "As a Mobile Developer, when we start a new project, we always search and speak about application architecture. One of the most common choices in Xamarin . Forms is MVVM, this is due to the…",
+      "image": "https://lh5.googleusercontent.com/L0L5CRcPj6lRnUUgtppxxw-QWWStgLoBpSGhURSwpBoxVl2e0qLjZpSIagBhkpYfzBzSOCOPfKoFYGJNF5yRy9GIUlam1LqsXy9XUDRjZ7t_aUqdf4Ajrt2xFDkzVKYFgaKpmLPRBpwHMeKrxw=w640",
+      "comments": 5
+    },
+    {
+      "title": "Getting Started with iOS Storyboards in Xamarin.IOS",
+      "url": "https://www.msdevbuild.com/2019/09/getting-started-with-ios-storyboards-in.html",
+      "published": "2019-09-22T02:23:00.001+08:00",
+      "updated": "2020-12-25T16:14:58.130+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.iOS"
+      ],
+      "excerpt": "Storyboards feature first introduced in iOS 5 that save time building user interfaces for iOS mobile apps. Storyboards allow you to prototype and design multiple view controller views…",
+      "image": "https://lh4.googleusercontent.com/Wa6JIiyPyRHOxQO-AyZIgBNxnSradSvzxbiMtd6ih-SKDiTPOYpZlqK5-wGJ4BhdbPNDswGlVpnHYCHggYG6qo5dHGlzuJ-TEC_HWFXpLn-Wev3Q26sXlLwc1aBD1pgIQ5y3AdkfiOZMII8Opw=s72-w640-h306-c",
+      "comments": 1
+    },
+    {
+      "title": "Faster Startup Times With Startup Tracing On Android",
+      "url": "https://www.msdevbuild.com/2019/08/faster-startup-times-with-startup.html",
+      "published": "2019-08-22T01:13:00.000+08:00",
+      "updated": "2020-01-23T14:56:27.164+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Android"
+      ],
+      "excerpt": "Startup Tracing can be used with Visual Studio 2019 Version 16.2 or Visual Studio for Mac 2019 Version 8.2. You can get started with Startup Tracing by editing your Android project’s…",
+      "image": "https://devblogs.microsoft.com/xamarin/wp-content/uploads/sites/44/2019/07/StartupTracingOptions.png",
+      "comments": 3
+    },
+    {
+      "title": "How to build  64-bit Xamarin Android Application ",
+      "url": "https://www.msdevbuild.com/2019/07/how-to-build-64-bit-xamarin-android.html",
+      "published": "2019-07-13T01:32:00.000+08:00",
+      "updated": "2020-01-23T14:57:34.756+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Android"
+      ],
+      "excerpt": "Google announced all Android app should support 64-bit architectures from Aug 1, 2019. 64-bit CPUs deliver faster, richer experiences for your users. Google Play will continue to support…",
+      "image": "https://lh4.googleusercontent.com/vg23kLEyqIybmhtIHhq-DyyM27c0RqaldQkSrYNT_WvCINU4tSjhSP6TpOs9ZN7Kl9R6JZ3xmilC87r78ABi24C3M7pAXyZj8yl6eluDo09Rg1ZCUlNZwWMSJ1fquCWnLCBehsM8PLNPlNrcHw=w640",
+      "comments": 2
+    },
+    {
+      "title": " Xamarin Forms: How to Read SMS and verify OTP automatically in android without using SMS read permission",
+      "url": "https://www.msdevbuild.com/2019/07/xamarin-forms-how-to-read-sms-and.html",
+      "published": "2019-07-02T23:57:00.000+08:00",
+      "updated": "2020-01-23T18:54:20.869+08:00",
+      "categories": [
+        "Xamarin.Android",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Introduction : Google is considering the users privacy seriously, it has updated its Google Play Developer Policy which restricting SMS, CALL_LOG access. If your app does not require access…",
+      "image": "https://lh4.googleusercontent.com/dbEd45x2ytldOAiW_XS-ztKeRlHWv4D7ncTz_8AZkwiC5_fZA_3kOgQxK1-5LWo2yTvm_Y8FOkW3Q7zB2tueFF4oEtF_XRWOyg0GxxMO3G32_v43i2_UwBChQe0_bjsh7RNDQ0yB2pSjkGJrbg=w640",
+      "comments": 20
+    },
+    {
+      "title": "Building Azure AD Bot Application ",
+      "url": "https://www.msdevbuild.com/2019/06/building-azure-ad-bot-application.html",
+      "published": "2019-06-14T19:23:00.000+08:00",
+      "updated": "2020-01-23T18:56:50.787+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Azure AD is the identity provider, responsible for verifying the identity of users and applications and providing security tokens upon successful authentication of those…",
+      "image": "https://lh4.googleusercontent.com/lpygYH4fdeermwHY75d9Zux1UHxD4fbGejdTPWFnAg7AS7yss30QFdqNSKqIjLIbuAiMsRJva4u_H_DNyxt32al9_RjJVg19UjqoFcPUDf-iE5GcIeVKVj6-OQ1kYNXNMlWDiYmtSlQJQakfwQ=w640",
+      "comments": 7
+    },
+    {
+      "title": "Microsoft Bot Framework: Receipt Card Design ",
+      "url": "https://www.msdevbuild.com/2019/06/microsoft-bot-framework-receipt-card.html",
+      "published": "2019-06-14T19:21:00.000+08:00",
+      "updated": "2020-01-24T04:59:33.894+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Bot Framework has supports different type of rich cards and provides a richer interaction experience to the user. In this article, I will show how to integrate Receipt…",
+      "image": "https://lh4.googleusercontent.com/TP_4NYk4p8DHDqNsiun0AJpGkux2oDXaQhmIm34EeuAmsuZ5cZaA_p5Hi7yLXUr72LYcPXJepL1jdNtRZ-FFXBcnFoMHz8g9kRgVfxHj8PCCucaRzwrA0GYYIiPSLr-9Pp7X2YwrZ-VJjIMRLg=w640",
+      "comments": 0
+    },
+    {
+      "title": "Microsoft Bot Framework: Adaptive Card Design ",
+      "url": "https://www.msdevbuild.com/2019/06/microsoft-bot-framework-adaptive-card.html",
+      "published": "2019-06-14T19:18:00.000+08:00",
+      "updated": "2020-01-24T04:38:15.125+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Bot Framework has supported the different type of rich cards and provides a richer interaction experience to the user. In this article, I will share about how to integrate…",
+      "image": "https://lh4.googleusercontent.com/Q88cvbD35D6TVElIrxDmmNBSe6yBek2wqtXQnoMhUJyF0sLzwIXOP1CeLQpcpy6GwexrevudpEdQNziA3eolLkIBava3ggjemye_DpMCLOwSTvIEXL43ZxE97q33XJuAkULd0jWLQvf1tncS7w=w640",
+      "comments": 0
+    },
+    {
+      "title": "Hero Card Design Using Microsoft Bot Framework SDK 3",
+      "url": "https://www.msdevbuild.com/2019/06/hero-card-design-using-microsoft-bot.html",
+      "published": "2019-06-13T00:21:00.000+08:00",
+      "updated": "2020-01-28T00:49:18.573+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Bot Framework has supported the different type of rich cards and provides a richer interaction experience to the user. In this article, I will share about how to integrate…",
+      "image": "https://lh5.googleusercontent.com/creR60_Av6qTWZjAWMyiluQm4DsK3BlUJIYRED6u4xhukO7K4VUdB50gs_Mj1kV_CiFONOL3YIwXQTDPajiUPQq0VKZx7ICbxMgBm9FjXId_eMseuyvEmDjbaxg5UQChTtmH6ID9Wsfq8uhSUw=w640",
+      "comments": 0
+    },
+    {
+      "title": "SSL Certificate And Public Key Pinning With Xamarin Forms",
+      "url": "https://www.msdevbuild.com/2019/06/ssl-certificate-and-public-key-pinning.html",
+      "published": "2019-06-12T00:11:00.000+08:00",
+      "updated": "2020-01-25T03:50:08.346+08:00",
+      "categories": [
+        "SSL",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Introduction : Secure channels are a cornerstone to users and employees working remotely and on the go. Users and developers expect end-to-end security when sending and receiving data -…",
+      "image": "https://lh3.googleusercontent.com/7kywRfuZInQeFjcLZ8QD51FUBu1GHuDtFmwk0WtUF3ao9BTq1i2bXxOa19ll0_Em0qrYvp1j7sNpL6EqaOzltQ_EKzfrLLcrOQvBIc9mHCYCLDNN6-6CdUIsGb7oF58EYFW9DQbVeRrF6lEQiA=w640",
+      "comments": 2
+    },
+    {
+      "title": "Getting Started with Thumbnail Card Design Using Microsoft Bot Framework SDK3",
+      "url": "https://www.msdevbuild.com/2019/06/getting-started-with-thumbnail-card.html",
+      "published": "2019-06-10T00:52:00.000+08:00",
+      "updated": "2020-01-25T03:50:57.194+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Bot Framework has supported the different type of rich cards and provides a richer interaction experience to the user. In this article, I will share about how to integrate…",
+      "image": "https://lh4.googleusercontent.com/FAW92rr-Lr-lrq_rMb-SVVaTE04enTjn_IgBZDCI2rAWkMWRv5j4EqASzU7t09exuO5OJW8GNk0kv_CvNOMcj2f1-Aj3Kbu8nBT6COx20KJd5kNuRPe9MpyftK5TDzH74NSUZVCg-mE4BR7cKw=w640",
+      "comments": 0
+    },
+    {
+      "title": "Sending Bot Reply message with attachment using Bot Framework SDK3",
+      "url": "https://www.msdevbuild.com/2019/05/sending-bot-reply-message-with.html",
+      "published": "2019-05-18T01:31:00.000+08:00",
+      "updated": "2020-01-26T02:11:42.682+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform . Your bot can also have more…",
+      "image": "https://lh5.googleusercontent.com/DFfjhKCwLQDFET6hLmqnEgWA8kgiTumZA9IDmx7uY4fvRyqg3nzGOXV3u4doCoQ-NByVl6RmLfrwS_E9qNjridaZ6h1x53CwPCSZ6FtXk-a75S1LiezRUSwpepCc1xSV6HXjtZ0njGQZ4UYC6g=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started Conversational Forms with FormFlow using Microsoft Bot framework SDK3",
+      "url": "https://www.msdevbuild.com/2019/05/getting-started-conversational-forms.html",
+      "published": "2019-05-18T01:27:00.001+08:00",
+      "updated": "2020-12-26T00:57:34.312+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform . Your bot can…",
+      "image": "https://lh6.googleusercontent.com/hRaYkCWBxYphEGfyWvg-Rx2KFkBorzamgewmirj8siq1vl6oBo8hxD2GqdcPSEKsOftFZI04by_28sQKGYJB_RJXZQ05sDb9rMzhFa-quiSg7yr0q1lxvslQ5pvO3hBOunBVwDafkAW7ThphPQ=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started with Prompt Dialog using Microsoft Bot framework SDK 3",
+      "url": "https://www.msdevbuild.com/2019/05/getting-started-with-prompt-dialog.html",
+      "published": "2019-05-17T00:57:00.000+08:00",
+      "updated": "2020-01-26T02:14:56.410+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform . Your bot can…",
+      "image": "https://lh5.googleusercontent.com/-Sn7DTIlB9NbXZLjkHvMB19T3k0-1gGSjzYYgBQHRTgjbtcG2rzE_wnDjJjgb1yoXGv5rBgsEXx32u_6QKLoGZfYmzLqsrh85pgq2XrVClIJjiNORns7ajHVWx6Ymoy0IyFUGAhIQvV1d2VCaw=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started With Dialog Using Microsoft Bot Framework SDK 3",
+      "url": "https://www.msdevbuild.com/2019/05/getting-started-with-dialog-using.html",
+      "published": "2019-05-17T00:53:00.000+08:00",
+      "updated": "2020-01-26T02:29:31.221+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform. Your bot can also…",
+      "image": "https://lh4.googleusercontent.com/ZiaUFF2zwDQEob8PqUgzBFpzMvl6d8taQ9_YV8nTsVotLF-YCzhYJQNBJx5U5q65NbmGfRd6xYR2injocAs9IAwMzl_lSSh1XUwND66iA0GGowHpYfghXFutSvVCqYoKckBKS0fCfKJrc2Zmeg=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started with Microsoft Azure Cognitive Services APIs account",
+      "url": "https://www.msdevbuild.com/2019/05/getting-started-with-microsoft-azure.html",
+      "published": "2019-05-16T00:40:00.000+08:00",
+      "updated": "2020-01-27T04:47:18.017+08:00",
+      "categories": [
+        "Azure",
+        "Cognitive Services",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: Microsoft Cognitive Services awesome APIs and services for developers to create more intelligent applications. You can add more interesting feature like people emotion and…",
+      "image": "https://lh6.googleusercontent.com/vcsizjOwsYx7ATmvO-8IrTfcVFSrq2mxHakl6qW800mpNXOeVBkrpAOmFNRihTxcBHyMsVU-Li1hj_R_5_BH7-KjwGfH2ZYAvvrQPc2swbL083IEIKK14geyjkAfpkVrpf2_vhXFgtOzGPlqnw=w640",
+      "comments": 1
+    },
+    {
+      "title": "Xamarin Forms ChatBot using the Microsoft Bot Framework",
+      "url": "https://www.msdevbuild.com/2019/05/xamarin-forms-chatbot-using-microsoft.html",
+      "published": "2019-05-16T00:38:00.000+08:00",
+      "updated": "2020-01-28T14:54:27.203+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Xamarin Forms ChatBot using the Microsoft Bot Framework Introduction: The Bots Framework that run inside skype ,web chat , Facebook ,Message ,etc. Users can interact with bots by sending…",
+      "image": "https://lh4.googleusercontent.com/Q5IA-2gTPHhQNTqGuHFQV8wUQ5jkmM3KRLv__ETBr2KlUyCqnl5-34jNWC8R9I_ytr8cnirg_PB99mfUCzIVG4z09Qv_ENAUURPOeaLqJI-d-FyAY7OvtHdKcxuh2KgzPOt1_tdR7FFyO3vdEg=w640",
+      "comments": 0
+    },
+    {
+      "title": "Deploying Bot Application to Azure Using Visual Studio 2019",
+      "url": "https://www.msdevbuild.com/2019/05/deploying-bot-application-to-azure.html",
+      "published": "2019-05-15T02:10:00.000+08:00",
+      "updated": "2020-01-26T15:11:52.730+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI",
+        "Visual Studio"
+      ],
+      "excerpt": "Introduction The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform. Your bot can also…",
+      "image": "https://lh4.googleusercontent.com/3KtCj_oT2Cj6H624NsA6CqFEm8Stq95j8xv97mBYVkEe6XNl2cnUvE7VmVVaZnWnZ6jwirzcTy_r3P7SP9-qHh1hA0qFnP_7jSAa8RyvbtsaM5pbLH3vsAyIGub5_TJTCi1JV5hkhfNSruh9QA=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started Natural Language Understanding with LUIS",
+      "url": "https://www.msdevbuild.com/2019/05/getting-started-natural-language.html",
+      "published": "2019-05-14T01:26:00.000+08:00",
+      "updated": "2020-01-26T15:12:21.966+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "LUIS",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: Language Understanding service (LUIS) allows our any application to understand what a person wants in their own words. LUIS can integrate to Windows, Web, Bot and mobile…",
+      "image": "https://lh5.googleusercontent.com/MWVfdiaHsv86mVPPvZ26CmqqZgKue5MR3A2kUs_OWelfwHWccWB956RcHZstBBKBr49qb7Krjc71071skVMyDIoh_3dPMSr8Rhz6XgMM64znp9yGMXEraT_vBrrDm28cTSi3O8ixhqNXsOJGfw=w640",
+      "comments": 0
+    },
+    {
+      "title": "Artificial Intelligence (AI) into Xamarin Mobile Apps",
+      "url": "https://www.msdevbuild.com/2019/04/artificial-intelligence-ai-into-xamarin.html",
+      "published": "2019-04-21T14:20:00.000+08:00",
+      "updated": "2020-01-26T15:13:03.984+08:00",
+      "categories": [
+        "Azure",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Artificial Intelligence continues to gain more traction, now that companies such as Google, Microsoft and others, have released a suite of easy to use tools. It now enables us to create…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgutByGTArfBujxwuaGyyrekWlv2su2bTLRv-nJGZYHnTXoSnHbDwZ3eQhQ3LFOxnpqlFAu08GAAt9f22GLVX4NPfhQl5ohFRwL8kQhe7VeJ2hyA5tQ_7BZ1wiRcGJXVFcW2RQ-lOhyphenhyphen4bU/w640/Map.PNG",
+      "comments": 2
+    },
+    {
+      "title": "Xamarin New Features in Visual Studio 2019 ",
+      "url": "https://www.msdevbuild.com/2019/04/xamarin-new-features-in-visual-studio.html",
+      "published": "2019-04-09T10:39:00.000+08:00",
+      "updated": "2020-01-26T15:13:25.515+08:00",
+      "categories": [
+        "Visual Studio",
+        "Xamarin"
+      ],
+      "excerpt": "Introduction: Visual Studio 2019 publicly available from April 2 2019 and it’s includes many improvements for Xamarin mobile developers in Visual Studio. Microsoft mainly focused on key…",
+      "image": "https://lh6.googleusercontent.com/Tuwc3ZtBwqe9PMXweB4Ep1j_qctTNRVZzEBMqGs2ETzKidd9kK5NHa905Tp8C4eZ2D6lX7l-LdvjySzTPiU5vBXx4EHpwMKdSn0Usl6b4NIb8jMYHhouA2PpMTAavO30yTSUA-xZ5FqJwU8qiw=w640",
+      "comments": 4
+    },
+    {
+      "title": "Building Xamarin Mobile Application with Analyzing Customer Feedback using Sentiment Analysis API",
+      "url": "https://www.msdevbuild.com/2019/03/building-xamarin-mobile-application.html",
+      "published": "2019-03-27T00:54:00.000+08:00",
+      "updated": "2020-01-26T15:25:11.626+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Introduction: Sentiment analysis seeks to understand a subject’s attitude or emotional reaction towards a specific topic or brand. Sentiment analysis does not have to be complicated and…",
+      "image": "https://lh4.googleusercontent.com/dtLa_Sfsc4xZLQH04SP8eAldI5urXQX--AuWQLIm2YpLANkZJKQwT4MfviuUB74Ggn7FZ4zNycLTDu7aC0UNHrchTDB_QvWNfML6scPjrZ_NXbM8cm4Gx3mQTz7ml7PXbQXFR9z3CsZfjv1OgA=w640",
+      "comments": 2
+    },
+    {
+      "title": "Bot Builder SDK Template available for Visual studio 2019",
+      "url": "https://www.msdevbuild.com/2019/03/bot-builder-sdk-template-available-for.html",
+      "published": "2019-03-27T00:52:00.000+08:00",
+      "updated": "2020-01-26T15:25:36.001+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI",
+        "Visual Studio",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Introduction: Visual Studio 2019 streamlines your experience so you can get right down to focused work. Microsoft announced Visual studio 2019 will launch on April 2, 2019 with many…",
+      "image": "https://lh3.googleusercontent.com/cT_r2WAHi1T3CiGRNZBy-ByHkQvFYEQJfqVd_KPADH1Gwy-kY0Ni72tYZQqhArFILtVK6mtF8XG93tcwGQToTh1njGyhPeE3um4154KIlvG9taY0fofgXgSdFbBge3ABv1hTtwLWOSGvnr3u2g=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started with Microsoft Bot Using Visual Studio 2019",
+      "url": "https://www.msdevbuild.com/2019/03/getting-started-with-microsoft-bot.html",
+      "published": "2019-03-27T00:51:00.000+08:00",
+      "updated": "2020-01-26T15:25:45.840+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI",
+        "Visual Studio",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Introduction: Visual Studio 2019 streamlines your experience so you can get right down to focused work. Microsoft announced Visual studio 2019 will launch on April 2, 2019 with many…",
+      "image": "https://lh3.googleusercontent.com/cT_r2WAHi1T3CiGRNZBy-ByHkQvFYEQJfqVd_KPADH1Gwy-kY0Ni72tYZQqhArFILtVK6mtF8XG93tcwGQToTh1njGyhPeE3um4154KIlvG9taY0fofgXgSdFbBge3ABv1hTtwLWOSGvnr3u2g=w640",
+      "comments": 2
+    },
+    {
+      "title": "Building Bot Application with Azure AD Login Authentication using AuthBot",
+      "url": "https://www.msdevbuild.com/2019/01/building-bot-application-with-azure-ad.html",
+      "published": "2019-01-08T00:18:00.000+08:00",
+      "updated": "2020-01-26T15:26:02.130+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI",
+        "Visual Studio",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Introduction: The Azure AD is the identity provider, responsible for verifying the identity of users and applications and providing security tokens upon successful authentication of those…",
+      "image": "https://lh4.googleusercontent.com/lpygYH4fdeermwHY75d9Zux1UHxD4fbGejdTPWFnAg7AS7yss30QFdqNSKqIjLIbuAiMsRJva4u_H_DNyxt32al9_RjJVg19UjqoFcPUDf-iE5GcIeVKVj6-OQ1kYNXNMlWDiYmtSlQJQakfwQ=w640",
+      "comments": 2
+    },
+    {
+      "title": "Getting Started with Microsoft Academic Knowledge Using Cognitive Services",
+      "url": "https://www.msdevbuild.com/2019/01/getting-started-with-microsoft-academic.html",
+      "published": "2019-01-08T00:17:00.002+08:00",
+      "updated": "2020-01-26T15:27:06.377+08:00",
+      "categories": [
+        "Azure",
+        "Cognitive Services",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: Microsoft Academic is a free public search engine for academic publications and literature developed by Microsoft Research. In this library have 375 million entities ,170…",
+      "image": "https://lh6.googleusercontent.com/U2T3AcVVJADf2qNWXqzc1Zr2j8EeSuCzYt5YInfn8L1givGZ6scYlQ-GZ1qVgaa83bb9dYs82pIrcuTo1yQUiHb6h6LqviKM8kNZpGwfh1CQ90zQtI5i7ftTmQqeTa4wqKM2O7T0o3zPl5gxgg=w640",
+      "comments": 0
+    },
+    {
+      "title": "Building Chat Bots with Bing search results using Bot Framework",
+      "url": "https://www.msdevbuild.com/2019/01/building-chat-bots-with-bing-search.html",
+      "published": "2019-01-08T00:17:00.000+08:00",
+      "updated": "2020-01-26T15:29:01.028+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Visual Studio"
+      ],
+      "excerpt": "Building Chat Bots with Bing search results using Bot Framework Introduction: The Bot Framework supports different types of rich cards, Azure AD authentication and provides a richer…",
+      "image": "https://lh3.googleusercontent.com/hos01vmnex9LIi77u_hllMxT0FPixhK4jJHa45Tbxwd2PdUo24GELZvVSpNLH2GYHx9B39B1IP8qQ3QlnS0_jEFa7DSRseSo5CC1VDhUQTcdUgcrX-QCrRdfbfaVjywITrcJJZqpoMNLxKZGIQ=w640",
+      "comments": 0
+    },
+    {
+      "title": "Build a Facebook Page Bot using Azure Bot Service ",
+      "url": "https://www.msdevbuild.com/2019/01/build-facebook-page-bot-using-azure-bot.html",
+      "published": "2019-01-05T02:14:00.000+08:00",
+      "updated": "2020-01-26T15:34:20.126+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Visual Studio"
+      ],
+      "excerpt": "Introduction: The Bot Application runs inside an application, like Skype, web chat, Facebook, Message, etc. Users can interact with bots by sending them messages, commands, and inline…",
+      "image": "https://lh3.googleusercontent.com/zE_GSfkuKe9vYx7q2Vkge71AsPLULCiDn_8wQwmGx35XxNOdrQyQbV8nOM4-XElaIF7nWeb57Tcj9r7eg1Hk4YUIw3o3Ab2cs2x1_xw7SZLDhJaSURSX0LPjmCvsCl4oF3hk6Sg8i-nuZ4REyg=w640",
+      "comments": 0
+    },
+    {
+      "title": "Webinar : Developing Intelligent Bots From The Beginning &amp; Bot in a Xamarin Mobile Application",
+      "url": "https://www.msdevbuild.com/2018/07/webinar-developing-intelligent-bots.html",
+      "published": "2018-07-10T01:16:00.000+08:00",
+      "updated": "2020-02-03T20:22:52.193+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Visual Studio"
+      ],
+      "excerpt": "Agenda: Introduction to Microsoft Bot Framework Design and Develop,Test /Debug Bot Application with Demo Getting Started With Azure Bot Service. Deploy /Publish Intelligent Bots using Bot…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgZ9QNOSB-BYO2C5OLQrSEh6axf0sUn6EB880YTpbWjlBHJRaG9IIwRGN_52NQ57pG4_mjHE_Jp5wE3gpyhxgWpWiQCnZqcJksn3PMBGVtvYaIOhlNTCllbFh1FHIV5-h5i54_889WEyjQ/w640/36838543_1993448497395947_7789292206296137728_o.jpg",
+      "comments": 1
+    },
+    {
+      "title": "Building video Indexer xamarin Mobile Application Using Cognitive Service ",
+      "url": "https://www.msdevbuild.com/2018/03/building-video-indexer-xamarin-mobile_29.html",
+      "published": "2018-03-30T01:07:00.000+08:00",
+      "updated": "2020-01-26T15:37:14.778+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Visual Studio",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Introduction: Microsoft introduced the public preview of Video Indexer as a part of Cognitive Service. Previously, we used Video API but now it's replaced with Video Indexer. Video Indexer…",
+      "image": "https://lh4.googleusercontent.com/0HJTlwRmTNVoNFpnT7eaRGJoSSoNc_j5HG4by8wtBdsZgjceOUYP9kIvD1QkrwBu7kdC0W4wFID7oaUtaMxFM8fh8OrHFahEDveo9YKsIaIrRsAyFOx3Iq1R49Os1mWjo0DUxpnHAHelNtigog=w640",
+      "comments": 0
+    },
+    {
+      "title": "Building video Indexer Xamarin Mobile Application Using Cognitive Service ",
+      "url": "https://www.msdevbuild.com/2018/03/building-video-indexer-xamarin-mobile.html",
+      "published": "2018-03-30T01:02:00.000+08:00",
+      "updated": "2020-01-27T04:29:20.484+08:00",
+      "categories": [
+        "Azure",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Introduction: Microsoft introduced the public preview of Video Indexer as a part of Cognitive Service. Previously, we used Video API but now it's replaced with Video Indexer. Video Indexer…",
+      "image": "https://lh4.googleusercontent.com/0HJTlwRmTNVoNFpnT7eaRGJoSSoNc_j5HG4by8wtBdsZgjceOUYP9kIvD1QkrwBu7kdC0W4wFID7oaUtaMxFM8fh8OrHFahEDveo9YKsIaIrRsAyFOx3Iq1R49Os1mWjo0DUxpnHAHelNtigog=w640",
+      "comments": 1
+    },
+    {
+      "title": "Getting started with the Video Indexer using Microsoft Cognitive Services",
+      "url": "https://www.msdevbuild.com/2018/03/getting-started-with-video-indexer.html",
+      "published": "2018-03-30T00:50:00.000+08:00",
+      "updated": "2020-01-27T04:41:48.851+08:00",
+      "categories": [
+        "Azure",
+        "Cognitive Services",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: Microsoft introduced the public preview of video indexer as part of cognitive service. previously its Video API now its replaced into Video Indexer. Video Indexer…",
+      "image": "https://lh5.googleusercontent.com/rr6PN-i1IGpokQSTO1yDY6wRKXz9iYhJ1YGQFeF9OsKfn2-o_HRktIwqrHYbYdTfFLLuzy6tr7r2FckJi9E_Kh_pEdnjU2cCk_KGwovjmeTkOMFXqanwnwlNoAXkNAs-xkE1WYy25mKzg85kfQ=w640",
+      "comments": 0
+    },
+    {
+      "title": "Building Xamarin Mobile Application with Bing AutoSuggest using Cognitive Services",
+      "url": "https://www.msdevbuild.com/2018/03/building-xamarin-mobile-application_73.html",
+      "published": "2018-03-30T00:43:00.000+08:00",
+      "updated": "2020-01-26T15:38:45.979+08:00",
+      "categories": [
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "The Bing Autosuggest API returns a list of suggested queries based on the user enters in the search box. Display the suggestions in the search box's drop-down list. The suggested terms are…",
+      "image": "https://lh3.googleusercontent.com/VWlLMYuHRFa-6ksIkb30rTBI9ur9BnO4f98XRwOM70QJ9Nf8oyWCE1XsqsvJrBLZgQpemKHJmSHJH6NWZqzUBD4plP1tAv5rMs6bbdjjUQK9A2tbX8oQsArAUz77BW6R3Jeg29mANpCB-E0owA=w640",
+      "comments": 1
+    },
+    {
+      "title": "Building Xamarin Mobile Application with Bing AutoSuggest using Cognitive Services",
+      "url": "https://www.msdevbuild.com/2018/03/building-xamarin-mobile-application.html",
+      "published": "2018-03-30T00:41:00.000+08:00",
+      "updated": "2020-01-27T04:30:00.218+08:00",
+      "categories": [
+        "Azure",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "The Bing Autosuggest API returns a list of suggested queries based on the user enters in the search box. Display the suggestions in the search box's drop-down list. The suggested terms are…",
+      "image": "https://lh3.googleusercontent.com/VWlLMYuHRFa-6ksIkb30rTBI9ur9BnO4f98XRwOM70QJ9Nf8oyWCE1XsqsvJrBLZgQpemKHJmSHJH6NWZqzUBD4plP1tAv5rMs6bbdjjUQK9A2tbX8oQsArAUz77BW6R3Jeg29mANpCB-E0owA=w640",
+      "comments": 5
+    },
+    {
+      "title": "Building Xamarin Mobile Application with Bing News Search using Cognitive Services",
+      "url": "https://www.msdevbuild.com/2018/03/building-xamarin-mobile-application_68.html",
+      "published": "2018-03-30T00:30:00.000+08:00",
+      "updated": "2020-01-27T04:30:34.880+08:00",
+      "categories": [
+        "Azure",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "The Bing News Search API returns a list of world news from a search query which can be Customize trending news from around the world by category and region. Results include information such…",
+      "image": "https://lh3.googleusercontent.com/ba5jMvHc7C-dzKy1Mb04Sl-XEOPclcZuGRg_-UAMR8eKPctR1SfkDMGEoSMz6gbZ_9Zg23wv3uqqW5Cu_uOvVOtGUg1nbZov-ZQ2EBH2dCPYpcn_QvtxCL1Ps5j_l3dSgUl89pp6HBWG6JJaAg=w640",
+      "comments": 0
+    },
+    {
+      "title": "Building Xamarin Mobile Application with Bing News Search using Cognitive Services",
+      "url": "https://www.msdevbuild.com/2018/03/building-xamarin-mobile-application_29.html",
+      "published": "2018-03-30T00:27:00.000+08:00",
+      "updated": "2020-01-27T04:31:00.957+08:00",
+      "categories": [
+        "Azure",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "The Bing News Search API returns a list of world news from a search query which can be Customize trending news from around the world by category and region. Results include information such…",
+      "image": "https://lh3.googleusercontent.com/ba5jMvHc7C-dzKy1Mb04Sl-XEOPclcZuGRg_-UAMR8eKPctR1SfkDMGEoSMz6gbZ_9Zg23wv3uqqW5Cu_uOvVOtGUg1nbZov-ZQ2EBH2dCPYpcn_QvtxCL1Ps5j_l3dSgUl89pp6HBWG6JJaAg=w640",
+      "comments": 3
+    },
+    {
+      "title": "Building Xamarin Mobile Application with Bing Web Search using Cognitive Services",
+      "url": "https://www.msdevbuild.com/2018/03/building-xamarin-mobile-application_93.html",
+      "published": "2018-03-17T22:39:00.000+08:00",
+      "updated": "2020-01-27T04:31:21.325+08:00",
+      "categories": [
+        "Azure",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "The Bing Web Search API provides an experience similar to Bing.com/Search by returning search results that Bing determines are relevant to the user's query. The API results include Web…",
+      "image": "https://lh6.googleusercontent.com/BPOvLtJNp10sihQtaOM0QbmGoBkFy-smL0Fyf7r3rsM5QQlWtw2MDx-Oii9x_0ULYkhwcMnRU8ihx_To6dpmHwnKIrouZyDUSRH_O485uNMZOjM41NO8261mMFLmtK8OiqLGuMJqI718PWn04g=w640",
+      "comments": 1
+    },
+    {
+      "title": "Building Xamarin Mobile Application with Bing Web Search using Cognitive Services",
+      "url": "https://www.msdevbuild.com/2018/03/building-xamarin-mobile-application_17.html",
+      "published": "2018-03-17T18:39:00.000+08:00",
+      "updated": "2020-01-27T04:31:55.055+08:00",
+      "categories": [
+        "Azure",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "The Bing Web Search API provides an experience similar to Bing.com/Search by returning search results that Bing determines are relevant to the user's query. The API results include Web…",
+      "image": "https://lh6.googleusercontent.com/BPOvLtJNp10sihQtaOM0QbmGoBkFy-smL0Fyf7r3rsM5QQlWtw2MDx-Oii9x_0ULYkhwcMnRU8ihx_To6dpmHwnKIrouZyDUSRH_O485uNMZOjM41NO8261mMFLmtK8OiqLGuMJqI718PWn04g=w640",
+      "comments": 2
+    },
+    {
+      "title": "Building Bot Application with Azure AD Login Authentication using AuthBot",
+      "url": "https://www.msdevbuild.com/2017/11/building-bot-application-with-azure-ad_10.html",
+      "published": "2017-11-11T00:38:00.001+08:00",
+      "updated": "2020-01-27T04:43:02.737+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Azure AD is the identity provider, responsible for verifying the identity of users and applications and providing security tokens upon successful authentication of those…",
+      "image": "https://lh4.googleusercontent.com/lpygYH4fdeermwHY75d9Zux1UHxD4fbGejdTPWFnAg7AS7yss30QFdqNSKqIjLIbuAiMsRJva4u_H_DNyxt32al9_RjJVg19UjqoFcPUDf-iE5GcIeVKVj6-OQ1kYNXNMlWDiYmtSlQJQakfwQ=w640",
+      "comments": 2
+    },
+    {
+      "title": "Microsoft Bot Framework : Receipt Card Design ",
+      "url": "https://www.msdevbuild.com/2017/11/getting-started-with-receipt-card_10.html",
+      "published": "2017-11-11T00:35:00.000+08:00",
+      "updated": "2020-01-27T04:33:21.101+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI"
+      ],
+      "excerpt": "The Bot Framework has supports different type of rich cards and provides a richer interaction experience to the user. In this article, I will show how to integrate Receipt card UI design in…",
+      "image": "https://lh4.googleusercontent.com/TP_4NYk4p8DHDqNsiun0AJpGkux2oDXaQhmIm34EeuAmsuZ5cZaA_p5Hi7yLXUr72LYcPXJepL1jdNtRZ-FFXBcnFoMHz8g9kRgVfxHj8PCCucaRzwrA0GYYIiPSLr-9Pp7X2YwrZ-VJjIMRLg=w640",
+      "comments": 1
+    },
+    {
+      "title": "Getting Started with Thumbnail Card Design Using Microsoft Bot Framework",
+      "url": "https://www.msdevbuild.com/2017/10/getting-started-with-thumbnail-card_11.html",
+      "published": "2017-10-11T17:45:00.000+08:00",
+      "updated": "2020-01-28T01:11:21.085+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Bot Framework has supported the different type of rich cards and provides a richer interaction experience to the user. In this article, I will share about how to integrate…",
+      "image": "https://lh4.googleusercontent.com/FAW92rr-Lr-lrq_rMb-SVVaTE04enTjn_IgBZDCI2rAWkMWRv5j4EqASzU7t09exuO5OJW8GNk0kv_CvNOMcj2f1-Aj3Kbu8nBT6COx20KJd5kNuRPe9MpyftK5TDzH74NSUZVCg-mE4BR7cKw=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started with Hero Card Design Using Microsoft Bot Framework",
+      "url": "https://www.msdevbuild.com/2017/10/getting-started-with-hero-card-design_11.html",
+      "published": "2017-10-11T17:24:00.000+08:00",
+      "updated": "2020-01-28T23:16:42.789+08:00",
+      "categories": [
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "The Bot Framework has supported the different type of rich cards and provides a richer interaction experience to the user. In this article, I will share about how to integrate Hero card UI…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiAeA7Mn13Z4qU3-0aP64TRxIHhchhv__PU4hRq0LObtaIqGFmnvsUuECjN46D06wPUi2Ho3GNXR4SItq4iV1miUxSomXquSgEUv2N2o31D5Rw-LjIl-hK1r_v2dOiEElTaL7cT6Me5W7-y/w640/download-source-code_btn1.png",
+      "comments": 0
+    },
+    {
+      "title": "Sending Bot Reply message with attachment using Bot Framework",
+      "url": "https://www.msdevbuild.com/2017/10/sending-bot-reply-message-with_8.html",
+      "published": "2017-10-08T23:49:00.000+08:00",
+      "updated": "2020-02-01T16:35:49.626+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform. Your bot can also…",
+      "image": "https://lh6.googleusercontent.com/MBDRMhc6JLJZZpfWK6ZNPqYzX-th5eoE00fN_rRn2HBvXZadXsN9ezev4JfQrHgpV4pEGaQFUfrmyE7AwPT2M_aIJ5KAAVK-eXuMPmQNIIWbptclpiQOCr4oVDigyb2YQI2HXjmt5JKrKhC3KQ=w640",
+      "comments": 4
+    },
+    {
+      "title": "Getting Started with Customize a FormFlow using Microsoft Bot framework",
+      "url": "https://www.msdevbuild.com/2017/10/getting-started-with-customize-formflow.html",
+      "published": "2017-10-05T14:45:00.000+08:00",
+      "updated": "2020-02-01T16:33:08.760+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform. Your bot can also…",
+      "image": "https://lh6.googleusercontent.com/kqFYGK4XyPSMrJr7XqgeDexh8FoLcL9b2qrYqYhjqDNIqhXDpXXhUGt1fexbf7UYKooDEOZqvkVbwgGQJh6LZg2Ky4zBrlst6R8uADzs_TcI2y-uxO9tpWosyQIi2fNpWbTI-WXBcxGDzDriTA=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started with Prompt Dialog using Microsoft Bot framework",
+      "url": "https://www.msdevbuild.com/2017/10/getting-started-with-prompt-dialog.html",
+      "published": "2017-10-05T14:44:00.000+08:00",
+      "updated": "2020-02-01T16:33:35.013+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform . Your bot can…",
+      "image": "https://lh5.googleusercontent.com/-Sn7DTIlB9NbXZLjkHvMB19T3k0-1gGSjzYYgBQHRTgjbtcG2rzE_wnDjJjgb1yoXGv5rBgsEXx32u_6QKLoGZfYmzLqsrh85pgq2XrVClIJjiNORns7ajHVWx6Ymoy0IyFUGAhIQvV1d2VCaw=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started with Dialog using Microsoft Bot framework",
+      "url": "https://www.msdevbuild.com/2017/10/getting-started-with-dialog-using.html",
+      "published": "2017-10-05T14:43:00.000+08:00",
+      "updated": "2020-01-27T04:43:33.813+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform . Your bot can also have more…",
+      "image": "https://lh4.googleusercontent.com/ZiaUFF2zwDQEob8PqUgzBFpzMvl6d8taQ9_YV8nTsVotLF-YCzhYJQNBJx5U5q65NbmGfRd6xYR2injocAs9IAwMzl_lSSh1XUwND66iA0GGowHpYfghXFutSvVCqYoKckBKS0fCfKJrc2Zmeg=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started with Microsoft Azure Cognitive Services APIs account",
+      "url": "https://www.msdevbuild.com/2017/10/getting-started-with-microsoft-azure.html",
+      "published": "2017-10-05T14:38:00.000+08:00",
+      "updated": "2020-01-27T04:43:56.140+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: Microsoft Cognitive Services awesome APIs and services for developers to create more intelligent applications. You can add a more interesting feature like people emotion and…",
+      "image": "https://lh6.googleusercontent.com/vcsizjOwsYx7ATmvO-8IrTfcVFSrq2mxHakl6qW800mpNXOeVBkrpAOmFNRihTxcBHyMsVU-Li1hj_R_5_BH7-KjwGfH2ZYAvvrQPc2swbL083IEIKK14geyjkAfpkVrpf2_vhXFgtOzGPlqnw=w640",
+      "comments": 1
+    },
+    {
+      "title": "Getting Started Chatbot using Azure Bot Service",
+      "url": "https://www.msdevbuild.com/2017/10/getting-started-chatbot-using-azure-bot.html",
+      "published": "2017-10-05T14:36:00.000+08:00",
+      "updated": "2020-01-27T04:44:53.559+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI"
+      ],
+      "excerpt": "The Azure Bot Service is powered by the Microsoft Bot Framework and bot service allows developers to build conversational applications that plug into many popular chat applications…",
+      "image": "https://lh5.googleusercontent.com/0of8fjsirTob9hPxCa937RBYv3mLNwg71aPYkYFgv39y-Ag3ReS5rfYKu_dnCQBdm64nNvL9g_fX1Gzy6bONY3kRYK1Y6dVTIOkS9ziSjs9AHB2c9quX4KftzvtqbXDSwdSS2h7qyADvPOiklA=w640",
+      "comments": 6
+    },
+    {
+      "title": "Getting Started Deploy a bot to Azure using Visual studio 2017",
+      "url": "https://www.msdevbuild.com/2017/10/getting-started-deploy-bot-to-azure.html",
+      "published": "2017-10-05T14:35:00.000+08:00",
+      "updated": "2020-01-29T03:06:50.769+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI",
+        "Visual Studio"
+      ],
+      "excerpt": "Introduction: The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform. Your bot can also…",
+      "image": "https://lh3.googleusercontent.com/s7bKa9dklaRsidvD9ce5-PDWLFbcknHNs_EcJzub-GsYD3qYFxnRGVylygs7kXPbyLT7mmoWRgOQFOtP9qaZQVIndeJx6aAQQIhfgXE8eHBc5C_XgUD3dCJ22orSyuw6E21mUaT4yR-4QVIYTA=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started with Building Bots using Visual Studio 2017",
+      "url": "https://www.msdevbuild.com/2017/10/getting-started-with-building-bots.html",
+      "published": "2017-10-05T14:33:00.000+08:00",
+      "updated": "2020-01-27T04:45:29.714+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "Cognitive Services",
+        "MicrosoftAI",
+        "Visual Studio"
+      ],
+      "excerpt": "The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform . Your bot can also have more…",
+      "image": "https://lh4.googleusercontent.com/0MwHCtK68T-G2aTn6CfMGeOUu_glcpYMo94w-mqHe_SDFn97T23pYm3wXTncLsBTjbDKmx3PDJwgTexuRaoEIMzkQ5S9Q30movFcRD8IUGTKrANwyhu0WZ76rQVcDvhNbpUaD0W7crcJGX1NRg=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started Conversational Forms with FormFlow using Microsoft Bot framework",
+      "url": "https://www.msdevbuild.com/2017/10/getting-started-conversational-forms_4.html",
+      "published": "2017-10-05T14:27:00.000+08:00",
+      "updated": "2020-02-01T00:25:40.070+08:00",
+      "categories": [],
+      "excerpt": "Introduction: The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform. Your bot can also…",
+      "image": "https://lh6.googleusercontent.com/hRaYkCWBxYphEGfyWvg-Rx2KFkBorzamgewmirj8siq1vl6oBo8hxD2GqdcPSEKsOftFZI04by_28sQKGYJB_RJXZQ05sDb9rMzhFa-quiSg7yr0q1lxvslQ5pvO3hBOunBVwDafkAW7ThphPQ=w640",
+      "comments": 0
+    },
+    {
+      "title": "Building Serverless Mobile App with Azure Functions using Xamarin Forms",
+      "url": "https://www.msdevbuild.com/2017/08/building-serverless-mobile-app-with.html",
+      "published": "2017-08-20T15:15:00.000+08:00",
+      "updated": "2020-01-27T04:46:24.552+08:00",
+      "categories": [
+        "Azure",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Azure Functions is a solution for easily running small pieces of code in the cloud. We can create, execute, and test our custom logic function without creating a VM or web applications and…",
+      "image": "https://lh5.googleusercontent.com/T8vqvnarakjpSMdqs2eItVaJZ9GOBPLZjsOiXQcDFuQeQX-73e5w3C9qOsdLBfyx8LNpehZWWF-mlQsJW7MA4GLJ33FUZem0wBZaKUJDNITS6HHLPsExyJI_JU7hDA7l45GIAm1J4ByLzQEyNw=w640",
+      "comments": 5
+    },
+    {
+      "title": "Getting Started with Microsoft Azure Functions using Visual Studio 2017",
+      "url": "https://www.msdevbuild.com/2017/08/getting-started-with-microsoft-azure.html",
+      "published": "2017-08-20T15:12:00.000+08:00",
+      "updated": "2020-02-01T16:32:22.276+08:00",
+      "categories": [
+        "Azure",
+        "Visual Studio"
+      ],
+      "excerpt": "Introduction: Azure Functions is a solution for easily running small pieces of code in the cloud. We can create, execute, and test our custom logic function without creating a VM or web…",
+      "image": "https://lh3.googleusercontent.com/dQtbao7B9SgC-oIzTFdQ8TjtwpK1bTJc9oyt0f1sbRN5He5yB8zouYGNjYyPDHHSajSDj1wVRCIqIWFmoxxNoDSrIZgKuKstA0nHN8qBVCvbLDBX4_cjQ__sowQKwUEg2pEd001ReXHyvkkDzA=w640",
+      "comments": 0
+    },
+    {
+      "title": "How to create and test Azure Functions using Azure Portal",
+      "url": "https://www.msdevbuild.com/2017/08/how-to-create-and-test-azure-functions.html",
+      "published": "2017-08-15T02:01:00.000+08:00",
+      "updated": "2020-01-28T23:11:54.817+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "Azure Functions is a solution for easily running small pieces of code in the cloud. We can create, execute, and test our custom logic function without creating a VM or web applications and…",
+      "image": "https://lh4.googleusercontent.com/ls2ezwItejldzxV6OBW7fEFe4Y2SlTFd-tnImQl54jFH1Gr0u7A61akFMPFZyj157VsUhKiVUd5WTIvKre23b-9nsayhB4Pr2gKZpGWEPUvEzzCoWwtlfCCdB2Mr7-T42tZd8HCRZtWLf7TKWA=w640",
+      "comments": 1
+    },
+    {
+      "title": "Getting Started Azure Functions using Azure Free Trial Account",
+      "url": "https://www.msdevbuild.com/2017/08/getting-started-azure-functions-using.html",
+      "published": "2017-08-15T02:00:00.000+08:00",
+      "updated": "2020-01-28T23:12:17.407+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "Azure Function is a solution for easily running small pieces of code in the cloud. Create, Execute and test your custom logic function without creating a VM, Web Applications, and no need…",
+      "image": "https://lh6.googleusercontent.com/uT2ptJi3ZtUGmyPfsZsbkPD7d_r22l9wlcAUGNuOSBjgB780bUCaCDJ1HIpczkPj9F477j7C2lPYVrFS3-xHB-Y9DuhGPR6mSqhAZGv0_kilOum57hKCoiPOzcpC517tu1R7_qwP2aqWEcrtZw=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started with the Custom Project Template using Visual Studio 2017",
+      "url": "https://www.msdevbuild.com/2017/07/getting-started-with-custom-project.html",
+      "published": "2017-07-29T02:27:00.000+08:00",
+      "updated": "2020-01-28T23:12:41.691+08:00",
+      "categories": [
+        "Visual Studio"
+      ],
+      "excerpt": "Visual Studio provide the many inbuilt templates for create a project, In this article we can create a new project template as per your client or product requirement and use the your…",
+      "image": "https://lh5.googleusercontent.com/Nc5d4TPXTpHq9npR5TnwIwlyNlCT3hqJyMJTWHjYlbSbqoB9ly34u2Mj0WZDN7SNQBP-6565z161RrbAb3rBYFz4YxN7-GL1alB6PvCUXargW6lmI85uI_Gyn5QzB-72KQyLgq_tniWpBejAcQ=w640",
+      "comments": 0
+    },
+    {
+      "title": "Building Mobile Apps Using Xamarin.Forms with .NET Standard",
+      "url": "https://www.msdevbuild.com/2017/06/building-mobile-apps-using-xamarinforms.html",
+      "published": "2017-06-30T22:42:00.000+08:00",
+      "updated": "2020-01-28T23:13:05.675+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "The .NET Standard Library is a formal specification of .NET APIs that are intended to be available on all .NET runtimes . You can understand another way its expanded, Portable Class…",
+      "image": "https://lh3.googleusercontent.com/9zUW79oU2MISEoH5GDAorSXRQUsV3KzJsgUw8Oqq-DYcVdU0W6py8XW645lttfaq282O9Y_7QmyxBYtq4dOqy2Lg2qaP-LWDrqX_M_KId_951qHoRtKcYh-oH9ykv5OLaP83Z2MeIVop3KAmkw=w640",
+      "comments": 2
+    },
+    {
+      "title": "Getting Started with Microsoft Azure Cognitive Services APIs account",
+      "url": "https://www.msdevbuild.com/2017/06/getting-started-with-microsoft-azure.html",
+      "published": "2017-06-26T02:14:00.000+08:00",
+      "updated": "2020-01-28T23:13:33.651+08:00",
+      "categories": [
+        "Azure",
+        "Cognitive Services",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: Microsoft Cognitive Services awesome APIs and services for developers to create more intelligent applications. You can add more interesting feature like people emotion and…",
+      "image": "https://lh6.googleusercontent.com/vcsizjOwsYx7ATmvO-8IrTfcVFSrq2mxHakl6qW800mpNXOeVBkrpAOmFNRihTxcBHyMsVU-Li1hj_R_5_BH7-KjwGfH2ZYAvvrQPc2swbL083IEIKK14geyjkAfpkVrpf2_vhXFgtOzGPlqnw=w640",
+      "comments": 4
+    },
+    {
+      "title": " Getting started with Microsoft Graph API in a Xamarin Forms Application ",
+      "url": "https://www.msdevbuild.com/2017/06/getting-started-with-microsoft-graph.html",
+      "published": "2017-06-24T08:16:00.000+08:00",
+      "updated": "2020-01-28T23:13:51.361+08:00",
+      "categories": [
+        "Azure",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Introduction: Microsoft offer a different service in the Cloud, Mail, Calendar, Contact, Chat and files from common Microsoft portal and also if you want to integrate to your application,…",
+      "image": "https://lh5.googleusercontent.com/LyJOlutH36yvpoQNQ_HVU3xv0tHXAuX_TzjR9GhRwxgU_a2H1gzw440LOToLKCQCTrt5FMz-Vbpjf1NahsAC51Uo7bJSbcdIf8F90Z-Ezdhqo_8uaaA_q97ArqS4NyIFmznREnmJQwgG3_bQcg=w640",
+      "comments": 1
+    },
+    {
+      "title": "Xamarin Forms ChatBot Application using the Microsoft Bot Framework",
+      "url": "https://www.msdevbuild.com/2017/06/xamarin-forms-chatbot-application-using.html",
+      "published": "2017-06-12T01:59:00.000+08:00",
+      "updated": "2020-02-01T00:43:56.208+08:00",
+      "categories": [],
+      "excerpt": "Introduction: The Bots Framework that run inside skype ,web chat , Facebook ,Message ,etc. Users can interact with bots by sending them messages, commands and inline requests . You control…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjGbleaz_xFLR9N5XSmAeMmeXwTAtpjKKQDJGYQCmlcp4cdUmE2Iy7PC7i_p3AzCWwwNz6CQysBUoxQD9eSbUnae1jo8IPA5pIhk34MzQsRm3k_pzRsXbX7TgERybfHMGWXJfQdkgJtghM/w640/t6G5BOjnM5.gif",
+      "comments": 11
+    },
+    {
+      "title": "Getting Started Chatbot using Azure Bot Service",
+      "url": "https://www.msdevbuild.com/2017/06/getting-started-chatbot-using-azure-bot.html",
+      "published": "2017-06-12T01:54:00.000+08:00",
+      "updated": "2020-01-29T03:06:00.033+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Azure Bot Service is powered by the Microsoft Bot Framework and bot service allows developers to build conversational applications that plug into many popular chat…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjp5f_jQEdIV40jcc6mRukL-iZoUdRBkx-xPaGF8-OFQiveR9fwQd0RG-KtIq7-_0URi_bAk6ICP7mmdSd96_boqAAZVv2FFWNjHZnrHtN5ict7YkvvPPCAc5aR_McVmZZJnUkbYzhv-21E/w640/azuregif.gif",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started Deploy a bot to Azure using Visual studio 2017",
+      "url": "https://www.msdevbuild.com/2017/06/getting-started-deploy-bot-to-azure.html",
+      "published": "2017-06-10T15:28:00.000+08:00",
+      "updated": "2020-02-01T16:32:44.480+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI"
+      ],
+      "excerpt": "Introduction: The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform. Your bot can also…",
+      "image": "https://lh3.googleusercontent.com/s7bKa9dklaRsidvD9ce5-PDWLFbcknHNs_EcJzub-GsYD3qYFxnRGVylygs7kXPbyLT7mmoWRgOQFOtP9qaZQVIndeJx6aAQQIhfgXE8eHBc5C_XgUD3dCJ22orSyuw6E21mUaT4yR-4QVIYTA=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started with Building Bots using Visual Studio 2017",
+      "url": "https://www.msdevbuild.com/2017/06/getting-started-with-building-bots.html",
+      "published": "2017-06-10T15:24:00.000+08:00",
+      "updated": "2020-01-29T03:06:22.137+08:00",
+      "categories": [
+        "Azure",
+        "Bot",
+        "MicrosoftAI",
+        "Visual Studio"
+      ],
+      "excerpt": "Introduction: The Bot Framework enables you to build bots that support different types of interactions with users. You can design conversations in your bot to be freeform. Your bot can also…",
+      "image": "https://lh4.googleusercontent.com/0MwHCtK68T-G2aTn6CfMGeOUu_glcpYMo94w-mqHe_SDFn97T23pYm3wXTncLsBTjbDKmx3PDJwgTexuRaoEIMzkQ5S9Q30movFcRD8IUGTKrANwyhu0WZ76rQVcDvhNbpUaD0W7crcJGX1NRg=w640",
+      "comments": 0
+    },
+    {
+      "title": "Microsoft Announces Xamarin Live Player on Visual Studio",
+      "url": "https://www.msdevbuild.com/2017/05/microsoft-announces-xamarin-live-player.html",
+      "published": "2017-05-14T10:56:00.000+08:00",
+      "updated": "2020-01-29T03:05:19.543+08:00",
+      "categories": [
+        "Visual Studio"
+      ],
+      "excerpt": "Introduction: Visual Studio 2017 was launched on March 7, 2017 with many fresh and exciting features for Visual Studio developers and Xamarin Live Player Announced on stage at Build 2017.…",
+      "image": "https://lh6.googleusercontent.com/IoUBTddUGn6bU1NkSUFP6EgqTIY9xiJC9I0fnyxjIalyxrzR6Fycfd6XMSN8o-Voc2CbGAMa3X3eL9_eF_xjs8sKoAaOGvDL7BMBA84muqL44DfsPyiyMmmBsfCJcIVkSpsJx8tXZJhBWxOGUg=w640",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started with Xamarin Application using Visual Studio for Mac",
+      "url": "https://www.msdevbuild.com/2017/05/getting-started-with-xamarin.html",
+      "published": "2017-05-14T10:55:00.000+08:00",
+      "updated": "2020-02-03T20:21:16.562+08:00",
+      "categories": [
+        "Visual Studio",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Introduction: Visual Studio 2017 for mac was launched at MS Build 2017 with many fresh and exciting features for Visual Studio developers in mac machine. Mac OS user can build apps for…",
+      "image": "https://lh5.googleusercontent.com/3iSSJuSVDFXZUjfC57820NnB5GY8pVShYAYKR_IsWYx7c3jK8-IpaIb6DcjVnXlKNMbz2E8_MKn_0JtcMKES5EawtXEsi5Ln4wBdCRa8NxzHOXlu3OQIXMFg9vvKFBiEs8wXOYhqraj4TgiQIQ=w640",
+      "comments": 1
+    },
+    {
+      "title": "Value Converter in Xamarin.Forms",
+      "url": "https://www.msdevbuild.com/2017/04/value-converter-in-xamarinforms.html",
+      "published": "2017-04-23T14:09:00.000+08:00",
+      "updated": "2020-02-03T20:21:23.342+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Databind two control properties or view model property that have incompatible types / Validation, you need a piece of code in between, that converts the value from source to target type and…",
+      "image": "https://lh4.googleusercontent.com/jvilgZCo7GeUL4f42KgTTbBaDnbWuhLrxtte5M5GpVP6Xasx6HxvoxhaseTT4Xqp1adPsz2i_sk8NCssXCXK4p32Jo_OGazOC-EE1V76733gg0tbLkyHeCgmi6FBO86BpWV-LJWR21G7MAg7iA=w640",
+      "comments": 0
+    },
+    {
+      "title": "Binding Control to Control in Xamarin Forms",
+      "url": "https://www.msdevbuild.com/2017/04/binding-control-to-control-in-xamarin.html",
+      "published": "2017-04-17T23:36:00.000+08:00",
+      "updated": "2020-01-28T23:14:47.473+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Databinding is a mechanism in Xamarin Forms Application. Binding is common context, is the process of mapping a property on a Page, to a property in a view or ViewModel. In this Article I…",
+      "image": "https://lh3.googleusercontent.com/sgDFW-rnRHAWY760AdH9GLTfCVwOOd0MdpQQudvD-dyjD3DqzygLJqtrlCF2GKFFzm7PfHYpIBmm6EDJJ9q1azMUEQXBfUuuq6z9mJ4Bu-XfQ9I9ibgP7wbDIiFqs7qaYiI7jWQsA0dTj93QfQ=w640",
+      "comments": 0
+    },
+    {
+      "title": "Microsoft Launches Visual Studio 2017 with Xamarin ",
+      "url": "https://www.msdevbuild.com/2017/03/microsoft-launches-visual-studio-2017.html",
+      "published": "2017-03-13T00:49:00.000+08:00",
+      "updated": "2020-02-03T20:23:34.261+08:00",
+      "categories": [
+        "Visual Studio",
+        "Xamarin"
+      ],
+      "excerpt": "Introduction: Visual Studio 2017 successfully was launched on march 7 2017 with many fresh and exciting features for Visual Studio developers. On February 24, 2016 Xamarin and Microsoft…",
+      "image": "https://lh5.googleusercontent.com/Ea2rsAjSOFnLt8DJPfZ9u-D6wJJyoYPzhPV1otpIduTC2jarkd2XIzwsb_3_w4AberKBSZJ-GJaDP8RpXPPfnwJdYsHTo1tMr0t9z1wDoqitAx5jxAM4AykEXfVNiS0Ezc4t5cBL7hMRC6KzPQ=w640",
+      "comments": 1
+    },
+    {
+      "title": "Getting Started with Google and Bing Maps using Xamarin.Forms",
+      "url": "https://www.msdevbuild.com/2017/03/getting-started-with-google-and-bing.html",
+      "published": "2017-03-03T14:32:00.000+08:00",
+      "updated": "2020-01-28T23:17:56.383+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Xamarin allows us to integrate maps in our all the platform mobile application. Google and Bing maps combines the power of Xamarin maps. You can show any location on the map, show different…",
+      "image": "https://lh6.googleusercontent.com/s6M7OXvoY-noBAkd7VyTNCqqQDubNoCObsSHuwp7jj7jU9Jq42xGQLt9nf3o9c1z3dd7b5RCvEEitZuuawPjQ5V9DQxOdTZUOe9-OwI9AFugiKQKstQK4LYVYY3kwVgJMOiBu26IGyZCUB-N6w=w640",
+      "comments": 1
+    },
+    {
+      "title": "Generate Google API Key for Xamarin Android Application ",
+      "url": "https://www.msdevbuild.com/2017/02/generate-google-api-key-for-xamarin.html",
+      "published": "2017-02-28T01:18:00.000+08:00",
+      "updated": "2020-02-03T20:21:29.957+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Android"
+      ],
+      "excerpt": "Introduction: Android allow us to integrate google maps in our application so we need to generate an API Key using google developer account. This article shows you how to generate Google…",
+      "image": "https://lh3.googleusercontent.com/pop2WbXJlbOVGXjcr-oa7Rrnft4FWD8CmWeO6Ue_6ojlUF5IHHWxwJgXmf0n0n2HOT8OCNHur82aDbl64igwPQR2M_AQjtcVl3gxTw-xGB-2hwQYaTVupeaNEa3BfkHqz3xgk0qyVAygn44x5Q=w640",
+      "comments": 3
+    },
+    {
+      "title": "Generate Bing map authentication Key for Windows based application",
+      "url": "https://www.msdevbuild.com/2017/02/generate-bing-map-authentication-key.html",
+      "published": "2017-02-28T01:17:00.000+08:00",
+      "updated": "2020-01-28T23:11:25.451+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "Windows allow us to integrate Bing maps in our application so we need to generate an application key using Bing developer account . This article shows you how to generate Bing map…",
+      "image": "https://lh3.googleusercontent.com/440SLKrO0DptkhAcGE8DRBXBvzFSv56EojEur2GpV_MfUPJbwUB7EcYXczUhsqGkZgz1lPPGd_t5V9Pin4Le03hRRkQVuzI42xCo-6RDNN9TS0Iah0f-sg78naMkO_UKOAcj6JGzEAFYgNY8Ww=w640",
+      "comments": 0
+    },
+    {
+      "title": "Azure Active Directory Login using Xamarin.Forms",
+      "url": "https://www.msdevbuild.com/2017/02/azure-active-directory-login-using.html",
+      "published": "2017-02-07T23:04:00.000+08:00",
+      "updated": "2020-02-03T20:21:37.125+08:00",
+      "categories": [
+        "Azure",
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Step 1: Create / Register Azure Active Directory Login from Here Step 2: Implement Xamarin . Forms Application After completed your Azure app register, then you can start follow below steps…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhLrvtKnkCqA3SByUgUk5iYMfcM7ER0IDa_TE6wxFWxumzKNvGjl4TkpmCPXNoAdFbZqV7DGRSIj4MbSFX1StMEdf1F2LnzFdQPhkDNO8pA0yXYFgQb2MQNI1KZhdOvPCSEhJnHLC0jztw/w640/download-source-code_btn1.png",
+      "comments": 3
+    },
+    {
+      "title": "Getting Start First Android Wearable App using Xamarin ",
+      "url": "https://www.msdevbuild.com/2017/02/getting-start-first-android-wearable.html",
+      "published": "2017-02-07T22:59:00.000+08:00",
+      "updated": "2020-02-01T16:29:39.010+08:00",
+      "categories": [
+        "Xamarin.Android"
+      ],
+      "excerpt": "Introduction: We all knew xamarin and visual studio is great technology. You are no longer restrict develop only phone and tablet now you can develop Android wearable apps using xamarin.…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhLrvtKnkCqA3SByUgUk5iYMfcM7ER0IDa_TE6wxFWxumzKNvGjl4TkpmCPXNoAdFbZqV7DGRSIj4MbSFX1StMEdf1F2LnzFdQPhkDNO8pA0yXYFgQb2MQNI1KZhdOvPCSEhJnHLC0jztw/w640/download-source-code_btn1.png",
+      "comments": 1
+    },
+    {
+      "title": "Create Azure Active Directory Login",
+      "url": "https://www.msdevbuild.com/2017/02/create-azure-active-directory-login.html",
+      "published": "2017-02-07T22:54:00.000+08:00",
+      "updated": "2020-01-28T23:11:04.294+08:00",
+      "categories": [
+        "Azure"
+      ],
+      "excerpt": "Microsoft Azure Active Directory (Azure AD) to add authentication and authorization to Our web, mobile Application and web APIs. In this article I shown below how to create / implement…",
+      "image": "https://lh6.googleusercontent.com/6eEeQXJI05p2BoNQvplSsxifhWNTXe3iuqDAMP7jtVZxHD4BOurC_j34yVoJMCIXdoYik9Nt0jo4zWiv4lI5Y4H73pyKQxVaKv_QR1cYsWzE30f9c8_jLjKmV4Csvl6BQ5_y0zUtwNS-_CIIHw=w640",
+      "comments": 0
+    },
+    {
+      "title": "Error:  Could not Install Package Microsoft.IdentityModel.Client.ActiveDirectory in Xamarin.Forms ",
+      "url": "https://www.msdevbuild.com/2017/01/error-could-not-install-package.html",
+      "published": "2017-01-11T13:55:00.000+08:00",
+      "updated": "2020-01-31T17:07:13.216+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Issue : While trying adding Nuget package for Azure Active Directory ('Microsoft . IdentityModel . Clients . ActiveDirectory 3.13.8') , it is possible you will receive an error complaining…",
+      "image": "https://lh6.googleusercontent.com/KNdyOPSFyLfYllI0y_pH8TR-2MAXYMAG-FaJiDnyN1kMgoEAx_rtnI06aDmRg4_-Iq9wcOe5OvANmtoytOaYyOxVAVa1kzAN3ZU2RSD3Lb3HoTw6bUcvreciXjxjnJRzWbKGgV3wqiJzm74LeA=w640",
+      "comments": 0
+    },
+    {
+      "title": "Create Azure Mobile Apps Service ",
+      "url": "https://www.msdevbuild.com/2017/01/create-azure-mobile-apps-service.html",
+      "published": "2017-01-04T02:21:00.000+08:00",
+      "updated": "2020-01-28T23:10:29.866+08:00",
+      "categories": [
+        "Azure",
+        "Xamarin"
+      ],
+      "excerpt": "Azure Mobile App Service is easy to rapidly build engaging cross-platform and native apps for iOS, Android, Windows. We can use implement following mobile feature using Azure and create…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhVQO6HclyShjQQo5gklZAx2NQFIR6NRdPOIXjfTRnc6CO-mZ-vtlwuurRzsM0Q82LggOur_74jr2l5m7mGDiFwFkpG6oBBFVDzJAShdUwqjE0qYu0co4gLTUm-7w1xibNlgjYe0CgevhN0/w640/hozNmiGM2c.gif",
+      "comments": 0
+    },
+    {
+      "title": "Visual Studio Shortcuts for Different platform",
+      "url": "https://www.msdevbuild.com/2016/12/visual-studio-shortcuts-for-different.html",
+      "published": "2016-12-18T17:07:00.000+08:00",
+      "updated": "2020-01-29T03:05:31.716+08:00",
+      "categories": [
+        "Visual Studio"
+      ],
+      "excerpt": "Playing with keyboard shortcuts is very interesting and reduce the head-ache of using mouse again and again while programming with visual studio IDE. Actually, keyboard shortcuts also…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhEdns-NNC9cdgUJCafAI8ZlmAhAQhXQV0LTdIYBUAJ1EsWwvAMoyDWT7gVFpHPJdsqXezhMcdK-xPUiG9crjcVroa8s35xrlwxJltx3dz_ZxffXsRz4iuzARXNmug-gcFfG2dcbZWmEB8x/w640/mac+%25281%2529.png",
+      "comments": 0
+    },
+    {
+      "title": "Upgrade nuget Xamarin.Android.Support.Design from 23.0.1.3 to 23.1.1",
+      "url": "https://www.msdevbuild.com/2016/12/upgrade-nuget-xamarinandroidsupportdesi.html",
+      "published": "2016-12-09T17:42:00.000+08:00",
+      "updated": "2020-02-01T16:38:52.043+08:00",
+      "categories": [
+        "Xamarin.Android"
+      ],
+      "excerpt": "Issue: In Xamarin Form , While adding reference Sqlit PCL or PCl storage ,etc . if you get following error Severity Code Description Project File Line Suppression State Error Unable to…",
+      "image": "https://lh4.googleusercontent.com/hQ0x-pjvikBv4x5t5fIpkno_HWODdQ4I0kZfpZzxvA2ZH16N8YPIHoMgez6aHInmwddoAQmy4lCnGoH7fiyIWXA9_l_4bors63wR1ugoXjwp2zO5bBkwflR8TH3mfPzcYCI-Smfqx_Q9Z0T5og=w640",
+      "comments": 0
+    },
+    {
+      "title": "Build and Debug Xamarin.iOS Application on Windows Machine",
+      "url": "https://www.msdevbuild.com/2016/11/build-and-debug-xamarinios-application.html",
+      "published": "2016-11-24T00:41:00.001+08:00",
+      "updated": "2020-12-25T16:12:04.945+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.iOS"
+      ],
+      "excerpt": "Xamarin is great technology for develop cross mobile application development. You can create, Build and Debug iOS application in windows machine using Visual Studio. In this article, I will…",
+      "image": "https://lh5.googleusercontent.com/UNaXOypY3pcocBTtLdlyXrt5jvHhxk68DAsAQPjQ3xj-PNWrCxQ6z34dHwLGrpcUL-IkJp_lfWEFxkDxplVZ66qVb8BkqeFcrg3Bvm7P_KmIiBZw3fSbqNPIM1idv9VvZv9lRsgLudh3RU0Eww=s72-w640-h414-c",
+      "comments": 0
+    },
+    {
+      "title": "MSDN Subscription is Now Visual Studio Subscription",
+      "url": "https://www.msdevbuild.com/2016/11/msdn-subscription-is-now-visual-studio.html",
+      "published": "2016-11-13T10:09:00.000+08:00",
+      "updated": "2020-01-28T23:10:15.247+08:00",
+      "categories": [
+        "Visual Studio"
+      ],
+      "excerpt": "Microsoft changed from MSDN Subscription to Visual Studio Subscription and also changed Url into https://my.visualstudio.com/ Today I have logged into MSDN but its showed like below Watch…",
+      "image": "https://lh5.googleusercontent.com/GSAf23pyBzLvaxD1cAJdOq2YjqZCRRsRUlM4YIZBX15L_qqrBsgRRYFUz2GExy4o_8EzByJELrkY6_PnFKqYhz4PTeRVj8xQrBxuIQKyWDZNAom_yvNPBQ_sQ6YT-RcXfmC04_zvAqbkh8VRSA=w640",
+      "comments": 0
+    },
+    {
+      "title": "Store Data and Access from any Pages in xamarin.Form",
+      "url": "https://www.msdevbuild.com/2016/11/store-data-and-access-from-any-pages-in.html",
+      "published": "2016-11-06T13:09:00.000+08:00",
+      "updated": "2020-01-28T23:09:58.795+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "The State Persistence between app restarts and when suspending/resuming. The values in the Properties dictionary are only stored when the app goes to Start ( OnStart), sleep ( OnSleep ),…",
+      "image": "https://lh6.googleusercontent.com/Qt3qT8i7vMjVJktmNJ8Kg77wLUT9WVU3g43JwT5OsPZiZD4otSuEvJ75Azp2RvDzrIBhyykmX85G8zbjq2jmc41-byVwQ31ilrmkYKJ8--uY4Ez60AsZokPGfH7qIA83TrjBNZoaS7kJ8exQIA=w640",
+      "comments": 0
+    },
+    {
+      "title": "Android Emulator Keyboard not displaying and not able to Type using hard keyboard",
+      "url": "https://www.msdevbuild.com/2016/10/android-emulator-keyboard-not.html",
+      "published": "2016-10-11T16:13:00.000+08:00",
+      "updated": "2020-01-28T23:09:27.615+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Android"
+      ],
+      "excerpt": "Issue: Android Emulator Keyboard not displaying and not able to Type using hard keyboard Solution: Try to follow below steps in Android Emulator Open Android Emulator Click on Setting…",
+      "image": "https://lh6.googleusercontent.com/m2dYSJERxycQpcg9ID0Nc5Kv4nUo6PKu8_EkgRUxSku_pkEIBCJh7yddSzVppj9dxJ57H5AEaP44pOXvxB-l9-s-doGa0urkEEBqAcjpqKjPzV3cJK_0Dy2foF1tVltg-irIlBOhysqRihIrxw=w640",
+      "comments": 0
+    },
+    {
+      "title": "Xamarin Forms Android App Crashes Running Debug with VS Android Emulator",
+      "url": "https://www.msdevbuild.com/2016/10/xamarin-forms-android-app-crashes.html",
+      "published": "2016-10-11T12:16:00.000+08:00",
+      "updated": "2020-02-01T16:29:20.467+08:00",
+      "categories": [
+        "Xamarin.Android"
+      ],
+      "excerpt": "Problem: I have installed VS 2015 with update 3 and created Blank xamarin Form application. I can able to build the application but when I run android app with VS emulator is running but…",
+      "image": "https://lh6.googleusercontent.com/e0J_ZuFYTtOD6s2j5OVXju8qBIkY5si-xGObkEKRVMFPGasNymaMTgzjMMcduMbPCttTHOXDjjAjLZcaUsWFqNaS7Q6wardPVZIpsXXI1JDJSH96s4f4BBcXhZzLfP27zsYZ8fQZByfac2yNag=w640",
+      "comments": 3
+    },
+    {
+      "title": "Input Validation in Xamarin Forms Behaviors",
+      "url": "https://www.msdevbuild.com/2016/10/input-validation-in-xamarin-forms.html",
+      "published": "2016-10-04T12:43:00.000+08:00",
+      "updated": "2020-02-01T16:27:52.575+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Input Validation in Xamarin Forms Behaviors Introduction: Xamarin.Forms behaviors are created by deriving from the Behavior or Behavior<T> class, where T is the type of the control (Entry,…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiA6zXmcqOaJQV0LZiWhq5cjIDdafwby_b0EdlZEChHBv__J2hbSLbhvmEFfv7ig4QUbhtO_yXdX13KZJC7QeJMKS3P75xf0tcge6i5pvY7wlal9YcKPg3i-Xd2mQke_MGak8peV3bW8fA/w640/download-source-code_btn1.png",
+      "comments": 0
+    },
+    {
+      "title": "Enable Debugging on the asus Zenfone  Device / Visual studio USB Debugging in asus Zenfone",
+      "url": "https://www.msdevbuild.com/2016/09/enable-debugging-on-asus-zenfone-device.html",
+      "published": "2016-09-21T09:55:00.000+08:00",
+      "updated": "2020-02-01T16:28:49.793+08:00",
+      "categories": [
+        "Xamarin.Android"
+      ],
+      "excerpt": "For Debug your application we need follow below steps 1. Open zenfone Settings and scroll down and click on About link. 2. Scroll down and select Software Information. 3. Click on Build…",
+      "image": "https://lh5.googleusercontent.com/dmm04XcSOk97XZBRrmuDdsUSGwwPcLWmcFj3JO9omCY7YxXkEqNtl498WOCmvEluPvi3rp-KlxbwPAxI2GjrF6jB91NM3EkAHdr3P00pPItHZ1Q6EwCZQh-vXKE9Lu3apZ-OD6scVf5R5jP8gA=w640",
+      "comments": 0
+    },
+    {
+      "title": "OAuth Login Authenticating with Identity Provider in Xamarin.Forms ",
+      "url": "https://www.msdevbuild.com/2016/09/oauth-login-authenticating-with.html",
+      "published": "2016-09-06T00:35:00.000+08:00",
+      "updated": "2020-02-03T20:21:44.947+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Introduction: OAuth is an Authorization framework that enable application to obtain limited access to user accounts on HTTP service in Facebook, google and Microsoft etc. Nowadays no need…",
+      "image": "https://lh5.googleusercontent.com/-rJ7RAYVT-FC2m4EFsloCfMhpxuKR0oL-I9sOgsfB5MRk1fy8msuZ5fLIgjlsOZHpDFAuALL25pXHLfAI8t7x7DrzroEf5llwPRT8cz4Oe2LntIWf3LDJ78c4au3YfwY48uAUn1j=w640",
+      "comments": 1
+    },
+    {
+      "title": "Difference between Singleton and Static Class",
+      "url": "https://www.msdevbuild.com/2016/08/difference-between-singleton-and-static.html",
+      "published": "2016-08-26T18:38:00.000+08:00",
+      "updated": "2020-01-28T23:09:09.182+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "Singleton Static Class 1 Single means single object across the application life cycle so it application level The static does not have any Object pointer, so the scope is at App Domain…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Register Identity Provider for new OAuth Application",
+      "url": "https://www.msdevbuild.com/2016/08/register-identity-provider-for-new.html",
+      "published": "2016-08-21T14:24:00.000+08:00",
+      "updated": "2020-02-01T02:20:28.851+08:00",
+      "categories": [],
+      "excerpt": "Introduction: OAuth is a web authentication protocol and open standard for authorization, Nowadays Internet users to log in to third party websites using following account without exposing…",
+      "image": "https://lh5.googleusercontent.com/ZYU03SCJtNEtKJlWOiE2Nxj_Q3PWzOa-Y8VCkCMlmGm_YUsEWB0raOh9W-MuTAt7hfPzWN6DJ0zN1bAllhEaQ5j0jD9ttzmTEP7DaFuKESbsh-OTI02kKp66u3kgsriUfjNFRKnk8R0qF1eBCw=w640",
+      "comments": 0
+    },
+    {
+      "title": "Q A - Xamarin.Form: Don’t want to target one or more platform at a same time?",
+      "url": "https://www.msdevbuild.com/2016/08/q-xamarinform-dont-want-to-target-one.html",
+      "published": "2016-08-03T01:03:00.000+08:00",
+      "updated": "2020-01-28T23:08:54.734+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Create New Xamarin.Form solution after that clear unwanted target project. If you required to add project on feature. You can add new platform projects to the Xamarin.Forms solution. In the…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiW8FMAYuXjJ9vyj4c7Ye_6E9a0mp3fDqY90wM4Qprf6oHHOtb9lwLe5sCaTU_N92xUX59AjRYkmbSqMju-caG0ypcGQcILkVx8-Eq6jfDLH_fj9d4u4ABqS53QN6ajhhhyUhEbr9TRM8Y/w640/framework.png",
+      "comments": 0
+    },
+    {
+      "title": "Getting Started – Xamarin.Forms",
+      "url": "https://www.msdevbuild.com/2016/07/getting-started-xamarinforms.html",
+      "published": "2016-07-30T22:33:00.000+08:00",
+      "updated": "2020-01-28T23:08:32.377+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "Introduction: Xamarin.Forms is a cross platform UI toolkit that allow user to efficiently create native user interface layout. Code can be shared all the device (IOS,Android , Windows Phone…",
+      "image": "https://lh6.googleusercontent.com/H05qKoVQaLfTsxSrMORoF63iVHy4XPYnkxkgr1pjJTw27RcKLjK6ejdjW-1UiMtpjop-ZKYo0yw5xjCeVSSB2nzdqI3H_5WzdOl84ayvlk1BKGbJAXQO34rd3t-w0AB0MSD1Tipv4U8O83hOoQ=w640",
+      "comments": 0
+    },
+    {
+      "title": "Displaying List Data in Xamarin.Android and Visual Studio",
+      "url": "https://www.msdevbuild.com/2016/07/displaying-list-data-in-xamarinandroid.html",
+      "published": "2016-07-19T00:41:00.000+08:00",
+      "updated": "2020-01-28T23:08:07.339+08:00",
+      "categories": [
+        "Visual Studio",
+        "Xamarin",
+        "Xamarin.Android"
+      ],
+      "excerpt": "Introduction Let we look regarding list view binding. The cross-platform applications with Xamarin.iOS, Xamarin.Android the ListView control binding is structurally similar. Xamarin.IOS…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEg4uUNpmziK6GWrk88KzvmWpvq4uAk3I76mvW7MgDv7dumkuYzEbdLrhuCbyNSiIEdeQR2qDjD2H5aFQ32mWSbTb6g5E3TwfgJ6Ut2bed5Y68WL5GGT5s1HLhfoBV-AaQmhFbYLDW_Gtm8/w640/list.png",
+      "comments": 0
+    },
+    {
+      "title": "VS 2015 can launch the VS emulator but can&#39;t deploy the app.  ",
+      "url": "https://www.msdevbuild.com/2016/07/vs-2015-can-launch-vs-emulator-but-can.html",
+      "published": "2016-07-13T00:37:00.000+08:00",
+      "updated": "2020-01-28T23:07:33.913+08:00",
+      "categories": [
+        "Visual Studio"
+      ],
+      "excerpt": "Microsoft Visual Studio 2015 includes an Android emulator that you can use as a target for debugging your Xamarin.Android app .This emulator uses the Hyper-V capabilities of your…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhwcfpdVUa0Z43Xwi_0IxyxvegxPJg0tvLpkcP08vqTJAl_kkpuc25fcRsA5o2tWzY_hllalCWssSUqUghz-4rrM93NLdJNlG9DOaCUDSPEscUrH8oZvz-DCGerne-m6fr_5RBzgrPxtb0/w640/image003.png",
+      "comments": 0
+    },
+    {
+      "title": "MSDN Subscriptions with Free Xamarin Licensing",
+      "url": "https://www.msdevbuild.com/2016/06/msdn-subscriptions-with-free-xamarin.html",
+      "published": "2016-07-01T00:20:00.001+08:00",
+      "updated": "2020-01-29T03:04:59.053+08:00",
+      "categories": [
+        "Visual Studio"
+      ],
+      "excerpt": "At the Build 2016 conference, Microsoft introduced the exciting news that Xamarin will now be available for all existing MSDN users at no extra cost. Windows Developer: Xamarin is included…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEioicVCCxKz2LbKGcN1pqDg-076WbGeNqihdrQgFCqFhtzfTvbsoeuNl8AJL5lq0hLYVD26OHDcgfJ42XJiBpKfAVV6PrHwr8qvdtR76_a5AWIctEmYA-wtnDxRQg8Yf1ywRM0QgJdtf3U/w640/register.png",
+      "comments": 0
+    },
+    {
+      "title": "Local Storage (SQLite) Using Windows 10 UWP Apps",
+      "url": "https://www.msdevbuild.com/2016/03/local-storage-sqlite-using-windows-10.html",
+      "published": "2016-03-06T18:05:00.000+08:00",
+      "updated": "2020-02-03T20:21:51.921+08:00",
+      "categories": [
+        "UWP",
+        "Xamarin"
+      ],
+      "excerpt": "Local Storage (SQLite) Using Windows 10 UWP Apps The Windows 10 Universal app local storage using SQLite database. Step-by-step implementation. Step 1: Create new universal project /…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "   How to Build HoloLens Apps",
+      "url": "https://www.msdevbuild.com/2016/03/how-to-build-hololens-apps.html",
+      "published": "2016-03-06T18:04:00.000+08:00",
+      "updated": "2020-01-28T23:07:00.018+08:00",
+      "categories": [
+        "MicrosoftAI"
+      ],
+      "excerpt": "Great news for Microsoft developer . Developers don’t need to buy a $3,000 HoloLens device. Microsoft Visual Studio team will be releasing a HoloLens emulator that can be used to build and…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi_4-60eL3BMfGcIqMN7z2FKqPUU9zNCuZXv8kNwkelEGGk1c_VO6hy6HPIspDS1z38wLQjyIUISsIxiLsy0b5sdd8aqiNFv707HPPNnnRGf3AqS4pDgYot9_vxzCt3ogweIjMcg1wLoPky/w640/Emulator.PNG",
+      "comments": 0
+    },
+    {
+      "title": "MSDN Subscriptions with Free Xamarin Licensing",
+      "url": "https://www.msdevbuild.com/2020/01/msdn-subscriptions-with-free-xamarin.html",
+      "published": "2016-01-28T03:39:00.000+08:00",
+      "updated": "2020-01-28T14:51:51.718+08:00",
+      "categories": [
+        "Visual Studio",
+        "Xamarin"
+      ],
+      "excerpt": "At the Build 2016 conference, Microsoft introduced the exciting news that Xamarin will now be available for all existing MSDN users at no extra cost. Windows Developer: Xamarin is included…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEioicVCCxKz2LbKGcN1pqDg-076WbGeNqihdrQgFCqFhtzfTvbsoeuNl8AJL5lq0hLYVD26OHDcgfJ42XJiBpKfAVV6PrHwr8qvdtR76_a5AWIctEmYA-wtnDxRQg8Yf1ywRM0QgJdtf3U/w640/register.png",
+      "comments": 0
+    },
+    {
+      "title": "Day2   VS Item Template",
+      "url": "https://www.msdevbuild.com/2015/07/day2-vs-item-template.html",
+      "published": "2015-07-03T11:17:00.000+08:00",
+      "updated": "2020-01-28T03:34:32.729+08:00",
+      "categories": [],
+      "excerpt": "Help to Developer to manage and deliver hands-on digital learning experiences in MAUI, Xamarin,Azure, and Microsoft AI free Learning portal by Suthahar Jegatheesan",
+      "image": "https://img.youtube.com/vi/gmiqXn5j5y0/default.jpg",
+      "comments": 0
+    },
+    {
+      "title": "Create Project Templates  PART1",
+      "url": "https://www.msdevbuild.com/2015/07/create-project-templates-part1.html",
+      "published": "2015-07-03T01:09:00.000+08:00",
+      "updated": "2020-01-28T23:06:16.136+08:00",
+      "categories": [],
+      "excerpt": "Help to Developer to manage and deliver hands-on digital learning experiences in MAUI, Xamarin,Azure, and Microsoft AI free Learning portal by Suthahar Jegatheesan",
+      "image": "https://img.youtube.com/vi/7CqmBdIc-yk/default.jpg",
+      "comments": 0
+    },
+    {
+      "title": "sqlite MvvmCross Plugin Loading Issue  and   Unable to load DLL ;sqlite3",
+      "url": "https://www.msdevbuild.com/2015/05/sqlite-mvvmcross-plugin-loading-issue.html",
+      "published": "2015-05-13T12:21:00.000+08:00",
+      "updated": "2020-01-29T02:57:45.445+08:00",
+      "categories": [
+        "Xamarin"
+      ],
+      "excerpt": "Solution 1: For this issue download sqlite3.dll from http://www.sqlite.org/download.html . File name - sqlite-dll-win32-x86-3071602.zip That will contain sqlite3.dll. add dll in your…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "C# 6.0 New Feature",
+      "url": "https://www.msdevbuild.com/2015/01/c-60-new-feature.html",
+      "published": "2015-01-23T11:54:00.000+08:00",
+      "updated": "2020-02-01T16:26:45.174+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "C# 6.0 New Feature How to get C# Updated Version? Two ways we can update C# 6.0 Updated Visual Studio into VS 2014 Or Installing Roslyn Package in VS 2013 $ Sign : Its simplify String…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgCgH-ko5XX4lZqHTnp6ohhQM484zOmpQ_Noknt2qkakACKsXZAE0Y2lMKD5-jkgTxzPnbA6iVnAdy783g8fahmtANZPup3JbgzlknAg3FR87GS41OUXNXkTYQISML3PrlxOyBOUuEN6QHX/w640/DotNET_Logo.jpg",
+      "comments": 0
+    },
+    {
+      "title": "How to load UIImage from web URL ?",
+      "url": "https://www.msdevbuild.com/2014/09/how-to-load-uiimage-from-web-url.html",
+      "published": "2014-10-01T01:06:00.000+08:00",
+      "updated": "2020-01-29T02:58:04.935+08:00",
+      "categories": [
+        "Xamarin"
+      ],
+      "excerpt": "How to load UIImage from web URL ? UIImage img=Images.Fromuri(\"www.google.com/my.jpg\"); Common Class : public static Class Images { Public static UIImage FromUrl (string uri ) { using ( var…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "How to access isolated storage / local database in windows phone or emulator?",
+      "url": "https://www.msdevbuild.com/2014/09/how-to-access-isolated-storage-local.html",
+      "published": "2014-09-12T19:41:00.000+08:00",
+      "updated": "2020-01-31T17:07:50.419+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Forms"
+      ],
+      "excerpt": "For testing if you want access local storage or local database you can use Windows Phone Poser Tools ( http://wptools.codeplex.com/ ) Help to Developer to manage and deliver hands-on…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhNxTO5Zpq2v_hYcrFQqkIYE3hKMnk2dLPaluEvXIehc_fOPQa8eYjEH46NmXbw8gmGXJSNhhiu_Y5DuegDRKjfEin3MG3jkokqvJ_yTPFzu57YZrzueVagCvCM8ROjdmYDQ3IEp47HFr_4/w640/power+tool.png",
+      "comments": 0
+    },
+    {
+      "title": "How to run and deploy an app for Windows Phone ?  or How to deploy Xap file into Device ?",
+      "url": "https://www.msdevbuild.com/2014/09/how-to-run-and-deploy-app-for-windows.html",
+      "published": "2014-09-12T19:27:00.000+08:00",
+      "updated": "2020-01-31T17:08:28.100+08:00",
+      "categories": [
+        "Xamarin"
+      ],
+      "excerpt": "How to run and deploy an app for Windows Phone ? Or How to deploy Xap file into Device ? We can run your app in Windows Phone Emulator and windows phone device connected to development…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhoBnFI9uVh2GiBlFPHiPqh_niY0p92kARfw4zkAvFdjscSmEuSsNnoq1nE8jbXyrDZjvaj3c0TeYbsf_0I_tR5NEJUgFgEVWB7xs45RaDTMQVoB2LQzxO8VrGGYlh6aEreZrhZeMEV-inE/w640/IC654205.png",
+      "comments": 0
+    },
+    {
+      "title": "How to Check compiled .exe or .dll assemblies to scan platform Specific code ?",
+      "url": "https://www.msdevbuild.com/2014/09/how-to-check-compiled-exe-or-dll.html",
+      "published": "2014-09-04T17:33:00.000+08:00",
+      "updated": "2020-01-31T17:08:11.761+08:00",
+      "categories": [
+        "Xamarin"
+      ],
+      "excerpt": "In xamarin Scan providing online support for our library how much platform Specific . we need to follow 3 steps, after that we will get know how much % it will support Select compiled .NET…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgv3RBhMuk-fVYXFnXL0oOSdPbtfH6yj2FduccZc08x5SXKq7kMIuPBQEwNVXG1MOmDGEedthDL4_ePrrdIrxJeHRmVJ4DfKAxbgbQx3SD2pwvOXP5SsCcowa696DgfLrzTLX7GKx1-V88/w640/xamarin.png",
+      "comments": 0
+    },
+    {
+      "title": "XAMARIN TOP INTERVIEW QUESTION  Part 1.1",
+      "url": "https://www.msdevbuild.com/2014/08/xamarin-top-interview-question-part-11.html",
+      "published": "2014-08-24T04:13:00.000+08:00",
+      "updated": "2020-01-31T02:38:20.128+08:00",
+      "categories": [],
+      "excerpt": "Questions 1 Can you tell about Xamarin ? 2 History of Xamarin 3 What is Xamarin.iOS Application compiler? 4 What Xamarin.Android Application compiler? 5 Can we develop Windows mobile…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "XAMARIN  TOP INTERVIEW QUESTION ",
+      "url": "https://www.msdevbuild.com/2014/08/xamarin-top-interview-question.html",
+      "published": "2014-08-08T15:14:00.000+08:00",
+      "updated": "2020-02-03T20:23:17.144+08:00",
+      "categories": [
+        "Xamarin"
+      ],
+      "excerpt": "Xamarin Interview Question : Xamarin Interview Questions /Answers Xamarin .Android interview Questions /Answers Xamarin . iOS interView Questions /Answers Xamarin . Forms Interview…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjrdg6befSvalRvsQfupioTUmP0a2LjlYQUiW72NewAbMSPMA7Z3MwthBT8WvwK_V5a4-8PGFWXDYhYnrwcYmBR5Wl1NQuGntqGeR9TY5rCBqwkpxitFerLz2T3TIECu7b25PviNorQaAA/w640/Capture.PNG",
+      "comments": 1
+    },
+    {
+      "title": "Xamarin  Top Interview Question -Part 1",
+      "url": "https://www.msdevbuild.com/2014/08/xamarin-top-interview-question-part-1.html",
+      "published": "2014-08-06T01:25:00.005+08:00",
+      "updated": "2020-12-25T16:05:26.806+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Android",
+        "Xamarin.Forms",
+        "Xamarin.iOS"
+      ],
+      "excerpt": "Questions 1 Can you tell about Xamarin ? 2 History of Xamarin 3 What is Xamarin.iOS Application compiler? 4 What Xamarin.Android Application compiler? 5 Can we develop Windows mobile…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Xamarin  Top Interview Question -Part 1",
+      "url": "https://www.msdevbuild.com/2014/08/xamarin-top-interview-question-part-1_5.html",
+      "published": "2014-08-06T01:25:00.004+08:00",
+      "updated": "2020-12-25T16:05:03.683+08:00",
+      "categories": [
+        "Xamarin",
+        "Xamarin.Android",
+        "Xamarin.Forms",
+        "Xamarin.iOS"
+      ],
+      "excerpt": "Questions 1 Can you tell about Xamarin ? 2 History of Xamarin 3 What is Xamarin.iOS Application compiler? 4 What Xamarin.Android Application compiler? 5 Can we develop Windows mobile…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Xamarin  Top Interview Question -Part 1",
+      "url": "https://www.msdevbuild.com/2014/08/xamarin-top-interview-question-part-1_10.html",
+      "published": "2014-08-06T01:25:00.002+08:00",
+      "updated": "2020-01-29T02:58:23.743+08:00",
+      "categories": [
+        "Xamarin"
+      ],
+      "excerpt": "Questions 1 Can you tell about Xamarin ? 2 History of Xamarin 3 What is Xamarin.iOS Application compiler? 4 What Xamarin.Android Application compiler? 5 Can we develop Windows mobile…",
+      "image": null,
+      "comments": 7
+    },
+    {
+      "title": "VideoChooserTask :: MediaChooserTask in WP8",
+      "url": "https://www.msdevbuild.com/2013/09/videochoosertask-mediachoosertask-in-wp8.html",
+      "published": "2013-09-28T23:44:00.000+08:00",
+      "updated": "2020-01-29T02:58:44.935+08:00",
+      "categories": [
+        "Xamarin"
+      ],
+      "excerpt": "VideoChooserTask & MediaChooserTask not available in default chooser Windows Phone 8 So We can Use MedialLibrary it will give you access to existing Songs & Video Namespace: Microsoft . Xna…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "SQLite Limitation",
+      "url": "https://www.msdevbuild.com/2013/09/sqlite-limitation.html",
+      "published": "2013-09-15T23:49:00.000+08:00",
+      "updated": "2020-02-03T20:24:02.925+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "Some Feature not Supported in SQLite Feature Support Not Support Right Outer Join No Only Left Outer Join Full Outer Join No Only Left outer Join Alter Table Rename Table Add Column Alter…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhqZEoNwgAC2XauL8e4JKsre85c-zLL4qgffy3JtkmgB3crqLwaZWrTLDsJYTBl5OVFCoVoV5r_1uKfXPvxdLsY2i2Reb_t_fgbrU20fESU2yfeFrgRmWaNc8EfcJ6FY9mQoQIuZn-eFkP5/w640/limitation.png",
+      "comments": 0
+    },
+    {
+      "title": "SQLite :: How to create Database?",
+      "url": "https://www.msdevbuild.com/2013/09/sqlite-how-to-create-database.html",
+      "published": "2013-09-15T14:16:00.000+08:00",
+      "updated": "2020-01-30T03:39:39.810+08:00",
+      "categories": [
+        "Azure",
+        "SQL"
+      ],
+      "excerpt": "SQLite How to create Database? How to Get All Database Name? SQLite > . Database Above query retrieve all database name with location “ Main “ is default database name . How to Create New…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEifGEFcgWvZHsy0rx1lpG5AcvY-SuDVCoXBMh5td4_gle9f8USfWKMqpxEI-dPsdrBRoKQZ_RjV_PEX9K822MApSNvXdv0_ly_JViX5Z0DJQc6c0Q464-NJoi_VIKhhDsViF4rTZ8x0Kmnu/w640/create+database.jpg",
+      "comments": 0
+    },
+    {
+      "title": "Sql dot commands in SQLite",
+      "url": "https://www.msdevbuild.com/2013/09/sql-dot-commands-in-sqlite.html",
+      "published": "2013-09-14T18:03:00.000+08:00",
+      "updated": "2020-01-30T03:41:36.283+08:00",
+      "categories": [
+        "Azure",
+        "Xamarin"
+      ],
+      "excerpt": "SQLite Commands ( Sql dot commands) Below commands all are called SQLite dot commands other than SQL dot command for terminated query use by a semi-colon (;) If you want retrieve all SQL…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "SQLite Installation",
+      "url": "https://www.msdevbuild.com/2013/09/sqlite-installation.html",
+      "published": "2013-09-14T01:07:00.000+08:00",
+      "updated": "2020-01-30T03:42:46.939+08:00",
+      "categories": [
+        "Azure",
+        "Xamarin"
+      ],
+      "excerpt": "SQLite Installation Download Following Files SQLite EXE ( sqlite -shell-win32-* . zip):: For database management http://www.sqlite.org/2013/sqlite-dll-win32-x86-3080002.zip SQLite dll (…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgqpIt02__CvzQoLrDwQUsMT9LUjmHZco7cTjdIGb54nvSqTFDa2sgfYjnqZXLhLov2Zt0avemOs3UigPa5snoS8GVnzmRT5knorj_ZB54sqykgeDCqpa0r2YS88pFRQCONfjJ8jaWs5gbC/w640/sqlite.jpg",
+      "comments": 0
+    },
+    {
+      "title": "SQL Server ::  SQLite ",
+      "url": "https://www.msdevbuild.com/2013/09/sql-server-sqlite.html",
+      "published": "2013-09-11T00:18:00.000+08:00",
+      "updated": "2020-01-30T03:43:28.667+08:00",
+      "categories": [
+        "Azure",
+        "SQL",
+        "Xamarin"
+      ],
+      "excerpt": "SQLite Define: SQLite is an embedded relational database engine. Other Names: Self –Contained ( no external dependencies) Server Less Zero – Configuration Transactional Sql Database Engine…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "LESS extends CSS with dynamic behavior such as variables, mixins, operations and functions.",
+      "url": "https://www.msdevbuild.com/2013/08/less-extends-css-with-dynamic-behavior.html",
+      "published": "2013-08-01T23:33:00.000+08:00",
+      "updated": "2020-01-30T03:43:56.095+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "Dot - Less {} Dynamic CSS for . Net LESS extends CSS with dynamic behavior such as variables, mixins, operations and functions. Download latest dot less package http://www.dotlesscss.org/ ,…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Disable Right Click in IE",
+      "url": "https://www.msdevbuild.com/2013/04/disable-right-click-in-ie.html",
+      "published": "2013-04-28T17:54:00.000+08:00",
+      "updated": "2020-01-29T02:59:01.376+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "Java Script: <script language=\"javascript\"> document.onmousedown=disableclick; status=\"Right Click Disabled\"; Function disableclick(e) { if(event.button==2) { alert(status); return false; }…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "VS Deployment Tool",
+      "url": "https://www.msdevbuild.com/2013/03/vs-deployment-tool.html",
+      "published": "2013-03-08T00:52:00.000+08:00",
+      "updated": "2020-01-29T02:59:24.753+08:00",
+      "categories": [
+        "Visual Studio"
+      ],
+      "excerpt": "How to deploy Application in VS 2012 1. Click Once Deployment a. Right Click Solution èPublish 2. InstallShield a. Right Click Solution èAdd New Project èSelect InstallShield(…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Free !! Free!! Free !! Microsoft professional-level developer and designer tools at no cost",
+      "url": "https://www.msdevbuild.com/2013/03/free-free-free-microsoft-professional.html",
+      "published": "2013-03-03T04:37:00.000+08:00",
+      "updated": "2020-01-28T23:05:19.408+08:00",
+      "categories": [
+        "Visual Studio"
+      ],
+      "excerpt": "Microsoft all about giving students Microsoft professional-level developer and designer tools at no cost so that students can chase their dreams and create the next big breakthrough in…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhvFYNqFDGefiuNnsqiwmdrltK04ahRsAKst4_gec-_nhNVUOiCEjT0C0eQV-h-kis4MAH0f1MhZjKU_ltsHDYX2ed1ryY5TlpExZ3iwPr3O9w8FYyxiilAhZkACR9070vhOKNEV8U8CjNB/w640/image-740309.png",
+      "comments": 0
+    },
+    {
+      "title": "WHAT IS USE OF COALESCE KEYWORD",
+      "url": "https://www.msdevbuild.com/2012/10/what-is-use-of-coalesce-keyword.html",
+      "published": "2012-10-20T00:39:00.000+08:00",
+      "updated": "2020-01-29T02:59:42.694+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "step 1: CREATE TABLE COLLEGE(SID NVARCHAR(10),SNAME NVARCHAR(20),PLACE NVARCHAR(20)) Step 2: INSERT INTO COLLEGE…",
+      "image": null,
+      "comments": 1
+    },
+    {
+      "title": "Design Cross-browser using Modernizr - Modernizr is a JavaScript library that detects HTML5 and CSS3 features in the user’s browser. http://modernizr.com/",
+      "url": "https://www.msdevbuild.com/2012/08/design-cross-browser-using-modernizr.html",
+      "published": "2012-08-30T11:15:00.000+08:00",
+      "updated": "2020-01-30T02:06:09.411+08:00",
+      "categories": [],
+      "excerpt": "Modernizr is a JavaScript library that detects HTML5 and CSS3 features in the user's browser. Why use Modernizr? Taking advantage of cool new web technologies is great fun, until you have…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiIJDxIgQh4Mt1m42xhUi0O3ZzcFnMfusDOyn_lkQKD6oi7UuKk8sDVCWfeN0OFFN9h8ZNhAQ1N8Ii5mqCdX4_eaq6Whcasw5Piz5k9-zdx3kqz7hoNLCuqR8z9WtxUu171ZUjKK3MnOSXt/w640/image-755528.png",
+      "comments": 0
+    },
+    {
+      "title": "Sending Email using gmail",
+      "url": "https://www.msdevbuild.com/2012/08/sending-email-using-gmail.html",
+      "published": "2012-08-26T02:17:00.000+08:00",
+      "updated": "2020-01-29T03:00:29.531+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "using System . Net . Mail; Coding: MailMessage om = new MailMessage(\"[email]\", \"[email]\"); // om . CC // om . Bcc om . Subject = \"Welcome to Suthahar bogs\"; om . Body = value; om .…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Sql Server Trigger for Beginner",
+      "url": "https://www.msdevbuild.com/2012/08/sql-server-trigger-for-beginner.html",
+      "published": "2012-08-26T01:53:00.000+08:00",
+      "updated": "2020-01-28T01:19:30.246+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "A trigger is a SQL procedure that initiates an action . when an event (INSERT , UPDATE , DELETE) occures . Triggers can be viewed as similar to stored procedure in that both consist of…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhU8W0KObV5fO-iEX45wHhxM48XzyQQSsaA-tTiCln2WliH-0R_WZAvZniVdDZxNHfbnv_wy0wkR4bHJgWmrvxUT1YVRWmmfsG1L4VxduEPgttTm5-jwYacJGzC_qvfaqK4lbK8WrA9RIPi/w640/image-788099.png",
+      "comments": 0
+    },
+    {
+      "title": "CUBE,COMPUTE,COMPUTE BY and ROLLUP OPERATOR IN SQL SERVER",
+      "url": "https://www.msdevbuild.com/2012/08/cubecomputecompute-by-and-rollup.html",
+      "published": "2012-08-18T12:29:00.000+08:00",
+      "updated": "2020-01-29T02:57:13.420+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "The CUBE,COMPUTE,COMPUTE BY and ROLLUP operators are useful in generating reports that contain subtotals and totals. There are extensions of the GROUP BY clause. The result set of a ROLLUP…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgI95Xxzur1rsyWEm6nE5WTPOX3nmCk16fvVrUfkQWSog86W5TzqkyF9LorADdQHKUqzJPltykF0UfxX4nqAROnW-zeEHQn005hVCApo0dEeaPpmk6I5soDm3RRJac1mFKbkNRAPe0WWlAE/w640/image-787300.png",
+      "comments": 0
+    },
+    {
+      "title": "IsolatedStorageSettings in Windows Phone",
+      "url": "https://www.msdevbuild.com/2012/07/isolatedstoragesettings-in-windows-phone.html",
+      "published": "2012-07-24T09:45:00.000+08:00",
+      "updated": "2020-01-29T02:56:56.232+08:00",
+      "categories": [
+        "Xamarin"
+      ],
+      "excerpt": "IsolatedStorageSettings Save Data Into Setting: /// <summary> /// Save Value into Setting File /// </summary> /// <param name=\"sender\"></param> /// <param name=\"e\"></param> private void…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgjWhq5eQVDVjtY7S_8bW0OkAPL-kXVjaeWLZ_CIv4IiXZetR1UBpp5bIZAjFjNlaoCOAU8_5Hchnpo7X9bK32mvGfJnqOpm-tt8Yjvl_Qk-Wz0TtfyCmnMlbba-FbLPowSsV2rIMIH9CTW/w640/image-713216.png",
+      "comments": 0
+    },
+    {
+      "title": "Windows Mobile Isolated Storage Beginners",
+      "url": "https://www.msdevbuild.com/2012/07/windows-mobile-isolated-storage.html",
+      "published": "2012-07-21T19:30:00.000+08:00",
+      "updated": "2020-01-29T02:56:47.662+08:00",
+      "categories": [
+        "Xamarin"
+      ],
+      "excerpt": "WP7 Isolated Storage ●Isolated storage is used to store local text file a on Windows Phone 7 ●If you know File concept in C#.net its easy for you ●If you have two applications that work…",
+      "image": "https://lh4.googleusercontent.com/MV_PatjsDuCIpi0GA8MIHoFN7YIEq0fykwOZ9Tc-mAUlTMy7tcmn06a1RlGxF-A7kfZGBrV9qgQzk8n6TgiZR26nzepdLHjIzZoz7RLy56FuKtiwJVY=w640",
+      "comments": 0
+    },
+    {
+      "title": "Cannot connect to WMI provider. You do not have permission or the server is unreachable",
+      "url": "https://www.msdevbuild.com/2012/02/cannot-connect-to-wmi-provider-you-do.html",
+      "published": "2012-02-29T01:11:00.000+08:00",
+      "updated": "2020-01-28T01:23:05.527+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "Error in SQL Server Cannot connect to WMI provider. You do not have permission or the server is unreachable. Note that you can only manage SQL Server 2005 servers with SQL Server…",
+      "image": "https://mail.google.com/mail/ca/?ui=2&amp;ik=3fc6305b4f&amp;view=att&amp;th=135c4ee54aa97dd3&amp;attid=0.1&amp;disp=emb&amp;realattid=ii_135c4ec070f3ed41&amp;zw",
+      "comments": 0
+    },
+    {
+      "title": "Override Inline Styles with CSS [ !important ]",
+      "url": "https://www.msdevbuild.com/2012/02/override-inline-styles-with-css.html",
+      "published": "2012-02-08T23:11:00.000+08:00",
+      "updated": "2020-01-28T23:04:46.103+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "Cascading Style Sheets cascade. This means that the styles are applied in order as they are read by the browser. The first style is applied and then the second and so on. What this means is…",
+      "image": null,
+      "comments": 1
+    },
+    {
+      "title": "How to change  Team Foundation Server Credentials?",
+      "url": "https://www.msdevbuild.com/2012/02/how-to-change-team-foundation-server.html",
+      "published": "2012-02-08T22:54:00.001+08:00",
+      "updated": "2020-01-28T01:26:12.724+08:00",
+      "categories": [
+        "Visual Studio"
+      ],
+      "excerpt": "You connect to TFS from the standard Visual Studio Team Explorer it remembers the credentials used to connect to the server. 1. To clear the credential cache Start ==> Run ==>control…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi1iC1UK_izPJrpTeFUsUMtlXiPQ4wzDckzRTPYPV4dioRk1DNIRXBjaHt33PQL9HrqsFRMlefwL2F5fhtiwDy3Zd0GloRBwc9j79TN2s3OZgHad2pgZwA7b4IsBBrj6ASLP6dd6CaZbSE/w640/image-790676.png",
+      "comments": 0
+    },
+    {
+      "title": "ASP.NET TIPS: SENDING EMAIL USING ASP.NET (GMAIL OR YOUR SERVER)",
+      "url": "https://www.msdevbuild.com/2011/09/aspnet-tips-sending-email-using-aspnet.html",
+      "published": "2011-09-18T13:04:00.000+08:00",
+      "updated": "2020-01-29T02:54:55.674+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "using System.Net.Mail; using System.Net; MailMessage mail = new MailMessage(); mail.To.Add(\"**@gmail.com\"); mail.To.Add(\"**@gmail.com\"); mail.From = new MailAddress(\"**@gmail.com\");…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Add / REMOVE Primary Key to existing table",
+      "url": "https://www.msdevbuild.com/2011/09/add-remove-primary-key-to-existing-table.html",
+      "published": "2011-09-18T12:57:00.000+08:00",
+      "updated": "2020-01-29T02:54:34.022+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "CREATE TABLE WITHOUT PRIMARY KEY CREATE TABLE JSSTUDTABLE (SNO NUMERIC(10) NOT NULL)ADD PRIMARY KEY EXISTING TABLE ALTER TABLE JSSTUDTABLE ADD PRIMARY KEY (SNO); REMOVE PRIMARY KEY EXISTING…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Reset Controls Value using Asp.net / Javascript / J query",
+      "url": "https://www.msdevbuild.com/2011/09/reset-controls-value-using-aspnet.html",
+      "published": "2011-09-13T02:17:00.000+08:00",
+      "updated": "2020-01-30T03:44:53.388+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "Reset Controls Value using Asp.net / Javascript / Jquery Asp.net: Dynamicaly you have to add controls means you don't know controls id so we can find control type in particular page after…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "“ COALESCE “  Method in Sql Server",
+      "url": "https://www.msdevbuild.com/2011/09/coalesce-method-in-sql-server.html",
+      "published": "2011-09-09T11:47:00.000+08:00",
+      "updated": "2020-01-29T02:54:20.473+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "“ COALESCE “ Method in Sql Server Table Have so many column like that Name HomeAddress OfficeAddress Temp_Address Suthahar Null Null Pudukkottai Suresh Pullanviduthi Null Null Sumathi Null…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Delegate-Lambda Expression (=&gt;):",
+      "url": "https://www.msdevbuild.com/2011/08/delegate-lambda-expression.html",
+      "published": "2011-08-31T23:18:00.000+08:00",
+      "updated": "2020-01-29T02:54:00.520+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "Lambda Expression (=>): A lambda expression is an unnamed method written in place of a delegate instance. The compiler immediately converts the lambda expression to either Delegate Instance…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Runtime Assign Method using Delegate",
+      "url": "https://www.msdevbuild.com/2011/08/runtime-assign-method-using-delegate.html",
+      "published": "2011-08-25T03:33:00.000+08:00",
+      "updated": "2020-01-30T03:54:55.237+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "Writing Plug-in Methods with Delegates A delegate variable is assigned a method dynamically. This is useful for writing plug-in methods. In this example, we have a utility method named…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEilDD2lBp8AWAMlwlI5Wu8zhyphenhyphenBUsK1CcFsRbUhzdHU8hZJ-BegKbJ8_f92MejZFyzTWGM-MSQKV0OZBIFho7HVM18PqpxYS4GeKVbbrJG605czUCfOhnWzHUObcVaV9K7sPHhfOh10EOwzf/w640/JSDynamicMethodinDelegate.png",
+      "comments": 0
+    },
+    {
+      "title": "Beginner Delegate program",
+      "url": "https://www.msdevbuild.com/2011/08/beginner-delegate-program.html",
+      "published": "2011-08-25T03:20:00.000+08:00",
+      "updated": "2020-01-30T03:54:41.775+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "Add Two Number Delegate Program public delegate int AddTwoNumberDel(int fvalue, int svalue); private void btnClick_Click(object sender, EventArgs e) { AddTwoNumberDel AT = Addnumber; //…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhlPMRHhdSfUecQJ9XmSBDdBUrCwK-uuTraTwORn7sX2nv27sN0oAFsu6UXU259qM5HCfHfh0OMIwdHiq23s7cJgY_TgWsTQRyxLB_A2B5cby5byXhc6Fk3hgoKe3hTh8_iImKomjZk4r9i/w640/JSDelegate+1.png",
+      "comments": 0
+    },
+    {
+      "title": "C# Dotnet Delegate",
+      "url": "https://www.msdevbuild.com/2011/08/c-dotnet-delegate.html",
+      "published": "2011-08-25T02:47:00.000+08:00",
+      "updated": "2020-01-29T02:53:43.158+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "What is Delegate? Its reference to method. once method assign to delegate its work like method delegate method used any other method Where we will use real time? If you want to call…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "WCF Programming Model",
+      "url": "https://www.msdevbuild.com/2011/08/wcf-programming-model.html",
+      "published": "2011-08-24T02:13:00.000+08:00",
+      "updated": "2020-01-30T03:45:24.723+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "Disadvatage : Disadvantage is that only HTTP protocol could be used. Another disadvantage is all the service will run on the same port. WCF Programming Model: WCF service have three parts .…",
+      "image": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjOBmKpUHFsBvNOwlaRv9QGibVhTo2HM1iy0JLPgBemIqUC_V7RXKYkWe17C_OVi1JEnLcx-67kw03rMJTEpF5z7Himtcg6aHhzD8aMooR7AWU8d8-cFc1AfGwiMXJKvsDs32spGe7MbTtW/w640/WCF-703491.gif",
+      "comments": 0
+    },
+    {
+      "title": "What is WCF ?",
+      "url": "https://www.msdevbuild.com/2011/08/what-is-wcf.html",
+      "published": "2011-08-23T03:17:00.000+08:00",
+      "updated": "2020-01-29T02:53:21.084+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "· Windows Communication Foundation is a programming platform and runtime system for building, configuring and deploying network-distributed services. · It is the latest service oriented…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Abstract Class in c#.net",
+      "url": "https://www.msdevbuild.com/2011/06/abstract-class-in-cnet.html",
+      "published": "2011-06-24T19:52:00.000+08:00",
+      "updated": "2020-01-30T01:30:36.233+08:00",
+      "categories": [],
+      "excerpt": "Abstract Class: Now we will discuss about abstract class in c#.net. Abstract class is class we cannot create object. We only use inherit We are only use base class. If u r use abstract…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Reserve word in C#.net",
+      "url": "https://www.msdevbuild.com/2011/06/reserve-word-in-cnet.html",
+      "published": "2011-06-24T18:50:00.000+08:00",
+      "updated": "2020-01-29T02:53:05.354+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "Keywords in C#.net C#.net have 77 Reserve word. You are not declare variable/method in reserve words .if you want to declare reserved word you can use \" @ \" symbol. Example: private void…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "How many web.config files for sngle application?",
+      "url": "https://www.msdevbuild.com/2011/06/how-many-webconfig-files-for-sngle.html",
+      "published": "2011-06-20T21:10:00.000+08:00",
+      "updated": "2020-01-30T01:32:20.633+08:00",
+      "categories": [],
+      "excerpt": "How many web.config files for sngle application? You should have only one web.config. but in sub folder you can have one web.cofing to set configuration of that folders. Example if your…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Configuration File Dotnet",
+      "url": "https://www.msdevbuild.com/2011/06/configuration-file-dotnet.html",
+      "published": "2011-06-20T21:07:00.000+08:00",
+      "updated": "2020-01-29T02:52:55.417+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "What is Web.Config File? It is an optional XML File which stores configuration details for a specific asp.net web application. What is Machine.config File? The Machine.Config file, which…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Collection -2D Array",
+      "url": "https://www.msdevbuild.com/2011/06/collection-2d-array.html",
+      "published": "2011-06-13T16:14:00.000+08:00",
+      "updated": "2020-01-29T02:52:41.546+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "2D Array You want to use a 2D array containing any type(int,string ,etc) of value in your C# program 2D array contain 2 pair of values Performance PERF 2D Array are slower to index elements…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Collection - Array",
+      "url": "https://www.msdevbuild.com/2011/06/collection-array.html",
+      "published": "2011-06-08T22:28:00.000+08:00",
+      "updated": "2020-01-29T02:52:29.607+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "Arrays are references that point to fixed sizes of memory that you can store different kinds of elements in, such as values or references to other objects. In these examples, we look at…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "View in Sql Server",
+      "url": "https://www.msdevbuild.com/2011/05/view-in-sql-server.html",
+      "published": "2011-05-15T22:06:00.000+08:00",
+      "updated": "2020-02-03T20:23:49.298+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "View in Sql Server View is a virtual table It s contains columns and data in different table View does not contain any data directly. Its a set of select query Table 1 Sno Sname Table 2 Sno…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Trigger Interview Questions",
+      "url": "https://www.msdevbuild.com/2011/05/trigger-interview-questions.html",
+      "published": "2011-05-15T19:55:00.000+08:00",
+      "updated": "2020-01-29T03:04:17.447+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "How many types of triggers are there in Sql Server 2005? There are two types of triggers Data Manipulation language (DML) triggers Data Definition language (DDL) triggers DML triggers…",
+      "image": null,
+      "comments": 1
+    },
+    {
+      "title": "Trigger In Sql Server",
+      "url": "https://www.msdevbuild.com/2011/05/trigger-in-sql-server.html",
+      "published": "2011-05-15T19:49:00.000+08:00",
+      "updated": "2020-01-29T02:52:06.957+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "Trigger is a special kind of Store procedure Modifications to the table are made using INSERT , UPDATE OR DELETE trigger will run It is automatically run Triggers prevent incorrect ,…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "How to use C# string Format",
+      "url": "https://www.msdevbuild.com/2011/05/how-to-use-c-string-format.html",
+      "published": "2011-05-03T15:03:00.000+08:00",
+      "updated": "2020-01-29T03:03:25.474+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "How to use C# string Format string Format method replace the argument Object into a text equivalent System.String. Replace string Particular index for ex System.String.Format(\"Hi welcome Mr…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Avoid Temp Table use Table Data Type",
+      "url": "https://www.msdevbuild.com/2011/04/avoid-temp-table-use-table-data-type.html",
+      "published": "2011-04-28T14:32:00.000+08:00",
+      "updated": "2020-01-30T03:46:24.418+08:00",
+      "categories": [
+        "Azure",
+        "SQL"
+      ],
+      "excerpt": "Avoid Temp Table use Table Data Type Micrsoft indroduced table data type in sql server altenative to using temporary table Table variables store a set of records, so naturally the…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "List Of Table Name In Sql Server",
+      "url": "https://www.msdevbuild.com/2011/04/list-of-table-name-in-sql-server.html",
+      "published": "2011-04-28T13:12:00.000+08:00",
+      "updated": "2020-01-30T03:46:53.004+08:00",
+      "categories": [
+        "Azure",
+        "SQL"
+      ],
+      "excerpt": "List Of Table Name In Sql Server SELECT *FROM INFORMATION_SCHEMA . TABLESWHERE Or SELECT [name ] FROM sys . tables; table_type = 'BASE TABLE' Help to Developer to manage and deliver…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Debug Program avoid Attach Process-c#.net Tips",
+      "url": "https://www.msdevbuild.com/2011/04/debug-program-avoid-attach-process-cnet.html",
+      "published": "2011-04-20T10:49:00.000+08:00",
+      "updated": "2020-02-01T01:35:23.059+08:00",
+      "categories": [],
+      "excerpt": "If you need to debug an application in a point where it's difficult to attach debugger manually You can use following code anywhere in your application System.Diagnostics.Debugger.Break();…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Types of JIT Compilers",
+      "url": "https://www.msdevbuild.com/2011/02/types-of-jit-compilers.html",
+      "published": "2011-02-23T10:40:00.000+08:00",
+      "updated": "2020-01-30T03:47:48.812+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "When the program is executed the CLR activates JIT compiler ,inturn this JIT converts the MSIL Code (Non Executable) to Native Code(Executable) on demand basis as each part of Program is…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Dot Net Module",
+      "url": "https://www.msdevbuild.com/2011/02/dot-net-module.html",
+      "published": "2011-02-23T10:36:00.000+08:00",
+      "updated": "2020-02-01T03:53:27.994+08:00",
+      "categories": [],
+      "excerpt": "MS.NET – 4.0 INCL. C#, VB.NET & ASP.NET MS.NET FRAMEWORK The .NET Framework - an Overview Architecture of .NET Framework Types of Applications which can be developed using MS.NET MSIL /…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Resource file in .Net",
+      "url": "https://www.msdevbuild.com/2011/02/resource-file-in-net.html",
+      "published": "2011-02-03T02:27:00.000+08:00",
+      "updated": "2020-01-30T03:47:28.471+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "What is Resource File ? A resource file is a XML file that contains the strings that we want to a. Translate into different languages. b. Can be updated dynamically so that user themselves…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "How To Read Web Page HTML Code With ASP.NET?",
+      "url": "https://www.msdevbuild.com/2011/01/how-to-read-web-page-html-code-with.html",
+      "published": "2011-01-31T19:30:00.000+08:00",
+      "updated": "2020-01-30T03:48:09.958+08:00",
+      "categories": [
+        "Web"
+      ],
+      "excerpt": "If data are not available in some kind of XML format (like RSS or web services), sometime you need to deal with HTML output of web page. HTML is usually much harder to analyze than XML…",
+      "image": "https://www.beansoftware.com/ASP.NET-FAQ/Images/Read-Web-Page-HTML.gif",
+      "comments": 1
+    },
+    {
+      "title": "SQL Queries FAQ",
+      "url": "https://www.msdevbuild.com/2011/01/sql-queries-faq.html",
+      "published": "2011-01-21T18:39:00.000+08:00",
+      "updated": "2020-01-30T03:45:56.280+08:00",
+      "categories": [
+        "Azure",
+        "SQL"
+      ],
+      "excerpt": "T-SQL Queries 1. 2 tablesEmployee Phone empid empname salary mgrid empid phnumber 2. Select all employees who doesn't have phone? SELECT DISTINCT m1.moviename FROM MovieTable m1 INNER JOIN…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "How to get first day of week",
+      "url": "https://www.msdevbuild.com/2011/01/how-to-get-first-day-of-week.html",
+      "published": "2011-01-21T17:44:00.001+08:00",
+      "updated": "2020-01-29T03:08:56.281+08:00",
+      "categories": [
+        "Azure",
+        "SQL"
+      ],
+      "excerpt": "select DATEADD(DD, 1 - DATEPART(DW, getdate()),getdate()) Help to Developer to manage and deliver hands-on digital learning experiences in MAUI, Xamarin,Azure, and Microsoft AI free…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "How to check a primary key exists or not in table",
+      "url": "https://www.msdevbuild.com/2011/01/how-to-check-primary-key-exists-or-not.html",
+      "published": "2011-01-21T17:44:00.000+08:00",
+      "updated": "2020-01-30T03:48:42.583+08:00",
+      "categories": [
+        "Azure",
+        "SQL"
+      ],
+      "excerpt": "IF OBJECTPROPERTY( OBJECT_ID( '[dbo].[Customers]' ), 'TableHasPrimaryKey' ) = 1 PRINT '[dbo].[Customers] table has a primary key. Help to Developer to manage and deliver hands-on digital…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "How to get number of row in each table in database",
+      "url": "https://www.msdevbuild.com/2011/01/how-to-get-number-of-row-in-each-table.html",
+      "published": "2011-01-21T17:43:00.001+08:00",
+      "updated": "2020-01-30T03:49:05.843+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "SELECT obj.NAME, ind.rowcnt FROM sysindexes AS ind INNER JOIN sysobjects AS obj ON ind.id = obj.id WHERE ind.indid < 2 AND OBJECTPROPERTY(obj.id, 'IsMSShipped') = 0 ORDER BY obj.NAME Help…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "How to get number of days in a month",
+      "url": "https://www.msdevbuild.com/2011/01/how-to-get-number-of-days-in-month.html",
+      "published": "2011-01-21T17:43:00.000+08:00",
+      "updated": "2020-01-30T03:49:32.171+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "select CASE WHEN MONTH(getdate()) IN (1, 3, 5, 7, 8, 10, 12) THEN 31 WHEN MONTH(getdate()) IN (4, 6, 9, 11) THEN 30 ELSE CASE WHEN (YEAR(getdate()) % 4 = 0 AND YEAR(getdate()) % 100 != 0)…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "How to select all duplicate records from a table",
+      "url": "https://www.msdevbuild.com/2011/01/how-to-select-all-duplicate-records.html",
+      "published": "2011-01-21T17:42:00.000+08:00",
+      "updated": "2020-01-30T03:49:51.088+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "select Col, count(Col) from TableName group by field having count(*) > 1 Help to Developer to manage and deliver hands-on digital learning experiences in MAUI, Xamarin,Azure, and Microsoft…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "How to Enable CLR integration in SQL Server",
+      "url": "https://www.msdevbuild.com/2011/01/how-to-enable-clr-integration-in-sql.html",
+      "published": "2011-01-21T17:41:00.000+08:00",
+      "updated": "2020-01-30T03:50:15.461+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "EXEC sp_configure 'clr enabled', 1; RECONFIGURE WITH OVERRIDE; Go Help to Developer to manage and deliver hands-on digital learning experiences in MAUI, Xamarin,Azure, and Microsoft AI free…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "How to disable CLR integration in SQL Server",
+      "url": "https://www.msdevbuild.com/2011/01/how-to-disable-clr-integration-in-sql.html",
+      "published": "2011-01-21T17:40:00.000+08:00",
+      "updated": "2020-01-30T03:50:41.478+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "EXEC sp_configure 'clr enabled', 0; RECONFIGURE WITH OVERRIDE; Go Help to Developer to manage and deliver hands-on digital learning experiences in MAUI, Xamarin,Azure, and Microsoft AI free…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "How to get number of records in a table",
+      "url": "https://www.msdevbuild.com/2011/01/how-to-get-number-of-records-in-table.html",
+      "published": "2011-01-21T17:39:00.000+08:00",
+      "updated": "2020-01-30T03:51:01.286+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "SELECT * FROM table1 SELECT COUNT(*) FROM table1 SELECT rows FROM sysindexes WHERE id = OBJECT_ID(table1) AND indid < 2 Help to Developer to manage and deliver hands-on digital learning…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "What is a join and List different types of joins",
+      "url": "https://www.msdevbuild.com/2011/01/what-is-join-and-list-different-types.html",
+      "published": "2011-01-21T17:37:00.000+08:00",
+      "updated": "2020-01-30T03:51:13.771+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "Joins are used in queries to explain how different tables are related. Joins also let you select data from a table depending upon data from another table. Types of joins: INNER JOINs, OUTER…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Difference between Triggers and Storedprocedures",
+      "url": "https://www.msdevbuild.com/2011/01/difference-between-triggers-and.html",
+      "published": "2011-01-21T17:35:00.000+08:00",
+      "updated": "2020-01-30T03:51:31.170+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "Triggers are basically used to implement business rules.Triggers is also similar to stored procedures.The difference is that it can be activated when data is added or edited or deleted from…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "How to get number of Maximum connection can be establish to SQL",
+      "url": "https://www.msdevbuild.com/2011/01/how-to-get-number-of-maximum-connection.html",
+      "published": "2011-01-21T17:33:00.000+08:00",
+      "updated": "2020-01-30T03:51:55.250+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "SELECT @@MAX_CONNECTIONS Help to Developer to manage and deliver hands-on digital learning experiences in MAUI, Xamarin,Azure, and Microsoft AI free Learning portal by Suthahar Jegatheesan",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "What do you mean by Filtered indexes",
+      "url": "https://www.msdevbuild.com/2011/01/what-do-you-mean-by-filtered-indexes.html",
+      "published": "2011-01-21T17:29:00.000+08:00",
+      "updated": "2020-01-30T03:52:21.339+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "Filtered indexes are a new feature in SQL 2008 and they allow for an index to contain only some of the rows in the table. Prior to this, an index would always have, at the leaf level, the…",
+      "image": null,
+      "comments": 0
+    },
+    {
+      "title": "Get top two records without Top keyword",
+      "url": "https://www.msdevbuild.com/2011/01/get-top-two-records-without-top-keyword.html",
+      "published": "2011-01-21T17:15:00.000+08:00",
+      "updated": "2020-01-30T03:52:38.206+08:00",
+      "categories": [
+        "SQL"
+      ],
+      "excerpt": "set rowcount 2 select column,column1 from tblEmployeeMaster Help to Developer to manage and deliver hands-on digital learning experiences in MAUI, Xamarin,Azure, and Microsoft AI free…",
+      "image": null,
+      "comments": 0
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+---
+import { CATEGORIES, formatDate, postUrl, readingTime, type Post } from '../lib/posts';
+
+interface Props {
+  post: Post;
+  index: number;
+}
+
+const { post, index } = Astro.props;
+const { data } = post;
+const minutes = readingTime(post.body ?? '');
+const category = CATEGORIES[data.category];
+---
+
+<!--
+  A list row rather than a card. Rows read well at any post count, where a
+  grid leaves visible holes whenever the total is not a multiple of the
+  column count.
+-->
+<article class="group relative border-b border-default py-6 first:pt-0">
+  <div class="flex gap-5">
+    <span class="hidden w-8 shrink-0 pt-1 text-sm tabular-nums text-muted sm:block">
+      {String(index + 1).padStart(2, '0')}
+    </span>
+
+    <span
+      class="mt-1.5 hidden h-12 w-1 shrink-0 rounded-full sm:block"
+      style={`background: oklch(0.62 0.17 ${category.hue});`}
+      aria-hidden="true"
+    ></span>
+
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+        <span class="font-medium" style={`color: oklch(0.62 0.17 ${category.hue});`}>
+          {category.label}
+        </span>
+        <time datetime={data.publishedAt.toISOString()} class="text-muted">
+          {formatDate(data.publishedAt)}
+        </time>
+        <span class="text-muted">{minutes} min read</span>
+        {data.series && <span class="text-muted">Part {data.seriesOrder} of a series</span>}
+      </div>
+
+      <h3 class="mt-1.5 text-xl leading-snug font-semibold tracking-tight text-balance">
+        <a href={postUrl(post)} class="after:absolute after:inset-0 group-hover:text-accent">
+          {data.title}
+        </a>
+      </h3>
+
+      <p class="mt-1.5 line-clamp-2 leading-relaxed text-muted">{data.description}</p>
+    </div>
+
+    <span
+      class="hidden shrink-0 self-center text-muted transition-transform group-hover:translate-x-1 group-hover:text-accent md:block"
+      aria-hidden="true"
+    >
+      →
+    </span>
+  </div>
+</article>

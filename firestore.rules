@@ -76,6 +76,24 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // The submitter's email, kept OUT of the testimonial document.
+    //
+    // Firestore rules cannot hide individual fields: reading an approved
+    // testimonial returns every field it holds. Storing the address alongside
+    // the quote would therefore publish it to anyone, and it would be baked
+    // into the static HTML by the sync. It lives here instead, where nothing
+    // can read it, keyed by the testimonial's own id.
+    match /testimonialContacts/{id} {
+      allow read, update, delete: if false;
+
+      allow create: if request.resource.data.keys().hasOnly(['email', 'createdAt'])
+                    && request.resource.data.email is string
+                    && request.resource.data.email.size() >= 6
+                    && request.resource.data.email.size() <= 254
+                    && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$')
+                    && request.resource.data.createdAt == request.time;
+    }
+
     // Everything else is closed.
     match /{document=**} {
       allow read, write: if false;

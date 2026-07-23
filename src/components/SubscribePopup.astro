@@ -154,8 +154,8 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
         localStorage.setItem(DONE, '1');
         status.textContent =
           result === 'already-subscribed'
-            ? "You're already on the list — nothing more to do."
-            : "Thanks — you're subscribed. Check your inbox.";
+            ? 'You are already subscribed.'
+            : 'Thanks for subscribing — you will get notified.';
         status.style.color = 'var(--accent)';
         form.hidden = true;
 

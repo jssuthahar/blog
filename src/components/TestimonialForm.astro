@@ -3,35 +3,45 @@ import { FIREBASE } from '../config';
 
 interface Props {
   compact?: boolean;
+  /** Chrome is dropped when the form is already inside a titled dialog. */
+  bare?: boolean;
+  /** Must be unique per page — a page may hold both an inline and a popup form. */
+  formId?: string;
 }
 
-const { compact = false } = Astro.props;
+const { compact = false, bare = false, formId = 'testimonial' } = Astro.props;
 const enabled = FIREBASE.projectId.length > 0;
+
+const id = (field: string) => `${formId}-${field}`;
 ---
 
-<section
-  id="write-testimonial"
-  class:list={['scroll-mt-24 rounded-xl border border-default', compact ? 'p-6' : 'p-8']}
-  aria-labelledby="testimonial-form-heading"
+<div
+  id={bare ? undefined : 'write-testimonial'}
+  class:list={[
+    !bare && 'scroll-mt-24 rounded-xl border border-default',
+    !bare && (compact ? 'p-6' : 'p-8'),
+  ]}
 >
-  <p class="eyebrow">Your turn</p>
-  <h2 id="testimonial-form-heading" class="display mt-2 text-2xl">
-    How did Suthahar's articles help you?
-  </h2>
-  <p class="mt-2 max-w-xl text-sm leading-relaxed text-muted">
-    If something here saved you time or unblocked a real project, I'd love to hear about it.
-    Submissions are reviewed before they appear on the site.
-  </p>
+  {!bare && (
+    <>
+      <p class="eyebrow">Your turn</p>
+      <h2 class="display mt-2 text-2xl">How did Suthahar's articles help you?</h2>
+      <p class="mt-2 max-w-xl text-sm leading-relaxed text-muted">
+        If something here saved you time or unblocked a real project, I'd love to hear
+        about it. Submissions are reviewed before they appear on the site.
+      </p>
+    </>
+  )}
 
-  <form id="testimonial-form" class="mt-6 space-y-4" novalidate>
+  <form data-testimonial-form class:list={[!bare && 'mt-6', 'space-y-4']} novalidate>
     <div>
-      <label for="t-message" class="block text-sm font-medium">
+      <label for={id('message')} class="block text-sm font-medium">
         Your feedback <span style="color: var(--accent);">*</span>
       </label>
       <textarea
-        id="t-message"
-        name="message"
-        rows="5"
+        id={id('message')}
+        data-field="message"
+        rows={compact ? 4 : 5}
         required
         maxlength="1500"
         disabled={!enabled}
@@ -45,12 +55,12 @@ const enabled = FIREBASE.projectId.length > 0;
 
     <div class="grid gap-4 sm:grid-cols-2">
       <div>
-        <label for="t-name" class="block text-sm font-medium">
+        <label for={id('name')} class="block text-sm font-medium">
           Name <span style="color: var(--accent);">*</span>
         </label>
         <input
-          id="t-name"
-          name="name"
+          id={id('name')}
+          data-field="name"
           type="text"
           required
           maxlength="80"
@@ -60,12 +70,28 @@ const enabled = FIREBASE.projectId.length > 0;
         />
       </div>
       <div>
-        <label for="t-company" class="block text-sm font-medium">
+        <label for={id('email')} class="block text-sm font-medium">
+          Email <span style="color: var(--accent);">*</span>
+        </label>
+        <input
+          id={id('email')}
+          data-field="email"
+          type="email"
+          required
+          maxlength="254"
+          autocomplete="email"
+          disabled={!enabled}
+          class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
+        />
+        <p class="mt-1 text-xs text-muted">Never published — used only to verify your feedback.</p>
+      </div>
+      <div>
+        <label for={id('company')} class="block text-sm font-medium">
           Company <span class="font-normal text-muted">(optional)</span>
         </label>
         <input
-          id="t-company"
-          name="company"
+          id={id('company')}
+          data-field="company"
           type="text"
           maxlength="100"
           autocomplete="organization"
@@ -74,12 +100,12 @@ const enabled = FIREBASE.projectId.length > 0;
         />
       </div>
       <div>
-        <label for="t-role" class="block text-sm font-medium">
+        <label for={id('role')} class="block text-sm font-medium">
           Role <span class="font-normal text-muted">(optional)</span>
         </label>
         <input
-          id="t-role"
-          name="role"
+          id={id('role')}
+          data-field="role"
           type="text"
           maxlength="100"
           autocomplete="organization-title"
@@ -88,12 +114,12 @@ const enabled = FIREBASE.projectId.length > 0;
         />
       </div>
       <div>
-        <label for="t-article" class="block text-sm font-medium">
+        <label for={id('article')} class="block text-sm font-medium">
           Article name or link <span class="font-normal text-muted">(optional)</span>
         </label>
         <input
-          id="t-article"
-          name="article"
+          id={id('article')}
+          data-field="article"
           type="text"
           maxlength="300"
           disabled={!enabled}
@@ -104,9 +130,9 @@ const enabled = FIREBASE.projectId.length > 0;
 
     <div class="flex flex-wrap items-center gap-4">
       <button type="submit" disabled={!enabled} class="btn btn-accent disabled:opacity-60">
-        Submit testimonial
+        Submit feedback
       </button>
-      <p id="testimonial-status" role="status" aria-live="polite" class="text-sm"></p>
+      <p data-status role="status" aria-live="polite" class="text-sm"></p>
     </div>
 
     <p class="text-xs text-muted">
@@ -119,109 +145,137 @@ const enabled = FIREBASE.projectId.length > 0;
       </p>
     )}
   </form>
-</section>
+</div>
 
 <script>
   import { FIREBASE } from '../config';
 
-  function initTestimonialForm() {
-    const form = document.getElementById('testimonial-form') as HTMLFormElement | null;
-    if (!form || form.dataset.bound === '') return;
-    form.dataset.bound = '';
+  function initTestimonialForms() {
+    // Bound per form, not per page: the home page carries both an inline form
+    // and one inside the feedback dialog.
+    document.querySelectorAll<HTMLFormElement>('[data-testimonial-form]').forEach((form) => {
+      if (form.dataset.bound === '') return;
+      form.dataset.bound = '';
 
-    const status = document.getElementById('testimonial-status')!;
-    const message = form.querySelector<HTMLTextAreaElement>('#t-message')!;
-    const counter = form.querySelector<HTMLElement>('[data-count]')!;
-    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+      const field = (name: string) =>
+        form.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[data-field="${name}"]`)!;
 
-    message.addEventListener('input', () => {
-      counter.textContent = String(message.value.length);
-    });
+      const message = field('message');
+      const status = form.querySelector<HTMLElement>('[data-status]')!;
+      const counter = form.querySelector<HTMLElement>('[data-count]')!;
+      const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
 
-    const say = (text: string, tone: 'ok' | 'error' | 'muted') => {
-      status.textContent = text;
-      status.style.color = tone === 'muted' ? 'var(--text-muted)' : 'var(--accent)';
-    };
+      message.addEventListener('input', () => {
+        counter.textContent = String(message.value.length);
+      });
 
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-
-      const fields = {
-        message: message.value.trim(),
-        name: (form.querySelector('#t-name') as HTMLInputElement).value.trim(),
-        company: (form.querySelector('#t-company') as HTMLInputElement).value.trim(),
-        role: (form.querySelector('#t-role') as HTMLInputElement).value.trim(),
-        article: (form.querySelector('#t-article') as HTMLInputElement).value.trim(),
+      const say = (text: string, tone: 'ok' | 'error' | 'muted') => {
+        status.textContent = text;
+        status.style.color = tone === 'muted' ? 'var(--text-muted)' : 'var(--accent)';
       };
 
-      if (fields.message.length < 10) {
-        say('Please write at least 10 characters.', 'error');
-        message.focus();
-        return;
-      }
-      if (fields.name.length < 2) {
-        say('Please add your name.', 'error');
-        return;
-      }
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
 
-      button.disabled = true;
-      say('Sending…', 'muted');
+        const values = {
+          message: message.value.trim(),
+          name: field('name').value.trim(),
+          email: field('email').value.trim().toLowerCase(),
+          company: field('company').value.trim(),
+          role: field('role').value.trim(),
+          article: field('article').value.trim(),
+        };
 
-      // A client-generated ID lets this use commit(), which supports the
-      // server-timestamp transform the rules require.
-      const id = crypto.randomUUID();
-      const base = `https://firestore.googleapis.com/v1/projects/${FIREBASE.projectId}/databases/(default)/documents`;
-
-      try {
-        const res = await fetch(`${base}:commit`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            writes: [
-              {
-                update: {
-                  name: `projects/${FIREBASE.projectId}/databases/(default)/documents/testimonials/${id}`,
-                  fields: {
-                    message: { stringValue: fields.message },
-                    name: { stringValue: fields.name },
-                    company: { stringValue: fields.company },
-                    role: { stringValue: fields.role },
-                    article: { stringValue: fields.article },
-                    // Moderation state is fixed here and enforced by the rules;
-                    // a submission can never arrive pre-approved.
-                    status: { stringValue: 'pending' },
-                    featured: { booleanValue: false },
-                  },
-                },
-                updateMask: {
-                  fieldPaths: ['message', 'name', 'company', 'role', 'article', 'status', 'featured'],
-                },
-                updateTransforms: [
-                  { fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME' },
-                ],
-                currentDocument: { exists: false },
-              },
-            ],
-          }),
-        });
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body?.error?.message || `HTTP ${res.status}`);
+        if (values.message.length < 10) {
+          say('Please write at least 10 characters.', 'error');
+          message.focus();
+          return;
+        }
+        if (values.name.length < 2) {
+          say('Please add your name.', 'error');
+          field('name').focus();
+          return;
+        }
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email)) {
+          say('Please enter a valid email address.', 'error');
+          field('email').focus();
+          return;
         }
 
-        form.querySelectorAll('input, textarea').forEach((el) => {
-          (el as HTMLInputElement).value = '';
-        });
-        counter.textContent = '0';
-        say('Thank you — your testimonial has been sent for review.', 'ok');
-      } catch (error) {
-        button.disabled = false;
-        say('Something went wrong. Please try again later.', 'error');
-      }
+        button.disabled = true;
+        say('Sending…', 'muted');
+
+        // A client-generated ID lets this use commit(), which supports the
+        // server-timestamp transform the rules require.
+        const docId = crypto.randomUUID();
+        const base = `https://firestore.googleapis.com/v1/projects/${FIREBASE.projectId}/databases/(default)/documents`;
+
+        try {
+          const res = await fetch(`${base}:commit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              writes: [
+                {
+                  update: {
+                    name: `projects/${FIREBASE.projectId}/databases/(default)/documents/testimonials/${docId}`,
+                    fields: {
+                      message: { stringValue: values.message },
+                      name: { stringValue: values.name },
+                      company: { stringValue: values.company },
+                      role: { stringValue: values.role },
+                      article: { stringValue: values.article },
+                      // Fixed here and enforced by the rules: a submission can
+                      // never arrive pre-approved or pre-featured.
+                      status: { stringValue: 'pending' },
+                      featured: { booleanValue: false },
+                    },
+                  },
+                  updateMask: {
+                    fieldPaths: ['message', 'name', 'company', 'role', 'article', 'status', 'featured'],
+                  },
+                  updateTransforms: [
+                    { fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME' },
+                  ],
+                  currentDocument: { exists: false },
+                },
+                // The email goes to a separate, unreadable collection under the
+                // same id. Both writes are in one commit, so a testimonial can
+                // never be stored without its contact record or vice versa.
+                {
+                  update: {
+                    name: `projects/${FIREBASE.projectId}/databases/(default)/documents/testimonialContacts/${docId}`,
+                    fields: { email: { stringValue: values.email } },
+                  },
+                  updateMask: { fieldPaths: ['email'] },
+                  updateTransforms: [
+                    { fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME' },
+                  ],
+                  currentDocument: { exists: false },
+                },
+              ],
+            }),
+          });
+
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body?.error?.message || `HTTP ${res.status}`);
+          }
+
+          form.querySelectorAll('input, textarea').forEach((el) => {
+            (el as HTMLInputElement).value = '';
+          });
+          counter.textContent = '0';
+          say('Thank you — your feedback has been sent for review.', 'ok');
+          form.dispatchEvent(new CustomEvent('testimonial:sent', { bubbles: true }));
+        } catch (error) {
+          button.disabled = false;
+          say('Something went wrong. Please try again later.', 'error');
+        }
+      });
     });
   }
 
-  initTestimonialForm();
-  document.addEventListener('astro:page-load', initTestimonialForm);
+  initTestimonialForms();
+  document.addEventListener('astro:page-load', initTestimonialForms);
 </script>

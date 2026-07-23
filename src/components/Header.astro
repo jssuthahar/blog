@@ -1,5 +1,5 @@
 ---
-import { SITE, NAV, MAIN_SITE } from '../config';
+import { SITE, NAV } from '../config';
 import ThemeToggle from './ThemeToggle.astro';
 import Avatar from './Avatar.astro';
 
@@ -40,13 +40,6 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
           {label}
         </a>
       ))}
-
-      <a
-        href={MAIN_SITE.url}
-        class="ml-2 rounded-md border border-default px-3 py-1.5 text-sm text-muted transition-colors hover:text-accent hover:bg-subtle"
-      >
-        Main site ↗
-      </a>
     </nav>
 
     <div class="ml-auto flex items-center gap-1 sm:ml-0">
@@ -77,12 +70,6 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
         {label}
       </a>
     ))}
-    <a
-      href={MAIN_SITE.url}
-      class="block rounded-md px-3 py-2.5 text-sm text-muted transition-colors hover:bg-subtle"
-    >
-      Main site ↗
-    </a>
   </nav>
 </header>
 

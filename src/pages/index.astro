@@ -4,6 +4,9 @@ import Avatar from '../components/Avatar.astro';
 import EventCard from '../components/EventCard.astro';
 import Newsletter from '../components/Newsletter.astro';
 import SubscribePopup from '../components/SubscribePopup.astro';
+import TestimonialCard from '../components/TestimonialCard.astro';
+import FeedbackDialog from '../components/FeedbackDialog.astro';
+import { homeTestimonials, reviewSchema } from '../lib/testimonials';
 import { SITE, AUTHOR, BOOKING, SPEAKING_TOPICS } from '../config';
 import { CATEGORIES, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
 import { allArticles, articleCategories } from '../lib/articles';
@@ -32,6 +35,10 @@ const upcoming = await getUpcomingEvents();
 
 const pillars = contributionPillars();
 const span = publishingSpan();
+
+const testimonials = homeTestimonials(5);
+const leadQuote = testimonials.filter((t) => t.featured).slice(0, 2);
+const restQuotes = testimonials.filter((t) => !t.featured);
 
 /**
  * Banner slides, interleaved so the first three cover all three kinds — a
@@ -95,6 +102,7 @@ const schema = [
     })),
   },
   ...eventSchema(upcoming, SITE.url, `${SITE.url}/#person`),
+  ...reviewSchema(testimonials, `${SITE.url}/#person`),
 ];
 ---
 
@@ -117,8 +125,8 @@ const schema = [
         </h1>
 
         <p class="mt-4 max-w-xl leading-relaxed text-muted text-pretty">
-          {AUTHOR.yearsExperience}+ years as a solutions architect shipping Azure and .NET
-          across 54 markets — and {span.activeYears} years publishing what I learn.
+          {AUTHOR.yearsExperience}+ years as a solutions architect building on Azure, Google Cloud
+          and .NET — and {span.activeYears} years publishing what I learn.
           {articles.length} articles, 50+ conference sessions, {repoIndex.count} open-source
           projects, 15,000+ developers reached.
         </p>
@@ -392,6 +400,38 @@ const schema = [
     </ul>
   </section>
 
+  <!-- ══════════════ Testimonials ══════════════ -->
+  {testimonials.length > 0 && (
+    <section class="mx-auto max-w-6xl px-4 section sm:px-6" aria-labelledby="testimonials-heading">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Testimonials</p>
+          <h2 id="testimonials-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">
+            How these articles helped
+          </h2>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <button type="button" data-open-feedback class="btn btn-accent btn-sm">
+            Add your feedback
+          </button>
+          <a href="/testimonials" class="btn btn-outline btn-sm">All testimonials</a>
+        </div>
+      </div>
+
+      {leadQuote.length > 0 && (
+        <div class="mt-6 grid gap-5 md:grid-cols-2">
+          {leadQuote.map((t) => <TestimonialCard testimonial={t} highlight />)}
+        </div>
+      )}
+
+      {restQuotes.length > 0 && (
+        <div class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {restQuotes.map((t) => <TestimonialCard testimonial={t} />)}
+        </div>
+      )}
+    </section>
+  )}
+
   <!-- ══════════════ Contact + Subscribe ══════════════ -->
   <section class="border-t border-default bg-subtle" aria-labelledby="contact-heading">
     <div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2">
@@ -435,4 +475,7 @@ const schema = [
 
   <!-- Home page only, once per visitor. -->
   <SubscribePopup />
+
+  <!-- Opened by any [data-open-feedback] trigger on the page. -->
+  <FeedbackDialog />
 </BaseLayout>

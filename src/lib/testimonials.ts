@@ -29,6 +29,15 @@ export function featuredTestimonials(limit = 10): Testimonial[] {
   return allTestimonials().slice(0, limit);
 }
 
+/**
+ * The five shown on the home page. Sourced entirely from Firestore — seed the
+ * starter set with `npm run seed:testimonials`, approve them in the console,
+ * then `npm run sync:testimonials`.
+ */
+export function homeTestimonials(limit = 5): Testimonial[] {
+  return allTestimonials().slice(0, limit);
+}
+
 /** "Role, Company" — whichever parts were supplied. */
 export function attribution(t: Testimonial): string {
   return [t.role, t.company].filter(Boolean).join(', ');

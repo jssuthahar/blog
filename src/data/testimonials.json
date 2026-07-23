@@ -1,6 +1,27 @@
 {
-  "syncedAt": null,
-  "count": 0,
+  "syncedAt": "2026-07-23T16:52:24.253Z",
+  "count": 2,
   "featuredCount": 0,
-  "testimonials": []
+  "testimonials": [
+    {
+      "id": "0f039f85-d4b8-4d83-a007-f1c05fb13810",
+      "message": "Suthahar's article helped me complete my work faster. The explanation was clear, practical, and easy to apply in a real project.",
+      "name": "Praveen Kumar",
+      "company": "",
+      "role": "Senior Software Engineer",
+      "article": "",
+      "featured": false,
+      "createdAt": "2026-07-23T16:37:37.936Z"
+    },
+    {
+      "id": "2e5bb321-2db7-444d-816f-441858f166f4",
+      "message": "The JWT bearer walkthrough caught a middleware ordering mistake we had shipped weeks earlier. Every protected endpoint was returning 401 and we could not work out why.",
+      "name": "Anitha Raman",
+      "company": "",
+      "role": "Backend Developer",
+      "article": "How to Secure a .NET Minimal API with JWT Bearer Authentication",
+      "featured": false,
+      "createdAt": "2026-07-23T16:37:37.936Z"
+    }
+  ]
 }

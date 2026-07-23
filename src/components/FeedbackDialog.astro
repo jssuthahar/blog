@@ -1,0 +1,87 @@
+---
+import TestimonialForm from './TestimonialForm.astro';
+
+/**
+ * Feedback popup, opened by any element carrying `data-open-feedback`.
+ *
+ * Native <dialog> again: focus trapping, ESC, and background inerting come
+ * from the browser rather than being reimplemented.
+ */
+---
+
+<dialog id="feedback-dialog" class="feedback-dialog rounded-xl border border-default p-0" aria-labelledby="feedback-title">
+  <form method="dialog" class="absolute right-2 top-2">
+    <button class="rounded-md p-2 text-muted transition-colors hover:bg-subtle" aria-label="Close">
+      <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M18 6 6 18M6 6l12 12" />
+      </svg>
+    </button>
+  </form>
+
+  <div class="p-7">
+    <p class="eyebrow">Your turn</p>
+    <h2 id="feedback-title" class="display mt-2 text-2xl">
+      How did Suthahar's articles help you?
+    </h2>
+    <p class="mt-2 text-sm leading-relaxed text-muted">
+      If something here saved you time or unblocked a real project, I'd love to hear about
+      it. Submissions are reviewed before they appear on the site.
+    </p>
+
+    <div class="mt-6">
+      <TestimonialForm bare formId="feedback-dialog" />
+    </div>
+  </div>
+</dialog>
+
+<style>
+  .feedback-dialog {
+    width: min(38rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 3rem);
+    overflow-y: auto;
+    /* The reset zeroes the `margin: auto` a modal <dialog> centres itself with. */
+    margin: auto;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .feedback-dialog::backdrop {
+    background: oklch(0 0 0 / 0.45);
+    backdrop-filter: blur(2px);
+  }
+  .feedback-dialog[open] {
+    animation: feedback-in 0.22s ease;
+  }
+  @keyframes feedback-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .feedback-dialog[open] { animation: none; }
+  }
+</style>
+
+<script>
+  function initFeedbackDialog() {
+    const dialog = document.getElementById('feedback-dialog') as HTMLDialogElement | null;
+    if (!dialog) return;
+
+    document.querySelectorAll('[data-open-feedback]').forEach((trigger) => {
+      if ((trigger as HTMLElement).dataset.bound === '') return;
+      (trigger as HTMLElement).dataset.bound = '';
+      trigger.addEventListener('click', () => dialog.showModal());
+    });
+
+    // Clicking the backdrop closes, matching what <dialog> leads users to expect.
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+
+    // Give the confirmation a moment to be read before the dialog disappears.
+    dialog.addEventListener('testimonial:sent', () => {
+      setTimeout(() => dialog.open && dialog.close(), 2600);
+    });
+  }
+
+  initFeedbackDialog();
+  document.addEventListener('astro:page-load', initFeedbackDialog);
+</script>

@@ -11,7 +11,8 @@
     "sync:articles": "node scripts/sync-blogger.mjs",
     "sync:repos": "node scripts/sync-github.mjs",
     "sync": "npm run sync:articles && npm run sync:repos && npm run sync:testimonials",
-    "sync:testimonials": "node scripts/sync-testimonials.mjs"
+    "sync:testimonials": "node scripts/sync-testimonials.mjs",
+    "seed:testimonials": "node scripts/seed-testimonials.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.7",

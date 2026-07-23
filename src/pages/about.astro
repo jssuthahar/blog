@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Avatar from '../components/Avatar.astro';
 import Newsletter from '../components/Newsletter.astro';
-import { SITE, AUTHOR, MAIN_SITE, IMPACT } from '../config';
+import { SITE, AUTHOR, MAIN_SITE, IMPACT, EXPERTISE } from '../config';
 
 const schema = [
   {
@@ -17,7 +17,7 @@ const schema = [
     '@id': `${SITE.url}/#person`,
     jobTitle: AUTHOR.jobTitle,
     homeLocation: { '@type': 'Place', name: AUTHOR.location },
-    knowsAbout: [...AUTHOR.expertise],
+    knowsAbout: [...EXPERTISE],
     award: [...AUTHOR.awards],
     hasCredential: AUTHOR.certifications.map((name) => ({
       '@type': 'EducationalOccupationalCredential',
@@ -49,9 +49,10 @@ const links = [
         <p class="eyebrow">{AUTHOR.jobTitle}</p>
         <h1 class="display mt-2 text-4xl sm:text-5xl">{AUTHOR.name}</h1>
         <p class="mt-4 max-w-2xl text-lg leading-relaxed text-muted text-pretty">
-          {AUTHOR.yearsExperience}+ years in enterprise architecture, based in {AUTHOR.location} and
-          shipping across 54 markets. I work across Microsoft Azure, .NET MAUI, and applied AI —
-          and I have been publishing what I learn as <strong>MSDEVBUILD</strong> since 2007.
+          {AUTHOR.yearsExperience}+ years in enterprise architecture, based in {AUTHOR.location}.
+          I work across Azure, Google Cloud and Firebase, build with
+          C#, Python, .NET MAUI and Flutter, and apply AI with Azure AI, Claude and GitHub
+          Copilot — publishing what I learn as <strong>MSDEVBUILD</strong> since 2007.
         </p>
       </div>
     </header>
@@ -70,10 +71,15 @@ const links = [
         <h2>What I work on</h2>
         <p>
           My day work is enterprise cloud and mobile architecture: Azure platform design,
-          identity with Microsoft Entra ID, and .NET MAUI applications shipped to a global
-          user base. More recently that has extended into applied AI — Azure OpenAI,
-          retrieval-augmented generation, and agent patterns inside real products rather
-          than demos.
+          identity, and cross-platform apps built with .NET MAUI and Flutter, shipped to a
+          global user base. Cloud work spans Azure, Google Cloud, and Firebase rather than
+          a single provider.
+        </p>
+        <p>
+          More recently that has extended into applied AI — Azure AI, Claude, and GitHub
+          Copilot inside real delivery workflows rather than demos: retrieval-augmented
+          generation, agent patterns, and the developer-productivity side of AI assistance.
+          Day to day that means C# and Python, APIs, and the DevOps to get it all shipped.
         </p>
 
         <h2>Why this blog exists</h2>
@@ -137,15 +143,25 @@ const links = [
 
         <section aria-labelledby="expertise">
           <h2 id="expertise" class="text-xs font-semibold tracking-wider uppercase text-muted">
-            Expertise
+            Skills
           </h2>
-          <ul class="mt-3 flex flex-wrap gap-1.5">
-            {AUTHOR.expertise.map((skill) => (
-              <li class="rounded-full border border-default px-2.5 py-1 text-xs text-muted">
-                {skill}
-              </li>
+
+          <!-- Grouped rather than one long chip cloud: a reader can see the
+               shape of the skill set instead of scanning 16 loose tags. -->
+          <div class="mt-3 space-y-4">
+            {AUTHOR.skillGroups.map(({ title, skills }) => (
+              <div>
+                <p class="text-xs font-medium">{title}</p>
+                <ul class="mt-1.5 flex flex-wrap gap-1.5">
+                  {skills.map((skill) => (
+                    <li class="rounded-full border border-default px-2.5 py-1 text-xs text-muted">
+                      {skill}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
 
         <section aria-labelledby="elsewhere">

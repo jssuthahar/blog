@@ -34,10 +34,10 @@ export const AUTHOR = {
    * LinkedIn or the contact form so the address is never scrapeable.
    */
   linkedin: 'https://my.linkedin.com/in/jssuthahar',
-  jobTitle: 'Global Cloud, AI & Mobile Solutions Architect',
+  jobTitle: 'Cloud, AI & Mobile Solutions Architect',
   location: 'Malaysia',
   yearsExperience: 18,
-  bio: 'Global Cloud, AI & Mobile Solutions Architect with 18+ years in enterprise architecture across Microsoft Azure, .NET MAUI, and applied AI. Creator of MSDEVBUILD.',
+  bio: 'Cloud, AI & Mobile Solutions Architect with 18+ years in enterprise architecture across Azure, Google Cloud and Firebase, building with C#, Python, .NET MAUI and Flutter, and applying AI with Azure AI, Claude and GitHub Copilot. Creator of MSDEVBUILD.',
   avatar: '/images/author.jpg',
 
   /**
@@ -72,22 +72,37 @@ export const AUTHOR = {
     'SAFe® 4 Scrum Master',
   ],
 
-  /** Emitted as schema.org `knowsAbout` — the topical authority claim. */
-  expertise: [
-    'Microsoft Azure',
-    'Azure OpenAI',
-    'Generative AI',
-    '.NET MAUI',
-    'Xamarin',
-    'C#',
-    'ASP.NET Core',
-    'Microsoft Entra ID',
-    'Cloud Architecture',
-    'Mobile Architecture',
-    'Retrieval-Augmented Generation',
-    'Bot Framework',
+  /**
+   * Grouped for display on /about. Order matters: AI leads because it is the
+   * most current work, and the cloud group deliberately spans all three
+   * providers rather than reading as Microsoft-only.
+   */
+  skillGroups: [
+    {
+      title: 'AI & developer tooling',
+      skills: ['Artificial Intelligence', 'GitHub Copilot', 'Azure AI', 'Claude', 'Generative AI'],
+    },
+    {
+      title: 'Cloud platforms',
+      skills: ['Azure Cloud', 'Google Cloud', 'Firebase'],
+    },
+    {
+      title: 'Languages & frameworks',
+      skills: ['C#', 'Python', '.NET MAUI', 'Flutter'],
+    },
+    {
+      title: 'Platforms & delivery',
+      skills: ['Web Development', 'Mobile Development', 'API Development', 'DevOps'],
+    },
   ],
 } as const;
+
+/**
+ * Flat skill list emitted as schema.org `knowsAbout` — the topical authority
+ * claim search engines and LLMs read. Derived from the groups so the page and
+ * the structured data can never disagree.
+ */
+export const EXPERTISE: readonly string[] = AUTHOR.skillGroups.flatMap((g) => g.skills);
 
 /**
  * Articles published each year on platforms this site cannot index — C# Corner,
@@ -112,7 +127,6 @@ export const IMPACT = [
   { value: '5M+', label: 'Total content views' },
   { value: '15,000+', label: 'Developers reached' },
   { value: '50+', label: 'Conference talks delivered' },
-  { value: '54', label: 'Markets with shipped products' },
 ] as const;
 
 /**
@@ -183,7 +197,7 @@ export const SPEAKING_TOPICS = [
   {
     title: 'Cross-Platform with .NET MAUI',
     description:
-      'Shipping one codebase to iOS and Android at production quality, drawn from apps running in 54 markets.',
+      'Shipping one codebase to iOS and Android at production quality, from real delivery experience.',
   },
   {
     title: 'Developer Productivity with AI',

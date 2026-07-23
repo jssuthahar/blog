@@ -6,6 +6,7 @@ import Newsletter from '../components/Newsletter.astro';
 import SubscribePopup from '../components/SubscribePopup.astro';
 import TestimonialCard from '../components/TestimonialCard.astro';
 import FeedbackDialog from '../components/FeedbackDialog.astro';
+import TestimonialForm from '../components/TestimonialForm.astro';
 import { homeTestimonials, reviewSchema } from '../lib/testimonials';
 import { SITE, AUTHOR, BOOKING, SPEAKING_TOPICS } from '../config';
 import { CATEGORIES, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
@@ -429,6 +430,13 @@ const schema = [
           {restQuotes.map((t) => <TestimonialCard testimonial={t} />)}
         </div>
       )}
+
+      <!-- The form inline as well as in the popup: a reader who scrolls this far
+           should not have to open a dialog to answer. Distinct formId so the two
+           forms on this page keep separate field ids. -->
+      <div class="mt-8">
+        <TestimonialForm compact formId="home" />
+      </div>
     </section>
   )}
 

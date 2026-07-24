@@ -9,13 +9,14 @@ import FeedbackDialog from '../components/FeedbackDialog.astro';
 import SiteChat from '../components/SiteChat.astro';
 import TestimonialForm from '../components/TestimonialForm.astro';
 import { homeTestimonials, reviewSchema } from '../lib/testimonials';
-import { SITE, AUTHOR, BOOKING, SPEAKING_TOPICS } from '../config';
+import { SITE, AUTHOR, BOOKING, SPEAKING_TOPICS, ADSENSE_SLOT_DISPLAY } from '../config';
 import { CATEGORIES, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
 import { allArticles, articleCategories } from '../lib/articles';
 import { featuredRepos, repoIndex, languageColor } from '../lib/repos';
 import { getUpcomingEvents, eventSchema } from '../lib/speaking';
 import { contributionPillars, publishingSpan } from '../lib/evidence';
 import ContributionTimeline from '../components/ContributionTimeline.astro';
+import AdUnit from '../components/AdUnit.astro';
 import HeroCarousel, { type Slide } from '../components/HeroCarousel.astro';
 import { formatEventDate, FORMAT_LABELS } from '../lib/speaking';
 
@@ -414,6 +415,11 @@ const schema = [
       ))}
     </ul>
   </section>
+
+  <!-- One display ad between the open-source and testimonials sections. -->
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <AdUnit slot={ADSENSE_SLOT_DISPLAY} format="display" class="!max-w-none" />
+  </div>
 
   <!-- ══════════════ Testimonials ══════════════ -->
   {testimonials.length > 0 && (

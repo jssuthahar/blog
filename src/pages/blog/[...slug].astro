@@ -14,7 +14,8 @@ import Comments from '../../components/Comments.astro';
 import ViewCounter from '../../components/ViewCounter.astro';
 import PostHighlight from '../../components/PostHighlight.astro';
 import FollowCTA from '../../components/FollowCTA.astro';
-import { SITE, AUTHOR } from '../../config';
+import AdUnit from '../../components/AdUnit.astro';
+import { SITE, AUTHOR, ADSENSE_SLOT_IN_ARTICLE } from '../../config';
 import {
   CATEGORIES,
   formatDate,
@@ -188,6 +189,10 @@ if (data.faq.length > 0) {
             </dl>
           </section>
         )}
+
+        <!-- One in-article ad at the end of the read, before the engagement
+             bar. No sticky/mid-content units, so it never interrupts reading. -->
+        <AdUnit slot={ADSENSE_SLOT_IN_ARTICLE} />
 
         <div class="mx-auto mt-14 max-w-[68ch] border-t border-default pt-8">
           <!-- Engagement bar: react, then share. -->

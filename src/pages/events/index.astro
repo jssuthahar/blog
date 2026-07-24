@@ -1,7 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import EventListCard from '../../components/EventListCard.astro';
-import { SITE, AUTHOR } from '../../config';
+import AdUnit from '../../components/AdUnit.astro';
+import { SITE, AUTHOR, ADSENSE_SLOT_DISPLAY } from '../../config';
 import { getUpcomingEvents, getPastEvents, eventSchema } from '../../lib/eventhub';
 
 const upcoming = await getUpcomingEvents();
@@ -65,4 +66,7 @@ const schema = [
       </div>
     </section>
   )}
+
+  <!-- One display ad at the foot of the events list. -->
+  <AdUnit slot={ADSENSE_SLOT_DISPLAY} format="display" class="!max-w-none" />
 </BaseLayout>

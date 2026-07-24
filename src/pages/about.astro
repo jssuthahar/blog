@@ -2,7 +2,8 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Avatar from '../components/Avatar.astro';
 import Newsletter from '../components/Newsletter.astro';
-import { SITE, AUTHOR, MAIN_SITE, IMPACT, EXPERTISE } from '../config';
+import AdUnit from '../components/AdUnit.astro';
+import { SITE, AUTHOR, MAIN_SITE, IMPACT, EXPERTISE, ADSENSE_SLOT_DISPLAY } from '../config';
 
 const schema = [
   {
@@ -179,6 +180,9 @@ const links = [
         </section>
       </aside>
     </div>
+
+    <!-- One display ad after the profile content, before the newsletter. -->
+    <AdUnit slot={ADSENSE_SLOT_DISPLAY} format="display" />
 
     <div class="mt-16">
       <Newsletter compact />

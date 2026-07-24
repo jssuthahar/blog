@@ -2,7 +2,8 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import RepoCard from '../components/RepoCard.astro';
 import FeaturedProjectCard from '../components/FeaturedProjectCard.astro';
-import { SITE, AUTHOR } from '../config';
+import AdUnit from '../components/AdUnit.astro';
+import { SITE, AUTHOR, ADSENSE_SLOT_DISPLAY } from '../config';
 import { allRepos, repoIndex } from '../lib/repos';
 import { featuredProjects } from '../lib/featured-projects';
 
@@ -107,6 +108,9 @@ const schema = [
       </ul>
     </section>
   )}
+
+  <!-- One display ad at the foot of the projects list. -->
+  <AdUnit slot={ADSENSE_SLOT_DISPLAY} format="display" class="!max-w-none" />
 </BaseLayout>
 
 <style>

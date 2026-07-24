@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { SITE, AUTHOR, MAIN_SITE, FIREBASE, BOOKING } from '../config';
+import AdUnit from '../components/AdUnit.astro';
+import { SITE, AUTHOR, MAIN_SITE, FIREBASE, BOOKING, ADSENSE_SLOT_DISPLAY } from '../config';
 import { SUBJECTS } from '../lib/contact';
 
 // The form writes straight to Firestore (no external form service), so it is
@@ -188,6 +189,10 @@ const schema = [
       </p>
     </aside>
   </div>
+
+  <!-- Kept at the page foot, well clear of the form, so an ad is never adjacent
+       to the inputs (avoids accidental clicks and AdSense placement flags). -->
+  <AdUnit slot={ADSENSE_SLOT_DISPLAY} format="display" class="!max-w-none mt-16" />
 </BaseLayout>
 
 <script>

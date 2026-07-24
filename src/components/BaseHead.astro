@@ -2,7 +2,7 @@
 import '@fontsource-variable/inter';
 import '@fontsource-variable/source-serif-4';
 import '../styles/global.css';
-import { SITE, GA_ID } from '../config';
+import { SITE, GA_ID, ADSENSE_CLIENT } from '../config';
 
 interface Props {
   title: string;
@@ -86,6 +86,40 @@ const fullTitle = title === SITE.title ? brand : `${title} | ${brand}`;
     type="application/ld+json"
     set:html={JSON.stringify({ '@context': 'https://schema.org', '@graph': schema })}
   />
+)}
+
+<!-- Google AdSense Auto ads. One snippet site-wide; Google places the units.
+     Skipped on private tooling pages so ads never render in the admin/editor. -->
+{ADSENSE_CLIENT && !noindex && (
+  <>
+    <script
+      is:inline
+      async
+      src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+      crossorigin="anonymous"
+    ></script>
+    <script is:inline>
+      // View Transitions swap the DOM without a reload, so the usual per-unit
+      // `push({})` never re-runs on client navigation and units go blank. This
+      // requests a fill for every not-yet-processed <ins> on each page-load,
+      // including the first. Bound once so navigations don't stack listeners.
+      (() => {
+        const fill = () => {
+          document
+            .querySelectorAll('ins.adsbygoogle:not([data-adsbygoogle-status])')
+            .forEach(() => {
+              try {
+                (window.adsbygoogle = window.adsbygoogle || []).push({});
+              } catch {}
+            });
+        };
+        if (!window.__adsBound) {
+          window.__adsBound = true;
+          document.addEventListener('astro:page-load', fill);
+        }
+      })();
+    </script>
+  </>
 )}
 
 <!-- Theme applied before first paint: no flash of the wrong theme. -->

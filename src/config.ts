@@ -297,3 +297,15 @@ export const CONTACT_FORM = {
  * reports identical data without shipping the Firebase SDK to every visitor.
  */
 export const GA_ID = 'G-X0V2Y2GH4D';
+
+// Google AdSense publisher ID. Approval is account-level and already covers
+// this subdomain; ownership is verified via /ads.txt in public/.
+export const ADSENSE_CLIENT = 'ca-pub-3425499927549926';
+
+// Ad-unit slot IDs. Create each unit in AdSense → Ads → By ad unit, then paste
+// its numeric slot here. Blank = that AdUnit renders nothing, so no empty boxes
+// ship before the unit exists.
+//   IN_ARTICLE — an "In-article" unit, used at the end of reading pages.
+//   DISPLAY    — a responsive "Display" unit, used on listing pages.
+export const ADSENSE_SLOT_IN_ARTICLE = '';
+export const ADSENSE_SLOT_DISPLAY = '';

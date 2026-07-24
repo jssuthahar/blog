@@ -1,0 +1,52 @@
+---
+import { ADSENSE_CLIENT } from '../config';
+
+interface Props {
+  /** AdSense ad-unit slot ID. When empty the unit renders nothing. */
+  slot?: string;
+  /**
+   * 'in-article' — fluid unit for the end of a reading page (default).
+   * 'display'    — responsive unit for listing pages.
+   */
+  format?: 'in-article' | 'display';
+  /** Extra classes for the wrapping <aside>. */
+  class?: string;
+}
+
+const { slot, format = 'in-article', class: className } = Astro.props;
+
+// Render only when both the account client and a real slot exist, so no empty
+// ad frame ever ships to readers before the unit is configured.
+const show = Boolean(ADSENSE_CLIENT && slot);
+---
+
+{show && (
+  <aside
+    class:list={['ad-unit mx-auto my-12 max-w-[68ch] text-center', className]}
+    aria-label="Advertisement"
+  >
+    <span class="mb-2 block text-[11px] font-medium tracking-wider text-muted uppercase">
+      Advertisement
+    </span>
+
+    {format === 'in-article' ? (
+      <ins
+        class="adsbygoogle"
+        style="display:block; text-align:center;"
+        data-ad-layout="in-article"
+        data-ad-format="fluid"
+        data-ad-client={ADSENSE_CLIENT}
+        data-ad-slot={slot}
+      ></ins>
+    ) : (
+      <ins
+        class="adsbygoogle"
+        style="display:block;"
+        data-ad-client={ADSENSE_CLIENT}
+        data-ad-slot={slot}
+        data-ad-format="auto"
+        data-full-width-responsive="true"
+      ></ins>
+    )}
+  </aside>
+)}

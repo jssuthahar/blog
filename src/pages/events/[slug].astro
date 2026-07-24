@@ -4,7 +4,8 @@ import { Image } from 'astro:assets';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import EventRegistrationForm from '../../components/EventRegistrationForm.astro';
 import EventListCard from '../../components/EventListCard.astro';
-import { SITE } from '../../config';
+import AdUnit from '../../components/AdUnit.astro';
+import { SITE, ADSENSE_SLOT_IN_ARTICLE } from '../../config';
 import {
   EVENT_FORMAT_LABELS,
   eventSchema,
@@ -137,6 +138,9 @@ const facts = [
             ))}
           </ul>
         )}
+
+        <!-- One in-article ad after the event details, before "more events". -->
+        <AdUnit slot={ADSENSE_SLOT_IN_ARTICLE} class="!max-w-none" />
       </div>
 
       <!-- Registration renders once: a sticky rail on wide screens, and it

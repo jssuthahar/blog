@@ -45,7 +45,7 @@ draft: false
 | `title` | Max 120 characters |
 | `description` | **50–200 characters.** Used for the card, the meta description, and RSS |
 | `publishedAt` | `YYYY-MM-DD` |
-| `category` | Exactly one of: `dotnet` `csharp` `azure` `ai` `devops` `career` |
+| `category` | Exactly one of: `programming` `mobile` `azure` `ai` `copilot` `architecture` `devops` `engineering` `career` |
 
 ### Optional
 

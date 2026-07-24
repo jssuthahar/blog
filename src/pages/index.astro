@@ -8,7 +8,7 @@ import TestimonialCard from '../components/TestimonialCard.astro';
 import FeedbackDialog from '../components/FeedbackDialog.astro';
 import SiteChat from '../components/SiteChat.astro';
 import TestimonialForm from '../components/TestimonialForm.astro';
-import { homeTestimonials, reviewSchema } from '../lib/testimonials';
+import { homeTestimonials } from '../lib/testimonials';
 import { SITE, AUTHOR, BOOKING, SPEAKING_TOPICS, ADSENSE_SLOT_DISPLAY } from '../config';
 import { CATEGORIES, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
 import { allArticles, articleCategories } from '../lib/articles';
@@ -105,7 +105,9 @@ const schema = [
     })),
   },
   ...eventSchema(upcoming, SITE.url, `${SITE.url}/#person`),
-  ...reviewSchema(testimonials, `${SITE.url}/#person`),
+  // No Review schema: self-serving testimonials reviewing the site's own author
+  // aren't eligible for review rich results and fail validation (Person is not a
+  // valid itemReviewed type). The quotes remain visible on the page.
 ];
 ---
 

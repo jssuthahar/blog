@@ -3,12 +3,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import TestimonialCard from '../components/TestimonialCard.astro';
 import TestimonialForm from '../components/TestimonialForm.astro';
 import { SITE, AUTHOR } from '../config';
-import { allTestimonials, reviewSchema, testimonialIndex } from '../lib/testimonials';
+import { allTestimonials, testimonialIndex } from '../lib/testimonials';
 
 const testimonials = allTestimonials();
 const featured = testimonials.filter((t) => t.featured);
 const rest = testimonials.filter((t) => !t.featured);
 
+// No Review structured data: testimonials hosted on the reviewed entity's own
+// site are "self-serving" and never eligible for review rich results, and a
+// Person is an invalid itemReviewed type. The quotes stay visible on the page.
 const schema =
   testimonials.length > 0
     ? [
@@ -18,7 +21,6 @@ const schema =
           name: `Reader testimonials — ${AUTHOR.name}`,
           description: `What readers say about the articles published by ${AUTHOR.name}.`,
         },
-        ...reviewSchema(testimonials, `${SITE.url}/#person`),
       ]
     : [];
 ---

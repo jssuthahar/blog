@@ -48,18 +48,9 @@ export function articleLink(t: Testimonial): string | null {
   return /^https?:\/\//.test(t.article) ? t.article : null;
 }
 
-/** schema.org Review nodes, so quotes can surface as rich results. */
-export function reviewSchema(items: Testimonial[], personId: string) {
-  return items.map((t) => ({
-    '@type': 'Review',
-    reviewBody: t.message,
-    datePublished: t.createdAt?.slice(0, 10),
-    author: {
-      '@type': 'Person',
-      name: t.name,
-      ...(t.company && { worksFor: { '@type': 'Organization', name: t.company } }),
-      ...(t.role && { jobTitle: t.role }),
-    },
-    itemReviewed: { '@id': personId },
-  }));
-}
+// NOTE: Review structured data was intentionally removed. Testimonials hosted
+// on the reviewed entity's own site are "self-serving" and never eligible for
+// Google review rich results, and reviewing a Person is invalid (Person is not
+// an allowed itemReviewed type — it triggers a Search Console error). The
+// quotes still render on the page as ordinary content; they just carry no
+// Review/AggregateRating schema. Do not reintroduce it against the #person node.

@@ -6,7 +6,7 @@ import TestimonialForm from '../../components/TestimonialForm.astro';
 import AdUnit from '../../components/AdUnit.astro';
 import { SITE, ADSENSE_SLOT_DISPLAY } from '../../config';
 import { getPublishedPosts } from '../../lib/posts';
-import { featuredTestimonials, reviewSchema, testimonialIndex } from '../../lib/testimonials';
+import { featuredTestimonials, testimonialIndex } from '../../lib/testimonials';
 
 const posts = await getPublishedPosts();
 
@@ -16,8 +16,9 @@ const testimonials = featuredTestimonials(10);
 const highlighted = testimonials.filter((t) => t.featured);
 const standard = testimonials.filter((t) => !t.featured);
 
-const schema =
-  testimonials.length > 0 ? reviewSchema(testimonials, `${SITE.url}/#person`) : [];
+// No Review schema — self-serving testimonials on your own site aren't eligible
+// for review rich results, and a Person is an invalid itemReviewed type.
+const schema: Record<string, unknown>[] = [];
 ---
 
 <BaseLayout

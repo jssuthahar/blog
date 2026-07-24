@@ -12,7 +12,6 @@ const repos = allRepos();
 const withDescription = repos.filter((r) => r.description.length > 0);
 const rest = repos.filter((r) => r.description.length === 0);
 
-const languages = [...new Set(repos.map((r) => r.language).filter(Boolean))];
 
 const schema = [
   {
@@ -36,8 +35,8 @@ const schema = [
     <p class="mt-5 text-lg leading-relaxed text-muted text-pretty">
       Flagship apps you can open and try, plus {repoIndex.count} public repositories. In my
       free time I explore new topics and get hands-on with different technologies — taking
-      each idea end to end, from first commit to a delivered, working app — across
-      {' '}{languages.slice(0, 4).join(', ')}, and more.
+      each idea end to end, from first commit to delivery — across AI and full-stack
+      development with Dart, C#, React, and React Native, shipping to Android, iOS, and web.
     </p>
   </header>
 

@@ -1,8 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import RepoCard from '../components/RepoCard.astro';
+import FeaturedProjectCard from '../components/FeaturedProjectCard.astro';
 import { SITE, AUTHOR } from '../config';
 import { allRepos, repoIndex } from '../lib/repos';
+import { featuredProjects } from '../lib/featured-projects';
+
+const liveCount = featuredProjects.filter((p) => p.live).length;
 
 const repos = allRepos();
 const withDescription = repos.filter((r) => r.description.length > 0);
@@ -30,8 +34,10 @@ const schema = [
     <p class="eyebrow">Open source</p>
     <h1 class="display mt-3 text-4xl sm:text-5xl">Code you can read</h1>
     <p class="mt-5 text-lg leading-relaxed text-muted text-pretty">
-      Learning repositories, Visual Studio extensions, and tools — {repoIndex.count} public
-      projects covering {languages.slice(0, 4).join(', ')}, and more.
+      Flagship apps you can open and try, plus {repoIndex.count} public repositories. In my
+      free time I explore new topics and get hands-on with different technologies — taking
+      each idea end to end, from first commit to a delivered, working app — across
+      {' '}{languages.slice(0, 4).join(', ')}, and more.
     </p>
   </header>
 
@@ -52,9 +58,29 @@ const schema = [
     </a>
   </section>
 
-  <section class="mt-12" aria-labelledby="projects-heading">
+  <section class="mt-14" aria-labelledby="featured-heading">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Featured projects</p>
+        <h2 id="featured-heading" class="mt-2 text-xl font-semibold tracking-tight">
+          Tools you can try right now
+        </h2>
+      </div>
+      {liveCount > 0 && (
+        <p class="text-sm text-muted">{liveCount} with a live demo you can open in the browser</p>
+      )}
+    </div>
+
+    <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {featuredProjects.map((project, i) => (
+        <FeaturedProjectCard project={project} index={i} />
+      ))}
+    </div>
+  </section>
+
+  <section class="mt-16" aria-labelledby="projects-heading">
     <h2 id="projects-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
-      Projects
+      More repositories
     </h2>
     <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {withDescription.map((repo) => <RepoCard repo={repo} />)}
@@ -83,3 +109,58 @@ const schema = [
     </section>
   )}
 </BaseLayout>
+
+<style>
+  /* Scroll-reveal for the featured cards: a gentle fade-up, staggered by the
+     per-card `--reveal-delay`. `.is-in` is toggled by the observer below. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  .reveal.is-in {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.5s ease,
+      transform 0.5s ease;
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+
+  /* Motion-sensitive readers see the cards immediately, never a transform. */
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>
+
+<script>
+  // Reveal cards as they scroll into view. Runs on every view-transition
+  // navigation, not just first paint. If the API is missing, cards are shown.
+  function armReveal() {
+    const cards = document.querySelectorAll<HTMLElement>('.reveal');
+    if (!cards.length) return;
+
+    if (!('IntersectionObserver' in window)) {
+      cards.forEach((c) => c.classList.add('is-in'));
+      return;
+    }
+
+    const io = new IntersectionObserver(
+      (entries, obs) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-in');
+            obs.unobserve(entry.target);
+          }
+        }
+      },
+      { rootMargin: '0px 0px -10% 0px', threshold: 0.1 },
+    );
+
+    cards.forEach((c) => io.observe(c));
+  }
+
+  document.addEventListener('astro:page-load', armReveal);
+</script>

@@ -1,8 +1,8 @@
 ---
 title: 'Build a RAG App on Azure — Hands-on Workshop'
 description: 'A free 2-hour hands-on session building a production-ready RAG pipeline with Azure OpenAI, Azure AI Search, and .NET. Bring a laptop.'
-startDate: 2026-09-18T18:00:00
-endDate: 2026-09-18T20:00:00
+startDate: 2026-06-18T18:00:00
+endDate: 2026-06-18T20:00:00
 timezone: 'IST'
 format: workshop
 location: 'Online'

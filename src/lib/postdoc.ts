@@ -25,7 +25,7 @@ export const emptyDraft = (): PostDraft => ({
   title: '',
   description: '',
   highlight: '',
-  category: 'dotnet',
+  category: 'programming',
   tags: '',
   publishedAt: new Date().toISOString().slice(0, 10),
   updatedAt: '',

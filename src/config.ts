@@ -162,6 +162,7 @@ export const SOCIAL = [
 
 export const NAV = [
   { label: 'Articles', href: '/articles' },
+  { label: 'Topics', href: '/topics' },
   { label: 'Blog', href: '/blog' },
   { label: 'Speaking', href: '/speaking' },
   { label: 'Open source', href: '/open-source' },

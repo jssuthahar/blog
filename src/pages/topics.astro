@@ -1,0 +1,87 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE, AUTHOR } from '../config';
+import { TOPIC_GROUPS, TAGS } from '../lib/taxonomy';
+import { slugifyCategory } from '../lib/articles';
+
+const topicCount = TOPIC_GROUPS.reduce((n, g) => n + g.technologies.length, 0);
+
+const schema = [
+  {
+    '@type': 'CollectionPage',
+    '@id': `${SITE.url}/topics#page`,
+    name: `Topics & technologies — ${SITE.title}`,
+    description: `The ${TOPIC_GROUPS.length} areas and ${topicCount}+ technologies covered on ${SITE.title}.`,
+    about: { '@id': `${SITE.url}/#person` },
+    isPartOf: { '@id': `${SITE.url}/#website` },
+  },
+  {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Topics' },
+    ],
+  },
+];
+---
+
+<BaseLayout
+  title="Topics & technologies"
+  description={`Browse the ${TOPIC_GROUPS.length} areas and ${topicCount}+ technologies covered by ${AUTHOR.name} — .NET, Azure, AI, mobile, architecture, DevOps, and more.`}
+  schema={schema}
+>
+  <header class="max-w-3xl">
+    <p class="eyebrow">Topics</p>
+    <h1 class="display mt-3 text-3xl sm:text-4xl">Topics &amp; technologies</h1>
+    <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">
+      Everything covered here, organised into {TOPIC_GROUPS.length} areas across
+      {topicCount}+ technologies — from .NET and Azure to applied AI, mobile, and
+      enterprise architecture.
+    </p>
+  </header>
+
+  <div class="mt-12 grid gap-6 sm:grid-cols-2">
+    {TOPIC_GROUPS.map((group) => (
+      <section
+        class="rounded-xl border border-default p-6"
+        style={`border-top: 3px solid oklch(0.6 0.16 ${group.hue});`}
+        aria-labelledby={`topic-${group.slug}`}
+      >
+        <h2 id={`topic-${group.slug}`} class="flex items-center gap-2 text-lg font-semibold tracking-tight">
+          <span aria-hidden="true">{group.emoji}</span>
+          <a href={`/category/${group.slug}`} class="hover:text-accent">{group.label}</a>
+        </h2>
+        <p class="mt-1.5 text-sm text-muted">{group.description}</p>
+
+        <ul class="mt-4 flex flex-wrap gap-1.5">
+          {group.technologies.map((tech) => (
+            <li>
+              <a
+                href={`/articles?category=${slugifyCategory(tech)}`}
+                class="inline-block rounded-full border border-default px-2.5 py-1 text-xs text-muted transition-colors hover:bg-subtle hover:text-accent"
+              >
+                {tech}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+
+  <section class="mt-14" aria-labelledby="tags-heading">
+    <h2 id="tags-heading" class="text-xl font-semibold tracking-tight">Tags</h2>
+    <p class="mt-1.5 text-sm text-muted">
+      Specific technologies and concepts used across posts.
+    </p>
+    <ul class="mt-5 flex flex-wrap gap-2">
+      {TAGS.map((tag) => (
+        <li>
+          <span class="inline-block rounded-full border border-default px-3 py-1 text-sm text-muted">
+            {tag}
+          </span>
+        </li>
+      ))}
+    </ul>
+  </section>
+</BaseLayout>

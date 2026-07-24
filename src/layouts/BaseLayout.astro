@@ -3,6 +3,7 @@ import { ClientRouter } from 'astro:transitions';
 import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import CommandPalette from '../components/CommandPalette.astro';
 import { SITE, AUTHOR, MAIN_SITE } from '../config';
 
 interface Props {
@@ -70,5 +71,8 @@ const baseSchema = [
     </main>
 
     <Footer />
+
+    <!-- Site-wide power search (⌘K). Mounted once for every page. -->
+    <CommandPalette />
   </body>
 </html>

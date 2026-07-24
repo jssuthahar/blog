@@ -4,7 +4,7 @@ description: 'A complete, working setup for JWT bearer auth in ASP.NET Core Mini
 highlight: 'Register AddJwtBearer with all four validation flags set explicitly, call UseAuthentication() before UseAuthorization(), and protect route groups rather than individual endpoints. The two failures that bite most teams are a silently weakened signature check and middleware ordering.'
 publishedAt: 2026-07-10
 updatedAt: 2026-07-21
-category: dotnet
+category: programming
 tags: ['ASP.NET Core', 'Minimal API', 'Authentication', 'JWT', 'Security']
 featured: true
 series: 'minimal-api-production'

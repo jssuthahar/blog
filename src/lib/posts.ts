@@ -2,17 +2,18 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 
 export type Post = CollectionEntry<'blog'>;
 
-/** `hue` is an OKLCH hue angle — it colour-codes each topic across the site. */
-export const CATEGORIES = {
-  dotnet: { label: '.NET', description: 'ASP.NET Core, Minimal APIs, EF Core, and the runtime.', hue: 295 },
-  csharp: { label: 'C#', description: 'Language features, patterns, and performance.', hue: 265 },
-  azure: { label: 'Azure', description: 'App Service, Functions, storage, and identity.', hue: 245 },
-  ai: { label: 'AI', description: 'LLM apps, agents, RAG, and Azure OpenAI.', hue: 175 },
-  devops: { label: 'DevOps', description: 'CI/CD, containers, and deployment.', hue: 55 },
-  career: { label: 'Career', description: 'Interviews, growth, and engineering craft.', hue: 15 },
-} as const;
+import { TOPIC_GROUPS, type CategorySlug } from './taxonomy';
 
-export type CategoryId = keyof typeof CATEGORIES;
+/**
+ * Category lookup derived from the canonical taxonomy — `hue` colour-codes each
+ * topic across the site. Defined here so existing imports keep working, but the
+ * data lives in one place (taxonomy.ts).
+ */
+export const CATEGORIES = Object.fromEntries(
+  TOPIC_GROUPS.map((g) => [g.slug, { label: g.label, description: g.description, hue: g.hue }]),
+) as Record<CategorySlug, { label: string; description: string; hue: number }>;
+
+export type CategoryId = CategorySlug;
 
 /**
  * Deterministic cover art for posts without an image.

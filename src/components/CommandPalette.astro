@@ -1,0 +1,176 @@
+---
+/**
+ * Site-wide power search. Mounted once in BaseLayout.
+ *
+ * Opens on ⌘K / Ctrl+K, or when anything dispatches an `open-search` event
+ * (the header icon and the home search box do). Fetches /search-index.json the
+ * first time it opens, then filters client-side across posts, all 236
+ * articles, and pages — grouped, keyboard-navigable.
+ */
+---
+
+<dialog id="cmd-palette" class="cmd-dialog rounded-xl border border-default p-0" aria-label="Search the site">
+  <div class="flex items-center gap-3 border-b border-default px-4 py-3">
+    <svg class="size-5 shrink-0 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+    </svg>
+    <input
+      id="cmd-input"
+      type="text"
+      autocomplete="off"
+      placeholder="Search articles, posts, pages…"
+      aria-label="Search"
+      class="flex-1 bg-transparent text-base outline-none"
+    />
+    <kbd class="hidden rounded border border-default px-1.5 py-0.5 text-xs text-muted sm:inline">Esc</kbd>
+  </div>
+
+  <div id="cmd-results" class="max-h-[60vh] overflow-y-auto p-2"></div>
+
+  <div class="flex items-center gap-4 border-t border-default px-4 py-2 text-xs text-muted">
+    <span><kbd class="rounded border border-default px-1">↑</kbd><kbd class="rounded border border-default px-1">↓</kbd> navigate</span>
+    <span><kbd class="rounded border border-default px-1">↵</kbd> open</span>
+    <span id="cmd-count" class="ml-auto"></span>
+  </div>
+</dialog>
+
+<style>
+  .cmd-dialog {
+    width: min(40rem, calc(100vw - 2rem));
+    margin: 10vh auto auto;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .cmd-dialog::backdrop {
+    background: oklch(0 0 0 / 0.4);
+    backdrop-filter: blur(2px);
+  }
+  .cmd-item[aria-selected='true'] {
+    background: var(--bg-subtle);
+  }
+  .cmd-item[aria-selected='true'] .cmd-title {
+    color: var(--accent);
+  }
+</style>
+
+<script>
+  function initPalette() {
+    const found = document.getElementById('cmd-palette') as HTMLDialogElement | null;
+    if (!found || found.dataset.bound === '') return;
+    found.dataset.bound = '';
+    const dialog = found;
+
+    const input = document.getElementById('cmd-input') as HTMLInputElement;
+    const results = document.getElementById('cmd-results')!;
+    const count = document.getElementById('cmd-count')!;
+
+    type Item = { title: string; url: string; kind: string; category: string; text: string; external: boolean };
+    let index: Item[] = [];
+    let loaded = false;
+    let rows: Item[] = [];
+    let active = 0;
+
+    async function ensureIndex() {
+      if (loaded) return;
+      try {
+        index = await fetch('/search-index.json').then((r) => r.json());
+        loaded = true;
+      } catch {
+        results.innerHTML = '<p class="p-4 text-sm text-muted">Search is unavailable right now.</p>';
+      }
+    }
+
+    const KIND_ORDER = { Post: 0, Article: 1, Page: 2 } as Record<string, number>;
+
+    function search(q: string): Item[] {
+      const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+      if (!terms.length) {
+        // Empty query: a few posts and pages as a starting point.
+        return index.filter((i) => i.kind !== 'Article').slice(0, 8);
+      }
+      return index
+        .map((item) => {
+          let score = 0;
+          for (const t of terms) {
+            if (!item.text.includes(t)) return null;
+            if (item.title.toLowerCase().includes(t)) score += 3;
+            else score += 1;
+          }
+          // Nudge posts and pages above the long article tail on equal matches.
+          score -= (KIND_ORDER[item.kind] ?? 3) * 0.1;
+          return { item, score };
+        })
+        .filter((x): x is { item: Item; score: number } => x !== null)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 30)
+        .map((x) => x.item);
+    }
+
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+    function render() {
+      rows = search(input.value);
+      active = 0;
+
+      if (!rows.length) {
+        results.innerHTML = '<p class="p-4 text-sm text-muted">No matches.</p>';
+        count.textContent = '';
+        return;
+      }
+
+      results.innerHTML = rows
+        .map(
+          (r, i) => `
+          <a href="${r.url}" ${r.external ? 'rel="noopener"' : ''} data-i="${i}"
+             class="cmd-item flex items-center gap-3 rounded-lg px-3 py-2.5" aria-selected="${i === 0}">
+            <span class="w-16 shrink-0 text-xs font-medium text-muted">${r.kind}</span>
+            <span class="min-w-0 flex-1">
+              <span class="cmd-title block truncate text-sm font-medium">${esc(r.title)}</span>
+              ${r.category ? `<span class="block truncate text-xs text-muted">${esc(r.category)}</span>` : ''}
+            </span>
+            ${r.external ? '<span class="shrink-0 text-xs text-muted">↗</span>' : ''}
+          </a>`,
+        )
+        .join('');
+      count.textContent = `${rows.length} result${rows.length === 1 ? '' : 's'}`;
+    }
+
+    function highlight() {
+      const items = [...results.querySelectorAll<HTMLElement>('.cmd-item')];
+      items.forEach((el, i) => el.setAttribute('aria-selected', String(i === active)));
+      items[active]?.scrollIntoView({ block: 'nearest' });
+    }
+
+    async function open() {
+      await ensureIndex();
+      if (!dialog.open) dialog.showModal();
+      input.value = '';
+      render();
+      setTimeout(() => input.focus(), 20);
+    }
+
+    input.addEventListener('input', render);
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); active = Math.min(active + 1, rows.length - 1); highlight(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); highlight(); }
+      else if (e.key === 'Enter') {
+        e.preventDefault();
+        const el = results.querySelector<HTMLAnchorElement>(`[data-i="${active}"]`);
+        if (el) el.click();
+      }
+    });
+
+    // Backdrop click closes.
+    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+
+    // Global open triggers: ⌘K / Ctrl+K, and the custom event.
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); open(); }
+    });
+    window.addEventListener('open-search', open);
+  }
+
+  initPalette();
+  document.addEventListener('astro:page-load', initPalette);
+</script>

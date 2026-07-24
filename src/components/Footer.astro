@@ -1,6 +1,6 @@
 ---
 import { SITE, AUTHOR, MAIN_SITE, SOCIAL } from '../config';
-import { CATEGORIES } from '../lib/posts';
+import { TOPIC_GROUPS } from '../lib/taxonomy';
 import FollowCTA from './FollowCTA.astro';
 
 const year = new Date().getFullYear();
@@ -35,10 +35,16 @@ const elsewhere = [
     </div>
 
     <nav aria-labelledby="footer-topics">
-      <h2 id="footer-topics" class="text-sm font-semibold">Topics</h2>
+      <h2 id="footer-topics" class="text-sm font-semibold">
+        <a href="/topics" class="hover:text-accent">Topics</a>
+      </h2>
       <ul class="mt-3 space-y-2 text-sm text-muted">
-        {Object.entries(CATEGORIES).map(([id, { label }]) => (
-          <li><a href={`/category/${id}`} class="hover:text-accent">{label}</a></li>
+        {TOPIC_GROUPS.map((g) => (
+          <li>
+            <a href={`/category/${g.slug}`} class="hover:text-accent">
+              <span aria-hidden="true">{g.emoji}</span> {g.label}
+            </a>
+          </li>
         ))}
       </ul>
     </nav>

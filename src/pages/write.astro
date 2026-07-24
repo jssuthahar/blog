@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { CATEGORIES } from '../lib/posts';
+import { TAGS } from '../lib/taxonomy';
 
 /**
  * Standalone post editor. No login — it only produces a Markdown file, which
@@ -179,7 +180,10 @@ const TOOLBAR = [
       </div>
       <div class="sm:col-span-6">
         <label class="block text-xs text-muted">Tags (comma separated)</label>
-        <input id="f-tags" placeholder="ASP.NET Core, Azure" class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+        <input id="f-tags" list="tag-suggestions" placeholder="ASP.NET Core, Azure" class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+        <datalist id="tag-suggestions">
+          {TAGS.map((t) => <option value={t}></option>)}
+        </datalist>
       </div>
 
       <div class="sm:col-span-6">

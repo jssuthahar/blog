@@ -43,7 +43,13 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
     </nav>
 
     <div class="ml-auto flex items-center gap-1 sm:ml-0">
-      <a href="/search" class="rounded-md p-2 transition-colors hover:bg-subtle" aria-label="Search">
+      <!-- Opens the ⌘K palette; falls back to /search if JS is unavailable. -->
+      <a
+        href="/search"
+        data-open-search
+        class="rounded-md p-2 transition-colors hover:bg-subtle"
+        aria-label="Search (⌘K)"
+      >
         <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
           <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
         </svg>
@@ -86,4 +92,19 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
 
   initMenu();
   document.addEventListener('astro:after-swap', initMenu);
+
+  // Any [data-open-search] element opens the command palette instead of
+  // navigating; the href stays as a no-JS fallback.
+  function initSearchTriggers() {
+    document.querySelectorAll('[data-open-search]').forEach((el) => {
+      if ((el as HTMLElement).dataset.searchBound === '') return;
+      (el as HTMLElement).dataset.searchBound = '';
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.dispatchEvent(new Event('open-search'));
+      });
+    });
+  }
+  initSearchTriggers();
+  document.addEventListener('astro:page-load', initSearchTriggers);
 </script>

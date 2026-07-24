@@ -1,5 +1,6 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
+import { CATEGORY_SLUGS } from './lib/taxonomy';
 
 const blog = defineCollection({
   loader: glob({ base: './src/content/blog', pattern: '**/*.{md,mdx}' }),
@@ -12,7 +13,7 @@ const blog = defineCollection({
       /** Surfaced in the UI and in JSON-LD — freshness is a strong ranking signal. */
       updatedAt: z.coerce.date().optional(),
 
-      category: z.enum(['dotnet', 'csharp', 'azure', 'ai', 'devops', 'career']),
+      category: z.enum(CATEGORY_SLUGS),
       tags: z.array(z.string()).default([]),
 
       cover: image().optional(),

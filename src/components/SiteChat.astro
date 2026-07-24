@@ -1,0 +1,210 @@
+---
+import { AUTHOR } from '../config';
+
+/**
+ * Site-wide help chat. A conversational front door to the search index: a
+ * reader types a topic and gets the best-matching articles back as links.
+ * Not AI — it surfaces the same /search-index.json the palette uses, framed
+ * as a chat. Only mounted where the per-article chat is not (e.g. the home
+ * page), so a page never shows two launchers.
+ */
+
+const initials = AUTHOR.name.split(' ').map((p) => p[0]).slice(0, 2).join('');
+const firstName = AUTHOR.name.split(' ')[0];
+
+// Starter topics shown as chips.
+const TOPICS = ['Azure', 'AI', '.NET MAUI', 'GitHub Copilot', 'Xamarin'];
+---
+
+<div data-site-chat>
+  <button
+    type="button"
+    data-toggle
+    aria-expanded="false"
+    aria-controls="site-chat-panel"
+    aria-label="Find articles — ask me"
+    class="site-fab fixed right-4 bottom-4 z-[60] flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white shadow-xl transition-transform hover:-translate-y-0.5 sm:right-6 sm:bottom-6"
+  >
+    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" />
+    </svg>
+    <span class="hidden sm:inline">Find an article</span>
+  </button>
+
+  <div
+    id="site-chat-panel"
+    data-panel
+    hidden
+    role="dialog"
+    aria-label="Find articles"
+    class="site-panel fixed right-4 bottom-4 z-[61] flex flex-col overflow-hidden rounded-2xl border border-default shadow-2xl sm:right-6 sm:bottom-6"
+  >
+    <header class="flex items-center gap-3 border-b border-default p-4" style="background: var(--bg);">
+      <img
+        src={AUTHOR.avatar}
+        alt={AUTHOR.name}
+        width="40"
+        height="40"
+        class="size-10 shrink-0 rounded-full object-cover"
+        onerror={`this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${initials}',className:'flex size-10 items-center justify-center rounded-full text-sm font-semibold text-white',style:'background:linear-gradient(135deg,oklch(0.55 0.19 295),oklch(0.46 0.2 305))'}))`}
+      />
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-semibold">Ask {firstName}</p>
+        <p class="text-xs text-muted">Tell me a topic — I’ll find the article</p>
+      </div>
+      <button type="button" data-close aria-label="Close" class="rounded-md p-1.5 text-muted transition-colors hover:bg-subtle">
+        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </header>
+
+    <div data-log class="flex-1 space-y-3 overflow-y-auto p-4" style="background: var(--bg);" aria-live="polite"></div>
+
+    <div class="flex flex-wrap gap-2 px-4 pb-3" style="background: var(--bg);">
+      {TOPICS.map((t) => (
+        <button type="button" data-topic={t} class="rounded-full border border-default px-3 py-1.5 text-xs text-muted transition-colors hover:bg-subtle hover:text-accent">
+          {t}
+        </button>
+      ))}
+    </div>
+
+    <form data-form class="flex items-center gap-2 border-t border-default p-3" style="background: var(--bg);" novalidate>
+      <label for="site-chat-input" class="sr-only">What are you looking for?</label>
+      <input id="site-chat-input" type="text" autocomplete="off" placeholder="e.g. secure a minimal API…"
+        class="flex-1 rounded-full border border-default bg-[var(--bg-subtle)] px-4 py-2 text-sm" />
+      <button type="submit" class="btn btn-accent btn-sm shrink-0">Find</button>
+    </form>
+  </div>
+</div>
+
+<style>
+  .site-fab { background: linear-gradient(135deg, oklch(0.55 0.19 295), oklch(0.46 0.2 305)); }
+  .site-panel { width: min(24rem, calc(100vw - 2rem)); height: min(34rem, calc(100dvh - 2rem)); }
+  .site-panel[data-open] { animation: site-in 0.2s ease; }
+  @keyframes site-in { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: none; } }
+  [data-site-chat] .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--text-muted); display: inline-block; animation: site-blink 1.2s infinite; }
+  [data-site-chat] .dot:nth-child(2) { animation-delay: 0.2s; }
+  [data-site-chat] .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes site-blink { 0%,60%,100% { opacity: 0.25; } 30% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .site-panel[data-open], [data-site-chat] .dot { animation: none; } }
+</style>
+
+<script is:inline define:vars={{ firstName, avatar: AUTHOR.avatar, initials }}>
+  (() => {
+    function init() {
+      const root = document.querySelector('[data-site-chat]');
+      if (!root || root.dataset.ready === '') return;
+      root.dataset.ready = '';
+
+      const fab = root.querySelector('[data-toggle]');
+      const panel = root.querySelector('[data-panel]');
+      const log = root.querySelector('[data-log]');
+      const form = root.querySelector('[data-form]');
+      const input = form.querySelector('input');
+
+      let index = null;
+      let greeted = false;
+      const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+      async function ensureIndex() {
+        if (index) return;
+        try { index = await fetch('/search-index.json').then((r) => r.json()); }
+        catch { index = []; }
+      }
+
+      function bubble(role, html) {
+        const wrap = document.createElement('div');
+        wrap.className = role === 'user' ? 'flex justify-end' : 'flex gap-2.5';
+        if (role === 'bot') {
+          const av = document.createElement('img');
+          av.src = avatar; av.alt = ''; av.className = 'size-7 shrink-0 rounded-full object-cover';
+          av.onerror = () => {
+            const s = document.createElement('span');
+            s.textContent = initials;
+            s.className = 'flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white';
+            s.style.background = 'linear-gradient(135deg,oklch(0.55 0.19 295),oklch(0.46 0.2 305))';
+            av.replaceWith(s);
+          };
+          wrap.appendChild(av);
+        }
+        const b = document.createElement('div');
+        b.className = role === 'user'
+          ? 'max-w-[85%] rounded-2xl rounded-br-sm px-3.5 py-2 text-sm text-white'
+          : 'max-w-[85%] rounded-2xl rounded-tl-sm border border-default px-3.5 py-2 text-sm';
+        b.style.background = role === 'user' ? 'var(--accent)' : 'var(--bg-subtle)';
+        b.innerHTML = html;
+        wrap.appendChild(b);
+        log.appendChild(wrap);
+        log.scrollTop = log.scrollHeight;
+        return b;
+      }
+
+      function find(q) {
+        const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+        if (!terms.length) return [];
+        return index
+          .map((item) => {
+            let s = 0;
+            for (const t of terms) {
+              if (!item.text.includes(t)) return null;
+              s += item.title.toLowerCase().includes(t) ? 3 : 1;
+            }
+            return { item, s };
+          })
+          .filter(Boolean)
+          .sort((a, b) => b.s - a.s)
+          .slice(0, 4)
+          .map((x) => x.item);
+      }
+
+      async function respond(q) {
+        bubble('user', esc(q));
+        const typing = bubble('bot', '<span class="inline-flex gap-1"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>');
+        await ensureIndex();
+        const hits = find(q);
+        await new Promise((r) => setTimeout(r, 400));
+
+        if (!hits.length) {
+          typing.innerHTML = 'I couldn’t find anything on that. Try a broader term like “Azure” or “.NET”, or <a href="/articles" class="font-medium underline" style="color:var(--accent)">browse all articles →</a>';
+          return;
+        }
+        typing.innerHTML =
+          `Here${hits.length === 1 ? "’s what I found" : "’s what I found"}:` +
+          '<ul class="mt-2 space-y-2">' +
+          hits.map((h) =>
+            `<li><a href="${h.url}" ${h.external ? 'rel="noopener"' : ''} class="font-medium underline" style="color:var(--accent)">${esc(h.title)}</a>` +
+            `<span class="block text-xs text-muted">${esc(h.kind)}${h.category ? ' · ' + esc(h.category) : ''}${h.external ? ' ↗' : ''}</span></li>`,
+          ).join('') +
+          '</ul>';
+      }
+
+      const open = () => {
+        panel.hidden = false; panel.dataset.open = ''; fab.hidden = true;
+        fab.setAttribute('aria-expanded', 'true');
+        if (!greeted) { bubble('bot', `Hi — I’m ${firstName}. Tell me what you’re after and I’ll find the article for you.`); greeted = true; }
+        setTimeout(() => input.focus(), 50);
+      };
+      const close = () => {
+        panel.hidden = true; delete panel.dataset.open; fab.hidden = false;
+        fab.setAttribute('aria-expanded', 'false'); fab.focus();
+      };
+
+      fab.addEventListener('click', open);
+      root.querySelector('[data-close]').addEventListener('click', close);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) close(); });
+
+      root.querySelectorAll('[data-topic]').forEach((btn) => btn.addEventListener('click', () => respond(btn.dataset.topic)));
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const q = input.value.trim();
+        if (!q) return;
+        input.value = '';
+        respond(q);
+      });
+    }
+
+    init();
+    document.addEventListener('astro:page-load', init);
+  })();
+</script>

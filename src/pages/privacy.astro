@@ -1,0 +1,168 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE, AUTHOR } from '../config';
+
+// Kept current automatically so the "last updated" line never goes stale.
+const updated = new Date().toLocaleDateString('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
+const schema = [
+  {
+    '@type': 'WebPage',
+    '@id': `${SITE.url}/privacy#page`,
+    name: `Privacy Policy — ${SITE.title}`,
+    description: `How ${SITE.title} handles cookies, analytics, advertising, and the content published on this blog.`,
+    about: { '@id': `${SITE.url}/#person` },
+    isPartOf: { '@id': `${SITE.url}/#website` },
+  },
+];
+---
+
+<BaseLayout
+  title="Privacy Policy"
+  description={`How ${SITE.title} handles cookies, analytics, advertising, and content ownership.`}
+  schema={schema}
+>
+  <div class="mx-auto max-w-3xl">
+    <header>
+      <p class="eyebrow">Legal</p>
+      <h1 class="display mt-3 text-4xl sm:text-5xl">Privacy Policy</h1>
+      <p class="mt-4 text-sm text-muted">Last updated: {updated}</p>
+    </header>
+
+    <div class="prose-reading mt-10 max-w-none">
+      <p>
+        This Privacy Policy explains how <strong>{SITE.title}</strong> ("this blog",
+        "we") handles information when you visit <a href={SITE.url}>{SITE.url}</a>. The
+        blog is a personal publication run by {AUTHOR.name}. By using the site you agree
+        to the practices described here.
+      </p>
+
+      <h2>Content &amp; ownership</h2>
+      <p>
+        Everything published here is <strong>my own original work</strong>. Writing
+        articles is a personal passion — I share what I learn, in my own words, from my
+        own hands-on experience.
+      </p>
+      <ul>
+        <li>
+          All articles, code samples, and opinions are created and owned by me
+          personally.
+        </li>
+        <li>
+          I do <strong>not</strong> publish any third-party content, client work, or
+          material belonging to any employer or company.
+        </li>
+        <li>
+          No confidential, proprietary, or company-owned information, code, or data is
+          shared on this blog.
+        </li>
+        <li>
+          The views expressed here are entirely my own and do not represent those of any
+          employer, client, or organisation I am associated with.
+        </li>
+      </ul>
+      <p>
+        Where an external tool, product, or source is mentioned, it is referenced for
+        educational purposes only, and all trademarks remain the property of their
+        respective owners.
+      </p>
+
+      <h2>Information we collect</h2>
+      <p>
+        The blog is a static site and does not require you to create an account. Limited
+        information is processed in these cases:
+      </p>
+      <ul>
+        <li>
+          <strong>Contact form.</strong> If you send a message, the name, email address,
+          subject, and message you submit are stored so I can reply. Your email is used
+          only to respond and is never published or sold.
+        </li>
+        <li>
+          <strong>Analytics.</strong> Aggregated, non-identifying usage data (such as
+          page views and general location) is collected to understand what readers find
+          useful.
+        </li>
+        <li>
+          <strong>Advertising.</strong> Ad-serving partners may collect data via cookies
+          as described below.
+        </li>
+      </ul>
+
+      <h2>Cookies</h2>
+      <p>
+        Cookies are small files stored on your device. This site uses them for analytics
+        and advertising. You can disable or delete cookies in your browser settings,
+        though some features may not work as expected.
+      </p>
+
+      <h2>Advertising — Google AdSense</h2>
+      <p>
+        This blog displays ads served by <strong>Google AdSense</strong>. Third-party
+        vendors, including Google, use cookies to serve ads based on your prior visits to
+        this and other websites.
+      </p>
+      <ul>
+        <li>
+          Google's use of advertising cookies enables it and its partners to serve ads
+          based on your visit to this site and other sites on the internet.
+        </li>
+        <li>
+          You can opt out of personalised advertising by visiting
+          <a href="https://www.google.com/settings/ads" rel="noopener">Google Ads
+          Settings</a>.
+        </li>
+        <li>
+          You can also opt out of some third-party vendors' use of cookies for
+          personalised advertising at
+          <a href="https://www.aboutads.info/choices/" rel="noopener">aboutads.info/choices</a>.
+        </li>
+      </ul>
+
+      <h2>Analytics — Google Analytics</h2>
+      <p>
+        This site uses Google Analytics to measure traffic. Google Analytics uses cookies
+        to generate aggregate reports about site usage. This data does not personally
+        identify you. Learn more in
+        <a href="https://policies.google.com/privacy" rel="noopener">Google's Privacy
+        Policy</a>.
+      </p>
+
+      <h2>Your rights</h2>
+      <p>
+        You may request access to, correction of, or deletion of any personal information
+        you have submitted through the contact form. To do so, get in touch via the
+        <a href="/contact">contact page</a>.
+      </p>
+
+      <h2>Third-party links</h2>
+      <p>
+        This blog links to external sites. I am not responsible for the privacy practices
+        or content of those sites — please review their own policies.
+      </p>
+
+      <h2>Children's privacy</h2>
+      <p>
+        This site is intended for a general, professional developer audience and is not
+        directed at children under 13. No information is knowingly collected from
+        children.
+      </p>
+
+      <h2>Changes to this policy</h2>
+      <p>
+        This policy may be updated from time to time. Any changes will be posted on this
+        page with a revised "last updated" date above.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions about this Privacy Policy? Please reach out through the
+        <a href="/contact">contact page</a>.
+      </p>
+    </div>
+  </div>
+</BaseLayout>

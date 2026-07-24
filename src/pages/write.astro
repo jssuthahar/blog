@@ -17,16 +17,20 @@ const existingSeries = [
 
 // The toolbar buttons. `wrap` surrounds the selection; `block` prefixes each
 // line; `insert` drops a snippet at the cursor. `{sel}` is the selected text.
+// `sep` renders a divider so related tools read as a group.
 const TOOLBAR = [
   { key: 'b', label: 'B', title: 'Bold  ⌘B', kind: 'wrap', a: '**', b: '**', cls: 'font-bold' },
   { key: 'i', label: 'I', title: 'Italic  ⌘I', kind: 'wrap', a: '_', b: '_', cls: 'italic' },
   { key: 'code', label: '</>', title: 'Inline code', kind: 'wrap', a: '`', b: '`', cls: 'font-mono text-xs' },
+  { sep: true },
   { key: 'h2', label: 'H2', title: 'Heading 2', kind: 'block', a: '## ' },
   { key: 'h3', label: 'H3', title: 'Heading 3', kind: 'block', a: '### ' },
+  { sep: true },
   { key: 'ul', label: '• List', title: 'Bullet list', kind: 'block', a: '- ' },
   { key: 'ol', label: '1. List', title: 'Numbered list', kind: 'block', a: '1. ' },
   { key: 'quote', label: '❝', title: 'Quote', kind: 'block', a: '> ' },
   { key: 'link', label: '🔗', title: 'Link  ⌘K', kind: 'link' },
+  { sep: true },
   { key: 'codeblock', label: 'Code block', title: 'Fenced code block', kind: 'insert',
     snippet: '\n```csharp\n{sel}\n```\n' },
   { key: 'table', label: 'Table', title: 'Table', kind: 'insert',
@@ -42,19 +46,25 @@ const TOOLBAR = [
 ---
 
 <BaseLayout title="Write a post" description="Post editor." noindex wide>
-  <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+  <div id="composer" class="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+    <!-- ── Action bar ─────────────────────────────────────────────────── -->
     <header class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <p class="eyebrow">Editor</p>
-        <h1 class="display mt-1.5 text-2xl">Write a post</h1>
+      <div class="flex items-baseline gap-3">
+        <h1 class="display text-xl">Write</h1>
+        <span id="autosave" class="text-xs text-muted" aria-live="polite"></span>
       </div>
+
       <div class="flex flex-wrap items-center gap-2">
-        <span id="autosave" class="text-xs text-muted"></span>
-        <button id="btn-guide" class="btn btn-outline btn-sm" aria-expanded="false" aria-controls="guide">Guide</button>
-        <button id="btn-mdx" class="btn btn-outline btn-sm" title="Toggle .md / .mdx">.md</button>
-        <button id="btn-clear" class="btn btn-outline btn-sm">New</button>
-        <button id="btn-copy" class="btn btn-outline btn-sm">Copy</button>
-        <button id="btn-download" class="btn btn-accent btn-sm">Download</button>
+        <!-- View switcher: distraction-free vs. side-by-side preview. -->
+        <div class="hidden items-center rounded-lg border border-default p-0.5 lg:inline-flex" role="group" aria-label="View">
+          <button id="view-split" type="button" class="seg" aria-pressed="true">Split</button>
+          <button id="view-focus" type="button" class="seg" aria-pressed="false">Focus</button>
+        </div>
+        <button id="btn-guide" type="button" class="btn btn-outline btn-sm" aria-expanded="false" aria-controls="guide">Guide</button>
+        <button id="btn-mdx" type="button" class="btn btn-outline btn-sm" title="Toggle .md / .mdx">.md</button>
+        <button id="btn-clear" type="button" class="btn btn-outline btn-sm">New</button>
+        <button id="btn-copy" type="button" class="btn btn-outline btn-sm">Copy</button>
+        <button id="btn-download" type="button" class="btn btn-accent btn-sm">Download</button>
       </div>
     </header>
 
@@ -150,54 +160,58 @@ const TOOLBAR = [
       </div>
     </section>
 
-    <!-- Frontmatter fields -->
-    <div class="mt-6 grid gap-3 rounded-lg border border-default p-4 sm:grid-cols-12">
-      <div class="sm:col-span-8">
-        <input id="f-title" placeholder="Post title" maxlength="120"
-          class="w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-lg font-semibold" />
-      </div>
-      <div class="sm:col-span-4">
-        <div class="flex items-center rounded-lg border border-default bg-[var(--bg)] px-3 text-sm text-muted">
-          <span class="shrink-0 font-mono text-xs">/blog/</span>
-          <input id="f-slug" placeholder="slug" class="w-full bg-transparent py-2 font-mono text-xs" />
-        </div>
+    <!-- ── Metadata (hidden in Focus mode) ────────────────────────────── -->
+    <div id="meta-region" class="mt-5">
+      <!-- Title + slug -->
+      <input id="f-title" placeholder="Post title" maxlength="120"
+        class="w-full border-0 bg-transparent px-0 text-3xl font-bold tracking-tight outline-none placeholder:text-muted/50" />
+      <div class="mt-1 flex items-center text-sm text-muted">
+        <span class="shrink-0 font-mono text-xs">blog.msdevbuild.com/blog/</span>
+        <input id="f-slug" placeholder="slug" class="w-full bg-transparent py-1 font-mono text-xs outline-none" />
       </div>
 
-      <div class="sm:col-span-12">
-        <textarea id="f-description" rows="2" maxlength="220" placeholder="Description — 50 to 200 characters. Used for the card, meta description, and RSS."
-          class="w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm"></textarea>
-        <p class="mt-1 text-xs"><span id="desc-count" class="text-muted">0</span> / 200</p>
-      </div>
-
-      <div class="sm:col-span-12">
-        <textarea id="f-highlight" rows="2" maxlength="400" placeholder="Highlight (optional) — the answer in 2–3 sentences, shown in a box at the top of the post."
-          class="w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm"></textarea>
-      </div>
-
-      <div class="sm:col-span-4">
-        <label class="block text-xs text-muted">Primary category <span class="text-muted">(colour &amp; main topic)</span></label>
-        <select id="f-category" class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm">
+      <!-- Compact meta strip: everything you set on every post, in one row. -->
+      <div class="mt-4 flex flex-wrap items-center gap-2.5 border-y border-default py-2.5 text-sm">
+        <select id="f-category" aria-label="Primary category"
+          class="rounded-lg border border-default bg-[var(--bg)] px-2.5 py-1.5 text-sm">
           {Object.entries(CATEGORIES).map(([id, c]) => <option value={id}>{c.label}</option>)}
         </select>
+
+        <input id="f-date" type="date" value={today} aria-label="Published date"
+          class="rounded-lg border border-default bg-[var(--bg)] px-2.5 py-1.5 text-sm" />
+
+        <label class="toggle">
+          <input id="f-draft" type="checkbox" checked class="sr-only peer" />
+          <span class="dot"></span> Draft
+        </label>
+        <label class="toggle">
+          <input id="f-featured" type="checkbox" class="sr-only peer" />
+          <span class="dot"></span> Featured
+        </label>
+
+        <span id="stats" class="ml-auto text-xs text-muted tabular-nums"></span>
       </div>
-      <div class="sm:col-span-4">
-        <label class="block text-xs text-muted">Published</label>
-        <input id="f-date" type="date" value={today} class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
-      </div>
-      <div class="sm:col-span-4">
-        <label class="block text-xs text-muted">Also in <span class="text-muted">(extra categories)</span></label>
-        <div id="f-categories" class="mt-1 flex flex-wrap gap-1.5">
-          {Object.entries(CATEGORIES).map(([id, c]) => (
-            <label class="inline-flex cursor-pointer items-center gap-1 rounded-full border border-default px-2.5 py-1 text-xs">
-              <input type="checkbox" data-cat={id} class="peer sr-only" />
-              <span class="peer-checked:font-semibold peer-checked:text-accent">{c.label}</span>
-            </label>
-          ))}
+
+      <!-- SEO essentials: description (required) + highlight. -->
+      <div class="mt-4 grid gap-3 lg:grid-cols-2">
+        <div>
+          <div class="flex items-center justify-between">
+            <label for="f-description" class="text-xs font-medium text-muted">Description <span class="text-muted/70">· card, meta &amp; RSS</span></label>
+            <span class="text-xs"><span id="desc-count" class="text-muted">0</span> / 200</span>
+          </div>
+          <textarea id="f-description" rows="2" maxlength="220" placeholder="50–200 characters. The one-line pitch that appears everywhere."
+            class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm"></textarea>
+        </div>
+        <div>
+          <label for="f-highlight" class="text-xs font-medium text-muted">Highlight <span class="text-muted/70">· TL;DR box, optional</span></label>
+          <textarea id="f-highlight" rows="2" maxlength="400" placeholder="The answer in 2–3 sentences, shown in a box at the top of the post."
+            class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm"></textarea>
         </div>
       </div>
 
-      <div class="sm:col-span-12">
-        <label class="block text-xs text-muted">Tags <span class="text-muted">— click to add, type a new one, ↵ or comma</span></label>
+      <!-- Tags -->
+      <div class="mt-3">
+        <label class="text-xs font-medium text-muted">Tags <span class="text-muted/70">— click a suggestion, or type and press ↵</span></label>
         <div id="tag-box" class="mt-1 flex flex-wrap items-center gap-1.5 rounded-lg border border-default bg-[var(--bg)] p-2">
           <span id="tag-chips" class="contents"></span>
           <input id="tag-entry" list="tag-suggestions" placeholder="add a tag…" class="min-w-[8rem] flex-1 bg-transparent px-1 py-0.5 text-sm outline-none" />
@@ -205,7 +219,6 @@ const TOOLBAR = [
         <datalist id="tag-suggestions">
           {TAGS.map((t) => <option value={t}></option>)}
         </datalist>
-        <!-- Common tags to click. Hidden holder feeds the chip widget. -->
         <div class="mt-2 flex flex-wrap gap-1.5" id="tag-quick">
           {TAGS.slice(0, 18).map((t) => (
             <button type="button" data-quick-tag={t} class="rounded-full border border-default px-2.5 py-1 text-xs text-muted transition-colors hover:bg-subtle hover:text-accent">
@@ -216,113 +229,127 @@ const TOOLBAR = [
         <input id="f-tags" type="hidden" />
       </div>
 
-      <div class="flex flex-wrap items-center gap-5 sm:col-span-12">
-        <label class="flex items-center gap-2 text-sm font-medium"><input id="f-draft" type="checkbox" checked /> Draft</label>
-        <label class="flex items-center gap-2 text-sm font-medium"><input id="f-featured" type="checkbox" /> Featured</label>
-      </div>
+      <!-- Advanced: everything optional, tucked away so the common path stays quick. -->
+      <details class="mt-3 rounded-lg border border-default">
+        <summary class="cursor-pointer px-4 py-2.5 text-sm font-medium">
+          More — extra categories, series, cover image &amp; FAQ
+        </summary>
+
+        <div class="space-y-6 border-t border-default p-4">
+          <!-- Extra categories -->
+          <fieldset>
+            <legend class="text-xs font-bold tracking-wider uppercase text-muted">Also in <span class="font-normal normal-case">(cross-listed categories)</span></legend>
+            <div id="f-categories" class="mt-2 flex flex-wrap gap-1.5">
+              {Object.entries(CATEGORIES).map(([id, c]) => (
+                <label class="inline-flex cursor-pointer items-center gap-1 rounded-full border border-default px-2.5 py-1 text-xs has-[:checked]:border-accent">
+                  <input type="checkbox" data-cat={id} class="peer sr-only" />
+                  <span class="peer-checked:font-semibold peer-checked:text-accent">{c.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <!-- Series -->
+          <fieldset>
+            <legend class="text-xs font-bold tracking-wider uppercase text-muted">Part of a series</legend>
+            <div class="mt-2 grid gap-3 sm:grid-cols-[1fr_8rem]">
+              <div>
+                <label for="f-series" class="block text-xs text-muted">Series name</label>
+                <input id="f-series" list="series-suggestions" placeholder="e.g. minimal-api-production"
+                  class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 font-mono text-xs" />
+                <datalist id="series-suggestions">
+                  {existingSeries.map((s) => <option value={s}></option>)}
+                </datalist>
+              </div>
+              <div>
+                <label for="f-seriesOrder" class="block text-xs text-muted">Part number</label>
+                <input id="f-seriesOrder" type="number" min="1" step="1" placeholder="1"
+                  class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+              </div>
+            </div>
+            <p class="mt-1.5 text-xs text-muted">
+              Give related posts the same series name and increasing part numbers — they'll cross-link automatically.
+            </p>
+          </fieldset>
+
+          <!-- Cover -->
+          <fieldset>
+            <legend class="text-xs font-bold tracking-wider uppercase text-muted">Cover image</legend>
+            <div class="mt-2 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="f-cover" class="block text-xs text-muted">Path (optional)</label>
+                <input id="f-cover" placeholder="./images/cover.png"
+                  class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 font-mono text-xs" />
+              </div>
+              <div>
+                <label for="f-coverAlt" class="block text-xs text-muted">Alt text (required if cover set)</label>
+                <input id="f-coverAlt" placeholder="Describe the cover image"
+                  class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- FAQ -->
+          <fieldset>
+            <div class="flex items-center justify-between">
+              <legend class="text-xs font-bold tracking-wider uppercase text-muted">FAQ</legend>
+              <button type="button" id="faq-add" class="btn btn-outline btn-sm">+ Add question</button>
+            </div>
+            <p class="mt-1.5 text-xs text-muted">
+              Each pair renders on the page, emits rich-result schema, and answers the article chat.
+            </p>
+            <div id="faq-list" class="mt-3 space-y-3"></div>
+          </fieldset>
+
+          <!-- Updated -->
+          <div>
+            <label for="f-updated" class="text-xs font-bold tracking-wider uppercase text-muted">Updated date</label>
+            <input id="f-updated" type="date" class="ml-3 rounded border border-default bg-[var(--bg)] px-2 py-1 text-sm" />
+          </div>
+        </div>
+      </details>
     </div>
 
-    <!-- Advanced: everything optional, tucked away so the common path stays quick. -->
-    <details class="mt-3 rounded-lg border border-default">
-      <summary class="cursor-pointer px-4 py-3 text-sm font-medium">
-        Series, cover image, FAQ &amp; more
-      </summary>
-
-      <div class="space-y-6 border-t border-default p-4">
-        <!-- Series -->
-        <fieldset>
-          <legend class="text-xs font-bold tracking-wider uppercase text-muted">Part of a series</legend>
-          <div class="mt-2 grid gap-3 sm:grid-cols-[1fr_8rem]">
-            <div>
-              <label for="f-series" class="block text-xs text-muted">Series name</label>
-              <input id="f-series" list="series-suggestions" placeholder="e.g. minimal-api-production"
-                class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 font-mono text-xs" />
-              <datalist id="series-suggestions">
-                {existingSeries.map((s) => <option value={s}></option>)}
-              </datalist>
-            </div>
-            <div>
-              <label for="f-seriesOrder" class="block text-xs text-muted">Part number</label>
-              <input id="f-seriesOrder" type="number" min="1" step="1" placeholder="1"
-                class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
-            </div>
-          </div>
-          <p class="mt-1.5 text-xs text-muted">
-            Give related posts the same series name and increasing part numbers — they'll cross-link automatically.
-          </p>
-        </fieldset>
-
-        <!-- Cover -->
-        <fieldset>
-          <legend class="text-xs font-bold tracking-wider uppercase text-muted">Cover image</legend>
-          <div class="mt-2 grid gap-3 sm:grid-cols-2">
-            <div>
-              <label for="f-cover" class="block text-xs text-muted">Path (optional)</label>
-              <input id="f-cover" placeholder="./images/cover.png"
-                class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 font-mono text-xs" />
-            </div>
-            <div>
-              <label for="f-coverAlt" class="block text-xs text-muted">Alt text (required if cover set)</label>
-              <input id="f-coverAlt" placeholder="Describe the cover image"
-                class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
-            </div>
-          </div>
-        </fieldset>
-
-        <!-- FAQ -->
-        <fieldset>
-          <div class="flex items-center justify-between">
-            <legend class="text-xs font-bold tracking-wider uppercase text-muted">FAQ</legend>
-            <button type="button" id="faq-add" class="btn btn-outline btn-sm">+ Add question</button>
-          </div>
-          <p class="mt-1.5 text-xs text-muted">
-            Each pair renders on the page, emits rich-result schema, and answers the article chat.
-          </p>
-          <div id="faq-list" class="mt-3 space-y-3"></div>
-        </fieldset>
-
-        <!-- Updated -->
-        <div>
-          <label for="f-updated" class="text-xs font-bold tracking-wider uppercase text-muted">Updated date</label>
-          <input id="f-updated" type="date" class="ml-3 rounded border border-default bg-[var(--bg)] px-2 py-1 text-sm" />
-        </div>
+    <!-- ── Workspace: sticky toolbar + editor/preview ─────────────────── -->
+    <div id="workspace" class="mt-5">
+      <!-- Toolbar sticks below the site header while you scroll the editor. -->
+      <div class="sticky top-16 z-10 flex flex-wrap items-center gap-0.5 rounded-t-lg border border-b-0 border-default bg-subtle/95 p-1.5 backdrop-blur">
+        {TOOLBAR.map((t) => (
+          t.sep
+            ? <span class="mx-1 h-5 w-px self-center bg-[var(--border)]" aria-hidden="true"></span>
+            : (
+              <button
+                type="button"
+                class="rounded-md px-2.5 py-1.5 text-sm text-muted transition-colors hover:bg-[var(--bg)] hover:text-accent"
+                data-tool={t.key}
+                data-kind={t.kind}
+                data-a={t.kind === 'wrap' || t.kind === 'block' ? t.a : undefined}
+                data-b={t.kind === 'wrap' ? t.b : undefined}
+                data-snippet={t.kind === 'insert' ? t.snippet : undefined}
+                title={t.title}
+              >
+                <span class={t.cls}>{t.label}</span>
+              </button>
+            )
+        ))}
       </div>
-    </details>
 
-    <!-- Toolbar -->
-    <div class="mt-4 flex flex-wrap gap-1 rounded-t-lg border border-b-0 border-default bg-subtle p-2">
-      {TOOLBAR.map((t) => (
-        <button
-          type="button"
-          class="rounded px-2.5 py-1.5 text-sm text-muted transition-colors hover:bg-[var(--bg)] hover:text-accent"
-          data-tool={t.key}
-          data-kind={t.kind}
-          data-a={t.kind === 'wrap' || t.kind === 'block' ? t.a : undefined}
-          data-b={t.kind === 'wrap' ? t.b : undefined}
-          data-snippet={t.kind === 'insert' ? t.snippet : undefined}
-          title={t.title}
-        >
-          <span class={t.cls}>{t.label}</span>
-        </button>
-      ))}
-    </div>
-
-    <!-- Editor + preview -->
-    <div class="grid gap-0 rounded-b-lg border border-default lg:grid-cols-2">
-      <div class="border-b border-default lg:border-b-0 lg:border-r">
-        <textarea
-          id="editor"
-          spellcheck="true"
-          placeholder="Write in Markdown. Open with the problem, use ## question headings, answer first, end with Key takeaways."
-          class="block h-[60vh] w-full resize-none bg-[var(--bg)] p-4 font-mono text-sm leading-relaxed focus:outline-none"
-        ></textarea>
-      </div>
-      <div class="overflow-auto" style="max-height: 60vh;">
-        <div class="flex items-center justify-between border-b border-default bg-subtle px-4 py-1.5 text-xs text-muted">
-          <span>Preview</span>
-          <span id="stats"></span>
+      <!-- Editor + preview -->
+      <div id="split" class="grid rounded-b-lg border border-default lg:grid-cols-2">
+        <div class="border-b border-default lg:border-b-0 lg:border-r">
+          <textarea
+            id="editor"
+            spellcheck="true"
+            placeholder="Write in Markdown. Open with the problem, use ## question headings, answer first, end with Key takeaways."
+            class="editor-area block w-full resize-none bg-[var(--bg)] p-5 font-mono leading-relaxed focus:outline-none"
+          ></textarea>
         </div>
-        <article id="preview" class="prose-reading max-w-none p-5"></article>
+        <div id="preview-pane" class="overflow-auto">
+          <div class="sticky top-0 flex items-center justify-between border-b border-default bg-subtle px-4 py-1.5 text-xs text-muted">
+            <span>Preview</span>
+          </div>
+          <article id="preview" class="prose-reading max-w-none p-5"></article>
+        </div>
       </div>
     </div>
 
@@ -344,6 +371,78 @@ const TOOLBAR = [
   </div>
 </BaseLayout>
 
+<style>
+  /* Segmented view switcher. */
+  .seg {
+    border-radius: 0.4rem;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    transition: background 0.15s, color 0.15s;
+  }
+  .seg[aria-pressed='true'] {
+    background: var(--bg);
+    color: var(--accent);
+    font-weight: 600;
+    box-shadow: 0 1px 2px oklch(0 0 0 / 0.06);
+  }
+
+  /* Pill toggles for Draft / Featured — checkbox stays, chrome gets nicer. */
+  .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.8rem;
+    user-select: none;
+  }
+  .toggle .dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--border);
+    transition: background 0.15s;
+  }
+  .toggle:has(:checked) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .toggle:has(:checked) .dot {
+    background: var(--accent);
+  }
+  .toggle:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* Comfortable writing surface. */
+  .editor-area {
+    height: 62vh;
+    font-size: 0.95rem;
+  }
+
+  /* Focus mode: hide everything but the words. */
+  #composer.is-focus #meta-region,
+  #composer.is-focus #preview-pane {
+    display: none;
+  }
+  #composer.is-focus #split {
+    grid-template-columns: 1fr;
+  }
+  #composer.is-focus .editor-area {
+    height: 78vh;
+    font-size: 1rem;
+  }
+  /* A calmer reading measure for the prose while drafting in Focus mode. */
+  #composer.is-focus #editor {
+    max-width: 52rem;
+    margin: 0 auto;
+  }
+</style>
+
 <script>
   import { marked } from 'marked';
   import {
@@ -358,6 +457,7 @@ const TOOLBAR = [
     const field = (id: string) => $(id) as HTMLInputElement;
     const DRAFT_KEY = 'writer:draft';
     const GUIDE_KEY = 'writer:guide';
+    const VIEW_KEY = 'writer:view';
 
     let mdx = false;
 
@@ -371,6 +471,21 @@ const TOOLBAR = [
     };
     setGuide(localStorage.getItem(GUIDE_KEY) === '1');
     guideBtn.addEventListener('click', () => setGuide(guide.hidden));
+
+    // View switcher — Split (editor + preview) vs Focus (editor only).
+    const composer = $('composer');
+    const splitBtn = $('view-split');
+    const focusBtn = $('view-focus');
+    const setView = (view: 'split' | 'focus') => {
+      const focus = view === 'focus';
+      composer.classList.toggle('is-focus', focus);
+      splitBtn.setAttribute('aria-pressed', String(!focus));
+      focusBtn.setAttribute('aria-pressed', String(focus));
+      localStorage.setItem(VIEW_KEY, view);
+    };
+    splitBtn.addEventListener('click', () => setView('split'));
+    focusBtn.addEventListener('click', () => setView('focus'));
+    setView(localStorage.getItem(VIEW_KEY) === 'focus' ? 'focus' : 'split');
 
     // FAQ rows live in the DOM; read/write them alongside the flat fields.
     const faqList = $('faq-list');
@@ -508,7 +623,7 @@ const TOOLBAR = [
       $('preview').innerHTML = hl + marked.parse(bodyForPreview, { async: false });
 
       const { words, minutes } = readingStats(d.body);
-      $('stats').textContent = `${words} words · ${minutes} min`;
+      $('stats').textContent = `${words} words · ${minutes} min read`;
       $('desc-count').textContent = String(d.description.trim().length);
 
       $('filecode').textContent = toMarkdown(d);
@@ -526,7 +641,7 @@ const TOOLBAR = [
       }, 500);
     };
 
-    document.querySelectorAll('#editor, .grid input, .grid textarea, .grid select')
+    document.querySelectorAll('#editor, #meta-region input, #meta-region textarea, #meta-region select')
       .forEach((el) => el.addEventListener('input', render));
 
     // Slug follows the title until edited by hand.

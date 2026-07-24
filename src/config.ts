@@ -225,9 +225,9 @@ export const SESSION_FORMATS = [
 /** Fill these in after enabling Discussions + installing the giscus app. */
 export const GISCUS = {
   repo: 'jssuthahar/blog',
-  repoId: '',
+  repoId: 'R_kgDOThK5Yw',
   category: 'Announcements',
-  categoryId: '',
+  categoryId: 'DIC_kwDOThK5Y84DB1hU',
 } as const;
 
 /** Newsletter form action — set once you create the Kit/MailerLite form. */

@@ -1,0 +1,229 @@
+---
+import { AUTHOR } from '../config';
+
+interface Props {
+  /** The article's FAQ pairs — the answer bank the chat draws from. */
+  faq: { q: string; a: string }[];
+  title: string;
+  /** Opening line; the article highlight makes a natural greeting. */
+  intro?: string;
+}
+
+const { faq, title, intro } = Astro.props;
+
+// Rendered on every article. With no FAQ it still works as a friendly prompt
+// that routes questions to the comments, so the section is never empty.
+const greeting =
+  intro?.trim() ||
+  `Hi — I'm ${AUTHOR.name.split(' ')[0]}. Ask me anything about "${title}" and I'll point you to the answer.`;
+
+const initials = AUTHOR.name.split(' ').map((p) => p[0]).slice(0, 2).join('');
+---
+
+<section
+  class="not-prose rounded-2xl border border-default"
+  data-article-chat
+  aria-label="Ask about this article"
+>
+  <!-- Header: makes clear it's the author, not a bot. -->
+  <header class="flex items-center gap-3 border-b border-default p-4">
+    <img
+      src={AUTHOR.avatar}
+      alt={AUTHOR.name}
+      width="40"
+      height="40"
+      class="size-10 shrink-0 rounded-full object-cover"
+      onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'{initials}',className:'flex size-10 items-center justify-center rounded-full text-sm font-semibold text-white',style:'background:linear-gradient(135deg,oklch(0.55 0.16 252),oklch(0.42 0.15 285))'}))"
+    />
+    <div>
+      <p class="text-sm font-semibold">Ask {AUTHOR.name.split(' ')[0]} about this article</p>
+      <p class="flex items-center gap-1.5 text-xs text-muted">
+        <span class="inline-block size-2 rounded-full" style="background: oklch(0.6 0.16 155);"></span>
+        Usually answers from the article instantly
+      </p>
+    </div>
+  </header>
+
+  <!-- Conversation -->
+  <div data-chat-log class="max-h-96 space-y-3 overflow-y-auto p-4" aria-live="polite"></div>
+
+  <!-- Suggested questions, straight from the FAQ. -->
+  {faq.length > 0 && (
+    <div data-chat-suggestions class="flex flex-wrap gap-2 px-4 pb-3">
+      {faq.map((item, i) => (
+        <button
+          type="button"
+          data-ask={i}
+          class="rounded-full border border-default px-3 py-1.5 text-left text-xs text-muted transition-colors hover:bg-subtle hover:text-accent"
+        >
+          {item.q}
+        </button>
+      ))}
+    </div>
+  )}
+
+  <!-- Composer -->
+  <form data-chat-form class="flex items-center gap-2 border-t border-default p-3" novalidate>
+    <label for="chat-input" class="sr-only">Your question</label>
+    <input
+      id="chat-input"
+      type="text"
+      autocomplete="off"
+      placeholder="Type your question…"
+      class="flex-1 rounded-full border border-default bg-[var(--bg)] px-4 py-2 text-sm"
+    />
+    <button type="submit" class="btn btn-accent btn-sm shrink-0" aria-label="Send">Send</button>
+  </form>
+</section>
+
+<script
+  is:inline
+  define:vars={{
+    faq,
+    greeting,
+    authorName: AUTHOR.name.split(' ')[0],
+    avatar: AUTHOR.avatar,
+    initials,
+  }}
+>
+  (() => {
+    function init() {
+      const root = document.querySelector('[data-article-chat]');
+      if (!root || root.dataset.ready === '') return;
+      root.dataset.ready = '';
+
+      const log = root.querySelector('[data-chat-log]');
+      const form = root.querySelector('[data-chat-form]');
+      const input = form.querySelector('input');
+
+      const STOP = new Set(
+        'a an the is are do does how what why when which to in on of for and or with my your this that it i you'.split(' '),
+      );
+      const tokens = (s) =>
+        s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w && !STOP.has(w));
+
+      // Pre-tokenise the FAQ once. Match against the question, with the answer
+      // as a lighter secondary signal.
+      const bank = faq.map((f) => ({
+        ...f,
+        qt: new Set(tokens(f.q)),
+        at: new Set(tokens(f.a)),
+      }));
+
+      const esc = (s) =>
+        s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+      function bubble(role, html) {
+        const wrap = document.createElement('div');
+        wrap.className = role === 'user' ? 'flex justify-end' : 'flex gap-2.5';
+
+        if (role === 'author') {
+          const av = document.createElement('img');
+          av.src = avatar;
+          av.alt = authorName;
+          av.className = 'size-7 shrink-0 rounded-full object-cover';
+          av.onerror = () => {
+            const s = document.createElement('span');
+            s.textContent = initials;
+            s.className =
+              'flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white';
+            s.style.background = 'linear-gradient(135deg,oklch(0.55 0.16 252),oklch(0.42 0.15 285))';
+            av.replaceWith(s);
+          };
+          wrap.appendChild(av);
+        }
+
+        const b = document.createElement('div');
+        b.className =
+          role === 'user'
+            ? 'max-w-[80%] rounded-2xl rounded-br-sm px-3.5 py-2 text-sm text-white'
+            : 'max-w-[80%] rounded-2xl rounded-tl-sm border border-default px-3.5 py-2 text-sm';
+        if (role === 'user') b.style.background = 'var(--accent)';
+        else b.style.background = 'var(--bg-subtle)';
+        b.innerHTML = html;
+        wrap.appendChild(b);
+
+        log.appendChild(wrap);
+        log.scrollTop = log.scrollHeight;
+        return b;
+      }
+
+      // A short "typing" pause makes the reply feel like a person, not a lookup.
+      function authorReply(html) {
+        const typing = bubble('author', '<span class="inline-flex gap-1"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>');
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            typing.innerHTML = html;
+            log.scrollTop = log.scrollHeight;
+            resolve();
+          }, 550);
+        });
+      }
+
+      function bestMatch(q) {
+        const qt = tokens(q);
+        if (!qt.length) return null;
+        let best = null;
+        let score = 0;
+        for (const f of bank) {
+          let s = 0;
+          for (const t of qt) {
+            if (f.qt.has(t)) s += 2;
+            else if (f.at.has(t)) s += 1;
+          }
+          if (s > score) { score = s; best = f; }
+        }
+        // Require a real overlap so unrelated questions fall through to comments.
+        return score >= 2 ? best : null;
+      }
+
+      const commentsCta =
+        'I haven’t covered that one here yet. Post it in the comments just below and I’ll answer you personally.' +
+        ' <a href="#comments-heading" class="font-medium underline" style="color:var(--accent)">Jump to comments →</a>';
+
+      async function ask(q) {
+        bubble('user', esc(q));
+        const match = bestMatch(q);
+        await authorReply(match ? esc(match.a) : commentsCta);
+      }
+
+      // Opening line from the author.
+      bubble('author', esc(greeting));
+
+      root.querySelectorAll('[data-ask]').forEach((btn) => {
+        btn.addEventListener('click', () => ask(faq[Number(btn.dataset.ask)].q));
+      });
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const q = input.value.trim();
+        if (!q) return;
+        input.value = '';
+        ask(q);
+      });
+    }
+
+    init();
+    document.addEventListener('astro:page-load', init);
+  })();
+</script>
+
+<style>
+  [data-article-chat] .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--text-muted);
+    display: inline-block;
+    animation: chat-blink 1.2s infinite;
+  }
+  [data-article-chat] .dot:nth-child(2) { animation-delay: 0.2s; }
+  [data-article-chat] .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes chat-blink {
+    0%, 60%, 100% { opacity: 0.25; }
+    30% { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-article-chat] .dot { animation: none; }
+  }
+</style>

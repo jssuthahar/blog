@@ -1,0 +1,141 @@
+---
+import { FIREBASE } from '../config';
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+const enabled = FIREBASE.projectId.length > 0;
+
+// Keys must match the fixed set in firestore.rules exactly.
+const REACTIONS = [
+  { key: 'like', emoji: '👍', label: 'Like' },
+  { key: 'love', emoji: '❤️', label: 'Love' },
+  { key: 'celebrate', emoji: '🎉', label: 'Celebrate' },
+  { key: 'insightful', emoji: '💡', label: 'Insightful' },
+] as const;
+---
+
+{enabled && (
+  <div data-reactions data-slug={slug}>
+    <p class="text-sm font-medium">Was this useful?</p>
+    <div class="mt-2 flex flex-wrap gap-2">
+      {REACTIONS.map((r) => (
+        <button
+          type="button"
+          data-react={r.key}
+          aria-label={r.label}
+          class="react-btn inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1.5 text-sm transition-colors hover:bg-subtle disabled:opacity-70"
+        >
+          <span class="text-base leading-none">{r.emoji}</span>
+          <span data-count={r.key} class="tabular-nums text-muted">0</span>
+        </button>
+      ))}
+    </div>
+  </div>
+)}
+
+<style>
+  .react-btn[data-reacted] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .react-btn[data-reacted] [data-count] {
+    color: var(--accent);
+    font-weight: 600;
+  }
+</style>
+
+{enabled && (
+  <script is:inline define:vars={{ projectId: FIREBASE.projectId }}>
+    (() => {
+      const BASE = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
+
+      const format = (n) =>
+        n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
+
+      async function run() {
+        const root = document.querySelector('[data-reactions]');
+        if (!root || root.dataset.ready === '') return;
+        root.dataset.ready = '';
+
+        const slug = root.dataset.slug;
+        const docPath = `${BASE}/reactions/${encodeURIComponent(slug)}`;
+        const buttons = [...root.querySelectorAll('[data-react]')];
+
+        const paint = (key, value) => {
+          const el = root.querySelector(`[data-count="${key}"]`);
+          if (el) el.textContent = format(value);
+        };
+
+        // Show current counts, and mark reactions this browser already gave.
+        try {
+          const doc = await fetch(docPath).then((r) => (r.ok ? r.json() : null));
+          const fields = doc?.fields ?? {};
+          buttons.forEach((btn) => {
+            const key = btn.dataset.react;
+            paint(key, Number(fields[key]?.integerValue ?? 0));
+            if (localStorage.getItem(`reacted:${slug}:${key}`) !== null) {
+              btn.dataset.reacted = '';
+            }
+          });
+        } catch {
+          // Reactions are decoration — never let them break the page.
+          root.remove();
+          return;
+        }
+
+        buttons.forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const key = btn.dataset.react;
+            const guard = `reacted:${slug}:${key}`;
+
+            // One of each reaction per browser, mirroring the view-count model.
+            if (localStorage.getItem(guard) !== null) return;
+            localStorage.setItem(guard, '1');
+            btn.dataset.reacted = '';
+
+            const countEl = root.querySelector(`[data-count="${key}"]`);
+            const optimistic = Number(String(countEl?.textContent).replace(/k$/, '000')) || 0;
+            paint(key, optimistic + 1);
+
+            try {
+              const res = await fetch(`${BASE}:commit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  writes: [
+                    {
+                      update: {
+                        name: `projects/${projectId}/databases/(default)/documents/reactions/${slug}`,
+                        fields: {},
+                      },
+                      updateMask: { fieldPaths: [] },
+                      updateTransforms: [
+                        { fieldPath: key, increment: { integerValue: '1' } },
+                      ],
+                    },
+                  ],
+                }),
+              });
+              if (!res.ok) throw new Error(String(res.status));
+
+              // Re-read so the shown number reflects everyone, not just us.
+              const doc = await fetch(docPath).then((r) => (r.ok ? r.json() : null));
+              paint(key, Number(doc?.fields?.[key]?.integerValue ?? optimistic + 1));
+            } catch {
+              // Roll back the guard so a genuine failure can be retried.
+              localStorage.removeItem(guard);
+              delete btn.dataset.reacted;
+              paint(key, optimistic);
+            }
+          });
+        });
+      }
+
+      run();
+      document.addEventListener('astro:page-load', run);
+    })();
+  </script>
+)}

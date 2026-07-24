@@ -18,7 +18,10 @@ const configured = GISCUS.repoId.length > 0 && GISCUS.categoryId.length > 0;
         data-category-id={GISCUS.categoryId}
         data-mapping="pathname"
         data-strict="1"
-        data-reactions-enabled="1"
+        {/* Off on purpose: the article's own reaction bar (Reactions.astro)
+            is the reaction surface and needs no login. giscus reactions would
+            duplicate it and require a GitHub account, so giscus is comments only. */}
+        data-reactions-enabled="0"
         data-emit-metadata="0"
         data-input-position="top"
         data-theme="preferred_color_scheme"

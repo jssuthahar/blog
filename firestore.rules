@@ -31,6 +31,34 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Per-article reactions (like / love / celebrate / insightful).
+    //
+    // One document per article holds a count per reaction, incremented with a
+    // field transform. The rules pin down exactly what a write may do: touch a
+    // single reaction from the fixed set, and only by +1. So the worst case is
+    // "someone scripts extra reactions", never arbitrary data or a wiped count.
+    match /reactions/{slug} {
+      function keys() { return ['like', 'love', 'celebrate', 'insightful']; }
+      function bumped(k) {
+        return (k in request.resource.data)
+            && request.resource.data[k] == ((k in resource.data) ? resource.data[k] + 1 : 1);
+      }
+
+      allow read: if true;
+
+      // First reaction creates the doc with exactly one key set to 1.
+      allow create: if request.resource.data.keys().hasOnly(keys())
+                    && request.resource.data.keys().size() == 1
+                    && request.resource.data.values().hasOnly([1]);
+
+      // Later reactions increment exactly one allowed key by exactly one.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys())
+                    && request.resource.data.diff(resource.data).affectedKeys().size() == 1
+                    && (bumped('like') || bumped('love') || bumped('celebrate') || bumped('insightful'));
+
+      allow delete: if false;
+    }
+
     // Newsletter subscribers.
     //
     // The document ID is the email address, which makes a repeat signup a

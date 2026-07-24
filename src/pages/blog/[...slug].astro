@@ -5,6 +5,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import TableOfContents from '../../components/TableOfContents.astro';
 import ReadingProgress from '../../components/ReadingProgress.astro';
 import ShareRow from '../../components/ShareRow.astro';
+import Reactions from '../../components/Reactions.astro';
+import ArticleChat from '../../components/ArticleChat.astro';
 import CodeCopyButton from '../../components/CodeCopyButton.astro';
 import PostCard from '../../components/PostCard.astro';
 import Newsletter from '../../components/Newsletter.astro';
@@ -188,7 +190,11 @@ if (data.faq.length > 0) {
         )}
 
         <div class="mx-auto mt-14 max-w-[68ch] border-t border-default pt-8">
-          <ShareRow title={data.title} path={path} />
+          <!-- Engagement bar: react, then share. -->
+          <div class="flex flex-wrap items-end justify-between gap-6">
+            <Reactions slug={post.id} />
+            <ShareRow title={data.title} path={path} />
+          </div>
 
           {data.tags.length > 0 && (
             <ul class="mt-6 flex flex-wrap gap-2">
@@ -227,6 +233,10 @@ if (data.faq.length > 0) {
 
         <div class="mx-auto mt-8 max-w-[68ch]">
           <Newsletter compact />
+        </div>
+
+        <div class="mx-auto mt-14 max-w-[68ch]">
+          <ArticleChat faq={data.faq} title={data.title} intro={data.highlight} />
         </div>
 
         <div class="mx-auto mt-14 max-w-[68ch]">

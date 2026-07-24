@@ -139,6 +139,88 @@ service cloud.firestore {
                     && request.resource.data.createdAt == request.time;
     }
 
+    // Event registrations.
+    //
+    // The document ID is `{eventSlug}__{email}`, which makes a repeat sign-up a
+    // no-op instead of a duplicate row. The list holds attendee emails, so it
+    // is NEVER publicly readable — only the signed-in admin may read or remove
+    // entries (and export them). Anyone may create their own registration, but
+    // the rules pin down exactly what a registration document may contain.
+    match /eventRegistrations/{id} {
+      allow read, delete: if isAdmin();
+      allow update: if false;
+
+      allow create: if request.resource.data.keys().hasAll(['event', 'eventTitle', 'name', 'email', 'createdAt'])
+                    && request.resource.data.keys().hasOnly(['event', 'eventTitle', 'name', 'email', 'org', 'createdAt'])
+                    && request.resource.data.event is string
+                    && request.resource.data.event.size() >= 1
+                    && request.resource.data.event.size() <= 120
+                    && request.resource.data.eventTitle is string
+                    && request.resource.data.eventTitle.size() <= 200
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() >= 2
+                    && request.resource.data.name.size() <= 80
+                    && request.resource.data.email is string
+                    && request.resource.data.email.size() >= 6
+                    && request.resource.data.email.size() <= 254
+                    && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$')
+                    && (!('org' in request.resource.data)
+                        || (request.resource.data.org is string && request.resource.data.org.size() <= 100))
+                    // Server-stamped, so a registration cannot be backdated.
+                    && request.resource.data.createdAt == request.time;
+    }
+
+    // Contact-form messages.
+    //
+    // A static site cannot process a POST, so messages are written straight
+    // here. They hold the sender's email and message, so the collection is
+    // NEVER publicly readable — only the signed-in admin may read, update the
+    // status, or delete. Anyone may create a message, but only as `new`, and
+    // the rules pin down exactly what it may contain.
+    match /contactMessages/{id} {
+      allow read, delete: if isAdmin();
+
+      allow create: if request.resource.data.keys().hasOnly(['name', 'email', 'subject', 'message', 'status', 'createdAt'])
+                    && request.resource.data.status == 'new'
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() >= 2
+                    && request.resource.data.name.size() <= 80
+                    && request.resource.data.email is string
+                    && request.resource.data.email.size() >= 6
+                    && request.resource.data.email.size() <= 254
+                    && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$')
+                    && request.resource.data.subject is string
+                    && request.resource.data.subject.size() <= 100
+                    && request.resource.data.message is string
+                    && request.resource.data.message.size() >= 10
+                    && request.resource.data.message.size() <= 3000
+                    // Server-stamped, so a message cannot be backdated.
+                    && request.resource.data.createdAt == request.time;
+
+      // The admin may only move the status through the fixed set, nothing else.
+      allow update: if isAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+                    && request.resource.data.status in ['new', 'read', 'archived'];
+    }
+
+    // Public registration tally — a single count per event, no personal data.
+    //
+    // Mirrors `views`: the count is public so a page can show "N registered"
+    // without ever reading the private list above. A write may only ever bump
+    // `count` by one, so the worst case is an inflated tally, never PII or a
+    // wiped counter.
+    match /eventRegistrationCounts/{slug} {
+      allow read: if true;
+
+      allow create: if request.resource.data.keys().hasOnly(['count'])
+                    && request.resource.data.count == 1;
+
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count'])
+                    && request.resource.data.count == resource.data.count + 1;
+
+      allow delete: if false;
+    }
+
     // Everything else is closed.
     match /{document=**} {
       allow read, write: if false;

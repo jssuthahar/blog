@@ -1,0 +1,161 @@
+---
+import { render } from 'astro:content';
+import { Image } from 'astro:assets';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EventRegistrationForm from '../../components/EventRegistrationForm.astro';
+import EventListCard from '../../components/EventListCard.astro';
+import { SITE } from '../../config';
+import {
+  EVENT_FORMAT_LABELS,
+  eventSchema,
+  eventUrl,
+  formatEventDate,
+  formatEventTime,
+  getAllEvents,
+  getUpcomingEvents,
+  isPast,
+  type HostedEvent,
+} from '../../lib/eventhub';
+
+export async function getStaticPaths() {
+  const events = await getAllEvents();
+  return events.map((event) => ({ params: { slug: event.id }, props: { event } }));
+}
+
+interface Props {
+  event: HostedEvent;
+}
+
+const { event } = Astro.props;
+const { data } = event;
+const { Content } = await render(event);
+
+const past = isPast(event);
+const path = eventUrl(event);
+const dateStr = formatEventDate(event);
+const timeStr = formatEventTime(event);
+
+// A few other upcoming events to keep people browsing.
+const more = (await getUpcomingEvents()).filter((e) => e.id !== event.id).slice(0, 2);
+
+const schema: Record<string, unknown>[] = [
+  ...eventSchema([event], SITE.url, `${SITE.url}/#person`),
+  {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Events', item: `${SITE.url}/events` },
+      { '@type': 'ListItem', position: 3, name: data.title },
+    ],
+  },
+];
+
+const facts = [
+  { label: 'When', value: timeStr ? `${dateStr} · ${timeStr}` : dateStr },
+  {
+    label: 'Where',
+    value: data.online ? 'Online' : data.venue ? `${data.venue}, ${data.location}` : data.location,
+  },
+  { label: 'Format', value: EVENT_FORMAT_LABELS[data.format] },
+  { label: 'Price', value: data.price },
+  ...(data.host ? [{ label: 'Host', value: data.host }] : []),
+];
+---
+
+<BaseLayout
+  title={data.title}
+  description={data.description}
+  canonical={path}
+  type="article"
+  schema={schema}
+  wide
+>
+  <div class="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+    <nav aria-label="Breadcrumb" class="text-sm text-muted">
+      <a href="/events" class="hover:text-accent">Events</a>
+      <span aria-hidden="true" class="mx-2">/</span>
+      <span>{EVENT_FORMAT_LABELS[data.format]}</span>
+    </nav>
+
+    <header class="mt-4 max-w-3xl">
+      <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
+        <span class="rounded px-2 py-0.5 text-xs font-medium" style="background: var(--accent-soft); color: var(--accent);">
+          {EVENT_FORMAT_LABELS[data.format]}
+        </span>
+        {past && <span class="text-xs font-medium text-muted">· Past event</span>}
+        {!past && data.registration === 'open' && (
+          <span class="text-xs font-medium text-accent">· Registration open</span>
+        )}
+      </div>
+
+      <h1 class="mt-4 text-3xl font-bold tracking-tight text-balance sm:text-4xl">{data.title}</h1>
+      <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">{data.description}</p>
+    </header>
+
+    {data.cover && (
+      <figure class="mt-8">
+        <Image
+          src={data.cover}
+          alt={data.coverAlt ?? ''}
+          widths={[640, 1024, 1600]}
+          sizes="(max-width: 1024px) 100vw, 1024px"
+          loading="eager"
+          class="w-full rounded-xl border border-default"
+        />
+      </figure>
+    )}
+
+    <div class="mt-10 gap-10 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div class="min-w-0">
+        <!-- At-a-glance facts, above the fold on mobile too. -->
+        <dl class="grid gap-4 rounded-xl border border-default p-5 sm:grid-cols-2">
+          {facts.map(({ label, value }) => (
+            <div>
+              <dt class="text-xs font-semibold tracking-wider uppercase text-muted">{label}</dt>
+              <dd class="mt-1 text-sm font-medium">{value}</dd>
+            </div>
+          ))}
+        </dl>
+
+        {!past && (
+          <a href={`${path}.ics`} class="mt-3 inline-flex items-center gap-1.5 text-sm text-accent hover:underline">
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+            Add to calendar
+          </a>
+        )}
+
+        <article class="prose-reading mt-10 max-w-none">
+          <Content />
+        </article>
+
+        {data.topics.length > 0 && (
+          <ul class="mt-8 flex flex-wrap gap-2">
+            {data.topics.map((topic) => (
+              <li class="inline-block rounded-full border border-default px-3 py-1 text-sm text-muted">{topic}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <!-- Registration renders once: a sticky rail on wide screens, and it
+           stacks below the details on mobile. Rendered here (not duplicated) so
+           the single #register form and its script bind correctly. -->
+      <aside class="mt-10 lg:mt-0">
+        <div class="lg:sticky lg:top-24">
+          <EventRegistrationForm event={event} past={past} />
+        </div>
+      </aside>
+    </div>
+
+    {more.length > 0 && (
+      <section class="mt-20 border-t border-default pt-12" aria-labelledby="more-heading">
+        <h2 id="more-heading" class="text-xl font-semibold tracking-tight">More upcoming events</h2>
+        <div class="mt-6 space-y-3">
+          {more.map((e) => <EventListCard event={e} />)}
+        </div>
+      </section>
+    )}
+  </div>
+</BaseLayout>

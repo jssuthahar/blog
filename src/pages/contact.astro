@@ -1,8 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { SITE, AUTHOR, MAIN_SITE, CONTACT_FORM, BOOKING } from '../config';
+import { SITE, AUTHOR, MAIN_SITE, FIREBASE, BOOKING } from '../config';
+import { SUBJECTS } from '../lib/contact';
 
-const configured = CONTACT_FORM.action.length > 0;
+// The form writes straight to Firestore (no external form service), so it is
+// live wherever the Firestore project is configured.
+const configured = FIREBASE.projectId.length > 0;
 
 // Every route points at the form or LinkedIn. No address is published, so
 // there is nothing on the page for a scraper to harvest.
@@ -89,19 +92,16 @@ const schema = [
     <section id="message-form" class="scroll-mt-24" aria-labelledby="form-heading">
       <h2 id="form-heading" class="text-xl font-semibold tracking-tight">Send a message</h2>
 
-      <form
-        action={CONTACT_FORM.action}
-        method="post"
-        class="mt-6 space-y-4"
-      >
+      <form data-contact-form class="mt-6 space-y-4" novalidate>
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
             <label for="name" class="block text-sm font-medium">Name</label>
             <input
               id="name"
-              name="name"
+              data-field="name"
               type="text"
               required
+              maxlength="80"
               autocomplete="name"
               disabled={!configured}
               class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
@@ -111,9 +111,10 @@ const schema = [
             <label for="email" class="block text-sm font-medium">Email</label>
             <input
               id="email"
-              name="email"
+              data-field="email"
               type="email"
               required
+              maxlength="254"
               autocomplete="email"
               disabled={!configured}
               class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
@@ -125,14 +126,11 @@ const schema = [
           <label for="subject" class="block text-sm font-medium">Subject</label>
           <select
             id="subject"
-            name="subject"
+            data-field="subject"
             disabled={!configured}
             class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
           >
-            <option>Speaking invitation</option>
-            <option>Article feedback</option>
-            <option>Community &amp; collaboration</option>
-            <option>Something else</option>
+            {SUBJECTS.map((s) => <option>{s}</option>)}
           </select>
         </div>
 
@@ -140,22 +138,30 @@ const schema = [
           <label for="message" class="block text-sm font-medium">Message</label>
           <textarea
             id="message"
-            name="message"
+            data-field="message"
             rows="6"
             required
+            maxlength="3000"
             disabled={!configured}
             class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
           ></textarea>
+          <p class="mt-1 text-xs text-muted"><span data-count>0</span>/3000 · minimum 10 characters</p>
         </div>
 
-        <button type="submit" disabled={!configured} class="btn btn-accent disabled:opacity-60">
-          Send message
-        </button>
+        <div class="flex flex-wrap items-center gap-4">
+          <button type="submit" disabled={!configured} class="btn btn-accent disabled:opacity-60">
+            Send message
+          </button>
+          <p data-status role="status" aria-live="polite" class="text-sm"></p>
+        </div>
+
+        <p class="text-xs text-muted">
+          Your email is used only to reply — never published or shared.
+        </p>
 
         {!configured && (
           <p class="text-sm text-muted">
-            This form is not live yet — a static site can't process a POST. Add a free
-            Formspree or Web3Forms endpoint to <code>CONTACT_FORM.action</code> in
+            This form is not live yet. Set <code>FIREBASE.projectId</code> in
             <code>src/config.ts</code> to switch it on. In the meantime,
             <a href={AUTHOR.linkedin} rel="noopener" class="text-accent hover:underline">
               message me on LinkedIn</a>.
@@ -183,3 +189,68 @@ const schema = [
     </aside>
   </div>
 </BaseLayout>
+
+<script>
+  import { sendContactMessage, EMAIL_RE } from '../lib/contact';
+
+  function initContactForm() {
+    const form = document.querySelector<HTMLFormElement>('[data-contact-form]');
+    if (!form || form.dataset.bound === '') return;
+    form.dataset.bound = '';
+
+    const field = (name: string) =>
+      form.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(`[data-field="${name}"]`)!;
+
+    const message = field('message') as HTMLTextAreaElement;
+    const status = form.querySelector<HTMLElement>('[data-status]')!;
+    const counter = form.querySelector<HTMLElement>('[data-count]')!;
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+
+    message.addEventListener('input', () => {
+      counter.textContent = String(message.value.length);
+    });
+
+    const say = (text: string, tone: 'ok' | 'error' | 'muted') => {
+      status.textContent = text;
+      status.style.color = tone === 'muted' ? 'var(--text-muted)' : 'var(--accent)';
+    };
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const values = {
+        name: field('name').value.trim(),
+        email: field('email').value.trim().toLowerCase(),
+        subject: field('subject').value,
+        message: message.value.trim(),
+      };
+
+      if (values.name.length < 2) { say('Please add your name.', 'error'); field('name').focus(); return; }
+      if (!EMAIL_RE.test(values.email)) { say('Please enter a valid email address.', 'error'); field('email').focus(); return; }
+      if (values.message.length < 10) { say('Please write at least 10 characters.', 'error'); message.focus(); return; }
+
+      button.disabled = true;
+      say('Sending…', 'muted');
+
+      try {
+        await sendContactMessage(values);
+        form.querySelectorAll('input, textarea').forEach((el) => ((el as HTMLInputElement).value = ''));
+        counter.textContent = '0';
+        say('Thanks — your message has been sent. I’ll get back to you soon.', 'ok');
+      } catch (err) {
+        button.disabled = false;
+        const code = err instanceof Error ? err.message : '';
+        say(
+          code === 'invalid-email' ? 'Please enter a valid email address.'
+            : code === 'invalid-name' ? 'Please add your name.'
+              : code === 'invalid-message' ? 'Please write at least 10 characters.'
+                : 'Something went wrong. Please try again later.',
+          'error',
+        );
+      }
+    });
+  }
+
+  initContactForm();
+  document.addEventListener('astro:page-load', initContactForm);
+</script>

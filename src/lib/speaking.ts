@@ -1,6 +1,6 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
 
-export type SpeakingEvent = CollectionEntry<'events'>;
+export type SpeakingEvent = CollectionEntry<'speaking'>;
 
 export const FORMAT_LABELS = {
   conference: 'Conference',
@@ -13,7 +13,7 @@ export const FORMAT_LABELS = {
 
 async function loadEvents(): Promise<SpeakingEvent[]> {
   // The template file must never render as a real event.
-  return (await getCollection('events')).filter((e) => e.id.toLowerCase() !== 'readme');
+  return (await getCollection('speaking')).filter((e) => e.id.toLowerCase() !== 'readme');
 }
 
 /**

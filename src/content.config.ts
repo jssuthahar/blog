@@ -101,8 +101,8 @@ const contributions = defineCollection({
  * is derived from the date at build time, so an event moves to the past
  * automatically instead of needing a status field kept in sync by hand.
  */
-const events = defineCollection({
-  loader: glob({ base: './src/content/events', pattern: '**/*.{md,mdx}' }),
+const speaking = defineCollection({
+  loader: glob({ base: './src/content/speaking', pattern: '**/*.{md,mdx}' }),
   schema: z.object({
     title: z.string(),
     /** The talk being given, when it differs from the event name. */
@@ -121,4 +121,63 @@ const events = defineCollection({
   }),
 });
 
-export const collections = { blog, series, contributions, events };
+/**
+ * Hosted events people can register for — workshops, webinars, launches, and
+ * community meetups. Distinct from `speaking` (talks Suthahar gives at other
+ * people's events): these are organised here, have a detail page, and take
+ * sign-ups. Like `speaking`, "upcoming" vs "past" is derived from the date at
+ * build time. The Markdown body holds the full agenda/description.
+ */
+const events = defineCollection({
+  loader: glob({ base: './src/content/events', pattern: '**/*.{md,mdx}' }),
+  schema: ({ image }) =>
+    z
+      .object({
+        title: z.string().max(120),
+        /** Card + meta description. */
+        description: z.string().min(20).max(300),
+        startDate: z.coerce.date(),
+        endDate: z.coerce.date().optional(),
+        /** Shown next to the time so attendees know the zone. */
+        timezone: z.string().default('IST'),
+        format: z.enum(['workshop', 'webinar', 'meetup', 'conference', 'launch', 'community']),
+        venue: z.string().optional(),
+        location: z.string().default('Online'),
+        online: z.boolean().default(false),
+        /** Meeting link for online events, revealed on the detail page. */
+        joinUrl: z.string().url().optional(),
+
+        cover: image().optional(),
+        coverAlt: z.string().optional(),
+
+        host: z.string().optional(),
+        /** Free-text so "Free", "₹499", or "$29" all work. */
+        price: z.string().default('Free'),
+        /** Soft cap — drives the "N seats" line and best-effort full state. */
+        capacity: z.number().int().positive().optional(),
+        /** Per-event override of EVENTS.registrationSeed (display-only baseline). */
+        registrationSeed: z.number().int().min(0).optional(),
+        topics: z.array(z.string()).default([]),
+
+        /**
+         * open     — take sign-ups here (Firestore).
+         * external — send people to `registrationUrl`.
+         * closed   — show details, no registration.
+         */
+        registration: z.enum(['open', 'external', 'closed']).default('open'),
+        registrationUrl: z.string().url().optional(),
+
+        featured: z.boolean().default(false),
+        draft: z.boolean().default(false),
+      })
+      .refine((d) => !d.cover || d.coverAlt, {
+        message: 'coverAlt is required when a cover image is set (accessibility + SEO)',
+        path: ['coverAlt'],
+      })
+      .refine((d) => d.registration !== 'external' || d.registrationUrl, {
+        message: 'registrationUrl is required when registration is "external"',
+        path: ['registrationUrl'],
+      }),
+});
+
+export const collections = { blog, series, contributions, speaking, events };

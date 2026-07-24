@@ -163,6 +163,7 @@ export const SOCIAL = [
 export const NAV = [
   { label: 'Articles', href: '/articles' },
   { label: 'Blog', href: '/blog' },
+  { label: 'Events', href: '/events' },
   { label: 'Speaking', href: '/speaking' },
   { label: 'Open source', href: '/open-source' },
   { label: 'About', href: '/about' },
@@ -265,6 +266,19 @@ export const FIREBASE = {
  */
 export const ADMIN = {
   uid: 'BVDLfgqNvJSZORv2zRitolBU3Cn2',
+} as const;
+
+/**
+ * Event registration display.
+ *
+ * `registrationSeed` is a baseline added to the live sign-up count so a brand
+ * new event does not read as "0 registered". It is social proof, not a real
+ * attendee list — the true count still drives your CSV export in /admin, and
+ * this number is display-only. Set it to 0 to show only real registrations, or
+ * override it per event with `registrationSeed` in the event's frontmatter.
+ */
+export const EVENTS = {
+  registrationSeed: 17,
 } as const;
 
 

@@ -1,0 +1,314 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { EVENT_FORMATS } from '../../lib/eventdoc';
+
+/**
+ * Standalone event editor. No login — it only produces a Markdown file, which
+ * you commit into src/content/events/ yourself. Fully client-side.
+ */
+---
+
+<BaseLayout title="New event" description="Event editor." noindex wide>
+  <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+    <header class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p class="eyebrow">Editor</p>
+        <h1 class="display mt-1.5 text-2xl">Create an event</h1>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <span id="autosave" class="text-xs text-muted"></span>
+        <button id="btn-clear" class="btn btn-outline btn-sm">New</button>
+        <button id="btn-copy" class="btn btn-outline btn-sm">Copy</button>
+        <button id="btn-download" class="btn btn-accent btn-sm">Download</button>
+      </div>
+    </header>
+
+    <p class="mt-3 text-sm leading-relaxed text-muted">
+      Fill this in, click <strong>Download</strong>, and drop the file into
+      <code>src/content/events/</code>. Commit and push — GitHub Actions deploys it and
+      it appears on <a href="/events" class="text-accent hover:underline">/events</a>.
+    </p>
+
+    <div class="mt-6 grid gap-4 rounded-lg border border-default p-4 sm:grid-cols-12">
+      <!-- Title + slug -->
+      <div class="sm:col-span-8">
+        <label for="f-title" class="block text-xs text-muted">Title</label>
+        <input id="f-title" maxlength="120" placeholder="Build a RAG App on Azure — Hands-on Workshop"
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-lg font-semibold" />
+      </div>
+      <div class="sm:col-span-4">
+        <label for="f-slug" class="block text-xs text-muted">Slug (URL)</label>
+        <div class="mt-1 flex items-center rounded-lg border border-default bg-[var(--bg)] px-3 text-sm text-muted">
+          <span class="shrink-0 font-mono text-xs">/events/</span>
+          <input id="f-slug" placeholder="slug" class="w-full bg-transparent py-2 font-mono text-xs" />
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="sm:col-span-12">
+        <label for="f-description" class="block text-xs text-muted">Short description (card + meta)</label>
+        <textarea id="f-description" rows="2" maxlength="300" placeholder="One or two sentences: what it is and who it's for. 20–300 characters."
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm"></textarea>
+        <p class="mt-1 text-xs"><span id="desc-count" class="text-muted">0</span> / 300</p>
+      </div>
+
+      <!-- Date / time -->
+      <div class="sm:col-span-5">
+        <label for="f-startDate" class="block text-xs text-muted">Starts</label>
+        <input id="f-startDate" type="datetime-local"
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      </div>
+      <div class="sm:col-span-5">
+        <label for="f-endDate" class="block text-xs text-muted">Ends (optional)</label>
+        <input id="f-endDate" type="datetime-local"
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      </div>
+      <div class="sm:col-span-2">
+        <label for="f-timezone" class="block text-xs text-muted">Timezone</label>
+        <input id="f-timezone" placeholder="IST"
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      </div>
+
+      <!-- Format / price / capacity -->
+      <div class="sm:col-span-4">
+        <label for="f-format" class="block text-xs text-muted">Format</label>
+        <select id="f-format" class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm">
+          {EVENT_FORMATS.map((f) => <option value={f.value}>{f.label}</option>)}
+        </select>
+      </div>
+      <div class="sm:col-span-4">
+        <label for="f-price" class="block text-xs text-muted">Price</label>
+        <input id="f-price" placeholder="Free"
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      </div>
+      <div class="sm:col-span-4">
+        <label for="f-capacity" class="block text-xs text-muted">Capacity (optional)</label>
+        <input id="f-capacity" type="number" min="1" step="1" placeholder="100"
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      </div>
+      <div class="sm:col-span-4">
+        <label for="f-registrationSeed" class="block text-xs text-muted">
+          Registration seed <span class="text-muted">(social proof baseline)</span>
+        </label>
+        <input id="f-registrationSeed" type="number" min="0" step="1" placeholder="17 (default)"
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+        <p class="mt-1 text-xs text-muted">Display-only — added to the live count. Leave blank for the site default (17), or 0 for real only.</p>
+      </div>
+
+      <!-- Location -->
+      <div class="flex items-center gap-2 sm:col-span-12">
+        <label class="flex items-center gap-2 text-sm font-medium"><input id="f-online" type="checkbox" checked /> Online event</label>
+      </div>
+      <div class="sm:col-span-6">
+        <label for="f-venue" class="block text-xs text-muted">Venue (in-person)</label>
+        <input id="f-venue" placeholder="Microsoft Reactor"
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      </div>
+      <div class="sm:col-span-6">
+        <label for="f-location" class="block text-xs text-muted">Location</label>
+        <input id="f-location" placeholder="Online, or Bengaluru, India"
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      </div>
+      <div class="sm:col-span-12">
+        <label for="f-joinUrl" class="block text-xs text-muted">Join link (online — shown to registrants)</label>
+        <input id="f-joinUrl" placeholder="https://teams.microsoft.com/..."
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 font-mono text-xs" />
+      </div>
+
+      <!-- Host / topics -->
+      <div class="sm:col-span-4">
+        <label for="f-host" class="block text-xs text-muted">Host (optional)</label>
+        <input id="f-host" placeholder="MSDEVBUILD"
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      </div>
+      <div class="sm:col-span-8">
+        <label for="f-topics" class="block text-xs text-muted">Topics (comma-separated)</label>
+        <input id="f-topics" placeholder="Azure OpenAI, RAG, .NET"
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      </div>
+
+      <!-- Registration -->
+      <div class="sm:col-span-4">
+        <label for="f-registration" class="block text-xs text-muted">Registration</label>
+        <select id="f-registration" class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm">
+          <option value="open">Open — sign up here</option>
+          <option value="external">External link</option>
+          <option value="closed">Closed — details only</option>
+        </select>
+      </div>
+      <div class="sm:col-span-8">
+        <label for="f-registrationUrl" class="block text-xs text-muted">External registration URL (if external)</label>
+        <input id="f-registrationUrl" placeholder="https://eventbrite.com/..."
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 font-mono text-xs" />
+      </div>
+
+      <!-- Cover -->
+      <div class="sm:col-span-6">
+        <label for="f-cover" class="block text-xs text-muted">Cover image path (optional)</label>
+        <input id="f-cover" placeholder="./images/cover.png"
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 font-mono text-xs" />
+      </div>
+      <div class="sm:col-span-6">
+        <label for="f-coverAlt" class="block text-xs text-muted">Cover alt text (required if cover set)</label>
+        <input id="f-coverAlt" placeholder="Describe the cover image"
+          class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      </div>
+
+      <!-- Flags -->
+      <div class="flex flex-wrap items-center gap-5 sm:col-span-12">
+        <label class="flex items-center gap-2 text-sm font-medium"><input id="f-featured" type="checkbox" /> Featured</label>
+        <label class="flex items-center gap-2 text-sm font-medium"><input id="f-draft" type="checkbox" /> Draft (hidden until unchecked)</label>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="mt-4">
+      <label for="editor" class="block text-xs text-muted">Full description &amp; agenda (Markdown)</label>
+      <textarea id="editor" spellcheck="true"
+        placeholder="## What you'll build&#10;&#10;Describe the event, the agenda, who it's for, and what to bring."
+        class="mt-1 block h-[40vh] w-full resize-none rounded-lg border border-default bg-[var(--bg)] p-4 font-mono text-sm leading-relaxed focus:outline-none"></textarea>
+    </div>
+
+    <!-- Validation + generated file -->
+    <div id="issues" class="mt-4"></div>
+
+    <details class="mt-4 rounded-lg border border-default">
+      <summary class="cursor-pointer px-4 py-3 text-sm font-medium">Generated file</summary>
+      <pre id="filecode" class="overflow-auto border-t border-default bg-subtle p-4 font-mono text-xs whitespace-pre-wrap"></pre>
+    </details>
+  </div>
+</BaseLayout>
+
+<script>
+  import {
+    emptyEventDraft, slugify, toMarkdown, validate, type EventDraft, type Registration,
+  } from '../../lib/eventdoc';
+
+  function initEventWriter() {
+    const editor = document.getElementById('editor') as HTMLTextAreaElement | null;
+    if (!editor) return;
+
+    const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+    const field = (id: string) => $(id) as HTMLInputElement;
+    const DRAFT_KEY = 'event-writer:draft';
+
+    const readForm = (): EventDraft => ({
+      slug: field('f-slug').value,
+      title: field('f-title').value,
+      description: field('f-description').value,
+      startDate: field('f-startDate').value,
+      endDate: field('f-endDate').value,
+      timezone: field('f-timezone').value,
+      format: field('f-format').value,
+      venue: field('f-venue').value,
+      location: field('f-location').value,
+      online: field('f-online').checked,
+      joinUrl: field('f-joinUrl').value,
+      host: field('f-host').value,
+      price: field('f-price').value,
+      capacity: field('f-capacity').value,
+      registrationSeed: field('f-registrationSeed').value,
+      topics: field('f-topics').value,
+      registration: field('f-registration').value as Registration,
+      registrationUrl: field('f-registrationUrl').value,
+      cover: field('f-cover').value,
+      coverAlt: field('f-coverAlt').value,
+      featured: field('f-featured').checked,
+      draft: field('f-draft').checked,
+      body: editor.value,
+    });
+
+    const writeForm = (d: EventDraft) => {
+      field('f-slug').value = d.slug;
+      field('f-title').value = d.title;
+      field('f-description').value = d.description;
+      field('f-startDate').value = d.startDate;
+      field('f-endDate').value = d.endDate;
+      field('f-timezone').value = d.timezone;
+      field('f-format').value = d.format;
+      field('f-venue').value = d.venue;
+      field('f-location').value = d.location;
+      field('f-online').checked = d.online;
+      field('f-joinUrl').value = d.joinUrl;
+      field('f-host').value = d.host;
+      field('f-price').value = d.price;
+      field('f-capacity').value = d.capacity;
+      field('f-registrationSeed').value = d.registrationSeed;
+      field('f-topics').value = d.topics;
+      field('f-registration').value = d.registration;
+      field('f-registrationUrl').value = d.registrationUrl;
+      field('f-cover').value = d.cover;
+      field('f-coverAlt').value = d.coverAlt;
+      field('f-featured').checked = d.featured;
+      field('f-draft').checked = d.draft;
+      editor.value = d.body;
+    };
+
+    // Restore last session.
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) writeForm({ ...emptyEventDraft(), ...JSON.parse(saved) });
+    } catch {}
+
+    let saveTimer: number | undefined;
+
+    const render = () => {
+      const d = readForm();
+      $('desc-count').textContent = String(d.description.trim().length);
+      $('filecode').textContent = toMarkdown(d);
+
+      const issues = validate(d);
+      $('issues').innerHTML = issues.length
+        ? `<div class="rounded-lg border p-4 text-sm" style="border-color:oklch(0.6 0.16 60 / .4);background:oklch(0.6 0.16 60 / .06)"><p class="font-semibold">Before publishing:</p><ul class="mt-2 list-disc space-y-1 pl-5 text-muted">${issues.map((i) => `<li>${i.message}</li>`).join('')}</ul></div>`
+        : '<p class="text-sm" style="color:oklch(0.55 0.15 155)">✓ Ready to publish.</p>';
+
+      clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(() => {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+        $('autosave').textContent = 'Saved locally';
+        setTimeout(() => ($('autosave').textContent = ''), 1500);
+      }, 500);
+    };
+
+    document.querySelectorAll('#editor, input, textarea, select').forEach((el) =>
+      el.addEventListener('input', render),
+    );
+
+    // Slug follows the title until edited by hand.
+    field('f-title').addEventListener('input', () => {
+      if (!field('f-slug').dataset.touched) field('f-slug').value = slugify(field('f-title').value);
+      render();
+    });
+    field('f-slug').addEventListener('input', () => { field('f-slug').dataset.touched = '1'; });
+
+    const filename = () => `${field('f-slug').value || 'untitled'}.md`;
+
+    $('btn-download').addEventListener('click', () => {
+      const md = toMarkdown(readForm());
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([md], { type: 'text/markdown' }));
+      a.download = filename();
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    $('btn-copy').addEventListener('click', async () => {
+      await navigator.clipboard.writeText(toMarkdown(readForm()));
+      $('autosave').textContent = 'Copied';
+      setTimeout(() => ($('autosave').textContent = ''), 1500);
+    });
+
+    $('btn-clear').addEventListener('click', () => {
+      if (!confirm('Start a new event? The current draft is saved locally but the fields will clear.')) return;
+      localStorage.removeItem(DRAFT_KEY);
+      writeForm(emptyEventDraft());
+      field('f-slug').removeAttribute('data-touched');
+      render();
+    });
+
+    render();
+  }
+
+  initEventWriter();
+  document.addEventListener('astro:page-load', initEventWriter);
+</script>

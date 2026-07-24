@@ -20,8 +20,9 @@ const configured = ADMIN.uid.length > 0 && FIREBASE.apiKey.length > 0;
         <p class="eyebrow">Admin</p>
         <h1 class="display mt-1.5 text-2xl">Console</h1>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
         <a href="/write" class="btn btn-outline btn-sm">Write a post →</a>
+        <a href="/events/new" class="btn btn-outline btn-sm">New event →</a>
         <span id="who" class="text-sm text-muted"></span>
         <button id="sign-out" hidden class="btn btn-outline btn-sm">Sign out</button>
       </div>
@@ -75,7 +76,7 @@ const configured = ADMIN.uid.length > 0 && FIREBASE.apiKey.length > 0;
 
     <div id="console" hidden>
       <nav class="mt-8 flex gap-1 border-b border-default" role="tablist">
-        {[['testimonials', 'Testimonials'], ['subscribers', 'Subscribers']].map(([id, label], i) => (
+        {[['messages', 'Messages'], ['testimonials', 'Testimonials'], ['subscribers', 'Subscribers'], ['registrations', 'Registrations']].map(([id, label], i) => (
           <button type="button" role="tab" data-tab={id} aria-selected={i === 0 ? 'true' : 'false'}
             class="admin-tab -mb-px border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-muted">
             {label}
@@ -83,7 +84,19 @@ const configured = ADMIN.uid.length > 0 && FIREBASE.apiKey.length > 0;
         ))}
       </nav>
 
-      <section data-panel="testimonials" class="pt-6">
+      <section data-panel="messages" class="pt-6">
+        <div class="flex flex-wrap items-center gap-2">
+          {['all', 'new', 'read', 'archived'].map((s) => (
+            <button type="button" data-msg-filter={s} aria-pressed={s === 'all' ? 'true' : 'false'}
+              class="msg-chip rounded-full border border-default px-3 py-1.5 text-sm capitalize">{s}</button>
+          ))}
+          <span id="m-count" class="ml-2 text-sm text-muted"></span>
+          <button id="export-msg-csv" class="btn btn-outline btn-sm ml-auto">Export CSV</button>
+        </div>
+        <div id="m-list" class="mt-5 space-y-3"></div>
+      </section>
+
+      <section data-panel="testimonials" class="pt-6" hidden>
         <div class="flex flex-wrap items-center gap-2">
           {['all', 'pending', 'approved', 'rejected'].map((s) => (
             <button type="button" data-filter={s} aria-pressed={s === 'all' ? 'true' : 'false'}
@@ -101,13 +114,37 @@ const configured = ADMIN.uid.length > 0 && FIREBASE.apiKey.length > 0;
         </div>
         <div id="s-list" class="mt-5 overflow-x-auto"></div>
       </section>
+
+      <section data-panel="registrations" class="pt-6" hidden>
+        <!-- How the events workflow fits together, for whoever runs the console. -->
+        <div class="mb-5 rounded-lg border border-default bg-subtle p-4 text-sm leading-relaxed">
+          <p class="font-semibold">Managing events</p>
+          <ol class="mt-2 list-decimal space-y-1 pl-5 text-muted">
+            <li>Create an event with the <a href="/events/new" class="text-accent hover:underline">event editor</a>, then commit the downloaded file to <code>src/content/events/</code>.</li>
+            <li>It appears automatically on <a href="/events" class="text-accent hover:underline">/events</a> — upcoming until its date passes, then under “Past events”.</li>
+            <li>Sign-ups land below. Filter by event, <strong>export a CSV</strong> for the attendee list, or remove an entry.</li>
+          </ol>
+          <p class="mt-2 text-xs text-muted">
+            Registration data is private to this console — attendee emails are never shown on the public site.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <span id="r-count" class="text-sm text-muted"></span>
+          <select id="r-filter" class="rounded-lg border border-default bg-[var(--bg)] px-3 py-1.5 text-sm">
+            <option value="all">All events</option>
+          </select>
+          <button id="export-reg-csv" class="btn btn-outline btn-sm">Export CSV</button>
+        </div>
+        <div id="r-list" class="mt-5 overflow-x-auto"></div>
+      </section>
     </div>
   </div>
 </BaseLayout>
 
 <style>
   .admin-tab[aria-selected='true'] { color: var(--text); border-bottom-color: var(--accent); }
-  .filter-chip[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .filter-chip[aria-pressed='true'],
+  .msg-chip[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: #fff; }
 </style>
 
 <script>
@@ -115,7 +152,9 @@ const configured = ADMIN.uid.length > 0 && FIREBASE.apiKey.length > 0;
     signIn, loadSession, clearSession,
     listTestimonials, moderateTestimonial, deleteTestimonial,
     listSubscribers, deleteSubscriber, toCsv,
-    type AdminTestimonial,
+    listRegistrations, deleteRegistration, registrationsToCsv,
+    listContactMessages, updateContactMessage, deleteContactMessage, contactMessagesToCsv,
+    type AdminTestimonial, type Registration, type ContactMessage,
   } from '../lib/admin';
 
   function initAdmin() {
@@ -152,8 +191,10 @@ const configured = ADMIN.uid.length > 0 && FIREBASE.apiKey.length > 0;
       $('uid-banner').hidden = false;
       $('uid-value').textContent = uid;
 
+      void loadMessages();
       void loadTestimonials();
       void loadSubscribers();
+      void loadRegistrations();
     }
     function showSignedOut() {
       signinPanel.hidden = false;
@@ -294,6 +335,149 @@ const configured = ADMIN.uid.length > 0 && FIREBASE.apiKey.length > 0;
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `subscribers-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    // ---- contact messages ----------------------------------------------
+    let messages: ContactMessage[] = [];
+    let msgFilter = 'all';
+
+    async function loadMessages() {
+      try {
+        messages = await listContactMessages();
+        renderMessages();
+      } catch (err) {
+        $('m-list').innerHTML = permissionHint(String(err));
+      }
+    }
+
+    function filteredMessages() {
+      return messages.filter((m) => msgFilter === 'all' || m.status === msgFilter);
+    }
+
+    function renderMessages() {
+      const rows = filteredMessages();
+      const unread = messages.filter((m) => m.status === 'new').length;
+      $('m-count').textContent =
+        `${rows.length} of ${messages.length}` + (unread ? ` · ${unread} new` : '');
+      $('m-list').innerHTML = rows.length
+        ? rows
+            .map(
+              (m) => `
+        <article class="rounded-lg border border-default p-4" data-msg="${m.id}">
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <span class="rounded-full px-2 py-0.5 font-semibold" style="background:var(--accent-soft);color:var(--accent)">${m.status}</span>
+            <span class="font-medium">${escape(m.subject)}</span>
+            <span class="text-muted">${new Date(m.createdAt).toLocaleString()}</span>
+          </div>
+          <p class="mt-2 text-sm leading-relaxed whitespace-pre-wrap">${escape(m.message)}</p>
+          <p class="mt-2 text-xs text-muted"><strong>${escape(m.name)}</strong> · <a href="mailto:${escape(m.email)}?subject=Re: ${encodeURIComponent(m.subject)}" class="text-accent hover:underline">${escape(m.email)}</a></p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <a href="mailto:${escape(m.email)}?subject=Re: ${encodeURIComponent(m.subject)}" class="btn btn-outline btn-sm">Reply</a>
+            ${m.status === 'new' ? '<button data-msg-act="read" class="btn btn-outline btn-sm">Mark read</button>' : ''}
+            ${m.status !== 'archived' ? '<button data-msg-act="archived" class="btn btn-outline btn-sm">Archive</button>' : '<button data-msg-act="read" class="btn btn-outline btn-sm">Unarchive</button>'}
+            <button data-msg-act="delete" class="btn btn-outline btn-sm">Delete</button>
+          </div>
+        </article>`,
+            )
+            .join('')
+        : '<p class="text-sm text-muted">No messages here.</p>';
+    }
+
+    document.querySelectorAll<HTMLButtonElement>('[data-msg-filter]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        msgFilter = chip.dataset.msgFilter!;
+        document.querySelectorAll('[data-msg-filter]').forEach((c) => c.setAttribute('aria-pressed', String(c === chip)));
+        renderMessages();
+      });
+    });
+
+    $('m-list')?.addEventListener('click', async (e) => {
+      const button = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-msg-act]');
+      if (!button) return;
+      const id = button.closest<HTMLElement>('[data-msg]')!.dataset.msg!;
+      const act = button.dataset.msgAct!;
+      if (act === 'delete' && !confirm('Delete this message permanently?')) return;
+      button.disabled = true;
+      try {
+        if (act === 'delete') await deleteContactMessage(id);
+        else await updateContactMessage(id, act as ContactMessage['status']);
+        await loadMessages();
+      } catch (err) {
+        alert(`Failed: ${err}`);
+        button.disabled = false;
+      }
+    });
+
+    $('export-msg-csv')?.addEventListener('click', () => {
+      const blob = new Blob([contactMessagesToCsv(filteredMessages())], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `messages-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    // ---- event registrations -------------------------------------------
+    let registrations: Registration[] = [];
+    let regFilter = 'all';
+
+    async function loadRegistrations() {
+      try {
+        registrations = await listRegistrations();
+        // Rebuild the per-event filter, preserving the current selection.
+        const select = $('r-filter') as HTMLSelectElement;
+        const events = [...new Map(registrations.map((r) => [r.event, r.eventTitle])).entries()];
+        select.innerHTML =
+          '<option value="all">All events</option>' +
+          events
+            .map(([slug, title]) => `<option value="${escape(slug)}">${escape(title || slug)}</option>`)
+            .join('');
+        select.value = events.some(([s]) => s === regFilter) ? regFilter : 'all';
+        renderRegistrations();
+      } catch (err) {
+        $('r-list').innerHTML = permissionHint(String(err));
+      }
+    }
+
+    function filteredRegistrations() {
+      return registrations.filter((r) => regFilter === 'all' || r.event === regFilter);
+    }
+
+    function renderRegistrations() {
+      const rows = filteredRegistrations();
+      $('r-count').textContent = `${rows.length} of ${registrations.length} registration${registrations.length === 1 ? '' : 's'}`;
+      $('r-list').innerHTML = rows.length
+        ? `<table class="w-full text-sm">
+            <thead><tr class="border-b border-default text-left text-xs uppercase text-muted"><th class="py-2">Name</th><th>Email</th><th>Event</th><th>Company</th><th>Date</th><th></th></tr></thead>
+            <tbody>${rows
+              .map(
+                (r) => `<tr class="border-b border-default" data-reg="${escape(r.id)}"><td class="py-2 font-medium">${escape(r.name)}</td><td class="text-muted">${escape(r.email)}</td><td class="text-muted">${escape(r.eventTitle || r.event)}</td><td class="text-muted">${escape(r.org)}</td><td class="text-muted">${new Date(r.createdAt).toLocaleDateString()}</td><td class="text-right"><button data-reg-del class="text-xs text-accent hover:underline">Remove</button></td></tr>`,
+              )
+              .join('')}</tbody></table>`
+        : '<p class="text-sm text-muted">No registrations yet.</p>';
+    }
+
+    $('r-filter')?.addEventListener('change', (e) => {
+      regFilter = (e.target as HTMLSelectElement).value;
+      renderRegistrations();
+    });
+
+    $('r-list')?.addEventListener('click', async (e) => {
+      const button = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-reg-del]');
+      if (!button) return;
+      const id = button.closest<HTMLElement>('[data-reg]')!.dataset.reg!;
+      if (!confirm('Remove this registration?')) return;
+      try { await deleteRegistration(id); await loadRegistrations(); }
+      catch (err) { alert(`Failed: ${err}`); }
+    });
+
+    $('export-reg-csv')?.addEventListener('click', () => {
+      const blob = new Blob([registrationsToCsv(filteredRegistrations())], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `registrations-${regFilter === 'all' ? 'all' : regFilter}-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(a.href);
     });

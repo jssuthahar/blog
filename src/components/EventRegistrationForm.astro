@@ -1,0 +1,268 @@
+---
+import { FIREBASE, EVENTS } from '../config';
+import type { HostedEvent } from '../lib/eventhub';
+
+interface Props {
+  event: HostedEvent;
+  past?: boolean;
+}
+
+const { event, past = false } = Astro.props;
+const { data } = event;
+const enabled = FIREBASE.projectId.length > 0;
+const mode = past ? 'closed' : data.registration;
+// Display-only baseline so a new event never reads as empty. See EVENTS in config.
+const seed = data.registrationSeed ?? EVENTS.registrationSeed;
+---
+
+<section
+  id="register"
+  data-event-register
+  data-slug={event.id}
+  data-title={data.title}
+  data-mode={mode}
+  data-capacity={data.capacity ?? ''}
+  data-seed={seed}
+  class="scroll-mt-24 rounded-xl border border-default p-6"
+>
+  <div class="flex flex-wrap items-baseline justify-between gap-2">
+    <h2 class="display text-xl">
+      {mode === 'closed' ? (past ? 'This event has ended' : 'Registration closed') : 'Register'}
+    </h2>
+    <span class="text-sm font-medium" style="color: var(--accent);">{data.price}</span>
+  </div>
+
+  <!-- Social proof: avatar cluster + live count. Filled client-side. -->
+  <div data-register-social hidden class="mt-3 flex items-center gap-3">
+    <div data-register-avatars class="flex -space-x-2"></div>
+    <p data-register-meta class="text-sm text-muted"></p>
+  </div>
+
+  {mode === 'external' && (
+    <div class="mt-4">
+      <p class="text-sm leading-relaxed text-muted">
+        Registration for this event is handled on the organiser's page.
+      </p>
+      <a href={data.registrationUrl} rel="noopener" class="btn btn-accent mt-4">
+        Register on the event page →
+      </a>
+    </div>
+  )}
+
+  {mode === 'closed' && (
+    <p class="mt-3 text-sm leading-relaxed text-muted">
+      {past
+        ? 'Thanks to everyone who joined. Watch the events page for the next one.'
+        : 'Sign-ups are not open for this event yet — check back soon.'}
+    </p>
+  )}
+
+  {mode === 'open' && (
+    <>
+      <p class="mt-2 text-sm leading-relaxed text-muted">
+        Reserve your spot — we'll email you the details{data.online ? ' and the join link' : ''}.
+      </p>
+
+      <!-- Shown instead of the form once this browser has registered. -->
+      <div data-register-done hidden class="mt-4 rounded-lg border border-default bg-subtle p-4 text-sm">
+        <p class="font-semibold" style="color: var(--accent);">You're registered ✓</p>
+        <p data-done-msg class="mt-1 text-muted">We've saved your spot. See you there!</p>
+        {data.online && data.joinUrl && (
+          <p class="mt-2">
+            <span class="text-muted">Join link:</span>
+            <a href={data.joinUrl} rel="noopener" class="ml-1 break-all text-accent hover:underline">{data.joinUrl}</a>
+          </p>
+        )}
+      </div>
+
+      <form data-register-form class="mt-4 space-y-4" novalidate>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="reg-name" class="block text-sm font-medium">
+              Name <span style="color: var(--accent);">*</span>
+            </label>
+            <input id="reg-name" data-field="name" type="text" required maxlength="80" autocomplete="name"
+              disabled={!enabled}
+              class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60" />
+          </div>
+          <div>
+            <label for="reg-email" class="block text-sm font-medium">
+              Email <span style="color: var(--accent);">*</span>
+            </label>
+            <input id="reg-email" data-field="email" type="email" required maxlength="254" autocomplete="email"
+              disabled={!enabled}
+              class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60" />
+          </div>
+        </div>
+        <div>
+          <label for="reg-org" class="block text-sm font-medium">
+            Company / organisation <span class="font-normal text-muted">(optional)</span>
+          </label>
+          <input id="reg-org" data-field="org" type="text" maxlength="100" autocomplete="organization"
+            disabled={!enabled}
+            class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60" />
+        </div>
+
+        <div class="flex flex-wrap items-center gap-4">
+          <button type="submit" disabled={!enabled} class="btn btn-accent disabled:opacity-60">
+            Register
+          </button>
+          <p data-status role="status" aria-live="polite" class="text-sm"></p>
+        </div>
+
+        <p class="text-xs text-muted">
+          Your email is used only to send event details — never published or shared.
+        </p>
+
+        {!enabled && (
+          <p class="text-sm text-muted">
+            Set <code>FIREBASE.projectId</code> in <code>src/config.ts</code> to enable registration.
+          </p>
+        )}
+      </form>
+    </>
+  )}
+</section>
+
+<script>
+  import { register, getRegistrationCount, registeredKey, EMAIL_RE, isEnabled } from '../lib/register';
+
+  function initEventRegister() {
+    const root = document.querySelector<HTMLElement>('[data-event-register]');
+    if (!root) return;
+
+    const slug = root.dataset.slug!;
+    const title = root.dataset.title!;
+    const mode = root.dataset.mode!;
+    const capacity = root.dataset.capacity ? Number(root.dataset.capacity) : 0;
+    const seed = root.dataset.seed ? Number(root.dataset.seed) : 0;
+
+    const social = root.querySelector<HTMLElement>('[data-register-social]');
+    const avatars = root.querySelector<HTMLElement>('[data-register-avatars]');
+    const meta = root.querySelector<HTMLElement>('[data-register-meta]');
+    const form = root.querySelector<HTMLFormElement>('[data-register-form]');
+    const done = root.querySelector<HTMLElement>('[data-register-done]');
+
+    // Decorative avatar stack — initials only, no claimed identities. The count
+    // of circles tracks the displayed total so it feels alive without inventing
+    // named people.
+    const AV_LETTERS = 'APRSKMJNLDTGV';
+    const AV_HUES = [210, 260, 150, 20, 330, 45];
+    const paintAvatars = (n: number) => {
+      if (!avatars) return;
+      const show = Math.min(5, Math.max(0, n));
+      let html = '';
+      for (let i = 0; i < show; i++) {
+        const hue = AV_HUES[i % AV_HUES.length];
+        const letter = AV_LETTERS[(i * 5 + n) % AV_LETTERS.length];
+        html += `<span class="grid size-7 place-items-center rounded-full border-2 text-[0.6rem] font-bold text-white" style="border-color:var(--bg);background:oklch(0.6 0.15 ${hue})">${letter}</span>`;
+      }
+      if (n > show) {
+        html += `<span class="grid size-7 place-items-center rounded-full border-2 bg-subtle text-[0.6rem] font-bold" style="border-color:var(--bg);color:var(--text-muted)">+${n - show}</span>`;
+      }
+      avatars.innerHTML = html;
+    };
+
+    let displayCount = 0;
+    const paintMeta = () => {
+      if (!meta) return;
+      const parts: string[] = [`${displayCount} registered`];
+      if (capacity) {
+        const left = Math.max(0, capacity - displayCount);
+        parts.push(left > 0 ? `${left} of ${capacity} seats left` : 'Fully booked');
+      }
+      meta.textContent = parts.join(' · ');
+      paintAvatars(displayCount);
+      if (social) social.hidden = false;
+    };
+
+    // ---- live count + seats (public, no PII) ----------------------------
+    if (social && isEnabled()) {
+      getRegistrationCount(slug)
+        .then((real) => {
+          // The seed is a display-only baseline; the real count is what /admin
+          // exports. They are only ever combined for this social-proof number.
+          displayCount = seed + real;
+          paintMeta();
+          // Best-effort full state: hide the form when the soft cap is reached.
+          if (capacity && displayCount >= capacity && form && mode === 'open') {
+            form.hidden = true;
+            if (meta) meta.textContent = 'This event is fully booked.';
+          }
+        })
+        .catch(() => {});
+    }
+
+    // After a successful sign-up, bump the visible total by one.
+    const bumpCount = () => {
+      displayCount += 1;
+      paintMeta();
+    };
+
+    if (mode !== 'open' || !form) return;
+
+    // Already registered from this browser? Show the confirmation instead.
+    try {
+      if (localStorage.getItem(registeredKey(slug)) && done) {
+        form.hidden = true;
+        done.hidden = false;
+      }
+    } catch {}
+
+    if (form.dataset.bound === '') return;
+    form.dataset.bound = '';
+
+    const field = (name: string) =>
+      form.querySelector<HTMLInputElement>(`[data-field="${name}"]`)!;
+    const status = form.querySelector<HTMLElement>('[data-status]')!;
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+
+    const say = (text: string, tone: 'ok' | 'error' | 'muted') => {
+      status.textContent = text;
+      status.style.color = tone === 'muted' ? 'var(--text-muted)' : 'var(--accent)';
+    };
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const name = field('name').value.trim();
+      const email = field('email').value.trim().toLowerCase();
+      const org = field('org').value.trim();
+
+      if (name.length < 2) { say('Please add your name.', 'error'); field('name').focus(); return; }
+      if (!EMAIL_RE.test(email)) { say('Please enter a valid email address.', 'error'); field('email').focus(); return; }
+
+      button.disabled = true;
+      say('Registering…', 'muted');
+
+      try {
+        const result = await register({ slug, eventTitle: title, name, email, org });
+        form.hidden = true;
+        const firstName = name.split(' ')[0];
+        if (result === 'registered') bumpCount();
+        if (done) {
+          done.hidden = false;
+          const msg = done.querySelector<HTMLElement>('[data-done-msg]');
+          if (msg) {
+            msg.textContent =
+              result === 'already-registered'
+                ? "You're already on the list for this event."
+                : `Thanks ${firstName} — your spot is saved. You're joining ${displayCount} others.`;
+          }
+        }
+      } catch (err) {
+        button.disabled = false;
+        const code = err instanceof Error ? err.message : '';
+        say(
+          code === 'invalid-email' ? 'Please enter a valid email address.'
+            : code === 'invalid-name' ? 'Please add your name.'
+              : 'Something went wrong. Please try again later.',
+          'error',
+        );
+      }
+    });
+  }
+
+  initEventRegister();
+  document.addEventListener('astro:page-load', initEventRegister);
+</script>

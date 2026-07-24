@@ -1,0 +1,68 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EventListCard from '../../components/EventListCard.astro';
+import { SITE, AUTHOR } from '../../config';
+import { getUpcomingEvents, getPastEvents, eventSchema } from '../../lib/eventhub';
+
+const upcoming = await getUpcomingEvents();
+const past = await getPastEvents();
+
+const schema = [
+  {
+    '@type': 'CollectionPage',
+    '@id': `${SITE.url}/events#page`,
+    name: `Events — ${AUTHOR.name}`,
+    description: `Upcoming workshops, webinars, and community events hosted by ${AUTHOR.name}.`,
+    about: { '@id': `${SITE.url}/#person` },
+  },
+  ...eventSchema(upcoming, SITE.url, `${SITE.url}/#person`),
+];
+---
+
+<BaseLayout
+  title="Events"
+  description={`Upcoming workshops, webinars, and community events hosted by ${AUTHOR.name} on Azure, applied AI, and .NET. Register to save your spot.`}
+  schema={schema}
+>
+  <header class="max-w-3xl">
+    <p class="eyebrow">Events</p>
+    <h1 class="display mt-3 text-3xl sm:text-4xl">
+      Workshops, webinars &amp; meetups
+    </h1>
+    <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">
+      Hands-on sessions on Microsoft Azure, applied AI, and .NET — most of them
+      free and online. Pick one below and register to save your spot.
+    </p>
+  </header>
+
+  {upcoming.length > 0 ? (
+    <section class="mt-14" aria-labelledby="upcoming-heading">
+      <h2 id="upcoming-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
+        Upcoming
+      </h2>
+      <div class="mt-6 space-y-3">
+        {upcoming.map((event) => <EventListCard event={event} />)}
+      </div>
+    </section>
+  ) : (
+    <section class="mt-14">
+      <div class="rounded-xl border border-default bg-subtle p-8 text-center">
+        <p class="font-medium">No events scheduled right now.</p>
+        <p class="mt-1.5 text-sm text-muted">
+          New sessions are announced here first — <a href="/#newsletter" class="text-accent hover:underline">join the list</a> to hear about them.
+        </p>
+      </div>
+    </section>
+  )}
+
+  {past.length > 0 && (
+    <section class="mt-16" aria-labelledby="past-heading">
+      <h2 id="past-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
+        Past events
+      </h2>
+      <div class="mt-6 space-y-3">
+        {past.map((event) => <EventListCard event={event} past />)}
+      </div>
+    </section>
+  )}
+</BaseLayout>

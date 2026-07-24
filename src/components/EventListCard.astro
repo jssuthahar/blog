@@ -1,15 +1,23 @@
 ---
-import { FORMAT_LABELS, dateBadge, formatEventDate, type SpeakingEvent } from '../lib/speaking';
+import {
+  EVENT_FORMAT_LABELS,
+  dateBadge,
+  eventUrl,
+  formatEventDate,
+  formatEventTime,
+  type HostedEvent,
+} from '../lib/eventhub';
 
 interface Props {
-  event: SpeakingEvent;
+  event: HostedEvent;
   past?: boolean;
 }
 
 const { event, past = false } = Astro.props;
 const { data } = event;
 const badge = dateBadge(event);
-const href = data.registrationUrl ?? data.url;
+const time = formatEventTime(event);
+const href = eventUrl(event);
 ---
 
 <article
@@ -27,27 +35,27 @@ const href = data.registrationUrl ?? data.url;
   <div class="min-w-0 flex-1">
     <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
       <span class="rounded px-1.5 py-0.5 font-medium" style="background: var(--accent-soft); color: var(--accent);">
-        {FORMAT_LABELS[data.format]}
+        {EVENT_FORMAT_LABELS[data.format]}
       </span>
       <span class="text-muted">{formatEventDate(event)}</span>
+      {time && <span class="text-muted">· {time}</span>}
       {data.online && <span class="text-muted">· Online</span>}
     </div>
 
     <h3 class="mt-1.5 leading-snug font-semibold tracking-tight">
-      {href ? (
-        <a href={href} class="after:absolute after:inset-0 group-hover:text-accent" rel="noopener">
-          {data.talk ?? data.title}
-        </a>
-      ) : (
-        data.talk ?? data.title
-      )}
+      <a href={href} class="after:absolute after:inset-0 group-hover:text-accent">
+        {data.title}
+      </a>
     </h3>
 
-    {data.talk && <p class="mt-1 text-sm text-muted">{data.title}</p>}
+    <p class="mt-1 text-sm text-muted line-clamp-2">{data.description}</p>
 
     <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
       {!data.online && <span>{data.venue ? `${data.venue}, ${data.location}` : data.location}</span>}
-      {data.audience && <span>· {data.audience}</span>}
+      {data.price && <span>· {data.price}</span>}
+      {!past && data.registration === 'open' && (
+        <span class="font-medium text-accent">· Registration open</span>
+      )}
     </div>
 
     {data.topics.length > 0 && (

@@ -206,3 +206,98 @@ export function toCsv(rows: Subscriber[]): string {
     ...rows.map((r) => [r.email, r.source, r.createdAt].map(escape).join(',')),
   ].join('\n');
 }
+
+// ---------------------------------------------------------- event registrations
+
+export interface Registration {
+  id: string;
+  event: string;
+  eventTitle: string;
+  name: string;
+  email: string;
+  org: string;
+  createdAt: string;
+}
+
+export async function listRegistrations(): Promise<Registration[]> {
+  const body = await authed('/eventRegistrations?pageSize=1000');
+
+  return ((body.documents ?? []) as any[])
+    .map((doc) => ({
+      id: doc.name.split('/').pop() as string,
+      event: str(doc.fields.event),
+      eventTitle: str(doc.fields.eventTitle),
+      name: str(doc.fields.name),
+      email: str(doc.fields.email),
+      org: str(doc.fields.org),
+      createdAt: doc.fields.createdAt?.timestampValue ?? doc.createTime,
+    }))
+    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+}
+
+export async function deleteRegistration(id: string): Promise<void> {
+  await authed(`/eventRegistrations/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export function registrationsToCsv(rows: Registration[]): string {
+  const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  return [
+    'event,eventTitle,name,email,org,createdAt',
+    ...rows.map((r) =>
+      [r.event, r.eventTitle, r.name, r.email, r.org, r.createdAt].map(escape).join(','),
+    ),
+  ].join('\n');
+}
+
+// -------------------------------------------------------------- contact messages
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: 'new' | 'read' | 'archived';
+  createdAt: string;
+}
+
+export async function listContactMessages(): Promise<ContactMessage[]> {
+  const body = await authed('/contactMessages?pageSize=1000');
+
+  return ((body.documents ?? []) as any[])
+    .map((doc) => ({
+      id: doc.name.split('/').pop() as string,
+      name: str(doc.fields.name),
+      email: str(doc.fields.email),
+      subject: str(doc.fields.subject),
+      message: str(doc.fields.message),
+      status: (str(doc.fields.status) || 'new') as ContactMessage['status'],
+      createdAt: doc.fields.createdAt?.timestampValue ?? doc.createTime,
+    }))
+    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+}
+
+/** The rules allow only `status` to change, so send only that. */
+export async function updateContactMessage(
+  id: string,
+  status: ContactMessage['status'],
+): Promise<void> {
+  await authed(`/contactMessages/${id}?updateMask.fieldPaths=status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ fields: { status: { stringValue: status } } }),
+  });
+}
+
+export async function deleteContactMessage(id: string): Promise<void> {
+  await authed(`/contactMessages/${id}`, { method: 'DELETE' });
+}
+
+export function contactMessagesToCsv(rows: ContactMessage[]): string {
+  const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  return [
+    'name,email,subject,message,status,createdAt',
+    ...rows.map((r) =>
+      [r.name, r.email, r.subject, r.message, r.status, r.createdAt].map(escape).join(','),
+    ),
+  ].join('\n');
+}

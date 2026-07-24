@@ -13,11 +13,11 @@ import { SITE, AUTHOR, BOOKING, SPEAKING_TOPICS } from '../config';
 import { CATEGORIES, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
 import { allArticles, articleCategories } from '../lib/articles';
 import { featuredRepos, repoIndex, languageColor } from '../lib/repos';
-import { getUpcomingEvents, eventSchema } from '../lib/events';
+import { getUpcomingEvents, eventSchema } from '../lib/speaking';
 import { contributionPillars, publishingSpan } from '../lib/evidence';
 import ContributionTimeline from '../components/ContributionTimeline.astro';
 import HeroCarousel, { type Slide } from '../components/HeroCarousel.astro';
-import { formatEventDate, FORMAT_LABELS } from '../lib/events';
+import { formatEventDate, FORMAT_LABELS } from '../lib/speaking';
 
 const posts = await getPublishedPosts();
 const recentPosts = posts.slice(0, 4);

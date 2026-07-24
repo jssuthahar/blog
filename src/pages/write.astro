@@ -1,4 +1,5 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { CATEGORIES } from '../lib/posts';
 import { TAGS } from '../lib/taxonomy';
@@ -8,6 +9,11 @@ import { TAGS } from '../lib/taxonomy';
  * you commit yourself. Fully client-side; nothing is sent anywhere.
  */
 const today = new Date().toISOString().slice(0, 10);
+
+// Existing series slugs, offered as suggestions so a new part joins cleanly.
+const existingSeries = [
+  ...new Set((await getCollection('blog')).map((p) => p.data.series).filter(Boolean)),
+];
 
 // The toolbar buttons. `wrap` surrounds the selection; `block` prefixes each
 // line; `insert` drops a snippet at the cursor. `{sel}` is the selected text.
@@ -168,39 +174,120 @@ const TOOLBAR = [
           class="w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm"></textarea>
       </div>
 
-      <div class="sm:col-span-3">
-        <label class="block text-xs text-muted">Category</label>
+      <div class="sm:col-span-4">
+        <label class="block text-xs text-muted">Primary category <span class="text-muted">(colour &amp; main topic)</span></label>
         <select id="f-category" class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm">
           {Object.entries(CATEGORIES).map(([id, c]) => <option value={id}>{c.label}</option>)}
         </select>
       </div>
-      <div class="sm:col-span-3">
+      <div class="sm:col-span-4">
         <label class="block text-xs text-muted">Published</label>
         <input id="f-date" type="date" value={today} class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
       </div>
-      <div class="sm:col-span-6">
-        <label class="block text-xs text-muted">Tags (comma separated)</label>
-        <input id="f-tags" list="tag-suggestions" placeholder="ASP.NET Core, Azure" class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+      <div class="sm:col-span-4">
+        <label class="block text-xs text-muted">Also in <span class="text-muted">(extra categories)</span></label>
+        <div id="f-categories" class="mt-1 flex flex-wrap gap-1.5">
+          {Object.entries(CATEGORIES).map(([id, c]) => (
+            <label class="inline-flex cursor-pointer items-center gap-1 rounded-full border border-default px-2.5 py-1 text-xs">
+              <input type="checkbox" data-cat={id} class="peer sr-only" />
+              <span class="peer-checked:font-semibold peer-checked:text-accent">{c.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div class="sm:col-span-12">
+        <label class="block text-xs text-muted">Tags <span class="text-muted">— click to add, type a new one, ↵ or comma</span></label>
+        <div id="tag-box" class="mt-1 flex flex-wrap items-center gap-1.5 rounded-lg border border-default bg-[var(--bg)] p-2">
+          <span id="tag-chips" class="contents"></span>
+          <input id="tag-entry" list="tag-suggestions" placeholder="add a tag…" class="min-w-[8rem] flex-1 bg-transparent px-1 py-0.5 text-sm outline-none" />
+        </div>
         <datalist id="tag-suggestions">
           {TAGS.map((t) => <option value={t}></option>)}
         </datalist>
+        <!-- Common tags to click. Hidden holder feeds the chip widget. -->
+        <div class="mt-2 flex flex-wrap gap-1.5" id="tag-quick">
+          {TAGS.slice(0, 18).map((t) => (
+            <button type="button" data-quick-tag={t} class="rounded-full border border-default px-2.5 py-1 text-xs text-muted transition-colors hover:bg-subtle hover:text-accent">
+              + {t}
+            </button>
+          ))}
+        </div>
+        <input id="f-tags" type="hidden" />
       </div>
 
-      <div class="sm:col-span-6">
-        <label class="block text-xs text-muted">Cover image path (optional)</label>
-        <input id="f-cover" placeholder="./images/cover.png" class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 font-mono text-xs" />
-      </div>
-      <div class="sm:col-span-6">
-        <label class="block text-xs text-muted">Cover alt text</label>
-        <input id="f-coverAlt" placeholder="Describe the cover image" class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
-      </div>
-
-      <div class="flex flex-wrap items-center gap-4 sm:col-span-12">
-        <label class="flex items-center gap-2 text-sm"><input id="f-draft" type="checkbox" checked /> Draft</label>
-        <label class="flex items-center gap-2 text-sm"><input id="f-featured" type="checkbox" /> Featured</label>
-        <label class="flex items-center gap-2 text-sm"><input id="f-updated" type="date" class="rounded border border-default bg-[var(--bg)] px-2 py-1 text-xs" /> Updated date (optional)</label>
+      <div class="flex flex-wrap items-center gap-5 sm:col-span-12">
+        <label class="flex items-center gap-2 text-sm font-medium"><input id="f-draft" type="checkbox" checked /> Draft</label>
+        <label class="flex items-center gap-2 text-sm font-medium"><input id="f-featured" type="checkbox" /> Featured</label>
       </div>
     </div>
+
+    <!-- Advanced: everything optional, tucked away so the common path stays quick. -->
+    <details class="mt-3 rounded-lg border border-default">
+      <summary class="cursor-pointer px-4 py-3 text-sm font-medium">
+        Series, cover image, FAQ &amp; more
+      </summary>
+
+      <div class="space-y-6 border-t border-default p-4">
+        <!-- Series -->
+        <fieldset>
+          <legend class="text-xs font-bold tracking-wider uppercase text-muted">Part of a series</legend>
+          <div class="mt-2 grid gap-3 sm:grid-cols-[1fr_8rem]">
+            <div>
+              <label for="f-series" class="block text-xs text-muted">Series name</label>
+              <input id="f-series" list="series-suggestions" placeholder="e.g. minimal-api-production"
+                class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 font-mono text-xs" />
+              <datalist id="series-suggestions">
+                {existingSeries.map((s) => <option value={s}></option>)}
+              </datalist>
+            </div>
+            <div>
+              <label for="f-seriesOrder" class="block text-xs text-muted">Part number</label>
+              <input id="f-seriesOrder" type="number" min="1" step="1" placeholder="1"
+                class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+            </div>
+          </div>
+          <p class="mt-1.5 text-xs text-muted">
+            Give related posts the same series name and increasing part numbers — they'll cross-link automatically.
+          </p>
+        </fieldset>
+
+        <!-- Cover -->
+        <fieldset>
+          <legend class="text-xs font-bold tracking-wider uppercase text-muted">Cover image</legend>
+          <div class="mt-2 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label for="f-cover" class="block text-xs text-muted">Path (optional)</label>
+              <input id="f-cover" placeholder="./images/cover.png"
+                class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 font-mono text-xs" />
+            </div>
+            <div>
+              <label for="f-coverAlt" class="block text-xs text-muted">Alt text (required if cover set)</label>
+              <input id="f-coverAlt" placeholder="Describe the cover image"
+                class="mt-1 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- FAQ -->
+        <fieldset>
+          <div class="flex items-center justify-between">
+            <legend class="text-xs font-bold tracking-wider uppercase text-muted">FAQ</legend>
+            <button type="button" id="faq-add" class="btn btn-outline btn-sm">+ Add question</button>
+          </div>
+          <p class="mt-1.5 text-xs text-muted">
+            Each pair renders on the page, emits rich-result schema, and answers the article chat.
+          </p>
+          <div id="faq-list" class="mt-3 space-y-3"></div>
+        </fieldset>
+
+        <!-- Updated -->
+        <div>
+          <label for="f-updated" class="text-xs font-bold tracking-wider uppercase text-muted">Updated date</label>
+          <input id="f-updated" type="date" class="ml-3 rounded border border-default bg-[var(--bg)] px-2 py-1 text-sm" />
+        </div>
+      </div>
+    </details>
 
     <!-- Toolbar -->
     <div class="mt-4 flex flex-wrap gap-1 rounded-t-lg border border-b-0 border-default bg-subtle p-2">
@@ -285,12 +372,84 @@ const TOOLBAR = [
     setGuide(localStorage.getItem(GUIDE_KEY) === '1');
     guideBtn.addEventListener('click', () => setGuide(guide.hidden));
 
+    // FAQ rows live in the DOM; read/write them alongside the flat fields.
+    const faqList = $('faq-list');
+
+    const readFaq = () =>
+      [...faqList.querySelectorAll('[data-faq-row]')].map((row) => ({
+        q: (row.querySelector('[data-faq-q]') as HTMLInputElement).value,
+        a: (row.querySelector('[data-faq-a]') as HTMLTextAreaElement).value,
+      }));
+
+    function addFaqRow(q = '', a = '') {
+      const row = document.createElement('div');
+      row.dataset.faqRow = '';
+      row.className = 'rounded-lg border border-default p-3';
+      row.innerHTML = `
+        <div class="flex items-start gap-2">
+          <div class="flex-1 space-y-2">
+            <input data-faq-q placeholder="Question" class="w-full rounded-md border border-default bg-[var(--bg)] px-3 py-1.5 text-sm" />
+            <textarea data-faq-a rows="2" placeholder="Answer" class="w-full rounded-md border border-default bg-[var(--bg)] px-3 py-1.5 text-sm"></textarea>
+          </div>
+          <button type="button" data-faq-del aria-label="Remove" class="rounded-md p-1.5 text-muted hover:bg-subtle">✕</button>
+        </div>`;
+      (row.querySelector('[data-faq-q]') as HTMLInputElement).value = q;
+      (row.querySelector('[data-faq-a]') as HTMLTextAreaElement).value = a;
+      // Lazy arrow: `render` is declared later, so referencing it directly here
+      // would hit the temporal dead zone during draft restore.
+      row.querySelectorAll('input, textarea').forEach((el) => el.addEventListener('input', () => render()));
+      row.querySelector('[data-faq-del]')!.addEventListener('click', () => { row.remove(); render(); });
+      faqList.appendChild(row);
+    }
+
+    $('faq-add').addEventListener('click', () => { addFaqRow(); render(); });
+
+    // ---- extra categories (checkboxes) ----------------------------------
+    const catBoxes = () => [...document.querySelectorAll<HTMLInputElement>('#f-categories [data-cat]')];
+    const readCategories = () => catBoxes().filter((b) => b.checked).map((b) => b.dataset.cat).join(', ');
+    const writeCategories = (csv: string) => {
+      const set = new Set(csv.split(',').map((s) => s.trim()));
+      catBoxes().forEach((b) => (b.checked = set.has(b.dataset.cat!)));
+    };
+    catBoxes().forEach((b) => b.addEventListener('change', () => render()));
+
+    // ---- tags (chip picker: existing + new) -----------------------------
+    const tagChips = $('tag-chips');
+    const tagEntry = $('tag-entry') as HTMLInputElement;
+    let tags: string[] = [];
+
+    const renderTags = () => {
+      field('f-tags').value = tags.join(', ');
+      tagChips.innerHTML = tags
+        .map((t, i) =>
+          `<span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs" style="background:var(--accent-soft);color:var(--accent)">${t.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!))}<button type="button" data-tag-del="${i}" aria-label="Remove ${t}" class="hover:opacity-70">✕</button></span>`,
+        )
+        .join('');
+    };
+    const addTag = (raw: string) => {
+      const t = raw.trim().replace(/,$/, '');
+      if (t && !tags.some((x) => x.toLowerCase() === t.toLowerCase())) { tags.push(t); renderTags(); render(); }
+    };
+    tagChips.addEventListener('click', (e) => {
+      const del = (e.target as HTMLElement).closest<HTMLElement>('[data-tag-del]');
+      if (del) { tags.splice(Number(del.dataset.tagDel), 1); renderTags(); render(); }
+    });
+    tagEntry.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(tagEntry.value); tagEntry.value = ''; }
+      else if (e.key === 'Backspace' && !tagEntry.value && tags.length) { tags.pop(); renderTags(); render(); }
+    });
+    tagEntry.addEventListener('change', () => { if (tagEntry.value) { addTag(tagEntry.value); tagEntry.value = ''; } });
+    document.querySelectorAll<HTMLElement>('[data-quick-tag]').forEach((b) =>
+      b.addEventListener('click', () => addTag(b.dataset.quickTag!)),
+    );
+
     const readForm = (): PostDraft => ({
       slug: field('f-slug').value,
       title: field('f-title').value,
       description: field('f-description').value,
       highlight: field('f-highlight').value,
       category: field('f-category').value,
+      categories: readCategories(),
       tags: field('f-tags').value,
       publishedAt: field('f-date').value,
       updatedAt: field('f-updated').value,
@@ -298,6 +457,9 @@ const TOOLBAR = [
       featured: field('f-featured').checked,
       cover: field('f-cover').value,
       coverAlt: field('f-coverAlt').value,
+      series: field('f-series').value,
+      seriesOrder: field('f-seriesOrder').value,
+      faq: readFaq(),
       body: editor.value,
     });
 
@@ -307,13 +469,19 @@ const TOOLBAR = [
       field('f-description').value = d.description;
       field('f-highlight').value = d.highlight;
       field('f-category').value = d.category;
-      field('f-tags').value = d.tags;
+      writeCategories(d.categories ?? '');
+      tags = (d.tags ?? '').split(',').map((t) => t.trim()).filter(Boolean);
+      renderTags();
       field('f-date').value = d.publishedAt;
       field('f-updated').value = d.updatedAt;
       field('f-draft').checked = d.draft;
       field('f-featured').checked = d.featured;
       field('f-cover').value = d.cover;
       field('f-coverAlt').value = d.coverAlt;
+      field('f-series').value = d.series ?? '';
+      field('f-seriesOrder').value = d.seriesOrder ?? '';
+      faqList.replaceChildren();
+      (d.faq ?? []).forEach((f) => addFaqRow(f.q, f.a));
       editor.value = d.body;
     };
 

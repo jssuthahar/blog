@@ -1,14 +1,15 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PostCard from '../../components/PostCard.astro';
-import { CATEGORIES, getPublishedPosts, type CategoryId } from '../../lib/posts';
+import { CATEGORIES, getPublishedPosts, postCategories, type CategoryId } from '../../lib/posts';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
 
   return (Object.keys(CATEGORIES) as CategoryId[]).map((category) => ({
     params: { category },
-    props: { posts: posts.filter((p) => p.data.category === category), category },
+    // Include posts cross-listed under this category, not just its primary.
+    props: { posts: posts.filter((p) => postCategories(p).includes(category)), category },
   }));
 }
 

@@ -53,11 +53,22 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     slug: 'ai',
     emoji: '🤖',
     label: 'AI',
-    description: 'Applied AI — Copilot, agents, RAG, and the patterns that ship.',
+    description: 'Applied AI — agents, RAG, and the patterns that ship.',
     hue: 165,
     technologies: [
-      'GitHub Copilot', 'AI Development', 'AI Agents', 'Agentic AI', 'Multi-Agent Systems',
+      'AI Development', 'AI Agents', 'Agentic AI', 'Multi-Agent Systems',
       'MCP (Model Context Protocol)', 'RAG', 'LLMs', 'Prompt Engineering', 'AI Security', 'AI Architecture',
+    ],
+  },
+  {
+    slug: 'copilot',
+    emoji: '🧑‍✈️',
+    label: 'GitHub Copilot',
+    description: 'GitHub Copilot in real delivery — agent mode, conventions, and productivity.',
+    hue: 340,
+    technologies: [
+      'GitHub Copilot', 'Copilot Agent Mode', 'Copilot Enterprise', 'AGENT.md',
+      'Copilot Extensions', 'Copilot Chat', 'Developer Productivity',
     ],
   },
   {
@@ -111,7 +122,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
  * validate against exactly these values with no drift.
  */
 export const CATEGORY_SLUGS = [
-  'programming', 'mobile', 'azure', 'ai', 'architecture', 'devops', 'engineering', 'career',
+  'programming', 'mobile', 'azure', 'ai', 'copilot', 'architecture', 'devops', 'engineering', 'career',
 ] as const;
 
 export type CategorySlug = (typeof CATEGORY_SLUGS)[number];

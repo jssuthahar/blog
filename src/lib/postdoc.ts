@@ -4,12 +4,19 @@
  * byte-identical output.
  */
 
+export interface FaqPair {
+  q: string;
+  a: string;
+}
+
 export interface PostDraft {
   slug: string;
   title: string;
   description: string;
   highlight: string;
   category: string;
+  /** Additional categories, comma-separated slugs. */
+  categories: string;
   tags: string;
   publishedAt: string;
   updatedAt: string;
@@ -17,6 +24,11 @@ export interface PostDraft {
   featured: boolean;
   cover: string;
   coverAlt: string;
+  /** Multi-part guides: a shared series slug and this post's position in it. */
+  series: string;
+  seriesOrder: string;
+  /** Powers the FAQ section, FAQPage schema, and the article chat. */
+  faq: FaqPair[];
   body: string;
 }
 
@@ -26,6 +38,7 @@ export const emptyDraft = (): PostDraft => ({
   description: '',
   highlight: '',
   category: 'programming',
+  categories: '',
   tags: '',
   publishedAt: new Date().toISOString().slice(0, 10),
   updatedAt: '',
@@ -33,6 +46,9 @@ export const emptyDraft = (): PostDraft => ({
   featured: false,
   cover: '',
   coverAlt: '',
+  series: '',
+  seriesOrder: '',
+  faq: [],
   body: '',
 });
 
@@ -54,17 +70,31 @@ export function toMarkdown(post: PostDraft): string {
     `publishedAt: ${post.publishedAt}`,
     post.updatedAt ? `updatedAt: ${post.updatedAt}` : null,
     `category: ${post.category}`,
+    // Additional categories, excluding the primary to avoid duplication.
+    (() => {
+      const extra = post.categories.split(',').map((c) => c.trim()).filter((c) => c && c !== post.category);
+      return extra.length ? `categories: [${extra.join(', ')}]` : null;
+    })(),
     tags.length ? `tags: [${tags.map(yq).join(', ')}]` : null,
     post.cover ? `cover: ${yq(post.cover)}` : null,
     post.cover && post.coverAlt ? `coverAlt: ${yq(post.coverAlt)}` : null,
+    post.series ? `series: ${yq(post.series)}` : null,
+    post.series && post.seriesOrder ? `seriesOrder: ${post.seriesOrder}` : null,
     post.featured ? 'featured: true' : null,
     `draft: ${post.draft}`,
-    '---',
-    '',
-    post.body.trim(),
-    '',
   ];
 
+  // FAQ is a nested YAML list, emitted only when there are complete pairs.
+  const faq = post.faq.filter((f) => f.q.trim() && f.a.trim());
+  if (faq.length) {
+    front.push('faq:');
+    for (const { q, a } of faq) {
+      front.push(`  - q: ${yq(q.trim())}`);
+      front.push(`    a: ${yq(a.trim())}`);
+    }
+  }
+
+  front.push('---', '', post.body.trim(), '');
   return front.filter((l) => l !== null).join('\n');
 }
 
@@ -92,6 +122,14 @@ export function validate(post: PostDraft): Issue[] {
 
   if (!post.publishedAt) add('publishedAt', 'Published date is required.');
   if (post.cover && !post.coverAlt.trim()) add('coverAlt', 'Cover alt text is required when a cover is set.');
+
+  // The schema requires seriesOrder whenever series is set, and vice versa.
+  if (post.series && !post.seriesOrder) add('seriesOrder', 'Series order is required when a series is set.');
+  if (post.seriesOrder && !post.series) add('series', 'Series name is required when an order is set.');
+
+  if (post.faq.some((f) => (f.q.trim() && !f.a.trim()) || (!f.q.trim() && f.a.trim())))
+    add('faq', 'Each FAQ needs both a question and an answer.');
+
   if (post.body.trim().length < 20) add('body', 'Body is too short.');
 
   return issues;

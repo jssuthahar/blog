@@ -13,7 +13,10 @@ const blog = defineCollection({
       /** Surfaced in the UI and in JSON-LD — freshness is a strong ranking signal. */
       updatedAt: z.coerce.date().optional(),
 
+      /** Primary category — drives the accent colour and the main topic page. */
       category: z.enum(CATEGORY_SLUGS),
+      /** Additional categories this post is cross-listed under. */
+      categories: z.array(z.enum(CATEGORY_SLUGS)).default([]),
       tags: z.array(z.string()).default([]),
 
       cover: image().optional(),

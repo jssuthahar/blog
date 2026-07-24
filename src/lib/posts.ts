@@ -58,8 +58,13 @@ export async function getFeaturedPost(): Promise<Post | undefined> {
   return posts.find((p) => p.data.featured) ?? posts[0];
 }
 
+/** Every category a post belongs to — primary first, then cross-listed ones. */
+export function postCategories(post: Post): CategoryId[] {
+  return [...new Set([post.data.category, ...post.data.categories])] as CategoryId[];
+}
+
 export async function getPostsByCategory(category: CategoryId): Promise<Post[]> {
-  return (await getPublishedPosts()).filter((p) => p.data.category === category);
+  return (await getPublishedPosts()).filter((p) => postCategories(p).includes(category));
 }
 
 export async function getPostsInSeries(seriesId: string): Promise<Post[]> {

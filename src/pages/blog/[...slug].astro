@@ -236,10 +236,6 @@ if (data.faq.length > 0) {
         </div>
 
         <div class="mx-auto mt-14 max-w-[68ch]">
-          <ArticleChat faq={data.faq} title={data.title} intro={data.highlight} />
-        </div>
-
-        <div class="mx-auto mt-14 max-w-[68ch]">
           <Comments />
         </div>
       </div>
@@ -263,4 +259,7 @@ if (data.faq.length > 0) {
   </div>
 
   <CodeCopyButton />
+
+  <!-- Floating chat launcher; fixed-position, so it lives at the page root. -->
+  <ArticleChat faq={data.faq} title={data.title} intro={data.highlight} />
 </BaseLayout>

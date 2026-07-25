@@ -25,6 +25,8 @@ export const SUBJECTS = [
 export interface ContactInput {
   name: string;
   email: string;
+  /** Optional — the reader may leave it blank. */
+  phone?: string;
   subject: string;
   message: string;
 }
@@ -34,6 +36,7 @@ export const isEnabled = () => FIREBASE.projectId.length > 0;
 export async function sendContactMessage(input: ContactInput): Promise<void> {
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
+  const phone = (input.phone ?? '').trim().slice(0, 30);
   const subject = input.subject.trim() || 'Something else';
   const message = input.message.trim();
 
@@ -46,6 +49,23 @@ export async function sendContactMessage(input: ContactInput): Promise<void> {
   // server-timestamp transform the rules require.
   const docId = crypto.randomUUID();
 
+  // Phone is optional: only write the field (and name it in the mask) when the
+  // reader actually supplied one, so blank submissions don't store an empty key.
+  const fields: Record<string, { stringValue: string }> = {
+    name: { stringValue: name },
+    email: { stringValue: email },
+    subject: { stringValue: subject },
+    message: { stringValue: message },
+    // Fixed here and enforced by the rules: a message can never
+    // arrive pre-read or pre-archived.
+    status: { stringValue: 'new' },
+  };
+  const fieldPaths = ['name', 'email', 'subject', 'message', 'status'];
+  if (phone) {
+    fields.phone = { stringValue: phone };
+    fieldPaths.push('phone');
+  }
+
   const res = await fetch(`${base}:commit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -54,17 +74,9 @@ export async function sendContactMessage(input: ContactInput): Promise<void> {
         {
           update: {
             name: `projects/${FIREBASE.projectId}/databases/(default)/documents/contactMessages/${docId}`,
-            fields: {
-              name: { stringValue: name },
-              email: { stringValue: email },
-              subject: { stringValue: subject },
-              message: { stringValue: message },
-              // Fixed here and enforced by the rules: a message can never
-              // arrive pre-read or pre-archived.
-              status: { stringValue: 'new' },
-            },
+            fields,
           },
-          updateMask: { fieldPaths: ['name', 'email', 'subject', 'message', 'status'] },
+          updateMask: { fieldPaths },
           // Server-stamped so a submission cannot be backdated.
           updateTransforms: [{ fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME' }],
           currentDocument: { exists: false },

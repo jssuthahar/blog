@@ -167,7 +167,6 @@ export const NAV = [
   { label: 'Speaking', href: '/speaking' },
   { label: 'Open source', href: '/open-source' },
   { label: 'About', href: '/about' },
-  { label: 'Contact', href: '/contact' },
 ] as const;
 
 /**

@@ -372,7 +372,7 @@ const configured = ADMIN.uid.length > 0 && FIREBASE.apiKey.length > 0;
             <span class="text-muted">${new Date(m.createdAt).toLocaleString()}</span>
           </div>
           <p class="mt-2 text-sm leading-relaxed whitespace-pre-wrap">${escape(m.message)}</p>
-          <p class="mt-2 text-xs text-muted"><strong>${escape(m.name)}</strong> · <a href="mailto:${escape(m.email)}?subject=Re: ${encodeURIComponent(m.subject)}" class="text-accent hover:underline">${escape(m.email)}</a></p>
+          <p class="mt-2 text-xs text-muted"><strong>${escape(m.name)}</strong> · <a href="mailto:${escape(m.email)}?subject=Re: ${encodeURIComponent(m.subject)}" class="text-accent hover:underline">${escape(m.email)}</a>${m.phone ? ` · <a href="tel:${escape(m.phone)}" class="text-accent hover:underline">${escape(m.phone)}</a>` : ''}</p>
           <div class="mt-3 flex flex-wrap gap-2">
             <a href="mailto:${escape(m.email)}?subject=Re: ${encodeURIComponent(m.subject)}" class="btn btn-outline btn-sm">Reply</a>
             ${m.status === 'new' ? '<button data-msg-act="read" class="btn btn-outline btn-sm">Mark read</button>' : ''}

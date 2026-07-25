@@ -124,6 +124,23 @@ const schema = [
         </div>
 
         <div>
+          <label for="phone" class="block text-sm font-medium">
+            Phone <span class="font-normal text-muted">(optional)</span>
+          </label>
+          <input
+            id="phone"
+            data-field="phone"
+            type="tel"
+            maxlength="30"
+            autocomplete="tel"
+            inputmode="tel"
+            placeholder="+60 12 345 6789"
+            disabled={!configured}
+            class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm disabled:opacity-60"
+          />
+        </div>
+
+        <div>
           <label for="subject" class="block text-sm font-medium">Subject</label>
           <select
             id="subject"
@@ -226,6 +243,7 @@ const schema = [
       const values = {
         name: field('name').value.trim(),
         email: field('email').value.trim().toLowerCase(),
+        phone: field('phone').value.trim(),
         subject: field('subject').value,
         message: message.value.trim(),
       };

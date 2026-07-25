@@ -255,6 +255,8 @@ export interface ContactMessage {
   id: string;
   name: string;
   email: string;
+  /** Empty when the reader left it blank. */
+  phone: string;
   subject: string;
   message: string;
   status: 'new' | 'read' | 'archived';
@@ -269,6 +271,7 @@ export async function listContactMessages(): Promise<ContactMessage[]> {
       id: doc.name.split('/').pop() as string,
       name: str(doc.fields.name),
       email: str(doc.fields.email),
+      phone: str(doc.fields.phone),
       subject: str(doc.fields.subject),
       message: str(doc.fields.message),
       status: (str(doc.fields.status) || 'new') as ContactMessage['status'],
@@ -295,9 +298,9 @@ export async function deleteContactMessage(id: string): Promise<void> {
 export function contactMessagesToCsv(rows: ContactMessage[]): string {
   const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
   return [
-    'name,email,subject,message,status,createdAt',
+    'name,email,phone,subject,message,status,createdAt',
     ...rows.map((r) =>
-      [r.name, r.email, r.subject, r.message, r.status, r.createdAt].map(escape).join(','),
+      [r.name, r.email, r.phone, r.subject, r.message, r.status, r.createdAt].map(escape).join(','),
     ),
   ].join('\n');
 }

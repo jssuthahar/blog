@@ -180,7 +180,7 @@ service cloud.firestore {
     match /contactMessages/{id} {
       allow read, delete: if isAdmin();
 
-      allow create: if request.resource.data.keys().hasOnly(['name', 'email', 'subject', 'message', 'status', 'createdAt'])
+      allow create: if request.resource.data.keys().hasOnly(['name', 'email', 'phone', 'subject', 'message', 'status', 'createdAt'])
                     && request.resource.data.status == 'new'
                     && request.resource.data.name is string
                     && request.resource.data.name.size() >= 2
@@ -189,6 +189,9 @@ service cloud.firestore {
                     && request.resource.data.email.size() >= 6
                     && request.resource.data.email.size() <= 254
                     && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$')
+                    // Phone is optional; when supplied it must be a short string.
+                    && (!('phone' in request.resource.data) ||
+                        (request.resource.data.phone is string && request.resource.data.phone.size() <= 30))
                     && request.resource.data.subject is string
                     && request.resource.data.subject.size() <= 100
                     && request.resource.data.message is string

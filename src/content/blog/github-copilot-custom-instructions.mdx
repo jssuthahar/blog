@@ -34,45 +34,45 @@ Copilot has no idea what "normal" looks like on your team until you spell it out
 That mismatch doesn't show up as one big failure. It shows up as constant small friction: `fetch` when your team wraps everything in a custom HTTP client, Jest syntax when the project actually runs on Vitest. None of it is dramatic on its own. It's just a lot of tiny corrections, and it's usually the real reason behind the complaint "Copilot doesn't get our codebase" — when what actually happened is nobody ever told it.
 
 <div style="margin: 32px 0;">
-<svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated comparison showing a Copilot suggestion being corrected without instructions versus matching immediately with instructions" style="width: 100%; height: auto; border-radius: 10px;">
-  <title>Same prompt, two outcomes</title>
-  <rect width="900" height="320" rx="10" fill="#1b2118"/>
-  <text x="225" y="34" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" fill="#c9614a">without copilot-instructions.md</text>
-  <text x="675" y="34" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" fill="#8fbf92">with copilot-instructions.md</text>
-  <line x1="450" y1="10" x2="450" y2="300" stroke="#2c3527" stroke-width="1" stroke-dasharray="5 5"/>
+  <svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated comparison showing a Copilot suggestion being corrected without instructions versus matching immediately with instructions" style="width: 100%; height: auto; border-radius: 10px;">
+    <title>Same prompt, two outcomes</title>
+    <rect width="900" height="320" rx="10" fill="#1b2118" />
+    <text x="225" y="34" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" fill="#c9614a">without copilot-instructions.md</text>
+    <text x="675" y="34" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" fill="#8fbf92">with copilot-instructions.md</text>
+    <line x1="450" y1="10" x2="450" y2="300" stroke="#2c3527" stroke-width="1" stroke-dasharray="5 5" />
 
-  <rect x="40" y="55" width="370" height="230" rx="8" fill="#232a1f" stroke="#3c4536"/>
-  <text x="60" y="90" font-family="ui-monospace,monospace" font-size="14" fill="#8a9280">// user: add a request to fetch users</text>
-  <text x="60" y="125" font-family="ui-monospace,monospace" font-size="15" fill="#c9614a" opacity="0">
-    fetch('/api/users')
-    <animate attributeName="opacity" values="0;1;1;0.3;0" keyTimes="0;0.1;0.45;0.55;0.6" dur="5s" repeatCount="indefinite"/>
-  </text>
-  <text x="60" y="155" font-family="ui-monospace,monospace" font-size="12" fill="#c9614a" opacity="0">
-    ✗ wrong client — no auth headers
-    <animate attributeName="opacity" values="0;0;1;0.3;0" keyTimes="0;0.15;0.45;0.55;0.6" dur="5s" repeatCount="indefinite"/>
-  </text>
-  <text x="60" y="125" font-family="ui-monospace,monospace" font-size="15" fill="#8fbf92" opacity="0">
-    httpClient.get('/api/users')
-    <animate attributeName="opacity" values="0;0;0;0;1;1;0" keyTimes="0;0.55;0.6;0.65;0.75;0.95;1" dur="5s" repeatCount="indefinite"/>
-  </text>
-  <text x="60" y="155" font-family="ui-monospace,monospace" font-size="12" fill="#8fbf92" opacity="0">
-    manually corrected — took a re-prompt
-    <animate attributeName="opacity" values="0;0;0;0;0;1;0" keyTimes="0;0.6;0.65;0.7;0.8;0.95;1" dur="5s" repeatCount="indefinite"/>
-  </text>
+    <rect x="40" y="55" width="370" height="230" rx="8" fill="#232a1f" stroke="#3c4536" />
+    <text x="60" y="90" font-family="ui-monospace,monospace" font-size="14" fill="#8a9280">// user: add a request to fetch users</text>
+    <text x="60" y="125" font-family="ui-monospace,monospace" font-size="15" fill="#c9614a" opacity="0">
+      <animate attributeName="opacity" values="0;1;1;0.3;0" keyTimes="0;0.1;0.45;0.55;0.6" dur="5s" repeatCount="indefinite" />
+      <tspan x="60" dy="0">fetch('/api/users')</tspan>
+    </text>
+    <text x="60" y="155" font-family="ui-monospace,monospace" font-size="12" fill="#c9614a" opacity="0">
+      <animate attributeName="opacity" values="0;0;1;0.3;0" keyTimes="0;0.15;0.45;0.55;0.6" dur="5s" repeatCount="indefinite" />
+      <tspan x="60" dy="0">✗ wrong client — no auth headers</tspan>
+    </text>
+    <text x="60" y="125" font-family="ui-monospace,monospace" font-size="15" fill="#8fbf92" opacity="0">
+      <animate attributeName="opacity" values="0;0;0;0;1;1;0" keyTimes="0;0.55;0.6;0.65;0.75;0.95;1" dur="5s" repeatCount="indefinite" />
+      <tspan x="60" dy="0">httpClient.get('/api/users')</tspan>
+    </text>
+    <text x="60" y="155" font-family="ui-monospace,monospace" font-size="12" fill="#8fbf92" opacity="0">
+      <animate attributeName="opacity" values="0;0;0;0;0;1;0" keyTimes="0;0.6;0.65;0.7;0.8;0.95;1" dur="5s" repeatCount="indefinite" />
+      <tspan x="60" dy="0">manually corrected — took a re-prompt</tspan>
+    </text>
 
-  <rect x="490" y="55" width="370" height="230" rx="8" fill="#232a1f" stroke="#5a7a5c"/>
-  <text x="510" y="90" font-family="ui-monospace,monospace" font-size="14" fill="#8a9280">// user: add a request to fetch users</text>
-  <text x="510" y="125" font-family="ui-monospace,monospace" font-size="15" fill="#8fbf92" opacity="0">
-    httpClient.get('/api/users')
-    <animate attributeName="opacity" values="0;1;1;1;0.3;0" keyTimes="0;0.1;0.45;0.9;0.95;1" dur="5s" repeatCount="indefinite"/>
-  </text>
-  <text x="510" y="155" font-family="ui-monospace,monospace" font-size="12" fill="#8fbf92" opacity="0">
-    ✓ matches your wrapper — first try
-    <animate attributeName="opacity" values="0;0;1;1;0.3;0" keyTimes="0;0.15;0.45;0.9;0.95;1" dur="5s" repeatCount="indefinite"/>
-  </text>
+    <rect x="490" y="55" width="370" height="230" rx="8" fill="#232a1f" stroke="#5a7a5c" />
+    <text x="510" y="90" font-family="ui-monospace,monospace" font-size="14" fill="#8a9280">// user: add a request to fetch users</text>
+    <text x="510" y="125" font-family="ui-monospace,monospace" font-size="15" fill="#8fbf92" opacity="0">
+      <animate attributeName="opacity" values="0;1;1;1;0.3;0" keyTimes="0;0.1;0.45;0.9;0.95;1" dur="5s" repeatCount="indefinite" />
+      <tspan x="510" dy="0">httpClient.get('/api/users')</tspan>
+    </text>
+    <text x="510" y="155" font-family="ui-monospace,monospace" font-size="12" fill="#8fbf92" opacity="0">
+      <animate attributeName="opacity" values="0;0;1;1;0.3;0" keyTimes="0;0.15;0.45;0.9;0.95;1" dur="5s" repeatCount="indefinite" />
+      <tspan x="510" dy="0">✓ matches your wrapper — first try</tspan>
+    </text>
 
-  <text x="450" y="310" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#6b7461">same prompt, same model — only the instructions file differs</text>
-</svg>
+    <text x="450" y="310" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#6b7461">same prompt, same model — only the instructions file differs</text>
+  </svg>
 </div>
 
 ## How do you actually create the file in VS Code?
@@ -87,7 +87,7 @@ Two ways to do it. I'd start with the first one even if you're planning to rewri
 4. Sometimes it'll ask a question or two if something's genuinely ambiguous, like which test runner you're using if it spots two
 5. Then go through the draft yourself. It's a first pass, not a finished file — cut the vague parts, add anything it can't infer on its own (like what's off-limits), and fix whatever it got wrong
 
-![Custom instructions are one file](./images/CopilotInit.svg)
+![Custom instructions are one file](./images/CopilotInit.png)
 
 **Writing it yourself:**
 

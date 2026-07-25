@@ -1,0 +1,278 @@
+---
+import { render } from 'astro:content';
+import { Image } from 'astro:assets';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostHighlight from '../../components/PostHighlight.astro';
+import { ADMIN, AUTHOR } from '../../config';
+import {
+  CATEGORIES,
+  formatDate,
+  getDraftPosts,
+  getPostsInSeries,
+  postUrl,
+  readingTime,
+  type Post,
+} from '../../lib/posts';
+
+/**
+ * Draft preview render.
+ *
+ * Every draft post gets a full-fidelity page here so it can be proofed on the
+ * live domain before publishing. It deliberately drops the production-only
+ * furniture (comments, reactions, ads, view counters, related posts, JSON-LD)
+ * — this is a proofing surface, not a public article. `noindex` keeps it out of
+ * search; the sitemap filter and the login-gated listing keep it unlinked. The
+ * URL is still publicly reachable, so nothing sensitive belongs in a draft.
+ */
+export async function getStaticPaths() {
+  const posts = await getDraftPosts();
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const { data } = post;
+const { Content } = await render(post);
+
+const minutes = readingTime(post.body ?? '');
+const category = CATEGORIES[data.category];
+const seriesPosts = data.series ? await getPostsInSeries(data.series) : [];
+
+// The exact on-disk source (frontmatter + body) for the in-page editor.
+// Read raw via Vite so the admin edits and re-downloads byte-for-byte — no
+// parse/re-serialise round-trip, so every frontmatter field survives (unlike
+// the /write importer, which only knows a subset of keys).
+const sources = import.meta.glob('/src/content/blog/**/*.{md,mdx}', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
+const sourceKey = Object.keys(sources).find(
+  (k) => k.endsWith(`/${post.id}.md`) || k.endsWith(`/${post.id}.mdx`),
+);
+const rawSource = sourceKey ? sources[sourceKey] : '';
+const ext = sourceKey?.endsWith('.mdx') ? 'mdx' : 'md';
+const fileName = `${post.id.split('/').pop()}.${ext}`;
+---
+
+<BaseLayout title={`[Draft] ${data.title}`} description={data.description} noindex wide>
+  <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6" data-admin-uid={ADMIN.uid}>
+    <!-- Unmissable draft banner so a preview URL is never mistaken for live. -->
+    <div
+      class="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm"
+      style="border-color:oklch(0.6 0.16 60 / .4);background:oklch(0.6 0.16 60 / .08)"
+    >
+      <p>
+        <span class="font-semibold">Draft preview</span>
+        <span class="text-muted"> — not published. This page is noindex and unlisted.</span>
+      </p>
+      <div class="flex items-center gap-3">
+        <button id="edit-toggle" type="button" hidden class="text-accent hover:underline">Edit source</button>
+        <a href="/preview" class="text-accent hover:underline">← All drafts</a>
+      </div>
+    </div>
+
+    <header class="mx-auto max-w-3xl">
+      <nav aria-label="Breadcrumb" class="text-sm text-muted">
+        <a href="/preview" class="hover:text-accent">Drafts</a>
+        <span aria-hidden="true" class="mx-2">/</span>
+        <span>{category.label}</span>
+      </nav>
+
+      <h1 class="mt-4 text-3xl font-bold tracking-tight text-balance sm:text-4xl md:text-[2.75rem] md:leading-[1.15]">
+        {data.title}
+      </h1>
+
+      <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">{data.description}</p>
+
+      <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+        <span>By <a href="/about" class="hover:text-accent">{AUTHOR.name}</a></span>
+        <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time>
+        {data.updatedAt && <span class="text-accent">Updated {formatDate(data.updatedAt)}</span>}
+        <span>{minutes} min read</span>
+        {data.series && <span>Series: {data.series} · #{data.seriesOrder}</span>}
+      </div>
+    </header>
+
+    {data.cover && (
+      <figure class="mx-auto mt-10 max-w-4xl">
+        <Image
+          src={data.cover}
+          alt={data.coverAlt ?? ''}
+          widths={[640, 1024, 1600]}
+          sizes="(max-width: 896px) 100vw, 896px"
+          quality={90}
+          loading="eager"
+          class="w-full rounded-xl border border-default"
+        />
+      </figure>
+    )}
+
+    <div class="mt-12">
+      <div class="mx-auto min-w-0 max-w-3xl">
+        {seriesPosts.length > 1 && (
+          <aside class="mb-10 rounded-xl border border-default bg-subtle p-5" aria-label="Series navigation">
+            <p class="text-xs font-semibold tracking-wider uppercase text-muted">Part of a series</p>
+            <ol class="mt-3 space-y-2 text-sm">
+              {seriesPosts.map((p) => (
+                <li class="flex gap-3">
+                  <span class="text-muted tabular-nums">{p.data.seriesOrder}.</span>
+                  {p.id === post.id ? (
+                    <span class="font-medium" aria-current="true">{p.data.title}</span>
+                  ) : (
+                    <a href={p.data.draft ? `/preview/${p.id}` : postUrl(p)} class="text-muted hover:text-accent">
+                      {p.data.title}
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </aside>
+        )}
+
+        <div class="mb-9 max-w-[68ch]">
+          <PostHighlight text={data.highlight ?? data.description} />
+        </div>
+
+        <article class="prose-reading">
+          <Content />
+        </article>
+      </div>
+    </div>
+
+    <!-- ── Source editor ──────────────────────────────────────────────────
+         Lossless: edits the exact file text and downloads/saves it back, so
+         no frontmatter field is lost. Revealed only for the signed-in admin.
+         Where the browser supports it, "Save to file" writes straight over the
+         original; otherwise it downloads for a manual replace. -->
+    <section id="edit-panel" hidden class="mx-auto mt-16 max-w-4xl">
+      <div class="rounded-lg border border-default">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-default bg-subtle px-4 py-2.5">
+          <div class="flex items-center gap-2 text-sm">
+            <span class="font-semibold">Edit source</span>
+            <code class="rounded bg-[var(--bg)] px-1.5 py-0.5 font-mono text-xs">src/content/blog/{fileName}</code>
+            <span id="edit-dirty" hidden class="text-xs text-accent">● unsaved</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span id="edit-status" role="status" aria-live="polite" class="text-xs text-muted"></span>
+            <button id="edit-reset" type="button" class="btn btn-outline btn-sm">Reset</button>
+            <button id="edit-copy" type="button" class="btn btn-outline btn-sm">Copy</button>
+            <button id="edit-download" type="button" class="btn btn-outline btn-sm">Download</button>
+            <button id="edit-write" type="button" class="btn btn-outline btn-sm"
+              title="Open in the full Write editor with fields, toolbar and live preview">Edit in Write ↗</button>
+            <button id="edit-save" type="button" class="btn btn-accent btn-sm">Save to file</button>
+          </div>
+        </div>
+        <textarea
+          id="edit-source"
+          spellcheck="false"
+          class="block h-[60vh] w-full resize-y bg-[var(--bg)] p-4 font-mono text-xs leading-relaxed focus:outline-none"
+        >{rawSource}</textarea>
+      </div>
+      <p class="mt-3 text-xs leading-relaxed text-muted">
+        <strong>To replace:</strong> <em>Save to file</em> writes straight over
+        <code>src/content/blog/{fileName}</code> where your browser supports it (Chrome/Edge).
+        Otherwise use <em>Download</em> and drop the file into <code>src/content/blog/</code>,
+        overwriting the original — then commit and push. Uncheck <code>draft</code> in the
+        frontmatter when it's ready to go live.
+      </p>
+    </section>
+  </div>
+</BaseLayout>
+
+<script is:inline define:vars={{ fileName }}>
+  function initDraftEditor() {
+    const panel = document.getElementById('edit-panel');
+    const textarea = document.getElementById('edit-source');
+    if (!panel || !textarea) return;
+
+    // Gate the editor behind the same Firebase session as /admin and /preview.
+    // The session is stored by src/lib/admin.ts under this key; reading it here
+    // avoids pulling the admin module into every draft page.
+    let session = null;
+    try { session = JSON.parse(localStorage.getItem('admin:session') || 'null'); } catch {}
+    const adminUid = document.querySelector('[data-admin-uid]')?.dataset.adminUid || '';
+    const isAdmin = !!session && (!adminUid || session.uid === adminUid);
+
+    const toggle = document.getElementById('edit-toggle');
+    if (!isAdmin) return; // not signed in — leave the read-only preview as-is
+    if (toggle) toggle.hidden = false;
+
+    const $ = (id) => document.getElementById(id);
+    const original = textarea.value;
+    const status = $('edit-status');
+    const dirty = $('edit-dirty');
+    let fileHandle = null; // reused once the admin picks the file once
+
+    const setStatus = (msg) => {
+      if (!status) return;
+      status.textContent = msg;
+      if (msg) setTimeout(() => { if (status.textContent === msg) status.textContent = ''; }, 2500);
+    };
+    const markDirty = () => { if (dirty) dirty.hidden = textarea.value === original; };
+    textarea.addEventListener('input', markDirty);
+
+    toggle?.addEventListener('click', () => {
+      panel.hidden = !panel.hidden;
+      if (!panel.hidden) { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); textarea.focus(); }
+    });
+
+    $('edit-reset')?.addEventListener('click', () => {
+      if (textarea.value !== original && !confirm('Discard your edits and restore the original source?')) return;
+      textarea.value = original;
+      markDirty();
+      setStatus('Reset to original');
+    });
+
+    $('edit-copy')?.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(textarea.value);
+      setStatus('Copied');
+    });
+
+    const download = () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([textarea.value], { type: 'text/markdown' }));
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      setStatus('Downloaded ' + fileName);
+    };
+    $('edit-download')?.addEventListener('click', download);
+
+    // Hand the current source to the full /write editor and jump there. It
+    // parses the frontmatter into fields; the source panel here stays the
+    // lossless path for the few keys /write doesn't round-trip.
+    $('edit-write')?.addEventListener('click', () => {
+      localStorage.setItem('writer:handoff', JSON.stringify({ raw: textarea.value, filename: fileName }));
+      window.location.href = '/write';
+    });
+
+    // Progressive enhancement: write straight back to disk where the File
+    // System Access API exists; fall back to a normal download everywhere else.
+    $('edit-save')?.addEventListener('click', async () => {
+      if (!('showSaveFilePicker' in window)) { download(); return; }
+      try {
+        if (!fileHandle) {
+          fileHandle = await window.showSaveFilePicker({
+            suggestedName: fileName,
+            types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.mdx'] } }],
+          });
+        }
+        const writable = await fileHandle.createWritable();
+        await writable.write(textarea.value);
+        await writable.close();
+        setStatus('Saved to file');
+      } catch (err) {
+        if (err && err.name === 'AbortError') return; // user cancelled the picker
+        setStatus('Save failed — downloading instead');
+        download();
+      }
+    });
+  }
+
+  initDraftEditor();
+  document.addEventListener('astro:page-load', initDraftEditor);
+</script>

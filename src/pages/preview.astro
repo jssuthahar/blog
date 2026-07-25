@@ -1,0 +1,195 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { ADMIN, FIREBASE } from '../config';
+import { CATEGORIES, formatDate, getDraftPosts } from '../lib/posts';
+
+/**
+ * Draft index — admin-gated proofing list.
+ *
+ * The draft rows are rendered into the page but hidden until the admin signs
+ * in (same Firebase session as /admin). Like the rest of the admin surface,
+ * the login is convenience: each draft page under /preview/… is public HTML by
+ * URL. This page just keeps the list of them behind the sign-in and out of
+ * search (noindex + sitemap filter).
+ */
+const drafts = await getDraftPosts();
+const configured = ADMIN.uid.length > 0 && FIREBASE.apiKey.length > 0;
+
+// Raw on-disk source per draft, so the "Edit" button can hand the file straight
+// to the /write editor without a second round-trip through the preview page.
+const sources = import.meta.glob('/src/content/blog/**/*.{md,mdx}', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
+
+const rows = drafts.map((post) => {
+  const key = Object.keys(sources).find(
+    (k) => k.endsWith(`/${post.id}.md`) || k.endsWith(`/${post.id}.mdx`),
+  );
+  return {
+    id: post.id,
+    title: post.data.title,
+    category: CATEGORIES[post.data.category]?.label ?? post.data.category,
+    date: formatDate(post.data.updatedAt ?? post.data.publishedAt),
+    series: post.data.series,
+    raw: key ? sources[key] : '',
+    filename: `${post.id.split('/').pop()}.${key?.endsWith('.mdx') ? 'mdx' : 'md'}`,
+  };
+});
+---
+
+<BaseLayout title="Drafts" description="Draft preview." noindex wide>
+  <div class="mx-auto max-w-4xl px-4 py-10 sm:px-6" data-admin-uid={ADMIN.uid}>
+    <header class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <p class="eyebrow">Admin</p>
+        <h1 class="display mt-1.5 text-2xl">Drafts</h1>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <a href="/admin" class="btn btn-outline btn-sm">← Console</a>
+        <span id="who" class="text-sm text-muted"></span>
+        <button id="sign-out" hidden class="btn btn-outline btn-sm">Sign out</button>
+      </div>
+    </header>
+
+    {!configured && (
+      <div class="mt-8 rounded-lg border border-default bg-subtle p-6 text-sm leading-relaxed">
+        <p class="font-semibold">Setup needed</p>
+        <p class="mt-2 text-muted">
+          Configure <code>ADMIN.uid</code> and <code>FIREBASE.apiKey</code> in
+          <code>src/config.ts</code> first — see <a href="/admin" class="text-accent hover:underline">/admin</a>.
+        </p>
+      </div>
+    )}
+
+    <!-- Sign-in: mirrors /admin so one Firebase session covers both. -->
+    <section id="signin-panel" class="mt-8 max-w-sm" hidden>
+      <form id="signin-form" class="space-y-3 rounded-lg border border-default p-6" novalidate>
+        <h2 class="font-semibold">Sign in to view drafts</h2>
+        <div>
+          <label for="admin-email" class="block text-sm font-medium">Email</label>
+          <input id="admin-email" type="email" autocomplete="username" required
+            class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label for="admin-password" class="block text-sm font-medium">Password</label>
+          <input id="admin-password" type="password" autocomplete="current-password" required
+            class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+        </div>
+        <button type="submit" class="btn btn-accent btn-sm w-full">Sign in</button>
+        <p id="signin-status" role="status" aria-live="polite" class="text-sm"></p>
+      </form>
+    </section>
+
+    <div id="draft-list" hidden>
+      <p class="mt-8 text-sm text-muted">
+        {rows.length} draft{rows.length === 1 ? '' : 's'}. These pages ship publicly but are noindex and unlisted.
+      </p>
+
+      {rows.length ? (
+        <ul class="mt-5 divide-y divide-[var(--border)] rounded-lg border border-default">
+          {rows.map((r) => (
+            <li class="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div class="min-w-0">
+                <a href={`/preview/${r.id}`} class="font-medium hover:text-accent">{r.title}</a>
+                <p class="mt-1 text-xs text-muted">
+                  {r.category} · {r.date}{r.series ? ` · series: ${r.series}` : ''}
+                </p>
+              </div>
+              <div class="flex shrink-0 items-center gap-2">
+                <button type="button" class="btn btn-outline btn-sm" data-edit-raw={r.raw} data-edit-file={r.filename}>Edit</button>
+                <a href={`/preview/${r.id}`} class="btn btn-outline btn-sm">Preview →</a>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="mt-5 text-sm text-muted">No drafts right now.</p>
+      )}
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { signIn, loadSession, clearSession } from '../lib/admin';
+
+  function initPreview() {
+    const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T | null;
+    const signinPanel = $('signin-panel');
+    const listPanel = $('draft-list');
+    if (!signinPanel || !listPanel) return; // not this page
+
+    const wrap = document.querySelector<HTMLElement>('[data-admin-uid]');
+    const adminUid = wrap?.dataset.adminUid ?? '';
+
+    function showList(email: string) {
+      signinPanel!.hidden = true;
+      listPanel!.hidden = false;
+      const who = $('who');
+      if (who) who.textContent = email;
+      const out = $('sign-out');
+      if (out) out.hidden = false;
+    }
+    function showSignIn() {
+      signinPanel!.hidden = false;
+      listPanel!.hidden = true;
+      const who = $('who');
+      if (who) who.textContent = '';
+      const out = $('sign-out');
+      if (out) out.hidden = true;
+    }
+
+    const session = loadSession();
+    // Reveal only for the configured admin UID — any other signed-in user
+    // still sees the sign-in prompt, matching firestore.rules' single admin.
+    session && (!adminUid || session.uid === adminUid)
+      ? showList(session.email)
+      : showSignIn();
+
+    $('sign-out')?.addEventListener('click', () => { clearSession(); showSignIn(); });
+
+    // "Edit" hands a draft's source to the /write editor, which fills its
+    // fields from the frontmatter, then navigates there.
+    listPanel.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-edit-raw]');
+      if (!btn) return;
+      localStorage.setItem(
+        'writer:handoff',
+        JSON.stringify({ raw: btn.dataset.editRaw ?? '', filename: btn.dataset.editFile ?? '' }),
+      );
+      window.location.href = '/write';
+    });
+
+    $('signin-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = $('signin-status');
+      if (status) { status.textContent = 'Signing in…'; status.style.color = 'var(--text-muted)'; }
+      try {
+        const s = await signIn(
+          ($('admin-email') as HTMLInputElement).value.trim(),
+          ($('admin-password') as HTMLInputElement).value,
+        );
+        if (adminUid && s.uid !== adminUid) {
+          clearSession();
+          if (status) { status.style.color = 'var(--accent)'; status.textContent = 'This account is not the admin.'; }
+          return;
+        }
+        showList(s.email);
+      } catch (err) {
+        const code = err instanceof Error ? err.message : '';
+        if (!status) return;
+        status.style.color = 'var(--accent)';
+        status.textContent =
+          code === 'CONFIGURATION_NOT_FOUND'
+            ? 'Enable Email/Password sign-in in the Firebase console first.'
+            : code.includes('INVALID') || code.includes('CREDENTIAL')
+              ? 'Wrong email or password.'
+              : `Sign-in failed: ${code}`;
+      }
+    });
+  }
+
+  initPreview();
+  document.addEventListener('astro:page-load', initPreview);
+</script>

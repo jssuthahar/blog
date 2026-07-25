@@ -619,6 +619,26 @@ const TOOLBAR = [
       if (saved) writeForm({ ...emptyDraft(), ...JSON.parse(saved) });
     } catch {}
 
+    // ---- draft handed off from /preview ("Edit in Write") ----------------
+    // An explicit "edit this file" action, so it overrides the autosaved
+    // session above. Parsed the same way as Import, then the key is consumed
+    // so a refresh doesn't keep re-loading it.
+    try {
+      const handoff = localStorage.getItem('writer:handoff');
+      if (handoff) {
+        localStorage.removeItem('writer:handoff');
+        const { raw, filename } = JSON.parse(handoff) as { raw: string; filename?: string };
+        const draft = fromMarkdown(raw);
+        if (!draft.slug && filename) {
+          draft.slug = slugify(filename.replace(/\.(md|mdx|markdown)$/i, ''));
+        }
+        writeForm({ ...emptyDraft(), ...draft });
+        // Authored slug, not derived from the title — stop the title override.
+        field('f-slug').dataset.touched = '';
+        toggleMdx(/\.mdx$/i.test(filename ?? '') || /<(Callout|YouTube)\b/.test(draft.body));
+      }
+    } catch {}
+
     // ---- render loop ----------------------------------------------------
     let saveTimer: number | undefined;
 

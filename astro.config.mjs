@@ -17,6 +17,7 @@ export default defineConfig({
       // submitting a URL you also tell crawlers to ignore is a contradiction.
       filter: (page) =>
         !page.includes('/draft/') &&
+        !page.includes('/preview') &&
         !page.includes('/admin') &&
         !page.includes('/write') &&
         !page.includes('/search'),

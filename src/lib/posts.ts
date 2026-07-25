@@ -53,6 +53,20 @@ export async function getPublishedPosts(): Promise<Post[]> {
   return posts.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
 }
 
+/**
+ * Draft posts only — used by the /preview route so the admin can proof
+ * unpublished work on the live domain. These pages are built into production
+ * (unlike getPublishedPosts, which drops drafts there) but are noindex, kept
+ * out of the sitemap, and only listed once the admin is signed in. The pages
+ * themselves are still public HTML by URL — the login gate is convenience, not
+ * a security boundary, exactly like /admin. Nothing sensitive belongs in a
+ * draft on this host.
+ */
+export async function getDraftPosts(): Promise<Post[]> {
+  const posts = await getCollection('blog', ({ data }) => data.draft);
+  return posts.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+}
+
 export async function getFeaturedPost(): Promise<Post | undefined> {
   const posts = await getPublishedPosts();
   return posts.find((p) => p.data.featured) ?? posts[0];

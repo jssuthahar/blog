@@ -26,7 +26,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   <div data-history hidden>
     <!-- Stats -->
-    <section class="mt-10" aria-label="Reading statistics">
+    <section data-stats-section class="mt-10" aria-label="Reading statistics">
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div class="rounded-xl border border-default p-4">
           <div data-stat-streak class="text-2xl font-bold tracking-tight text-accent">0</div>
@@ -52,7 +52,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <div data-resume-slot class="mt-8 empty:hidden"></div>
 
     <!-- Recently read -->
-    <section class="section" aria-labelledby="recent-heading">
+    <section data-recent-section class="section" aria-labelledby="recent-heading">
       <div class="section-head">
         <h2 id="recent-heading" class="display text-2xl">Recently read</h2>
         <button type="button" data-clear class="btn btn-outline btn-sm">Clear history</button>
@@ -64,6 +64,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <section data-most-read-section class="section empty:hidden" aria-labelledby="most-heading">
       <div class="section-head"><h2 id="most-heading" class="display text-2xl">Most read</h2></div>
       <div data-most-read class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+    </section>
+
+    <!-- Registered events -->
+    <section data-events-section class="section" aria-labelledby="events-heading">
+      <div class="section-head"><h2 id="events-heading" class="display text-2xl">Events you registered for</h2></div>
+      <div data-events class="mt-6 grid gap-4 sm:grid-cols-2"></div>
     </section>
 
     <!-- Bookmarks -->
@@ -84,8 +90,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     getMostRead,
     getBookmarks,
     getStats,
+    getRegisteredEvents,
     clearHistory,
     createResumeCard,
+    createEventRow,
     renderCards,
   } from '../lib/reading-history';
 
@@ -98,10 +106,29 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     const paint = () => {
       const history = getHistory();
-      const has = history.length > 0;
+      const events = getRegisteredEvents();
+      // The page is worth showing if there is either reading history or an event.
+      const has = history.length > 0 || events.length > 0;
       empty.hidden = has;
       wrap.hidden = !has;
       if (!has) return;
+
+      // Registered events
+      const eventsSection = $('[data-events-section]')!;
+      eventsSection.hidden = events.length === 0;
+      $('[data-events]')!.replaceChildren(...events.map((ev) => createEventRow(ev, { onChange: paint })));
+
+      // Reading-specific sections only make sense once an article has been opened.
+      // (A bookmark always creates a history entry, so none can exist here.)
+      const hasReading = history.length > 0;
+      $('[data-stats-section]')!.hidden = !hasReading;
+      $('[data-recent-section]')!.hidden = !hasReading;
+      if (!hasReading) {
+        $('[data-resume-slot]')!.replaceChildren();
+        $('[data-most-read-section]')!.hidden = true;
+        $('[data-bookmarks-section]')!.hidden = true;
+        return;
+      }
 
       // Stats
       const stats = getStats();

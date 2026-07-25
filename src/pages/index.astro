@@ -11,7 +11,7 @@ import TestimonialForm from '../components/TestimonialForm.astro';
 import { homeTestimonials } from '../lib/testimonials';
 import { SITE, AUTHOR, BOOKING, SPEAKING_TOPICS, ADSENSE_SLOT_DISPLAY } from '../config';
 import { CATEGORIES, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
-import { allArticles, articleCategories } from '../lib/articles';
+import { allArticles, articleCategories, primaryCategory, capturePayload } from '../lib/articles';
 import { featuredRepos, repoIndex, languageColor } from '../lib/repos';
 import { getUpcomingEvents, eventSchema } from '../lib/speaking';
 import { contributionPillars, publishingSpan } from '../lib/evidence';
@@ -264,7 +264,12 @@ const schema = [
               ))}
             </div>
             <h3 class="mt-1 leading-snug font-semibold tracking-tight">
-              <a href={article.url} rel="noopener" class="after:absolute after:inset-0 group-hover:text-accent">
+              <a
+                href={article.url}
+                rel="noopener"
+                data-capture={capturePayload({ title: article.title, url: article.url, category: primaryCategory(article), image: article.image })}
+                class="after:absolute after:inset-0 group-hover:text-accent"
+              >
                 {article.title}
               </a>
             </h3>
@@ -282,6 +287,7 @@ const schema = [
             <a
               href={article.url}
               rel="noopener"
+              data-capture={capturePayload({ title: article.title, url: article.url, category: primaryCategory(article), image: article.image })}
               class="min-w-0 flex-1 truncate text-sm after:absolute after:inset-0 group-hover:text-accent"
             >
               {article.title}

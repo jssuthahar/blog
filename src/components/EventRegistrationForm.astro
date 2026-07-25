@@ -1,6 +1,6 @@
 ---
 import { FIREBASE, EVENTS } from '../config';
-import type { HostedEvent } from '../lib/eventhub';
+import { eventUrl, formatEventDate, type HostedEvent } from '../lib/eventhub';
 
 interface Props {
   event: HostedEvent;
@@ -20,6 +20,10 @@ const seed = data.registrationSeed ?? EVENTS.registrationSeed;
   data-event-register
   data-slug={event.id}
   data-title={data.title}
+  data-url={eventUrl(event)}
+  data-date={formatEventDate(event)}
+  data-starts={data.startDate.toISOString()}
+  data-location={data.location ?? ''}
   data-mode={mode}
   data-capacity={data.capacity ?? ''}
   data-seed={seed}
@@ -126,6 +130,7 @@ const seed = data.registrationSeed ?? EVENTS.registrationSeed;
 
 <script>
   import { register, getRegistrationCount, registeredKey, EMAIL_RE, isEnabled } from '../lib/register';
+  import { recordEventRegistration } from '../lib/reading-history';
 
   function initEventRegister() {
     const root = document.querySelector<HTMLElement>('[data-event-register]');
@@ -134,6 +139,17 @@ const seed = data.registrationSeed ?? EVENTS.registrationSeed;
     const slug = root.dataset.slug!;
     const title = root.dataset.title!;
     const mode = root.dataset.mode!;
+
+    // Metadata used to log a captured registration into local history.
+    const captureEvent = () =>
+      recordEventRegistration({
+        slug,
+        title,
+        url: root.dataset.url || location.pathname,
+        dateLabel: root.dataset.date || '',
+        startsAt: root.dataset.starts || '',
+        location: root.dataset.location || '',
+      });
     const capacity = root.dataset.capacity ? Number(root.dataset.capacity) : 0;
     const seed = root.dataset.seed ? Number(root.dataset.seed) : 0;
 
@@ -201,11 +217,15 @@ const seed = data.registrationSeed ?? EVENTS.registrationSeed;
 
     if (mode !== 'open' || !form) return;
 
-    // Already registered from this browser? Show the confirmation instead.
+    // Already registered from this browser? Show the confirmation instead, and
+    // backfill the history entry for anyone who registered before capture existed.
     try {
-      if (localStorage.getItem(registeredKey(slug)) && done) {
-        form.hidden = true;
-        done.hidden = false;
+      if (localStorage.getItem(registeredKey(slug))) {
+        captureEvent();
+        if (done) {
+          form.hidden = true;
+          done.hidden = false;
+        }
       }
     } catch {}
 
@@ -238,6 +258,7 @@ const seed = data.registrationSeed ?? EVENTS.registrationSeed;
       try {
         const result = await register({ slug, eventTitle: title, name, email, org });
         form.hidden = true;
+        captureEvent();
         const firstName = name.split(' ')[0];
         if (result === 'registered') bumpCount();
         if (done) {

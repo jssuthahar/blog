@@ -43,6 +43,11 @@ export interface HistoryEntry {
   viewCount: number;
   bookmarked: boolean;
   bookmarkedAt: number;
+  /**
+   * True for articles hosted off-site (msdevbuild.com). We can't run on those
+   * pages, so a click is all we capture — no scroll progress or resume.
+   */
+  external: boolean;
 }
 
 /** The fields a page supplies when recording a visit or a bookmark. */
@@ -51,14 +56,31 @@ export type ArticleMeta = Pick<
   'slug' | 'title' | 'url' | 'description' | 'cover' | 'coverAlt' | 'category' | 'categoryLabel' | 'hue' | 'minutes'
 >;
 
+/** An event this browser registered for, captured on a successful sign-up. */
+export interface EventEntry {
+  slug: string;
+  title: string;
+  url: string;
+  /** Preformatted date label, e.g. "18 Sep 2026", for offline display. */
+  dateLabel: string;
+  /** ISO start date, used to sort and to tell upcoming from past. */
+  startsAt: string;
+  location: string;
+  registeredAt: number;
+}
+
+export type EventMeta = Omit<EventEntry, 'registeredAt'>;
+
 interface Store {
   v: 1;
   entries: Record<string, HistoryEntry>;
+  /** Events this browser registered for, keyed by event slug. */
+  events: Record<string, EventEntry>;
   /** ISO YYYY-MM-DD strings for every day the reader opened something. */
   days: string[];
 }
 
-const emptyStore = (): Store => ({ v: 1, entries: {}, days: [] });
+const emptyStore = (): Store => ({ v: 1, entries: {}, events: {}, days: [] });
 
 function readStore(): Store {
   if (typeof window === 'undefined') return emptyStore();
@@ -68,6 +90,8 @@ function readStore(): Store {
     const parsed = JSON.parse(raw) as Store;
     if (!parsed || parsed.v !== 1 || typeof parsed.entries !== 'object') return emptyStore();
     if (!Array.isArray(parsed.days)) parsed.days = [];
+    // `events` was added after the first release, so older saves lack it.
+    if (!parsed.events || typeof parsed.events !== 'object') parsed.events = {};
     return parsed;
   } catch {
     return emptyStore();
@@ -109,11 +133,99 @@ export function recordVisit(meta: ArticleMeta): void {
         viewCount: 1,
         bookmarked: false,
         bookmarkedAt: 0,
+        external: false,
       };
 
   const today = dayKey(now);
   if (!store.days.includes(today)) store.days.push(today);
 
+  writeStore(store);
+}
+
+/** A stable accent hue for an off-site category label with no taxonomy colour. */
+function hueFromString(s: string): number {
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+  return hash % 360;
+}
+
+/** The fields a page supplies when a reader clicks through to an off-site article. */
+export interface ExternalMeta {
+  title: string;
+  url: string;
+  /** Free-text category label from the source feed, e.g. "Azure". */
+  category: string;
+  image?: string;
+}
+
+/**
+ * Record a click through to an article on msdevbuild.com. We never run on that
+ * page, so the click is treated as the read: the entry is marked external and
+ * carries no progress. The URL is the identity key, so re-opening the same
+ * article bumps its count instead of duplicating it.
+ */
+export function recordExternalVisit(meta: ExternalMeta): void {
+  const store = readStore();
+  const now = Date.now();
+  const key = `ext:${meta.url}`;
+  const label = meta.category || 'Article';
+  const existing = store.entries[key];
+
+  store.entries[key] = existing
+    ? { ...existing, lastViewedAt: now, viewCount: existing.viewCount + 1 }
+    : {
+        slug: key,
+        title: meta.title,
+        url: meta.url,
+        description: '',
+        cover: meta.image ?? '',
+        coverAlt: '',
+        category: label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+        categoryLabel: label,
+        hue: hueFromString(label),
+        minutes: 0,
+        progress: 0,
+        scroll: 0,
+        completed: false,
+        firstViewedAt: now,
+        lastViewedAt: now,
+        viewCount: 1,
+        bookmarked: false,
+        bookmarkedAt: 0,
+        external: true,
+      };
+
+  const today = dayKey(now);
+  if (!store.days.includes(today)) store.days.push(today);
+
+  writeStore(store);
+}
+
+/**
+ * Record that this browser registered for an event. Called after a successful
+ * sign-up, so the reader can find their registered events in one place. Keyed
+ * by slug, so a repeat registration refreshes the details instead of duplicating.
+ */
+export function recordEventRegistration(meta: EventMeta): void {
+  const store = readStore();
+  const existing = store.events[meta.slug];
+  store.events[meta.slug] = {
+    ...meta,
+    registeredAt: existing?.registeredAt ?? Date.now(),
+  };
+  writeStore(store);
+}
+
+/** Events this browser registered for, soonest upcoming first. */
+export function getRegisteredEvents(): EventEntry[] {
+  return Object.values(readStore().events).sort(
+    (a, b) => Date.parse(a.startsAt || '0') - Date.parse(b.startsAt || '0'),
+  );
+}
+
+export function removeEventRegistration(slug: string): void {
+  const store = readStore();
+  delete store.events[slug];
   writeStore(store);
 }
 
@@ -185,6 +297,7 @@ export function toggleBookmark(meta: ArticleMeta): boolean {
       viewCount: 0,
       bookmarked: false,
       bookmarkedAt: 0,
+      external: false,
     };
   }
 
@@ -329,35 +442,48 @@ export function createCard(entry: HistoryEntry, opts: CardOptions = {}): HTMLEle
          <span class="text-sm font-semibold tracking-tight text-white/85">${escapeHtml(entry.categoryLabel)}</span>
        </div>`;
 
+  // Off-site articles run on msdevbuild.com: open in a new tab, and show no
+  // progress affordances since we can't measure reading there.
+  const linkAttrs = entry.external ? ' target="_blank" rel="noopener"' : '';
+
+  const badge = entry.external
+    ? `<span class="absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-xs font-medium text-white backdrop-blur">Visited ↗</span>`
+    : entry.completed
+      ? `<span class="absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-xs font-medium text-white backdrop-blur">✓ Read</span>`
+      : pct > 0
+        ? `<span class="absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-xs font-medium text-white backdrop-blur">${pct}%</span>`
+        : '';
+
+  const minutesLabel = entry.minutes > 0 ? `<span class="text-muted">${entry.minutes} min</span>` : '';
+
+  const progressBar = entry.external
+    ? ''
+    : `<div class="mt-2 h-1 overflow-hidden rounded-full" style="background: var(--border);">
+         <div style="width:${pct}%; height:100%; background: var(--accent);"></div>
+       </div>`;
+
   const continueBtn =
-    !entry.completed && entry.progress >= RESUME_MIN
+    !entry.external && !entry.completed && entry.progress >= RESUME_MIN
       ? `<a href="${escapeHtml(entry.url)}#resume" class="btn btn-accent btn-sm mt-3 self-start">Continue reading</a>`
       : '';
 
   card.innerHTML = `
     <div class="relative aspect-[16/10] overflow-hidden">
       ${thumb}
-      ${
-        entry.completed
-          ? `<span class="absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-xs font-medium text-white backdrop-blur">✓ Read</span>`
-          : pct > 0
-            ? `<span class="absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-xs font-medium text-white backdrop-blur">${pct}%</span>`
-            : ''
-      }
+      ${badge}
     </div>
     <div class="flex flex-1 flex-col p-4">
       <div class="flex items-center gap-2 text-xs">
         <span class="rounded-full px-2 py-0.5 font-medium" style="background: oklch(0.62 0.17 ${entry.hue} / 0.14); color: oklch(0.62 0.17 ${entry.hue});">${escapeHtml(entry.categoryLabel)}</span>
-        <span class="text-muted">${entry.minutes} min</span>
+        ${minutesLabel}
       </div>
       <h3 class="mt-2 line-clamp-2 leading-snug font-semibold tracking-tight">
-        <a href="${escapeHtml(entry.url)}" class="after:absolute after:inset-0 group-hover:text-accent">${escapeHtml(entry.title)}</a>
+        <a href="${escapeHtml(entry.url)}"${linkAttrs} class="after:absolute after:inset-0 group-hover:text-accent">${escapeHtml(entry.title)}</a>
       </h3>
-      <div class="mt-2 h-1 overflow-hidden rounded-full" style="background: var(--border);">
-        <div style="width:${pct}%; height:100%; background: var(--accent);"></div>
-      </div>
+      ${progressBar}
       <div class="mt-2 flex items-center gap-2 text-xs text-muted">
         <span>${relativeTime(entry.lastViewedAt)}</span>
+        ${entry.external ? '<span aria-hidden="true">·</span><span>msdevbuild.com</span>' : ''}
       </div>
       ${continueBtn}
     </div>`;
@@ -439,4 +565,49 @@ export function createResumeCard(entry: HistoryEntry): HTMLElement {
     </div>
     <a href="${escapeHtml(entry.url)}#resume" class="btn btn-accent shrink-0 self-start sm:self-center">Continue reading</a>`;
   return el;
+}
+
+export interface EventRowOptions {
+  onChange?: () => void;
+}
+
+/** One registered-event row: date, title, location, and a remove control. */
+export function createEventRow(entry: EventEntry, opts: EventRowOptions = {}): HTMLElement {
+  const past = entry.startsAt ? Date.parse(entry.startsAt) < Date.now() : false;
+
+  const row = document.createElement('div');
+  row.className =
+    'group relative flex items-center gap-4 rounded-xl border border-default p-4 transition-colors hover:bg-subtle';
+
+  row.innerHTML = `
+    <div class="flex size-12 shrink-0 flex-col items-center justify-center rounded-lg border border-default bg-subtle text-center leading-none">
+      <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>
+      </svg>
+    </div>
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-2 text-xs text-muted">
+        <span>${escapeHtml(entry.dateLabel || 'Registered')}</span>
+        ${entry.location ? `<span aria-hidden="true">·</span><span>${escapeHtml(entry.location)}</span>` : ''}
+        <span class="rounded-full px-2 py-0.5 font-medium ${past ? 'text-muted' : ''}" style="${past ? 'background: var(--border);' : 'background: var(--accent-soft); color: var(--accent);'}">${past ? 'Attended' : 'Registered ✓'}</span>
+      </div>
+      <h3 class="mt-1 line-clamp-2 font-semibold leading-snug tracking-tight">
+        <a href="${escapeHtml(entry.url)}" class="after:absolute after:inset-0 group-hover:text-accent">${escapeHtml(entry.title)}</a>
+      </h3>
+    </div>`;
+
+  const rm = document.createElement('button');
+  rm.type = 'button';
+  rm.setAttribute('aria-label', 'Remove event');
+  rm.className =
+    'relative z-10 grid size-7 shrink-0 place-items-center rounded-full border border-default text-muted transition-colors hover:bg-[var(--bg)]';
+  rm.innerHTML = `<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
+  rm.addEventListener('click', (e) => {
+    e.preventDefault();
+    removeEventRegistration(entry.slug);
+    opts.onChange?.();
+  });
+  row.appendChild(rm);
+
+  return row;
 }

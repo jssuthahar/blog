@@ -4,6 +4,7 @@ import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import CommandPalette from '../components/CommandPalette.astro';
+import ArticleCapture from '../components/ArticleCapture.astro';
 import { SITE, AUTHOR, MAIN_SITE } from '../config';
 
 interface Props {
@@ -74,5 +75,8 @@ const baseSchema = [
 
     <!-- Site-wide power search (⌘K). Mounted once for every page. -->
     <CommandPalette />
+
+    <!-- Records click-throughs to off-site articles into reading history. -->
+    <ArticleCapture />
   </body>
 </html>

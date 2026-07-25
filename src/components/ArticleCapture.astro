@@ -1,0 +1,35 @@
+---
+// Site-wide capture of click-throughs to off-site (msdevbuild.com) articles.
+// A single delegated listener records any link carrying a `data-capture`
+// payload into local reading history, so tagging a link anywhere on the site
+// is all that's needed — no per-page wiring. Mounted once in BaseLayout.
+---
+
+<script>
+  import { recordExternalVisit } from '../lib/reading-history';
+
+  function initCapture() {
+    // The listener lives on `document`, which survives view transitions, so it
+    // is bound exactly once for the whole session.
+    if ((window as unknown as { __captureBound?: boolean }).__captureBound) return;
+    (window as unknown as { __captureBound?: boolean }).__captureBound = true;
+
+    document.addEventListener(
+      'click',
+      (e) => {
+        const link = (e.target as Element | null)?.closest<HTMLElement>('[data-capture]');
+        if (!link?.dataset.capture) return;
+        try {
+          const m = JSON.parse(link.dataset.capture) as { t: string; u: string; c: string; i?: string };
+          recordExternalVisit({ title: m.t, url: m.u, category: m.c, image: m.i || undefined });
+        } catch {
+          // Malformed payload — never block the navigation.
+        }
+      },
+      { capture: true },
+    );
+  }
+
+  initCapture();
+  document.addEventListener('astro:page-load', initCapture);
+</script>

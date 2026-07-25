@@ -4,7 +4,7 @@ import FollowCTA from '../components/FollowCTA.astro';
 import AdUnit from '../components/AdUnit.astro';
 import HeroCarousel, { type Slide } from '../components/HeroCarousel.astro';
 import { SITE, AUTHOR, ADSENSE_SLOT_DISPLAY } from '../config';
-import { allArticles, normaliseCategory, slugifyCategory } from '../lib/articles';
+import { allArticles, normaliseCategory, slugifyCategory, capturePayload } from '../lib/articles';
 import {
   CATEGORIES,
   formatDate,
@@ -259,6 +259,7 @@ const schema = [
               <a
                 href={entry.url}
                 rel={entry.external ? 'noopener' : undefined}
+                data-capture={entry.external ? capturePayload({ title: entry.title, url: entry.url, category: entry.primary, image: entry.image }) : undefined}
                 class="after:absolute after:inset-0 group-hover:text-accent"
               >
                 {entry.title}

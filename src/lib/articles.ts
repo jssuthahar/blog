@@ -80,6 +80,20 @@ export function primaryCategory(article: Article): string {
 }
 
 /**
+ * Compact `data-capture` payload for an off-site article link. Short keys keep
+ * the attribute small; the site-wide ArticleCapture listener reads it and logs
+ * a reading-history entry when the reader clicks through.
+ */
+export function capturePayload(a: {
+  title: string;
+  url: string;
+  category: string;
+  image: string | null;
+}): string {
+  return JSON.stringify({ t: a.title, u: a.url, c: a.category, i: a.image ?? '' });
+}
+
+/**
  * Groups articles under one category each, largest section first.
  *
  * Grouping by primary category rather than by every label keeps each article

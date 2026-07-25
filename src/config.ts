@@ -161,8 +161,8 @@ export const SOCIAL = [
 ] as const;
 
 export const NAV = [
+  { label: 'Home', href: '/' },
   { label: 'Articles', href: '/articles' },
-  { label: 'Blog', href: '/blog' },
   { label: 'Events', href: '/events' },
   { label: 'Speaking', href: '/speaking' },
   { label: 'Open source', href: '/open-source' },

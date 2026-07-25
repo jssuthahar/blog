@@ -170,6 +170,11 @@ const metaJson = JSON.stringify(meta).replace(/</g, '\\u003c');
     }
   }
 
+  // Run once on first load, then once per View Transitions navigation. Using
+  // astro:after-swap (which does NOT fire on the initial load) rather than
+  // astro:page-load (which does) avoids binding the click handler twice on the
+  // first page — the double bind toggled the bookmark on then off, so the
+  // button appeared dead.
   initTracker();
-  document.addEventListener('astro:page-load', initTracker);
+  document.addEventListener('astro:after-swap', initTracker);
 </script>

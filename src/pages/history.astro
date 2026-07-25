@@ -185,6 +185,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     window.addEventListener('reading-history-change', paint);
   }
 
+  // Once on first load, then once per View Transitions navigation. astro:after-swap
+  // (unlike astro:page-load) does not fire on the initial load, so the handlers
+  // bind exactly once instead of twice.
   initHistoryPage();
-  document.addEventListener('astro:page-load', initHistoryPage);
+  document.addEventListener('astro:after-swap', initHistoryPage);
 </script>

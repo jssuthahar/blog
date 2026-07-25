@@ -17,12 +17,15 @@ import {
 /**
  * Draft preview render.
  *
- * Every draft post gets a full-fidelity page here so it can be proofed on the
- * live domain before publishing. It deliberately drops the production-only
- * furniture (comments, reactions, ads, view counters, related posts, JSON-LD)
- * — this is a proofing surface, not a public article. `noindex` keeps it out of
- * search; the sitemap filter and the login-gated listing keep it unlinked. The
- * URL is still publicly reachable, so nothing sensitive belongs in a draft.
+ * The whole page is gated behind the admin Firebase sign-in: the draft content
+ * ships `hidden` and is only revealed to the signed-in admin (a sign-in form
+ * shows otherwise). `noindex` + the sitemap filter keep it out of search.
+ *
+ * Caveat, because the host is static (GitHub Pages) with no server: this gate
+ * is client-side, so the rendered HTML still exists in the page source. It
+ * stops normal visitors, not someone reading view-source with JS disabled. A
+ * hard guarantee would need SSR/hosting auth or building drafts in dev only —
+ * so still keep nothing genuinely sensitive in a draft.
  */
 export async function getStaticPaths() {
   const posts = await getDraftPosts();
@@ -59,7 +62,33 @@ const fileName = `${post.id.split('/').pop()}.${ext}`;
 ---
 
 <BaseLayout title={`[Draft] ${data.title}`} description={data.description} noindex wide>
-  <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6" data-admin-uid={ADMIN.uid}>
+  <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6" data-admin-uid={ADMIN.uid} data-filename={fileName}>
+    <!-- Sign-in gate: shown until the admin session is confirmed client-side. -->
+    <section id="preview-gate" class="mx-auto mt-6 max-w-sm">
+      <div class="rounded-lg border border-default p-6">
+        <p class="eyebrow">Admin</p>
+        <h1 class="display mt-1.5 text-xl">Draft preview</h1>
+        <p class="mt-2 text-sm text-muted">This draft is unpublished. Sign in to view it.</p>
+        <form id="preview-signin" class="mt-4 space-y-3" novalidate>
+          <div>
+            <label for="pv-email" class="block text-sm font-medium">Email</label>
+            <input id="pv-email" type="email" autocomplete="username" required
+              class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label for="pv-password" class="block text-sm font-medium">Password</label>
+            <input id="pv-password" type="password" autocomplete="current-password" required
+              class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-3 py-2 text-sm" />
+          </div>
+          <button type="submit" class="btn btn-accent btn-sm w-full">Sign in</button>
+          <p id="pv-status" role="status" aria-live="polite" class="text-sm"></p>
+        </form>
+        <p class="mt-4 text-xs text-muted">noindex · unlisted · <a href="/preview" class="text-accent hover:underline">all drafts</a></p>
+      </div>
+    </section>
+
+    <!-- Everything below is revealed only after sign-in. -->
+    <div id="preview-content" hidden>
     <!-- Unmissable draft banner so a preview URL is never mistaken for live. -->
     <div
       class="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm"
@@ -70,7 +99,8 @@ const fileName = `${post.id.split('/').pop()}.${ext}`;
         <span class="text-muted"> — not published. This page is noindex and unlisted.</span>
       </p>
       <div class="flex items-center gap-3">
-        <button id="edit-toggle" type="button" hidden class="text-accent hover:underline">Edit source</button>
+        <button id="edit-toggle" type="button" class="text-accent hover:underline">Edit source</button>
+        <button id="preview-signout" type="button" class="text-accent hover:underline">Sign out</button>
         <a href="/preview" class="text-accent hover:underline">← All drafts</a>
       </div>
     </div>
@@ -145,9 +175,8 @@ const fileName = `${post.id.split('/').pop()}.${ext}`;
 
     <!-- ── Source editor ──────────────────────────────────────────────────
          Lossless: edits the exact file text and downloads/saves it back, so
-         no frontmatter field is lost. Revealed only for the signed-in admin.
-         Where the browser supports it, "Save to file" writes straight over the
-         original; otherwise it downloads for a manual replace. -->
+         no frontmatter field is lost. Where the browser supports it, "Save to
+         file" writes straight over the original; otherwise it downloads. -->
     <section id="edit-panel" hidden class="mx-auto mt-16 max-w-4xl">
       <div class="rounded-lg border border-default">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-default bg-subtle px-4 py-2.5">
@@ -180,34 +209,76 @@ const fileName = `${post.id.split('/').pop()}.${ext}`;
         frontmatter when it's ready to go live.
       </p>
     </section>
+    </div>
   </div>
 </BaseLayout>
 
-<script is:inline define:vars={{ fileName }}>
-  function initDraftEditor() {
+<script>
+  import { signIn, loadSession, clearSession } from '../../lib/admin';
+
+  function initDraftPreview() {
+    const wrap = document.querySelector<HTMLElement>('[data-admin-uid]');
+    const gate = document.getElementById('preview-gate');
+    const content = document.getElementById('preview-content');
+    if (!wrap || !gate || !content) return; // not this page
+
+    const adminUid = wrap.dataset.adminUid ?? '';
+    const fileName = wrap.dataset.filename ?? 'draft.md';
+
+    let editorReady = false;
+    const reveal = () => {
+      gate.hidden = true;
+      content.hidden = false;
+      if (!editorReady) { initEditor(fileName); editorReady = true; }
+    };
+    const lock = () => {
+      gate.hidden = false;
+      content.hidden = true;
+    };
+
+    const session = loadSession();
+    session && (!adminUid || session.uid === adminUid) ? reveal() : lock();
+
+    document.getElementById('preview-signout')?.addEventListener('click', () => { clearSession(); lock(); });
+
+    document.getElementById('preview-signin')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = document.getElementById('pv-status');
+      const setErr = (msg: string) => { if (status) { status.style.color = 'var(--accent)'; status.textContent = msg; } };
+      if (status) { status.style.color = 'var(--text-muted)'; status.textContent = 'Signing in…'; }
+      try {
+        const s = await signIn(
+          (document.getElementById('pv-email') as HTMLInputElement).value.trim(),
+          (document.getElementById('pv-password') as HTMLInputElement).value,
+        );
+        if (adminUid && s.uid !== adminUid) { clearSession(); setErr('This account is not the admin.'); return; }
+        reveal();
+      } catch (err) {
+        const code = err instanceof Error ? err.message : '';
+        setErr(
+          code === 'CONFIGURATION_NOT_FOUND'
+            ? 'Enable Email/Password sign-in in the Firebase console first.'
+            : code.includes('INVALID') || code.includes('CREDENTIAL')
+              ? 'Wrong email or password.'
+              : `Sign-in failed: ${code}`,
+        );
+      }
+    });
+  }
+
+  // The lossless source editor — wired up only once the admin is revealed.
+  function initEditor(fileName: string) {
     const panel = document.getElementById('edit-panel');
-    const textarea = document.getElementById('edit-source');
+    const textarea = document.getElementById('edit-source') as HTMLTextAreaElement | null;
     if (!panel || !textarea) return;
 
-    // Gate the editor behind the same Firebase session as /admin and /preview.
-    // The session is stored by src/lib/admin.ts under this key; reading it here
-    // avoids pulling the admin module into every draft page.
-    let session = null;
-    try { session = JSON.parse(localStorage.getItem('admin:session') || 'null'); } catch {}
-    const adminUid = document.querySelector('[data-admin-uid]')?.dataset.adminUid || '';
-    const isAdmin = !!session && (!adminUid || session.uid === adminUid);
-
-    const toggle = document.getElementById('edit-toggle');
-    if (!isAdmin) return; // not signed in — leave the read-only preview as-is
-    if (toggle) toggle.hidden = false;
-
-    const $ = (id) => document.getElementById(id);
+    const $ = (id: string) => document.getElementById(id);
     const original = textarea.value;
     const status = $('edit-status');
     const dirty = $('edit-dirty');
-    let fileHandle = null; // reused once the admin picks the file once
+    let fileHandle: FileSystemFileHandle | null = null;
 
-    const setStatus = (msg) => {
+    const setStatus = (msg: string) => {
       if (!status) return;
       status.textContent = msg;
       if (msg) setTimeout(() => { if (status.textContent === msg) status.textContent = ''; }, 2500);
@@ -215,7 +286,7 @@ const fileName = `${post.id.split('/').pop()}.${ext}`;
     const markDirty = () => { if (dirty) dirty.hidden = textarea.value === original; };
     textarea.addEventListener('input', markDirty);
 
-    toggle?.addEventListener('click', () => {
+    $('edit-toggle')?.addEventListener('click', () => {
       panel.hidden = !panel.hidden;
       if (!panel.hidden) { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); textarea.focus(); }
     });
@@ -242,9 +313,7 @@ const fileName = `${post.id.split('/').pop()}.${ext}`;
     };
     $('edit-download')?.addEventListener('click', download);
 
-    // Hand the current source to the full /write editor and jump there. It
-    // parses the frontmatter into fields; the source panel here stays the
-    // lossless path for the few keys /write doesn't round-trip.
+    // Hand the current source to the full /write editor and jump there.
     $('edit-write')?.addEventListener('click', () => {
       localStorage.setItem('writer:handoff', JSON.stringify({ raw: textarea.value, filename: fileName }));
       window.location.href = '/write';
@@ -253,10 +322,11 @@ const fileName = `${post.id.split('/').pop()}.${ext}`;
     // Progressive enhancement: write straight back to disk where the File
     // System Access API exists; fall back to a normal download everywhere else.
     $('edit-save')?.addEventListener('click', async () => {
-      if (!('showSaveFilePicker' in window)) { download(); return; }
+      const picker = (window as unknown as { showSaveFilePicker?: (o: unknown) => Promise<FileSystemFileHandle> }).showSaveFilePicker;
+      if (!picker) { download(); return; }
       try {
         if (!fileHandle) {
-          fileHandle = await window.showSaveFilePicker({
+          fileHandle = await picker({
             suggestedName: fileName,
             types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.mdx'] } }],
           });
@@ -266,13 +336,13 @@ const fileName = `${post.id.split('/').pop()}.${ext}`;
         await writable.close();
         setStatus('Saved to file');
       } catch (err) {
-        if (err && err.name === 'AbortError') return; // user cancelled the picker
+        if (err instanceof DOMException && err.name === 'AbortError') return; // cancelled
         setStatus('Save failed — downloading instead');
         download();
       }
     });
   }
 
-  initDraftEditor();
-  document.addEventListener('astro:page-load', initDraftEditor);
+  initDraftPreview();
+  document.addEventListener('astro:page-load', initDraftPreview);
 </script>

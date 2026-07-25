@@ -98,6 +98,109 @@ export function toMarkdown(post: PostDraft): string {
   return front.filter((l) => l !== null).join('\n');
 }
 
+/** Unquote a YAML scalar: strips matching single/double quotes and unescapes. */
+function unquote(raw: string): string {
+  const s = raw.trim();
+  if (s.startsWith("'") && s.endsWith("'") && s.length >= 2) {
+    return s.slice(1, -1).replace(/''/g, "'");
+  }
+  if (s.startsWith('"') && s.endsWith('"') && s.length >= 2) {
+    return s.slice(1, -1).replace(/\\"/g, '"');
+  }
+  return s;
+}
+
+/** Split a YAML flow sequence `[a, 'b, c', d]` into unquoted items. */
+function parseList(raw: string): string[] {
+  const inner = raw.trim().replace(/^\[/, '').replace(/\]$/, '');
+  if (!inner.trim()) return [];
+  // Split on commas that sit outside single/double quotes.
+  const items: string[] = [];
+  let cur = '';
+  let quote = '';
+  for (const ch of inner) {
+    if (quote) {
+      cur += ch;
+      if (ch === quote) quote = '';
+    } else if (ch === "'" || ch === '"') {
+      quote = ch;
+      cur += ch;
+    } else if (ch === ',') {
+      items.push(cur);
+      cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur.trim()) items.push(cur);
+  return items.map(unquote).filter(Boolean);
+}
+
+/**
+ * Parses a Markdown/MDX post file back into a PostDraft — the inverse of
+ * toMarkdown, so a downloaded file can be re-imported and edited. Tolerant of
+ * hand-written frontmatter (single/double quoted or bare values) and strips the
+ * MDX import lines that download adds.
+ */
+export function fromMarkdown(text: string): PostDraft {
+  const draft = emptyDraft();
+  const src = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+
+  const match = src.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (!match) {
+    // No frontmatter — treat the whole file as the body.
+    draft.body = src.trim();
+    return draft;
+  }
+
+  const [, front, rawBody] = match;
+  const lines = front.split('\n');
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const kv = line.match(/^([A-Za-z][\w]*):\s?(.*)$/);
+    if (!kv) continue;
+    const key = kv[1];
+    const value = kv[2];
+
+    switch (key) {
+      case 'title': draft.title = unquote(value); break;
+      case 'description': draft.description = unquote(value); break;
+      case 'highlight': draft.highlight = unquote(value); break;
+      case 'publishedAt': draft.publishedAt = unquote(value); break;
+      case 'updatedAt': draft.updatedAt = unquote(value); break;
+      case 'category': draft.category = unquote(value); break;
+      case 'categories': draft.categories = parseList(value).join(', '); break;
+      case 'tags': draft.tags = parseList(value).join(', '); break;
+      case 'cover': draft.cover = unquote(value); break;
+      case 'coverAlt': draft.coverAlt = unquote(value); break;
+      case 'series': draft.series = unquote(value); break;
+      case 'seriesOrder': draft.seriesOrder = unquote(value); break;
+      case 'featured': draft.featured = unquote(value) === 'true'; break;
+      case 'draft': draft.draft = unquote(value) === 'true'; break;
+      case 'faq': {
+        // Nested list: `  - q: ...` / `    a: ...` pairs on the following lines.
+        for (let j = i + 1; j < lines.length; j++) {
+          const q = lines[j].match(/^\s*-\s*q:\s?(.*)$/);
+          if (!q) break;
+          const aLine = lines[j + 1]?.match(/^\s*a:\s?(.*)$/);
+          draft.faq.push({ q: unquote(q[1]), a: aLine ? unquote(aLine[1]) : '' });
+          j += aLine ? 1 : 0;
+          i = j;
+        }
+        break;
+      }
+    }
+  }
+
+  // Drop the MDX component imports that download prepends; keep authored body.
+  draft.body = rawBody
+    .replace(/^import\s+\w+\s+from\s+['"][^'"]+['"];\s*\n?/gm, '')
+    .trim();
+
+  return draft;
+}
+
 export interface Issue {
   field: string;
   message: string;

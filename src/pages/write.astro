@@ -62,7 +62,11 @@ const TOOLBAR = [
         </div>
         <button id="btn-guide" type="button" class="btn btn-outline btn-sm" aria-expanded="false" aria-controls="guide">Guide</button>
         <button id="btn-mdx" type="button" class="btn btn-outline btn-sm" title="Toggle .md / .mdx">.md</button>
-        <button id="btn-clear" type="button" class="btn btn-outline btn-sm">New</button>
+        <button id="btn-import" type="button" class="btn btn-outline btn-sm" title="Open an existing .md or .mdx post to edit">Import</button>
+        <input id="file-import" type="file" accept=".md,.mdx,.markdown,text/markdown" class="sr-only" />
+        <button id="btn-save" type="button" class="btn btn-outline btn-sm" title="Keep this draft in the browser to edit later">Save</button>
+        <button id="btn-saved" type="button" class="btn btn-outline btn-sm" aria-expanded="false" aria-controls="saved-panel" title="Your saved drafts">Saved <span id="saved-count" class="text-muted"></span></button>
+        <button id="btn-clear" type="button" class="btn btn-outline btn-sm" title="Clear the editor for a new post (saved drafts are kept)">New</button>
         <button id="btn-copy" type="button" class="btn btn-outline btn-sm">Copy</button>
         <button id="btn-download" type="button" class="btn btn-accent btn-sm">Download</button>
       </div>
@@ -158,6 +162,14 @@ const TOOLBAR = [
           </p>
         </div>
       </div>
+    </section>
+
+    <!-- Saved drafts, kept in this browser. Toggled by the Saved button. -->
+    <section id="saved-panel" hidden class="mt-4 rounded-lg border border-default bg-subtle p-5 text-sm">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xs font-bold tracking-wider uppercase text-muted">Saved drafts <span class="font-normal normal-case">— stored in this browser only</span></h2>
+      </div>
+      <div id="saved-list" class="mt-3"></div>
     </section>
 
     <!-- ── Metadata (hidden in Focus mode) ────────────────────────────── -->
@@ -446,7 +458,7 @@ const TOOLBAR = [
 <script>
   import { marked } from 'marked';
   import {
-    emptyDraft, slugify, toMarkdown, validate, readingStats, type PostDraft,
+    emptyDraft, fromMarkdown, slugify, toMarkdown, validate, readingStats, type PostDraft,
   } from '../lib/postdoc';
 
   function initWriter() {
@@ -458,6 +470,7 @@ const TOOLBAR = [
     const DRAFT_KEY = 'writer:draft';
     const GUIDE_KEY = 'writer:guide';
     const VIEW_KEY = 'writer:view';
+    const SAVED_KEY = 'writer:saved';
 
     let mdx = false;
 
@@ -746,12 +759,110 @@ const TOOLBAR = [
     });
 
     $('btn-clear').addEventListener('click', () => {
-      if (!confirm('Start a new post? The current draft is saved locally but the fields will clear.')) return;
+      if (!confirm('Clear the editor for a new post? Your saved drafts are kept — use Save first if you want to keep this one.')) return;
       localStorage.removeItem(DRAFT_KEY);
       writeForm(emptyDraft());
       field('f-slug').removeAttribute('data-touched');
+      toggleMdx(false);
       render();
     });
+
+    // ---- import an existing .md / .mdx file ------------------------------
+    const importInput = field('file-import');
+    $('btn-import').addEventListener('click', () => importInput.click());
+    importInput.addEventListener('change', async () => {
+      const file = importInput.files?.[0];
+      if (!file) return;
+      if (editor.value.trim() &&
+          !confirm('Replace the current draft with the imported file? It is saved locally.')) {
+        importInput.value = '';
+        return;
+      }
+      try {
+        const draft = fromMarkdown(await file.text());
+        // Fall back to the filename for the slug when the frontmatter has none.
+        if (!draft.slug) draft.slug = slugify(file.name.replace(/\.(md|mdx|markdown)$/i, ''));
+        writeForm({ ...emptyDraft(), ...draft });
+        // The imported slug is authored, not derived — stop the title override.
+        field('f-slug').dataset.touched = '';
+        // Match the editor's file type to the imported extension.
+        toggleMdx(/\.mdx$/i.test(file.name) || /<(Callout|YouTube)\b/.test(draft.body));
+        render();
+        $('autosave').textContent = `Imported ${file.name}`;
+        setTimeout(() => ($('autosave').textContent = ''), 2500);
+      } catch {
+        alert('Could not read that file. Please pick a .md or .mdx post.');
+      } finally {
+        importInput.value = '';
+      }
+    });
+
+    // ---- saved drafts (named, kept in this browser) ---------------------
+    type Saved = { id: string; title: string; savedAt: number; mdx: boolean; draft: PostDraft };
+    const readSaved = (): Saved[] => {
+      try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); } catch { return []; }
+    };
+    const writeSaved = (list: Saved[]) => localStorage.setItem(SAVED_KEY, JSON.stringify(list));
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+    const savedPanel = $('saved-panel');
+    const savedBtn = $('btn-saved');
+
+    const renderSaved = () => {
+      const list = readSaved().sort((a, b) => b.savedAt - a.savedAt);
+      $('saved-count').textContent = list.length ? `(${list.length})` : '';
+      $('saved-list').innerHTML = list.length
+        ? list.map((s) => `
+            <div class="flex items-center gap-3 border-b border-default py-2 last:border-0">
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-medium">${esc(s.title || '(untitled)')} <span class="ml-1 font-mono text-xs text-muted">.${s.mdx ? 'mdx' : 'md'}</span></p>
+                <p class="text-xs text-muted">${new Date(s.savedAt).toLocaleString()}</p>
+              </div>
+              <button type="button" data-saved-open="${esc(s.id)}" class="btn btn-outline btn-sm">Open</button>
+              <button type="button" data-saved-del="${esc(s.id)}" class="rounded-md p-1.5 text-muted hover:bg-[var(--bg)]" aria-label="Delete draft">✕</button>
+            </div>`).join('')
+        : '<p class="text-muted">No saved drafts yet. Click <strong>Save</strong> to keep the current one here.</p>';
+    };
+
+    const setSavedPanel = (open: boolean) => {
+      savedPanel.hidden = !open;
+      savedBtn.setAttribute('aria-expanded', String(open));
+      if (open) renderSaved();
+    };
+    savedBtn.addEventListener('click', () => setSavedPanel(savedPanel.hidden));
+
+    $('btn-save').addEventListener('click', () => {
+      const d = readForm();
+      // Key by slug so re-saving the same post updates its entry in place.
+      const id = d.slug || slugify(d.title) || `draft-${Date.now()}`;
+      const list = readSaved().filter((s) => s.id !== id);
+      list.push({ id, title: d.title || d.slug || 'Untitled', savedAt: Date.now(), mdx, draft: d });
+      writeSaved(list);
+      renderSaved();
+      $('autosave').textContent = 'Saved to browser';
+      setTimeout(() => ($('autosave').textContent = ''), 2000);
+    });
+
+    const openSaved = (id: string) => {
+      const s = readSaved().find((x) => x.id === id);
+      if (!s) return;
+      if (editor.value.trim() && !confirm('Replace the current draft with this saved one?')) return;
+      writeForm({ ...emptyDraft(), ...s.draft });
+      field('f-slug').dataset.touched = '';
+      toggleMdx(s.mdx);
+      render();
+      setSavedPanel(false);
+    };
+
+    $('saved-list').addEventListener('click', (e) => {
+      const open = (e.target as HTMLElement).closest<HTMLElement>('[data-saved-open]');
+      const del = (e.target as HTMLElement).closest<HTMLElement>('[data-saved-del]');
+      if (open) openSaved(open.dataset.savedOpen!);
+      else if (del) { writeSaved(readSaved().filter((s) => s.id !== del.dataset.savedDel)); renderSaved(); }
+    });
+
+    // Show the saved count in the button on load.
+    $('saved-count').textContent = readSaved().length ? `(${readSaved().length})` : '';
 
     render();
   }

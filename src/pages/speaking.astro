@@ -2,7 +2,8 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import EventCard from '../components/EventCard.astro';
 import BookSpeaking from '../components/BookSpeaking.astro';
-import { SITE, AUTHOR, SPEAKING_TOPICS, SESSION_FORMATS } from '../config';
+import AdUnit from '../components/AdUnit.astro';
+import { SITE, AUTHOR, SPEAKING_TOPICS, SESSION_FORMATS, ADSENSE_SLOT_DISPLAY } from '../config';
 import { getUpcomingEvents, getPastEvents, eventSchema } from '../lib/speaking';
 
 const upcoming = await getUpcomingEvents();
@@ -97,4 +98,6 @@ const schema = [
     The full dated record of talks, articles, and community work lives on the
     <a href="/contributions" class="text-accent hover:underline">contributions page</a>.
   </p>
+
+  <AdUnit slot={ADSENSE_SLOT_DISPLAY} format="display" class="!max-w-none" />
 </BaseLayout>

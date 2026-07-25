@@ -305,7 +305,10 @@ export const ADSENSE_CLIENT = 'ca-pub-3425499927549926';
 // Ad-unit slot IDs. Create each unit in AdSense → Ads → By ad unit, then paste
 // its numeric slot here. Blank = that AdUnit renders nothing, so no empty boxes
 // ship before the unit exists.
-//   IN_ARTICLE — an "In-article" unit, used at the end of reading pages.
+//   IN_ARTICLE — an "In-article" fluid unit, used at the end of reading pages.
 //   DISPLAY    — a responsive "Display" unit, used on listing pages.
-export const ADSENSE_SLOT_IN_ARTICLE = '';
-export const ADSENSE_SLOT_DISPLAY = '';
+//   MULTIPLEX  — an "autorelaxed" grid of recommendations, used once at the very
+//                bottom of a post so it never competes with the article itself.
+export const ADSENSE_SLOT_IN_ARTICLE = '1663662929';
+export const ADSENSE_SLOT_DISPLAY = '6724417913';
+export const ADSENSE_SLOT_MULTIPLEX = '4098254574';

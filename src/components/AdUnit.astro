@@ -7,8 +7,9 @@ interface Props {
   /**
    * 'in-article' — fluid unit for the end of a reading page (default).
    * 'display'    — responsive unit for listing pages.
+   * 'multiplex'  — autorelaxed grid of recommendations for the foot of a post.
    */
-  format?: 'in-article' | 'display';
+  format?: 'in-article' | 'display' | 'multiplex';
   /** Extra classes for the wrapping <aside>. */
   class?: string;
 }
@@ -29,7 +30,7 @@ const show = Boolean(ADSENSE_CLIENT && slot);
       Advertisement
     </span>
 
-    {format === 'in-article' ? (
+    {format === 'in-article' && (
       <ins
         class="adsbygoogle"
         style="display:block; text-align:center;"
@@ -38,7 +39,9 @@ const show = Boolean(ADSENSE_CLIENT && slot);
         data-ad-client={ADSENSE_CLIENT}
         data-ad-slot={slot}
       ></ins>
-    ) : (
+    )}
+
+    {format === 'display' && (
       <ins
         class="adsbygoogle"
         style="display:block;"
@@ -46,6 +49,16 @@ const show = Boolean(ADSENSE_CLIENT && slot);
         data-ad-slot={slot}
         data-ad-format="auto"
         data-full-width-responsive="true"
+      ></ins>
+    )}
+
+    {format === 'multiplex' && (
+      <ins
+        class="adsbygoogle"
+        style="display:block;"
+        data-ad-format="autorelaxed"
+        data-ad-client={ADSENSE_CLIENT}
+        data-ad-slot={slot}
       ></ins>
     )}
   </aside>

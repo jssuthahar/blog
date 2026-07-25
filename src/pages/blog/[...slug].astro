@@ -16,7 +16,7 @@ import ReadingTracker from '../../components/ReadingTracker.astro';
 import PostHighlight from '../../components/PostHighlight.astro';
 import FollowCTA from '../../components/FollowCTA.astro';
 import AdUnit from '../../components/AdUnit.astro';
-import { SITE, AUTHOR, ADSENSE_SLOT_IN_ARTICLE } from '../../config';
+import { SITE, AUTHOR, ADSENSE_SLOT_IN_ARTICLE, ADSENSE_SLOT_MULTIPLEX } from '../../config';
 import {
   CATEGORIES,
   formatDate,
@@ -266,6 +266,10 @@ if (data.faq.length > 0) {
         </div>
       </section>
     )}
+
+    <!-- Multiplex grid sits below "Keep reading" so the reader always meets our
+         own posts first, then the ad recommendations. -->
+    <AdUnit slot={ADSENSE_SLOT_MULTIPLEX} format="multiplex" class="!max-w-none" />
   </div>
 
   <CodeCopyButton />

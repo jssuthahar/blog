@@ -1,0 +1,71 @@
+---
+// Homepage "Recently read" strip. Server-rendered empty, then filled from the
+// visitor's local history — so it stays hidden for first-time visitors and for
+// anyone who has cleared their history.
+interface Props {
+  /** How many recent cards to show. */
+  limit?: number;
+}
+const { limit = 4 } = Astro.props;
+---
+
+<section
+  data-recently-read
+  data-limit={limit}
+  hidden
+  class="mx-auto max-w-6xl px-4 section sm:px-6"
+  aria-labelledby="recently-read-heading"
+>
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">Pick up again</p>
+      <h2 id="recently-read-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">Recently read</h2>
+    </div>
+    <a href="/history" class="btn btn-outline btn-sm">Reading history</a>
+  </div>
+
+  <div data-resume-slot class="mt-6"></div>
+  <div data-cards class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+</section>
+
+<script>
+  import {
+    getHistory,
+    getResume,
+    createResumeCard,
+    renderCards,
+  } from '../lib/reading-history';
+
+  function initRecentlyRead() {
+    const section = document.querySelector<HTMLElement>('[data-recently-read]');
+    if (!section) return;
+
+    const limit = Number(section.dataset.limit ?? '4');
+    const resumeSlot = section.querySelector<HTMLElement>('[data-resume-slot]');
+    const cards = section.querySelector<HTMLElement>('[data-cards]');
+    if (!resumeSlot || !cards) return;
+
+    const paint = () => {
+      const history = getHistory();
+      if (history.length === 0) {
+        section.hidden = true;
+        return;
+      }
+      section.hidden = false;
+
+      const resume = getResume();
+      resumeSlot.replaceChildren(...(resume ? [createResumeCard(resume)] : []));
+
+      // Don't repeat the resume article in the grid below.
+      const rest = history.filter((e) => e.slug !== resume?.slug).slice(0, limit);
+      renderCards(cards, rest, { removable: true, onChange: paint });
+    };
+
+    paint();
+    // Reflect changes made elsewhere (an article just read, a card removed).
+    window.addEventListener('reading-history-change', paint);
+  }
+
+  initRecentlyRead();
+  document.addEventListener('astro:page-load', initRecentlyRead);
+</script>

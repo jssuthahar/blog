@@ -18,6 +18,7 @@ import { contributionPillars, publishingSpan } from '../lib/evidence';
 import ContributionTimeline from '../components/ContributionTimeline.astro';
 import AdUnit from '../components/AdUnit.astro';
 import HeroCarousel, { type Slide } from '../components/HeroCarousel.astro';
+import RecentlyRead from '../components/RecentlyRead.astro';
 import { formatEventDate, FORMAT_LABELS } from '../lib/speaking';
 
 const posts = await getPublishedPosts();
@@ -177,6 +178,11 @@ const schema = [
 
     </div>
   </section>
+
+  <!-- ══════════════ Recently read ══════════════
+       Hidden for first-time visitors; populated from local history so returning
+       readers can pick up where they left off before anything else. -->
+  <RecentlyRead limit={4} />
 
   <!-- ══════════════ Contribution at a glance ══════════════
        Each number links to the evidence behind it, so the claim and the proof

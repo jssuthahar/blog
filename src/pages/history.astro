@@ -1,0 +1,163 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// Everything on this page is drawn from localStorage in the browser, so it is
+// per-visitor and has no server-rendered content worth indexing.
+---
+
+<BaseLayout
+  title="Your reading history"
+  description="Pick up articles you were reading, revisit your most-read guides, and find everything you bookmarked on MSDEVBUILD."
+  noindex
+>
+  <header class="max-w-2xl">
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Your reading history</h1>
+    <p class="mt-3 text-muted">
+      Everything here is stored privately in this browser — nothing is uploaded, and it never leaves your device.
+    </p>
+  </header>
+
+  <!-- Empty state: shown until the reader has opened at least one article. -->
+  <div data-empty hidden class="mt-12 rounded-xl border border-default bg-subtle p-8 text-center">
+    <p class="text-lg font-semibold">Nothing here yet</p>
+    <p class="mt-2 text-muted">Open an article and it will show up here so you can pick up where you left off.</p>
+    <a href="/articles" class="btn btn-primary mt-5">Browse articles</a>
+  </div>
+
+  <div data-history hidden>
+    <!-- Stats -->
+    <section class="mt-10" aria-label="Reading statistics">
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div class="rounded-xl border border-default p-4">
+          <div data-stat-streak class="text-2xl font-bold tracking-tight text-accent">0</div>
+          <div class="mt-1 text-sm text-muted">day streak</div>
+        </div>
+        <div class="rounded-xl border border-default p-4">
+          <div data-stat-week class="text-2xl font-bold tracking-tight text-accent">0</div>
+          <div class="mt-1 text-sm text-muted">read this week</div>
+        </div>
+        <div class="rounded-xl border border-default p-4">
+          <div data-stat-time class="text-2xl font-bold tracking-tight text-accent">0m</div>
+          <div class="mt-1 text-sm text-muted">time reading</div>
+        </div>
+        <div class="rounded-xl border border-default p-4">
+          <div data-stat-total class="text-2xl font-bold tracking-tight text-accent">0</div>
+          <div class="mt-1 text-sm text-muted">articles opened</div>
+        </div>
+      </div>
+      <div data-favourites class="mt-4 flex flex-wrap items-center gap-2 empty:hidden"></div>
+    </section>
+
+    <!-- Resume -->
+    <div data-resume-slot class="mt-8 empty:hidden"></div>
+
+    <!-- Recently read -->
+    <section class="section" aria-labelledby="recent-heading">
+      <div class="section-head">
+        <h2 id="recent-heading" class="display text-2xl">Recently read</h2>
+        <button type="button" data-clear class="btn btn-outline btn-sm">Clear history</button>
+      </div>
+      <div data-recent class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+    </section>
+
+    <!-- Most read -->
+    <section data-most-read-section class="section empty:hidden" aria-labelledby="most-heading">
+      <div class="section-head"><h2 id="most-heading" class="display text-2xl">Most read</h2></div>
+      <div data-most-read class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+    </section>
+
+    <!-- Bookmarks -->
+    <section data-bookmarks-section class="section" aria-labelledby="bookmarks-heading">
+      <div class="section-head"><h2 id="bookmarks-heading" class="display text-2xl">Bookmarked</h2></div>
+      <div data-bookmarks class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+      <p data-bookmarks-empty class="mt-6 text-muted">
+        No bookmarks yet — tap <strong>Bookmark</strong> on any article to save it here.
+      </p>
+    </section>
+  </div>
+</BaseLayout>
+
+<script>
+  import {
+    getHistory,
+    getResume,
+    getMostRead,
+    getBookmarks,
+    getStats,
+    clearHistory,
+    createResumeCard,
+    renderCards,
+  } from '../lib/reading-history';
+
+  function initHistoryPage() {
+    const empty = document.querySelector<HTMLElement>('[data-empty]');
+    const wrap = document.querySelector<HTMLElement>('[data-history]');
+    if (!empty || !wrap) return;
+
+    const $ = <T extends HTMLElement = HTMLElement>(sel: string) => wrap.querySelector<T>(sel);
+
+    const paint = () => {
+      const history = getHistory();
+      const has = history.length > 0;
+      empty.hidden = has;
+      wrap.hidden = !has;
+      if (!has) return;
+
+      // Stats
+      const stats = getStats();
+      const fmtTime = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`);
+      $('[data-stat-streak]')!.textContent = String(stats.streak);
+      $('[data-stat-week]')!.textContent = String(stats.thisWeek);
+      $('[data-stat-time]')!.textContent = fmtTime(stats.totalMinutes);
+      $('[data-stat-total]')!.textContent = String(history.length);
+
+      const favs = $('[data-favourites]')!;
+      favs.replaceChildren();
+      if (stats.favourites.length > 0) {
+        favs.insertAdjacentHTML('beforeend', '<span class="text-sm text-muted">Favourite topics:</span>');
+        for (const f of stats.favourites) {
+          const chip = document.createElement('span');
+          chip.className = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium';
+          chip.style.cssText = `background: oklch(0.62 0.17 ${f.hue} / 0.14); color: oklch(0.62 0.17 ${f.hue});`;
+          chip.textContent = `${f.label} · ${f.count}`;
+          favs.appendChild(chip);
+        }
+      }
+
+      // Resume
+      const resume = getResume();
+      $('[data-resume-slot]')!.replaceChildren(...(resume ? [createResumeCard(resume)] : []));
+
+      // Recently read (all of it, with remove + bookmark controls)
+      renderCards($('[data-recent]')!, history, {
+        removable: true,
+        bookmarkToggle: true,
+        onChange: paint,
+      });
+
+      // Most read — only meaningful once something has been opened more than once.
+      const mostRead = getMostRead(6).filter((e) => e.viewCount > 1);
+      const mostSection = $('[data-most-read-section]')!;
+      mostSection.hidden = mostRead.length === 0;
+      renderCards($('[data-most-read]')!, mostRead, { onChange: paint });
+
+      // Bookmarks
+      const bookmarks = getBookmarks();
+      $('[data-bookmarks-empty]')!.hidden = bookmarks.length > 0;
+      renderCards($('[data-bookmarks]')!, bookmarks, { bookmarkToggle: true, onChange: paint });
+    };
+
+    $('[data-clear]')?.addEventListener('click', () => {
+      if (confirm('Clear your entire reading history? This cannot be undone.')) {
+        clearHistory();
+        paint();
+      }
+    });
+
+    paint();
+    window.addEventListener('reading-history-change', paint);
+  }
+
+  initHistoryPage();
+  document.addEventListener('astro:page-load', initHistoryPage);
+</script>

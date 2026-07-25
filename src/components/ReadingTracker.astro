@@ -1,0 +1,175 @@
+---
+// Records the current article into the reader's local history, tracks how far
+// they scroll, restores that position when they return, and provides the
+// per-article bookmark toggle. Rendered inside the article header meta row.
+//
+// Server data (title, cover, category…) is handed to the bundled client script
+// through a JSON <script> tag, since bundled modules cannot use define:vars.
+import { CATEGORIES, postUrl, readingTime, type Post } from '../lib/posts';
+import type { ArticleMeta } from '../lib/reading-history';
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const { data } = post;
+const category = CATEGORIES[data.category];
+
+const meta: ArticleMeta = {
+  slug: post.id,
+  title: data.title,
+  url: postUrl(post),
+  description: data.description,
+  cover: data.cover?.src ?? '',
+  coverAlt: data.coverAlt ?? '',
+  category: data.category,
+  categoryLabel: category.label,
+  hue: category.hue,
+  minutes: readingTime(post.body ?? ''),
+};
+
+// Escape `<` so a value containing `</script>` can't close the data block early.
+const metaJson = JSON.stringify(meta).replace(/</g, '\\u003c');
+---
+
+<button
+  type="button"
+  data-bookmark-btn
+  aria-pressed="false"
+  class="inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1 text-sm transition-colors hover:bg-subtle"
+>
+  <svg data-bookmark-icon class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+    <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" />
+  </svg>
+  <span data-bookmark-label>Bookmark</span>
+</button>
+
+<!-- Resume prompt: fixed, so its position in the DOM does not matter. -->
+<div
+  data-resume-prompt
+  hidden
+  class="fixed inset-x-0 bottom-4 z-50 mx-auto flex w-[min(92%,26rem)] items-center gap-3 rounded-xl border border-default bg-[var(--bg)] p-3 shadow-xl"
+>
+  <div class="min-w-0 flex-1">
+    <p class="text-sm font-semibold">Resume where you left off?</p>
+    <p class="text-xs text-muted">You were <span data-resume-pct>0%</span> through this article.</p>
+  </div>
+  <button type="button" data-resume-go class="btn btn-accent btn-sm shrink-0">Continue</button>
+  <button type="button" data-resume-dismiss aria-label="Dismiss" class="shrink-0 rounded-full p-1.5 text-muted hover:bg-subtle">
+    <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 6 6 18M6 6l12 12" /></svg>
+  </button>
+</div>
+
+<script is:inline type="application/json" data-reading-meta set:html={metaJson}></script>
+
+<script>
+  import {
+    recordVisit,
+    updateProgress,
+    getEntry,
+    isBookmarked,
+    toggleBookmark,
+    type ArticleMeta,
+  } from '../lib/reading-history';
+
+  const RESUME_MIN = 0.04;
+  const COMPLETE_AT = 0.95;
+
+  function initTracker() {
+    const holder = document.querySelector<HTMLScriptElement>('[data-reading-meta]');
+    if (!holder?.textContent) return;
+
+    let meta: ArticleMeta;
+    try {
+      meta = JSON.parse(holder.textContent);
+    } catch {
+      return;
+    }
+
+    const article =
+      document.querySelector<HTMLElement>('article.prose-reading') ??
+      document.querySelector<HTMLElement>('article');
+    if (!article) return;
+
+    // Read prior progress before recording, so the resume offer reflects the
+    // last visit rather than this one.
+    const prior = getEntry(meta.slug);
+    recordVisit(meta);
+
+    // Where in the document a given article-progress ratio sits.
+    const targetFor = (ratio: number) =>
+      article.offsetTop + ratio * Math.max(article.offsetHeight - window.innerHeight, 0);
+
+    // ── Bookmark toggle ──────────────────────────────────────────────────
+    const btn = document.querySelector<HTMLButtonElement>('[data-bookmark-btn]');
+    const icon = document.querySelector<SVGElement>('[data-bookmark-icon]');
+    const label = document.querySelector<HTMLElement>('[data-bookmark-label]');
+    const paintBookmark = (on: boolean) => {
+      btn?.setAttribute('aria-pressed', String(on));
+      icon?.setAttribute('fill', on ? 'currentColor' : 'none');
+      if (label) label.textContent = on ? 'Bookmarked' : 'Bookmark';
+      btn?.classList.toggle('text-accent', on);
+      btn?.classList.toggle('border-[var(--accent)]', on);
+    };
+    paintBookmark(isBookmarked(meta.slug));
+    btn?.addEventListener('click', () => paintBookmark(toggleBookmark(meta)));
+
+    // ── Scroll tracking ──────────────────────────────────────────────────
+    let ticking = false;
+    let pendingSave = 0;
+    const persist = () => {
+      const distance = article.offsetHeight - window.innerHeight;
+      const scrolled = window.scrollY - article.offsetTop;
+      const ratio = distance <= 0 ? 1 : Math.min(Math.max(scrolled / distance, 0), 1);
+      updateProgress(meta.slug, ratio, ratio);
+    };
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        // Debounce the actual write; scrolling fires far too often to persist each time.
+        clearTimeout(pendingSave);
+        pendingSave = window.setTimeout(persist, 400);
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    // Flush the final position when the reader leaves.
+    window.addEventListener('pagehide', persist);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') persist();
+    });
+
+    // ── Resume ───────────────────────────────────────────────────────────
+    const goTo = (ratio: number) =>
+      window.scrollTo({ top: targetFor(ratio), behavior: 'smooth' });
+
+    const resumable =
+      prior && !prior.completed && prior.progress >= RESUME_MIN && prior.progress < COMPLETE_AT;
+
+    if (location.hash === '#resume' && resumable) {
+      // Arrived via a "Continue reading" link — jump straight there.
+      history.replaceState(null, '', location.pathname + location.search);
+      requestAnimationFrame(() => goTo(prior!.progress));
+    } else if (resumable) {
+      const prompt = document.querySelector<HTMLElement>('[data-resume-prompt]');
+      const pct = document.querySelector<HTMLElement>('[data-resume-pct]');
+      if (prompt && pct) {
+        pct.textContent = `${Math.round(prior!.progress * 100)}%`;
+        prompt.hidden = false;
+        const close = () => (prompt.hidden = true);
+        prompt.querySelector('[data-resume-go]')?.addEventListener('click', () => {
+          goTo(prior!.progress);
+          close();
+        });
+        prompt.querySelector('[data-resume-dismiss]')?.addEventListener('click', close);
+        // Fades out on its own if ignored.
+        setTimeout(close, 9000);
+      }
+    }
+  }
+
+  initTracker();
+  document.addEventListener('astro:page-load', initTracker);
+</script>

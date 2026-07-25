@@ -12,6 +12,7 @@ import PostCard from '../../components/PostCard.astro';
 import Newsletter from '../../components/Newsletter.astro';
 import Comments from '../../components/Comments.astro';
 import ViewCounter from '../../components/ViewCounter.astro';
+import ReadingTracker from '../../components/ReadingTracker.astro';
 import PostHighlight from '../../components/PostHighlight.astro';
 import FollowCTA from '../../components/FollowCTA.astro';
 import AdUnit from '../../components/AdUnit.astro';
@@ -128,6 +129,7 @@ if (data.faq.length > 0) {
         )}
         <span>{minutes} min read</span>
         <ViewCounter slug={post.id} />
+        <ReadingTracker post={post} />
       </div>
     </header>
 

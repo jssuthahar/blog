@@ -137,7 +137,8 @@ if (data.faq.length > 0) {
           src={data.cover}
           alt={data.coverAlt ?? ''}
           widths={[640, 1024, 1600]}
-          sizes="(max-width: 1024px) 100vw, 1024px"
+          sizes="(max-width: 896px) 100vw, 896px"
+          quality={90}
           loading="eager"
           fetchpriority="high"
           class="w-full rounded-xl border border-default"

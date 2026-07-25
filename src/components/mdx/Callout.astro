@@ -1,30 +1,145 @@
 ---
+/**
+ * Semantic callouts for article bodies.
+ *
+ * Beyond the generic note/tip/warning, the set includes the "senior engineer"
+ * callouts MVP/GDE reviewers look for — production judgment, common mistakes,
+ * architecture decisions, and cost/perf/security trade-offs. Colour is kept to
+ * four hue families (info / positive / caution / danger) so a page full of
+ * callouts still reads as one restrained system rather than a rainbow; the
+ * icon and label carry the specific meaning.
+ */
+type CalloutType =
+  | 'note'
+  | 'tip'
+  | 'warning'
+  | 'decision'
+  | 'production'
+  | 'cost'
+  | 'performance'
+  | 'security'
+  | 'mistake'
+  | 'when-not';
+
 interface Props {
-  type?: 'note' | 'tip' | 'warning';
+  type?: CalloutType;
+  /** Overrides the default label for this type. */
   title?: string;
 }
 
 const { type = 'note', title } = Astro.props;
 
-const STYLES = {
-  note: { hue: 252, label: 'Note' },
-  tip: { hue: 155, label: 'Tip' },
-  warning: { hue: 60, label: 'Warning' },
-} as const;
+// hue drives the whole colour family; icon path is a single 24×24 glyph drawn
+// with fill-rule: evenodd so inner marks knock out cleanly.
+const CONFIG: Record<CalloutType, { hue: number; label: string; icon: string }> = {
+  note: {
+    hue: 252,
+    label: 'Note',
+    icon: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 5h2v2h-2V7Zm0 4h2v6h-2v-6Z',
+  },
+  decision: {
+    hue: 252,
+    label: 'Architecture decision',
+    icon: 'M6 3a3 3 0 0 0-1 5.83V15.17A3 3 0 1 0 7 15.17V13a2 2 0 0 1 2-2h3.17A3 3 0 1 0 12.17 9H9a3.98 3.98 0 0 0-2 .54V8.83A3 3 0 0 0 6 3Zm0 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm9 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2ZM6 18a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z',
+  },
+  tip: {
+    hue: 155,
+    label: 'Tip',
+    icon: 'M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2ZM9 19h6v2H9v-2Z',
+  },
+  production: {
+    hue: 155,
+    label: 'Production tip',
+    icon: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1.3 14.2L6.5 12l1.4-1.4 2.8 2.8 5.4-5.4 1.4 1.4-6.8 6.8Z',
+  },
+  cost: {
+    hue: 155,
+    label: 'Cost optimization',
+    icon: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm.85 15.55v1.2h-1.6v-1.2c-1.5-.2-2.6-1.05-2.75-2.65h1.7c.1.85.75 1.3 1.9 1.3 1.05 0 1.65-.4 1.65-1.05 0-.6-.4-.9-1.75-1.2-2-.45-2.95-1.15-2.95-2.55 0-1.25.9-2.15 2.2-2.4V7.2h1.6v1.15c1.35.3 2.2 1.15 2.35 2.45h-1.7c-.1-.7-.6-1.1-1.45-1.1-.95 0-1.45.4-1.45.95 0 .55.45.8 1.85 1.15 2 .5 2.85 1.2 2.85 2.6 0 1.35-.95 2.25-2.4 2.5Z',
+  },
+  warning: {
+    hue: 60,
+    label: 'Warning',
+    icon: 'M12 2 1 21h22L12 2Zm-1 6h2v6h-2V8Zm0 8h2v2h-2v-2Z',
+  },
+  performance: {
+    hue: 60,
+    label: 'Performance',
+    icon: 'M13 2 3 14h6l-1 8 10-12h-6l1-8Z',
+  },
+  security: {
+    hue: 60,
+    label: 'Security',
+    icon: 'M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4Zm-1.2 15L7 12.2l1.4-1.4 2.4 2.4 4.8-4.8L17 9.8 10.8 16Z',
+  },
+  mistake: {
+    hue: 22,
+    label: 'Common mistake',
+    icon: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm3.5 12.1-1.4 1.4L12 13.4l-2.1 2.1-1.4-1.4L10.6 12 8.5 9.9l1.4-1.4L12 10.6l2.1-2.1 1.4 1.4L13.4 12l2.1 2.1Z',
+  },
+  'when-not': {
+    hue: 22,
+    label: 'When not to use this',
+    icon: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2c1.85 0 3.55.63 4.9 1.69L5.69 16.9A7.96 7.96 0 0 1 12 4Zm0 16a7.94 7.94 0 0 1-4.9-1.69L18.31 7.1A7.96 7.96 0 0 1 12 20Z',
+  },
+};
 
-const { hue, label } = STYLES[type];
+const { hue, label, icon } = CONFIG[type];
 ---
 
-<aside
-  class="not-prose my-6 rounded-lg border p-5"
-  style={`border-color: oklch(0.62 0.15 ${hue} / 0.35);
-          background: oklch(0.62 0.15 ${hue} / 0.07);
-          border-left: 3px solid oklch(0.55 0.16 ${hue});`}
->
-  <p class="text-xs font-bold tracking-wider uppercase" style={`color: oklch(0.5 0.16 ${hue});`}>
-    {title ?? label}
+<aside class="callout not-prose my-6" style={`--cx-hue: ${hue};`}>
+  <p class="callout-label">
+    <svg class="callout-icon" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" aria-hidden="true">
+      <path d={icon} />
+    </svg>
+    <span>{title ?? label}</span>
   </p>
-  <div class="mt-2 leading-relaxed text-pretty">
+  <div class="callout-body">
     <slot />
   </div>
 </aside>
+
+<style>
+  .callout {
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    border: 1px solid oklch(0.62 0.15 var(--cx-hue) / 0.35);
+    border-left: 3px solid oklch(0.55 0.16 var(--cx-hue));
+    background: oklch(0.62 0.15 var(--cx-hue) / 0.07);
+  }
+
+  .callout-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: oklch(0.5 0.16 var(--cx-hue));
+  }
+
+  .callout-icon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
+
+  .callout-body {
+    margin-top: 0.5rem;
+    line-height: 1.65;
+    text-wrap: pretty;
+  }
+
+  /* Dark mode: raise lightness so the label and tint stay legible on a dark
+     surface, mirroring how the rest of the site lifts accent colours. */
+  :global([data-theme='dark']) .callout {
+    border-color: oklch(0.7 0.14 var(--cx-hue) / 0.4);
+    border-left-color: oklch(0.72 0.15 var(--cx-hue));
+    background: oklch(0.7 0.15 var(--cx-hue) / 0.1);
+  }
+
+  :global([data-theme='dark']) .callout-label {
+    color: oklch(0.8 0.13 var(--cx-hue));
+  }
+</style>

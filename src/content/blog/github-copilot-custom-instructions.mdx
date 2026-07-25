@@ -9,6 +9,13 @@ cover: './images/copilot-instructions-before-after.png'
 coverAlt: 'Side-by-side code comparison showing mismatched suggestions without a copilot-instructions.md file versus matching suggestions with one'
 featured: true
 draft: false
+faq:
+  - q: 'What is a copilot-instructions file?'
+    a: 'It is a repository-level guidance file, usually stored at .github/copilot-instructions.md, that tells GitHub Copilot how your project is structured, which tools and conventions to prefer, and which rules to avoid breaking.'
+  - q: 'Where should I put custom instructions for GitHub Copilot?'
+    a: 'Put them in .github/copilot-instructions.md at the root of the repository so GitHub Copilot can read them automatically for that project.'
+  - q: 'Do I need one for every project?'
+    a: 'You should have one for each repository with its own stack and conventions, because Copilot performs better when it sees project-specific guidance instead of guessing from the current file alone.'
 ---
 
 Two developers join the same project on the same day. Both clone the repo, both open VS Code, both start getting Copilot suggestions within a minute. By lunch, one of them has barely touched what Copilot wrote for him. The other has rewritten half of it — wrong HTTP client, wrong test framework, a folder structure Copilot invented that doesn't exist anywhere in the actual project.

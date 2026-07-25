@@ -2,14 +2,16 @@
 import { AUTHOR } from '../config';
 
 interface Props {
-  /** The article's FAQ pairs — the answer bank the chat draws from. */
+  /** The article's FAQ pairs — a strong signal for the chat. */
   faq: { q: string; a: string }[];
+  /** The full article body, used as a fallback knowledge source. */
+  body: string;
   title: string;
   /** Opening line; the article highlight makes a natural greeting. */
   intro?: string;
 }
 
-const { faq, title, intro } = Astro.props;
+const { faq, body, title, intro } = Astro.props;
 
 const greeting =
   intro?.trim() ||
@@ -143,7 +145,7 @@ const firstName = AUTHOR.name.split(' ')[0];
 
 <script
   is:inline
-  define:vars={{ faq, greeting, avatar: AUTHOR.avatar, initials }}
+  define:vars={{ faq, body, greeting, avatar: AUTHOR.avatar, initials }}
 >
   (() => {
     function init() {
@@ -183,7 +185,22 @@ const firstName = AUTHOR.name.split(' ')[0];
       // --- matching -------------------------------------------------------
       const STOP = new Set('a an the is are do does how what why when which to in on of for and or with my your this that it i you'.split(' '));
       const tokens = (s) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w && !STOP.has(w));
-      const bank = faq.map((f) => ({ ...f, qt: new Set(tokens(f.q)), at: new Set(tokens(f.a)) }));
+      const faqBank = faq.map((f) => ({ ...f, qt: new Set(tokens(f.q)), at: new Set(tokens(f.a)) }));
+      const bodyText = String(body || '')
+        .replace(/```[\s\S]*?```/g, ' ')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/\[(.*?)\]\([^)]*\)/g, '$1')
+        .replace(/[#>*_~]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const bodyParagraphs = bodyText
+        .split(/\n\s*\n+/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+      const bodyBank = bodyParagraphs.map((paragraph) => ({
+        text: paragraph,
+        qt: new Set(tokens(paragraph)),
+      }));
       const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
       function bubble(role, html) {
@@ -223,13 +240,34 @@ const firstName = AUTHOR.name.split(' ')[0];
       function bestMatch(q) {
         const qt = tokens(q);
         if (!qt.length) return null;
-        let best = null, score = 0;
-        for (const f of bank) {
+
+        let best = null;
+        let bestScore = 0;
+
+        for (const f of faqBank) {
           let s = 0;
-          for (const t of qt) { if (f.qt.has(t)) s += 2; else if (f.at.has(t)) s += 1; }
-          if (s > score) { score = s; best = f; }
+          for (const t of qt) {
+            if (f.qt.has(t)) s += 3;
+            else if (f.at.has(t)) s += 1;
+          }
+          if (s > bestScore) {
+            bestScore = s;
+            best = { type: 'faq', answer: f.a };
+          }
         }
-        return score >= 2 ? best : null;
+
+        for (const paragraph of bodyBank) {
+          let s = 0;
+          for (const t of qt) {
+            if (paragraph.qt.has(t)) s += 2;
+          }
+          if (s > bestScore) {
+            bestScore = s;
+            best = { type: 'body', answer: paragraph.text };
+          }
+        }
+
+        return bestScore >= 2 ? best : null;
       }
 
       const commentsCta =
@@ -239,7 +277,10 @@ const firstName = AUTHOR.name.split(' ')[0];
       async function ask(q) {
         bubble('user', esc(q));
         const match = bestMatch(q);
-        await authorReply(match ? esc(match.a) : commentsCta);
+        const reply = match
+          ? esc(match.answer)
+          : commentsCta;
+        await authorReply(reply);
         const link = log.querySelector('[data-to-comments]');
         if (link) link.addEventListener('click', () => setTimeout(close, 50), { once: true });
       }

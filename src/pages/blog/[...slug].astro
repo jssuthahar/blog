@@ -175,6 +175,13 @@ if (data.faq.length > 0) {
           <Content />
         </article>
 
+        <div class="mx-auto mt-12 max-w-[68ch] border-t border-default pt-8">
+          <div class="flex flex-wrap items-end justify-between gap-6">
+            <Reactions slug={post.id} />
+            <ShareRow title={data.title} path={path} />
+          </div>
+        </div>
+
         {data.faq.length > 0 && (
           <section class="mx-auto mt-16 max-w-[68ch]" aria-labelledby="faq-heading">
             <h2 id="faq-heading" class="text-2xl font-semibold tracking-tight">
@@ -196,12 +203,6 @@ if (data.faq.length > 0) {
         <AdUnit slot={ADSENSE_SLOT_IN_ARTICLE} />
 
         <div class="mx-auto mt-14 max-w-[68ch] border-t border-default pt-8">
-          <!-- Engagement bar: react, then share. -->
-          <div class="flex flex-wrap items-end justify-between gap-6">
-            <Reactions slug={post.id} />
-            <ShareRow title={data.title} path={path} />
-          </div>
-
           {data.tags.length > 0 && (
             <ul class="mt-6 flex flex-wrap gap-2">
               {data.tags.map((tag) => (
@@ -267,5 +268,5 @@ if (data.faq.length > 0) {
   <CodeCopyButton />
 
   <!-- Floating chat launcher; fixed-position, so it lives at the page root. -->
-  <ArticleChat faq={data.faq} title={data.title} intro={data.highlight} />
+  <ArticleChat faq={data.faq} body={post.body ?? ''} title={data.title} intro={data.highlight} />
 </BaseLayout>

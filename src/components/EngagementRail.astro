@@ -1,0 +1,296 @@
+---
+import { FIREBASE, SITE } from '../config';
+
+/**
+ * Floating engagement rail shown while reading a post.
+ *
+ * Desktop (xl+): a slim vertical bar pinned to the left margin.
+ * Mobile: a compact sticky bottom bar.
+ *
+ * It mirrors the canonical Reactions/ShareRow block at the foot of the article
+ * rather than replacing it. Reactions share the same Firestore doc and the same
+ * `reacted:{slug}:{key}` localStorage guards, so a reaction given here can never
+ * double-count against the bottom block. The rail hides itself once that block
+ * scrolls into view, so the reader never sees the two at once.
+ */
+interface Props {
+  slug: string;
+  title: string;
+  path: string;
+}
+
+const { slug, title, path } = Astro.props;
+const enabled = FIREBASE.projectId.length > 0;
+const url = new URL(path, SITE.url).href;
+
+// Keys must match the fixed set in firestore.rules and Reactions.astro exactly.
+const REACTIONS = [
+  { key: 'like', emoji: '👍', label: 'Like' },
+  { key: 'love', emoji: '❤️', label: 'Love' },
+  { key: 'celebrate', emoji: '🎉', label: 'Celebrate' },
+  { key: 'insightful', emoji: '💡', label: 'Insightful' },
+] as const;
+
+const encodedUrl = encodeURIComponent(url);
+const encodedTitle = encodeURIComponent(title);
+
+const SHARE = [
+  { label: 'Share on X', href: `https://x.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`, path: 'M18.9 2H22l-7 8 8.2 12h-6.4l-5-7.3L5.9 22H2.8l7.5-8.6L2.4 2h6.6l4.6 6.6L18.9 2Z' },
+  { label: 'Share on LinkedIn', href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, path: 'M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9h4v12H3V9Zm7 0h3.8v1.7h.05c.53-1 1.83-2.05 3.75-2.05C21.6 8.65 22 11.1 22 14.3V21h-4v-6c0-1.4-.03-3.2-2-3.2s-2.3 1.5-2.3 3.1V21h-4V9Z' },
+  { label: 'Share on WhatsApp', href: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`, path: 'M12 2a10 10 0 0 0-8.7 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1a13 13 0 0 1-6.3-5.5C6.9 10.6 6.6 9.6 6.6 9c0-.6.3-1.5.8-1.9.2-.2.4-.2.6-.2h.5c.2 0 .4 0 .6.4l.8 2c.1.2 0 .4-.1.5l-.4.5c-.1.2-.3.3-.1.6.5.9 1.5 2 2.6 2.5.3.2.5.1.6 0l.7-.8c.2-.2.3-.2.6-.1l1.9.9c.3.1.4.2.4.4.1.2.1.7-.1 1.3Z' },
+] as const;
+---
+
+{enabled && (
+  <div
+    data-rail
+    data-slug={slug}
+    data-url={url}
+    class="engagement-rail fixed z-40 opacity-0 transition-[opacity,transform] duration-300
+           inset-x-0 bottom-0 translate-y-3
+           xl:inset-x-auto xl:bottom-auto xl:top-1/2 xl:left-2 xl:-translate-y-1/2 xl:translate-x-0"
+    aria-label="Reactions and sharing"
+  >
+    <div
+      class="mx-auto flex max-w-6xl items-center gap-1 border-t border-default bg-[var(--bg)]/95 px-3 py-2 pr-20
+             backdrop-blur supports-[backdrop-filter]:bg-[var(--bg)]/80
+             sm:px-6 sm:pr-28
+             xl:mx-0 xl:max-w-none xl:flex-col xl:gap-2 xl:rounded-2xl xl:border xl:px-1.5 xl:py-2 xl:pr-1.5 xl:shadow-lg"
+    >
+      <!-- Reactions -->
+      <div class="flex items-center gap-1 xl:flex-col xl:gap-1.5" role="group" aria-label="React to this article">
+        {REACTIONS.map((r) => (
+          <button
+            type="button"
+            data-react={r.key}
+            aria-label={r.label}
+            title={r.label}
+            class="rail-react flex shrink-0 flex-col items-center rounded-lg border border-transparent px-2 py-1
+                   leading-none transition-colors hover:bg-subtle disabled:opacity-70"
+          >
+            <span class="text-lg">{r.emoji}</span>
+            <span data-count={r.key} class="mt-0.5 text-[0.65rem] tabular-nums text-muted">0</span>
+          </button>
+        ))}
+      </div>
+
+      <span class="mx-0.5 h-6 w-px shrink-0 bg-[var(--border)] xl:mx-0 xl:my-0.5 xl:h-px xl:w-6" aria-hidden="true"></span>
+
+      <!-- Share: full icon set in the desktop vertical rail; a single
+           native-share/copy button on the mobile bottom bar to save room. -->
+      <div class="flex items-center gap-0.5 xl:flex-col xl:gap-1" role="group" aria-label="Share this article">
+        <div class="hidden xl:flex xl:flex-col xl:gap-1">
+          {SHARE.map(({ label, href, path }) => (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={label}
+              title={label}
+              class="rounded-lg p-2 text-muted transition-colors hover:bg-subtle hover:text-accent"
+            >
+              <svg class="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={path} /></svg>
+            </a>
+          ))}
+        </div>
+        <button
+          type="button"
+          data-rail-share
+          class="rounded-lg p-2 text-muted transition-colors hover:bg-subtle hover:text-accent"
+          aria-label="Share or copy link"
+          title="Share"
+        >
+          <!-- Copy-link glyph; swapped to a share glyph where the Web Share API exists. -->
+          <svg data-icon-copy class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" />
+            <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" />
+          </svg>
+          <svg data-icon-share class="size-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+            <path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" />
+          </svg>
+        </button>
+      </div>
+
+      <span class="mx-0.5 h-6 w-px shrink-0 bg-[var(--border)] xl:mx-0 xl:my-0.5 xl:h-px xl:w-6" aria-hidden="true"></span>
+
+      <!-- Testimonial -->
+      <button
+        type="button"
+        data-open-feedback
+        class="flex shrink-0 items-center gap-1.5 rounded-lg p-2 text-muted transition-colors hover:bg-subtle hover:text-accent xl:flex-col xl:gap-0.5"
+        aria-label="Leave a testimonial"
+        title="Leave a testimonial"
+      >
+        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+        </svg>
+        <span class="text-xs font-medium xl:hidden">Feedback</span>
+      </button>
+
+      <span data-rail-status role="status" aria-live="polite" class="ml-1 text-xs text-accent xl:sr-only"></span>
+    </div>
+  </div>
+)}
+
+<style>
+  .engagement-rail[data-visible] {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .rail-react[data-reacted] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .rail-react[data-reacted] [data-count] {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .engagement-rail { transition: none; }
+  }
+</style>
+
+{enabled && (
+  <script is:inline define:vars={{ projectId: FIREBASE.projectId }}>
+    (() => {
+      const BASE = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
+
+      const format = (n) =>
+        n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
+
+      function init() {
+        const rail = document.querySelector('[data-rail]');
+        if (!rail || rail.dataset.ready === '') return;
+        rail.dataset.ready = '';
+
+        const slug = rail.dataset.slug;
+        const url = rail.dataset.url;
+        const docPath = `${BASE}/reactions/${encodeURIComponent(slug)}`;
+        const buttons = [...rail.querySelectorAll('[data-react]')];
+
+        const paint = (key, value) => {
+          const el = rail.querySelector(`[data-count="${key}"]`);
+          if (el) el.textContent = format(value);
+        };
+
+        // --- Reveal: show after the reader starts scrolling, hide once the
+        //     canonical block at the foot of the article comes into view. ---
+        let pastFold = false;
+        let atEnd = false;
+        const apply = () => {
+          if (pastFold && !atEnd) rail.dataset.visible = '';
+          else delete rail.dataset.visible;
+        };
+        const onScroll = () => {
+          pastFold = window.scrollY > 500;
+          apply();
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+
+        const end = document.querySelector('[data-engagement-end]');
+        if (end && 'IntersectionObserver' in window) {
+          new IntersectionObserver((entries) => {
+            atEnd = entries[0].isIntersecting;
+            apply();
+          }, { rootMargin: '0px 0px -20% 0px' }).observe(end);
+        }
+
+        // --- Reactions: load counts, mark ones this browser already gave. ---
+        (async () => {
+          try {
+            const doc = await fetch(docPath).then((r) => (r.ok ? r.json() : null));
+            const fields = doc?.fields ?? {};
+            buttons.forEach((btn) => {
+              const key = btn.dataset.react;
+              paint(key, Number(fields[key]?.integerValue ?? 0));
+              if (localStorage.getItem(`reacted:${slug}:${key}`) !== null) {
+                btn.dataset.reacted = '';
+              }
+            });
+          } catch {
+            // Reactions are decoration — a failed read must not break the rail.
+          }
+        })();
+
+        buttons.forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const key = btn.dataset.react;
+            const guard = `reacted:${slug}:${key}`;
+
+            // One of each per browser, matching Reactions.astro. Sharing the
+            // guard means reacting here also blocks a second count below.
+            if (localStorage.getItem(guard) !== null) return;
+            localStorage.setItem(guard, '1');
+            btn.dataset.reacted = '';
+
+            const countEl = rail.querySelector(`[data-count="${key}"]`);
+            const optimistic = Number(String(countEl?.textContent).replace(/k$/, '000')) || 0;
+            paint(key, optimistic + 1);
+
+            try {
+              const res = await fetch(`${BASE}:commit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  writes: [
+                    {
+                      update: {
+                        name: `projects/${projectId}/databases/(default)/documents/reactions/${slug}`,
+                        fields: {},
+                      },
+                      updateMask: { fieldPaths: [] },
+                      updateTransforms: [
+                        { fieldPath: key, increment: { integerValue: '1' } },
+                      ],
+                    },
+                  ],
+                }),
+              });
+              if (!res.ok) throw new Error(String(res.status));
+
+              const doc = await fetch(docPath).then((r) => (r.ok ? r.json() : null));
+              paint(key, Number(doc?.fields?.[key]?.integerValue ?? optimistic + 1));
+            } catch {
+              localStorage.removeItem(guard);
+              delete btn.dataset.reacted;
+              paint(key, optimistic);
+            }
+          });
+        });
+
+        // --- Share / copy link ---
+        const status = rail.querySelector('[data-rail-status]');
+        const flash = (msg) => {
+          if (!status) return;
+          status.textContent = msg;
+          setTimeout(() => (status.textContent = ''), 2000);
+        };
+        const shareBtn = rail.querySelector('[data-rail-share]');
+        const canShare = 'share' in navigator;
+        if (shareBtn && canShare) {
+          shareBtn.querySelector('[data-icon-copy]')?.classList.add('hidden');
+          shareBtn.querySelector('[data-icon-share]')?.classList.remove('hidden');
+        }
+        shareBtn?.addEventListener('click', async () => {
+          const title = document.title;
+          if (canShare) {
+            // A cancelled share sheet rejects; that is not worth surfacing.
+            try { await navigator.share({ title, url }); } catch {}
+            return;
+          }
+          try {
+            await navigator.clipboard.writeText(url);
+            flash('Copied');
+          } catch {
+            flash('Copy failed');
+          }
+        });
+      }
+
+      init();
+      document.addEventListener('astro:page-load', init);
+    })();
+  </script>
+)}

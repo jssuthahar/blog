@@ -6,6 +6,8 @@ import TableOfContents from '../../components/TableOfContents.astro';
 import ReadingProgress from '../../components/ReadingProgress.astro';
 import ShareRow from '../../components/ShareRow.astro';
 import Reactions from '../../components/Reactions.astro';
+import EngagementRail from '../../components/EngagementRail.astro';
+import FeedbackDialog from '../../components/FeedbackDialog.astro';
 import ArticleChat from '../../components/ArticleChat.astro';
 import CodeCopyButton from '../../components/CodeCopyButton.astro';
 import PostCard from '../../components/PostCard.astro';
@@ -178,7 +180,7 @@ if (data.faq.length > 0) {
           <Content />
         </article>
 
-        <div class="mx-auto mt-12 max-w-[68ch] border-t border-default pt-8">
+        <div class="mx-auto mt-12 max-w-[68ch] border-t border-default pt-8" data-engagement-end>
           <div class="flex flex-wrap items-end justify-between gap-6">
             <Reactions slug={post.id} />
             <ShareRow title={data.title} path={path} />
@@ -273,6 +275,11 @@ if (data.faq.length > 0) {
   </div>
 
   <CodeCopyButton />
+
+  <!-- Floating engagement rail (share + reactions + testimonial) shown while
+       scrolling, plus the dialog its testimonial button opens. -->
+  <EngagementRail slug={post.id} title={data.title} path={path} />
+  <FeedbackDialog />
 
   <!-- Floating chat launcher; fixed-position, so it lives at the page root. -->
   <ArticleChat faq={data.faq} body={post.body ?? ''} title={data.title} intro={data.highlight} />

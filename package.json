@@ -12,6 +12,7 @@
     "sync:repos": "node scripts/sync-github.mjs",
     "sync": "npm run sync:articles && npm run sync:repos && npm run sync:testimonials",
     "sync:testimonials": "node scripts/sync-testimonials.mjs",
+    "check:humanizer": "node scripts/check-humanizer.mjs",
     "seed:testimonials": "node scripts/seed-testimonials.mjs"
   },
   "dependencies": {

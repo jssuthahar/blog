@@ -17,6 +17,31 @@ if [ -z "$changed" ]; then
 fi
 
 echo "humanizer: checking src/content before push..."
+
+# Git hooks run in a bare shell without the interactive login PATH, so a
+# version-managed node (nvm/fnm/homebrew) often isn't found. Resolve one.
+if ! command -v node >/dev/null 2>&1; then
+  # nvm: source it so the default-aliased version lands on PATH.
+  if [ -s "$HOME/.nvm/nvm.sh" ]; then
+    # shellcheck disable=SC1091
+    . "$HOME/.nvm/nvm.sh" >/dev/null 2>&1
+  fi
+fi
+if ! command -v node >/dev/null 2>&1; then
+  # Fall back to the newest installed nvm version, then common install dirs.
+  for dir in $(ls -d "$HOME/.nvm/versions/node/"*/bin 2>/dev/null | sort -V -r) /opt/homebrew/bin /usr/local/bin; do
+    if [ -x "$dir/node" ]; then
+      PATH="$dir:$PATH"
+      break
+    fi
+  done
+fi
+if ! command -v node >/dev/null 2>&1; then
+  echo "humanizer: could not find 'node' on PATH. Install Node or add it to PATH."
+  echo "(bypass this check in a pinch with: git push --no-verify)"
+  exit 1
+fi
+
 # shellcheck disable=SC2086
 node scripts/check-humanizer.mjs $changed
 status=$?

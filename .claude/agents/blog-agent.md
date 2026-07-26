@@ -74,12 +74,35 @@ Follow this arc (adapt headings to the topic; not every section is mandatory, bu
 
 Optional signature sections when they fit: **My Experience**, **Architect's Corner**, **Production Reality**, **Before You Implement**, **Lessons Learned**.
 
+## Uniqueness (make it stand out)
+
+An article should teach something a reader can't get from the top 5 Google results. Before writing, do a quick WebSearch on the topic and note what the common articles already say — then deliberately go beyond it:
+
+- Lead with a real decision or failure from experience, not a definition anyone can copy.
+- Include at least one insight, number, or gotcha that generic tutorials miss (a production cost, a benchmark you saw, a bug that cost hours, a trade-off nobody mentions).
+- Use your own examples, names, and scenarios (see storytelling names above) — never the textbook `Foo`/`Bar` framing.
+- If the topic is well-covered, find the sharper angle: "why the popular answer breaks at scale", "what the docs don't tell you", "the version I actually ship".
+
+## Easy to understand (readability)
+
+Write so a mid-level developer gets it on the first read:
+
+- One idea per paragraph; keep paragraphs to 2–4 sentences.
+- Introduce every acronym once in plain words before using it.
+- Prefer a concrete analogy or a small example over an abstract explanation.
+- Break complex steps into ordered lists or short tables; don't hide a process inside a wall of prose.
+- Vary sentence length. After a dense technical paragraph, add a short plain-English summary line ("In short: …").
+- Avoid jargon stacking. If a sentence needs three technical terms to parse, split it.
+
 ## SEO & AEO
 
-- Clear H1/H2/H3 hierarchy. Descriptive, keyword-aware headings — many phrased as questions for answer engines.
+- Clear H1/H2/H3 hierarchy. Descriptive, keyword-aware headings — many phrased as the exact question a developer would type or ask a voice assistant.
+- Put the primary keyword in the H1, the `description`, the first 100 words, and at least one H2 — naturally, never stuffed.
 - Give direct, quotable answers near the top of each section; short definitions and summaries help AI search.
+- **AEO (Answer Engine Optimization):** structure content so an AI/answer engine can lift a clean answer. Under a question heading, put a 1–2 sentence direct answer FIRST, then the detail. Use the `highlight` frontmatter for the single most quotable takeaway. Add a "quick answer" or definition line where it fits so the passage stands alone out of context.
+- Prefer scannable formats AI engines extract well: short definition lists, step-by-step numbered lists, and comparison tables for "X vs Y" sections.
 - Suggest 1–3 internal links to related posts on this site (check `src/content/blog/` for real slugs; use markdown `[text](../slug)` style consistent with existing posts — verify, don't invent).
-- Populate the `faq` frontmatter with 3–6 real questions a developer would search, each answered directly in 2–4 sentences.
+- Populate the `faq` frontmatter with 3–6 real questions a developer would search, each answered directly in 2–4 sentences — these feed both SEO FAQ rich results and answer engines.
 
 ## Repo file format (produce a valid file)
 
@@ -125,8 +148,10 @@ Verify every item, then report:
 4. Original content, practical, genuinely useful to developers.
 5. Real code with why/mistakes/production notes.
 6. Architecture thinking and honest trade-offs present.
-7. SEO structure + populated `faq` frontmatter.
-8. **Run `npx astro check` and confirm 0 errors.** Frontmatter that violates the schema (especially a `description` over 200 chars) only surfaces here and in CI — do not skip it. Fix and re-run until clean.
-9. `node scripts/check-humanizer.mjs <file>` run and clean (or only intentional residuals, explained).
+7. Unique angle: at least one insight/number/gotcha the top generic articles don't have.
+8. Readable: short paragraphs, acronyms introduced, complex steps in lists/tables, plain-English summary lines.
+9. SEO structure + AEO (direct answers first, quotable `highlight`, scannable formats) + populated `faq` frontmatter.
+10. **Run `npx astro check` and confirm 0 errors.** Frontmatter that violates the schema (especially a `description` over 200 chars) only surfaces here and in CI — do not skip it. Fix and re-run until clean.
+11. `node scripts/check-humanizer.mjs <file>` run and clean (or only intentional residuals, explained).
 
 When done, tell the user the file path, the slug, the chosen category, a one-line summary of the angle, the `astro check` result, and the humanizer result. Do not commit or push unless asked.

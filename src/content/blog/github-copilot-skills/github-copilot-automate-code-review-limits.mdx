@@ -1,0 +1,277 @@
+---
+title: "GitHub Copilot Can't Replace Your Code Reviewer — Here's What It Can Actually Automate"
+description: 'A software architect on GitHub Copilot code review: build a review Skill that automates the mechanical layer, and the AI code review limitations that keep a human in the loop.'
+publishedAt: 2026-07-26
+category: copilot
+categories: ['ai', 'engineering']
+tags: ['GitHub Copilot', 'Copilot code review', 'AI code review', 'Copilot Skills', 'SKILL.md', 'Pull request review', 'Code quality', 'Enterprise', '.NET']
+seoTitle: 'GitHub Copilot Code Review: What to Automate, What Not To'
+highlight: 'GitHub Copilot cannot automate code review 100%. It reliably owns the mechanical layer — standards, naming, missing tests, obvious security smells, layer-boundary breaks. It cannot own the judgment layer — is this the right design, does it fit the business context, is the trade-off worth it, and who is accountable for what ships. Automate the checklist; keep the human for the conversation.'
+series: 'agents-md-instructions'
+seriesOrder: 8
+featured: false
+draft: true
+faq:
+  - q: 'Can GitHub Copilot fully automate code review?'
+    a: 'No. Copilot can automate the mechanical layer of review — coding standards, naming, missing tests, obvious security smells, and layer-boundary violations — but it cannot own the judgment layer. Deciding whether a design fits the business context, whether a trade-off is worth the complexity, and who is accountable for what ships stays with a human. Realistically you automate most of the review tax, not the judgment.'
+  - q: 'What can an AI code review Skill reliably catch?'
+    a: 'A well-written review Skill reliably catches rule-based issues: naming and formatting deviations, business logic sitting in a controller, missing unit tests for new logic, missing validators, hardcoded secrets, unstructured logging, swallowed exceptions, and responses that break your API contract. These are consistent, checklist-style problems, and that is exactly where AI is strong and tireless.'
+  - q: 'What does AI code review miss?'
+    a: 'It misses design and architecture flaws that are correct line by line, code that is clean but solves the wrong problem, threat-model level security issues, and any trade-off that needs business context. It also has no accountability and can flood a PR with low-value nitpicks that bury the one comment that mattered. Never trust its suggestions blindly.'
+  - q: 'Should AI be allowed to approve or merge PRs?'
+    a: 'No. Let AI produce a first-pass structured review and enforce standards, but keep a human as the accountability gate on approval and merge. Someone has to own what ships to production, and an AI cannot carry that responsibility. Use it to speed the review, not to remove the reviewer.'
+  - q: 'How do I make Copilot PR review more efficient without the noise?'
+    a: 'Give the review Skill a strict output format — blocking issues, suggestions, and questions for the author, in that order — and tell it to report at most a few high-value items instead of every nitpick. Scope it to the diff, tie it to your real standards, and let it run before a human opens the PR so people arrive to discuss design, not formatting.'
+---
+
+Two years ago I approved a pull request I still think about. The AI reviewer we had wired in gave it a clean pass. No blocking comments, a couple of tidy naming suggestions, a green tick. The code was genuinely well written — clear names, small methods, tests present. So I skimmed, agreed, and merged.
+
+Three days later Sumathi found the bug in production. The code was correct. It just solved the wrong problem: it computed the refund on the pre-discount order total, when the business rule was to refund what the customer actually paid. Every line passed review. The whole thing was wrong.
+
+That day gave me the sentence this article is built on. **AI can review whether your code is written well. It cannot review whether your code is the right code.** So can GitHub Copilot automate code review 100%? No. You can automate most of the review tax. You cannot automate the judgment. The gap between those two is where good engineering lives.
+
+This is Part 5 of my Copilot Skills series. If Skills are new to you, start with the [Copilot Skills explainer](../github-copilot-skills-deep-dive) — it covers what a Skill is and why it loads on demand. Here we point Skills at a harder target: PR review itself, honestly, with the limits made explicit.
+
+## Code review is really two jobs, not one
+
+Every review is two different jobs wearing one hat. Separating them is the whole trick.
+
+**Layer 1 — mechanical.** Does this follow our standards? Is the naming consistent? Are there tests? Any obvious bug, any secret in the diff, any layer boundary crossed? This is rule-based. The answer does not depend on who wrote it or why. It is a checklist, and a checklist can be automated.
+
+**Layer 2 — judgment.** Is this the right design for where the product is going? Does it fit the business rule that lives in someone's head and a Jira ticket from March? Is this abstraction worth its complexity? And the one that never automates: who is accountable when this ships?
+
+> The mechanical layer asks *is this code written correctly?* The judgment layer asks *is this the correct code?* Copilot is excellent at the first and cannot do the second.
+
+Most disappointment with AI code review comes from expecting Layer 2 out of a tool that only reaches Layer 1. And the mechanical layer is exactly where your reviewers bleed time. Watch a senior review a PR and count the comments: most are mechanical — "rename this", "this belongs in the handler", "where is the test". Real value, but boring, repetitive value that a rule could do. Worse, they get tired on it, so the mechanical noise crowds out the one design comment that mattered. That was my refund bug precisely.
+
+So the goal is not "replace reviewers." It is "stop spending your most expensive people on a checklist." Let us build something that owns Layer 1 and hands Layer 2 back to a human.
+
+## Building a Copilot review Skill for the mechanical layer
+
+We build it the same way as the feature Skills earlier in the series. If you followed [the .NET Clean Architecture Skill in Part 2](../build-first-github-copilot-skill-dotnet-clean-architecture), this is its partner: that Skill teaches Copilot to *write* a feature our way, this one teaches it to *check* a diff against the same rules. It is a `SKILL.md` in its own folder under `.github/skills`.
+
+Four parts matter. I will show the parts, not every line.
+
+**1. A bounded description.** The description is the activation trigger — Copilot reads it on every task and loads the Skill only when the words match. Pack it with the phrases people actually type, and state what it must *not* own.
+
+```markdown
+---
+name: pr-review-mechanical
+description: >
+  Use when reviewing a pull request, diff, or set of changes in the .NET
+  backend. Performs the mechanical, rule-based review layer only: standards,
+  naming, Clean Architecture layer boundaries, test coverage, structured
+  logging, secrets, error handling, ApiResponse<T> compliance. Trigger on
+  "review this PR", "review this diff", "check these changes".
+  Does NOT decide whether the design or business approach is correct.
+---
+```
+
+That last line is a safety feature, not a formality. Without it, Copilot produces confident sentences about architecture and people read them as approval — which is how you merge my refund bug with a green tick.
+
+**2. The rules it enforces.** Encode your team's real standards, concretely. Vague rules produce vague reviews. These mirror the feature Skill so writing and reviewing agree.
+
+```markdown
+Flag as issues:
+1. Layer boundaries — no logic, DbContext, or repository calls in a
+   controller. Controllers send a command/query and translate ApiResponse<T>.
+2. Validation — every command taking user input needs a FluentValidation
+   validator. Missing = blocking.
+3. Tests — new handler logic needs a main-path and a failure-path xUnit
+   test. Zero tests on new behaviour = blocking.
+4. API contract — all endpoints return ApiResponse<T>. Flag raw entities,
+   anonymous objects, bare status codes.
+5. Logging — structured, named properties. Never log secrets or full bodies.
+6. Secrets — no keys, connection strings, or tokens in the diff. Blocking.
+7. Error handling — no empty catch, no swallowed exception.
+```
+
+**3. A strict output format.** This is the part almost everyone gets wrong. Free prose gives you a wall of mixed-priority comments where a hardcoded secret sits below a variable-name nitpick. Force priority first, and cap the noise.
+
+```markdown
+Respond in exactly this order:
+### 1. Blocking issues   (must fix before merge; "None" if clean)
+### 2. Suggestions       (non-blocking; report AT MOST FIVE, highest impact)
+### 3. Questions for the author  (needs human context you cannot infer)
+
+Never write "Approved", "LGTM", or "ready to merge". Approval is a human
+decision.
+```
+
+The cap of five comes from pain. An uncapped AI review floods a PR with thirty low-value comments and buries the one that mattered. The cap forces the model to prioritise — which is the actual job of a review.
+
+**4. A self-check** so output stays consistent: blocking issues before suggestions, suggestions capped, no approval language, anything needing business context routed to "Questions for the author" instead of guessed at, every blocking issue tied to a line.
+
+## The Skill on a real diff
+
+Here is a diff Bhavin might push — the exact mistake I see weekly. A "cancel order" endpoint.
+
+```csharp
+// OrdersController.cs — the change under review
+[HttpPost("{id}/cancel")]
+public async Task<IActionResult> Cancel(Guid id)
+{
+    var order = await _db.Orders.FindAsync(id);   // data access in controller
+    if (order == null) return NotFound();
+
+    order.Status = "Cancelled";                    // business logic in controller
+    order.CancelledAt = DateTime.Now;              // local time, not UTC
+    await _db.SaveChangesAsync();
+
+    _logger.LogInformation("Order " + id + " cancelled");  // string concat log
+
+    return Ok(new { order.Id, order.Status });     // anonymous object, not ApiResponse<T>
+}
+```
+
+It compiles. It works in a demo. It breaks four team rules at once. Here is what the Skill produces.
+
+```markdown
+### 1. Blocking issues
+- Logic and data access in controller (lines 4–9). FindAsync, status
+  change, and SaveChanges belong in a CancelOrderCommandHandler. Violates
+  the Clean Architecture layer boundary.
+- No validator for the cancel operation. Needs a FluentValidation validator.
+- No test. New cancel + not-found paths have zero xUnit coverage. Blocking.
+- Response breaks the API contract (line 13). Anonymous object instead of
+  ApiResponse<T>.
+
+### 2. Suggestions
+- Use DateTime.UtcNow, not DateTime.Now (line 6).
+- Structured logging: LogInformation("Order {OrderId} cancelled", id) (line 11).
+
+### 3. Questions for the author
+- Should cancelling an already-shipped or already-cancelled order be
+  rejected? The status-transition rules are business logic I cannot infer —
+  please confirm with the domain owner.
+```
+
+Read that last section. The Skill did not pretend to know the cancellation rules. It flagged the gap and handed it to a human. That is exactly right: the AI clears the mechanical rubble and shines a light on the one thing that needs judgment. No model in the repo knows your refund policy.
+
+## Does Copilot PR review actually read your Skill?
+
+Short answer: yes, but read the fine print — and check current docs, because these features are moving fast. When Copilot reviews a PR it pulls your configuration from the **head branch** (the branch with the changes, not base): repository custom instructions (`.github/copilot-instructions.md`), path-specific `*.instructions.md` files, agent instructions, and Agent Skills in `.github/skills/` when they are relevant to the code being reviewed.
+
+Two honest caveats. Agent Skills and MCP servers for code review are currently in **public preview** and can change; repository custom instructions are the stable, generally available baseline today. And to make a Skill target reviews, give its directory a review-focused name like `code-review` so Copilot associates it with PR review. There is also an `excludeAgent: "code-review"` property to hide an instructions file from the reviewer. So the Skill we built is legitimately usable — treat custom instructions as the reliable layer and the Skill as the richer preview layer on top.
+
+## The workflow shift that makes review faster
+
+The payoff is not "AI reviews your code." It is a change in who does what, and when.
+
+```text
+BEFORE — everything hits the human first
+Author opens PR → reviewer reads cold → writes 12 mechanical comments
+→ reviewer now tired, gives design a tired glance → 2 days of back-and-forth
+
+AFTER — AI clears the mechanical layer first
+Author opens PR → Skill posts structured review → author fixes blocking
+issues first → reviewer opens a clean PR, skips the checklist → spends full
+attention on design + the author's questions → human approves and merges
+```
+
+The wins are concrete: the mechanical pass is done before a human opens the PR, standards land consistently no matter which reviewer is on duty, and juniors get instant feedback at 11pm instead of waiting for Coimbatore to wake up. Your seniors stop spending scarce judgment on formatting. In short: the Skill does not review better than your best engineer — it removes the work that was stopping your best engineer from reviewing well.
+
+## The honest core: what AI code review misses
+
+Now the part the hype skips. A misplaced trust here ships bugs. These are the AI code review limitations I have watched cost real hours.
+
+- **It approves code that solves the wrong problem.** My refund bug. Clean, tested, well named, wrong number. AI reviews *how*, not *whether*.
+- **It misses design flaws that are correct line by line.** A circular dependency, a leaky abstraction, a pattern that dies past ten thousand orders — every individual line passes. Architecture is emergent across many files and the roadmap. A diff shows neither.
+- **Its "best practice" suggestions can be outdated or invented.** I have seen it recommend a 2019 anti-pattern and an API that does not exist in our version. Treat every suggestion as a proposal from a well-read junior, not a ruling.
+- **On security it catches smells, not threats.** It flags a hardcoded key. It misses that your new endpoint lets user A cancel user B's order because there is no ownership check. One independent study reviewed 117 files and the AI flagged zero of the real vulnerabilities present.
+- **It cannot weigh "is this complexity worth it."** Add a cache? A new abstraction? Split this service? Those are trade-offs against team size, timeline, and load. The model has no stake and no cost model.
+- **It has no accountability.** When code fails at 2am, a person is paged, explains it, owns the fix. Review is, at heart, an act of accountability. You cannot delegate that to something that cannot be answerable.
+
+One real cost worth naming: as of June 2026, Copilot code review consumes GitHub Actions minutes, so running it on every PR is no longer free. That is another reason to keep it a tight mechanical pass — and the Microsoft .NET team's own numbers back it, with accuracy highest on PRs under about 50 lines and falling as diffs grow. Small, focused, mechanical is the sweet spot.
+
+## So, 100% automated? No — here is the split
+
+Chasing 100% is the wrong target; it makes you trust the tool exactly where it is weakest. The realistic goal is to shift the mechanical load off humans so their review time flows to design and risk. A good Skill can own the large majority of *comments* on a routine PR, because most comments are mechanical. But the few it cannot make are usually the ones that decide whether the feature is actually right.
+
+Here is the split I ship with. Put it on the wall.
+
+| Layer | Owner | Example checks |
+|---|---|---|
+| **Mechanical** | AI review Skill | Naming and formatting, layer boundaries, missing tests, missing validators, `ApiResponse<T>` contract, structured logging, hardcoded secrets, empty catch blocks |
+| **Judgment** | Human reviewer | Is this the right design? Does it match the business rule? Is the abstraction worth it? Is the trade-off acceptable? Is the threat model sound? Who is accountable in production? |
+
+Read it as a division of labour, not a competition. The AI is a *different* reviewer — tireless and consistent on exactly the layer where humans are slow and bored. Pair them and you get the best of both. Ask either to do the other's job and you get my refund bug.
+
+## Advisory vs enforceable: Copilot review reasons, it doesn't run
+
+One limit people miss: the review bot does not execute anything. No git hooks, no scanners, no tests. It reads the diff and reasons about it. So any check that must be deterministic — a license policy, a security scan, the test suite — belongs in CI as a required check, with Copilot review as the advisory layer on top.
+
+```text
+Deterministic gate (CI + hooks)          Advisory layer (Copilot review)
+license / security / tests               reads diff, reasons, nudges
+→ required status check, BLOCKS merge    → comments, can miss, never blocks
+```
+
+Take a license check on a .NET repo. Two lanes, four steps:
+
+1. Add a GitHub Actions workflow on `pull_request` that runs a real scanner and fails on a disallowed license.
+
+```yaml
+# .github/workflows/license-check.yml
+on: pull_request
+jobs:
+  licenses:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+      - run: dotnet tool install --global dotnet-project-licenses
+      - run: dotnet-project-licenses -i . --allowed-license-types MIT Apache-2.0 --failed
+```
+
+2. Make that workflow a **required status check** in a branch-protection ruleset, so a failing scan blocks merge. This is the actual gate.
+3. (Advisory) Add a Copilot review instruction in `.github/copilot-instructions.md` — for example, "flag any newly added dependency and confirm its license is on the approved list", or point it at a checklist file. GitHub's own docs show instructions like "apply the checks in `/security/security-checklist.md`". The human-readable nudge then shows up in the PR too.
+4. (Local) Mirror the scanner in a pre-commit or pre-push hook for fast, free feedback before push.
+
+The rule to remember: Copilot review reasons, it doesn't run. Deterministic checks are the gate; Copilot is the reasoning layer on top of it.
+
+## Do's and don'ts of AI-assisted PR review
+
+| Do | Don't |
+|---|---|
+| Use it as the first pass, before a human opens the PR | Let it auto-approve or auto-merge |
+| Demand a structured output: blocking / suggestions / questions | Accept a free-prose blob of mixed-priority comments |
+| Cap the suggestions so signal beats noise | Let it flood the author with thirty nitpicks |
+| Tie its rules to your real, written standards | Trust generic "best practice" suggestions blindly |
+| Keep a human as the accountability gate on merge | Remove the human because the AI passed it |
+| Scope it to small, focused diffs | Point it at a 2,000-line PR and expect accuracy |
+
+## Where this fits, and what's next
+
+This review Skill is not a standalone trick. It clicks into the Skills you already built: the [.NET feature Skill](../build-first-github-copilot-skill-dotnet-clean-architecture) writes backend code to a standard, the [Flutter Skill](../build-flutter-github-copilot-skill-riverpod-firebase) does the same for mobile, the [Azure Skill](../build-azure-copilot-skill-secure-cost-aware-bicep) guards infrastructure, and this one checks all of it against the same rules. Write and review now speak one language.
+
+The capstone is governance: a shared, versioned Skill library across repos, plus one metric I strongly recommend — comments actioned over comments made. If your AI reviewer posts a hundred comments and developers resolve five, you do not have a review tool, you have noise. That number is how you tune it, and how you prove it earns its Actions minutes.
+
+## Key takeaways
+
+- GitHub Copilot cannot automate code review 100%. It owns the mechanical layer; judgment stays human.
+- Mechanical (standards, tests, secrets, layer boundaries, contract) is rule-based and automatable. Judgment (design fit, business context, trade-offs, accountability) is not.
+- A good review Skill needs a bounded description, real rules, a strict output format, and a suggestion cap to kill noise.
+- The win is a workflow shift: AI clears mechanical comments before a human opens the PR.
+- Known limits: it approves wrong-but-clean code, misses architecture and threat-model issues, gives outdated suggestions, and has no accountability.
+- Never let AI approve or merge. Keep a human gate. Measure comments actioned, not comments made.
+
+## Frequently asked questions
+
+**Can GitHub Copilot fully automate code review?** No. It automates the mechanical, rule-based layer but not the judgment layer. Whether a design is right, whether a trade-off is worth it, and who owns what ships stays with a human.
+
+**What can an AI review Skill reliably catch?** Rule-based issues: naming, logic in a controller, missing tests, missing validators, hardcoded secrets, unstructured logging, swallowed exceptions, and contract breaks. Consistent, checklist-style problems.
+
+**What does AI code review miss?** Design flaws that are correct line by line, code that is clean but solves the wrong problem, threat-model security issues, and any trade-off needing business context. It can also bury the one comment that mattered under nitpicks.
+
+**Should AI be allowed to approve or merge PRs?** No. Let it produce a first-pass structured review, but keep a human as the accountability gate. Someone has to own production, and an AI cannot carry that.
+
+**How do I make Copilot PR review more efficient without the noise?** Give it a strict output format, cap suggestions at a handful, scope it to small diffs, tie it to your real standards, and run it before a human opens the PR.
+
+## Conclusion
+
+AI is not going to replace the reviewer. The interesting question is what your best reviewers do with the time they get back once a Skill clears the boring mechanical layer — the naming, the missing test, the log line, the crossed boundary.
+
+My answer, after thousands of reviews and one refund bug I will never forget: they spend it on judgment. Whether the design is right. Whether it fits where the product is going. Whether they are willing to put their name on it shipping.
+
+A machine can tell you the code is written well. Only a person can decide it is the right code, and only a person can be answerable when it is not. Automate the checklist. Keep the judgment. That has always been the human's job, and it still is.

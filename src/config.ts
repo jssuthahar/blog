@@ -98,6 +98,44 @@ export const AUTHOR = {
 } as const;
 
 /**
+ * Verifiable Microsoft achievements, each linking to its Microsoft Learn
+ * achievement page so the credential is provable rather than just claimed.
+ * Rendered as visual badges on the home and about pages and folded into the
+ * about page's schema.org `award` list. `tier` drives the medallion colour;
+ * `icon` selects the glyph in MicrosoftBadges.astro.
+ */
+export const MICROSOFT_ACHIEVEMENTS = [
+  {
+    name: 'Certified Microsoft Innovative Educator',
+    short: 'Microsoft Innovative Educator',
+    tier: 'Certified',
+    icon: 'educator',
+    url: 'https://learn.microsoft.com/en-us/users/jssuthahar/achievements/7v6ey2ez',
+  },
+  {
+    name: 'Silver MSDN and TechNet Galleries contributor',
+    short: 'MSDN & TechNet Galleries',
+    tier: 'Silver',
+    icon: 'gallery',
+    url: 'https://learn.microsoft.com/en-us/users/jssuthahar/achievements/4syhar5k',
+  },
+  {
+    name: 'Silver TechNet Wiki contributor',
+    short: 'TechNet Wiki',
+    tier: 'Silver',
+    icon: 'wiki',
+    url: 'https://learn.microsoft.com/en-us/users/jssuthahar/achievements/x2gdc6my',
+  },
+  {
+    name: 'Bronze MSDN and TechNet Blogs contributor',
+    short: 'MSDN & TechNet Blogs',
+    tier: 'Bronze',
+    icon: 'blog',
+    url: 'https://learn.microsoft.com/en-us/users/jssuthahar/achievements/hyjestz8',
+  },
+] as const;
+
+/**
  * Flat skill list emitted as schema.org `knowsAbout` — the topical authority
  * claim search engines and LLMs read. Derived from the groups so the page and
  * the structured data can never disagree.

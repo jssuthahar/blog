@@ -1,0 +1,299 @@
+---
+title: 'GitHub Copilot Hooks for Beginners: Why You Need Them and What You Can Build'
+description: 'A beginner-friendly GitHub Copilot Hooks tutorial: what a Copilot hook is, why you need deterministic guardrails around an AI agent, and how to write your first one in ten minutes.'
+publishedAt: 2026-07-26
+category: copilot
+categories: ['ai', 'engineering']
+tags: ['GitHub Copilot', 'GitHub Copilot Hooks', 'Copilot CLI', 'Copilot agent', 'AI coding safety', 'preToolUse', 'Deterministic guardrails', 'Automation', 'DevOps']
+seoTitle: 'GitHub Copilot Hooks for Beginners: Why and What to Build'
+highlight: 'A GitHub Copilot hook is a small shell script that runs automatically at a fixed point in an agent session, outside the AI model. Because it runs outside the model, it is deterministic: it does exactly what you told it, every time. Instructions ask the AI nicely. Hooks enforce. The checks you must never skip belong in a hook, not in a polite request to a probabilistic model.'
+series: 'agents-md-instructions'
+seriesOrder: 10
+featured: false
+draft: true
+faq:
+  - q: 'What are GitHub Copilot hooks?'
+    a: 'GitHub Copilot hooks are custom shell commands or scripts that run automatically at fixed points during a Copilot agent or Copilot CLI session, such as when the session starts or before the agent runs a tool. They execute outside the AI model, so they are deterministic: they do exactly what you configured, every time, and they can enforce rules the model might otherwise ignore.'
+  - q: 'Where do Copilot hooks live in a repo?'
+    a: 'In a repository, hooks live in JSON files under `.github/hooks/`, and they apply whenever a Copilot agent runs in that repo. Copilot CLI also reads hooks from `~/.copilot/config.json` for global hooks or `.copilot/config.json` for repo-local ones, under a "hooks" key. Because it is an evolving feature, confirm the exact path against current GitHub docs.'
+  - q: "What can a hook do that instructions can't?"
+    a: 'Instructions are advisory: they guide a probabilistic model that may or may not follow them. A hook is deterministic code that runs every time, so it can hard-enforce a rule, block a dangerous command before it runs, log every prompt for audit, or run a formatter after every edit. If a check must never be skipped, it belongs in a hook, not in an instruction.'
+  - q: 'Can a hook block the agent from running a command?'
+    a: 'Yes. The preToolUse hook runs before the agent uses a tool such as bash or edit, and it can approve or deny that tool call. That is what makes it the most powerful event: you can block a destructive command like a recursive delete or a force-push before it ever executes, no matter what the model decided to do.'
+  - q: 'Do I need to be an expert to write a Copilot hook?'
+    a: 'No. Your first hook can be a single line that appends a log entry when a session starts. If you can write a basic shell command and a small JSON file, you can write a useful hook today. Start with a logging hook to learn the shape, then graduate to a preToolUse guard once you are comfortable.'
+---
+
+A few months ago I was watching a junior developer pair with a Copilot agent on a cleanup task. The agent was doing well, right up to the moment it decided the fastest way to clear a build folder was `rm -rf` on a path that was one typo away from the project root. Nikhil caught it with his finger already hovering over the keyboard. Nothing bad happened. But the lesson stuck with me: the AI was helpful, fast, and one bad suggestion away from a very long evening restoring from Git.
+
+That near-miss is the reason I want to teach you **GitHub Copilot Hooks**. A hook would have caught that command before it ran, deterministically, without anyone needing to be alert at the right second. And the good news for a beginner is this: the fix is a hook, and you can write your first one in about ten minutes. This is Part 7 of my Copilot series, and it is the part where we stop asking the AI to behave and start giving it rails it cannot jump.
+
+> One caveat up front: Copilot hooks are an evolving feature. Parts of it have moved between preview and general availability, and the exact config keys can shift. Everything here matches the current GitHub docs at the time of writing, but before you rely on a hook in a real repo, confirm the syntax against the current GitHub documentation.
+
+If custom instructions and Skills are new to you, start with my [Copilot Skills explainer](../github-copilot-skills-deep-dive) for the foundation of how these layers fit together. And this article is the practical follow-through on a point I made in [Part 5 on the limits of AI code review](../github-copilot-automate-code-review-limits): the checks you must never skip do not belong in a polite request to the AI. They belong in a hook.
+
+## What is a GitHub Copilot hook, in plain words?
+
+A GitHub Copilot hook is a small script that runs automatically at a specific moment in the agent's work, and it runs outside the AI model.
+
+That last part is the whole idea, so let me slow down on it. When you chat with a Copilot agent, the model is guessing the next best action based on probability. It is brilliant, but it is not guaranteed. Ask it the same thing twice and you might get two different answers. That is fine for writing code. It is not fine for a rule like "never delete files outside the build folder".
+
+A hook is the opposite. It is plain code that you wrote. It runs every time, and it does exactly what you told it. No guessing.
+
+Here is the analogy I use with beginners. Think of an airport security checkpoint. The passengers (the AI's ideas) can be anything. Some are fine, some are not. The checkpoint (the hook) does not negotiate. It has one fixed rule, it applies that rule to everyone, and it does the same thing every single time. The AI is the creative traveller. The hook is the guard who follows the rulebook.
+
+In short: the model is probabilistic and creative. The hook is deterministic and boring. You want both, doing the jobs they are each good at.
+
+## Why do beginners need hooks at all?
+
+The honest answer: because the AI is probabilistic, and some things in your project must not be left to chance. A hook is the deterministic guardrail you control. Here are the five reasons that matter most when you are starting out.
+
+- **Safety.** The AI can suggest a destructive command. A `preToolUse` hook can inspect that command and deny it before it runs. This is the `rm -rf` story from the intro, solved once and for good.
+- **Consistency.** You want every AI-written file to pass the formatter and the linter. A hook can run the formatter after each edit, so nobody has to remember.
+- **Auditing.** For a team or anything with compliance rules, you often need a record of what the AI did and why. A hook can log every prompt and every tool call to a file. No trust required, because it is a fact on disk.
+- **Setup and teardown.** A hook can prepare the environment when a session starts (check the branch, warm a cache) and clean it up when the session ends (delete temp files, archive logs).
+- **Control without changing the agent.** You cannot rewrite how Copilot's model thinks. You can wrap it in hooks. Same agent, your rules.
+
+This is the exact point from Part 5, made concrete: an advisory instruction is a request the model may drop. A hook is enforcement that runs no matter what the model decided. If skipping a check would be a real problem, that check is a hook.
+
+## When can a hook run? The Copilot agent lifecycle
+
+A hook is only useful if you know *when* it fires. Copilot gives you a set of lifecycle events, and each one is a moment where your script can run. Here is a session as a timeline:
+
+```text
+ session begins
+      │
+      ▼
+ ┌─────────────┐
+ │ sessionStart│   init environment, log start, validate project state
+ └─────────────┘
+      │
+      ▼
+ ┌────────────────────┐
+ │ userPromptSubmitted│   log the prompt for audit / usage analysis
+ └────────────────────┘
+      │
+      ▼
+ ┌─────────────┐
+ │  preToolUse │   ★ APPROVE or DENY the tool (e.g. block a bad command)
+ └─────────────┘
+      │
+      ▼
+   [ the tool actually runs: bash, edit, view, ... ]
+      │
+      ▼
+ ┌─────────────┐
+ │ postToolUse │   after the tool ran (e.g. run the formatter on the edit)
+ └─────────────┘
+      │
+      ▼
+ ┌─────────────┐
+ │  agentStop  │   the agent finished its response
+ └─────────────┘
+      │
+      ▼
+ ┌─────────────┐
+ │ sessionEnd  │   cleanup temp files, archive logs, send a notification
+ └─────────────┘
+```
+
+Two more events sit off the main line: `preCompact` runs before Copilot compacts the conversation context to save room, and `errorOccurred` runs when a recoverable error happens. You will not need those on day one.
+
+Here is each event with a one-line "use it for" so you can scan and remember:
+
+| Event | Fires when | Use it for |
+|---|---|---|
+| `sessionStart` | A session begins or resumes | Init the environment, log the start, validate project state |
+| `userPromptSubmitted` | You submit a prompt | Log the request for auditing and usage analysis |
+| `preToolUse` | Before the agent uses a tool | **Approve or deny** the tool — block dangerous actions |
+| `postToolUse` | After a tool runs | Run a formatter, run tests, react to the result |
+| `agentStop` | The agent finishes its response | Final gate before it hands back to you |
+| `sessionEnd` | The session completes or ends | Cleanup temp resources, archive reports, notify a channel |
+| `preCompact` | Before context is compacted | Preserve or snapshot state you care about |
+| `errorOccurred` | A recoverable error happens | Log the error, alert, or record context |
+
+The one to remember is `preToolUse`. It is the only event that can stop the agent. Every other event observes or reacts; `preToolUse` decides.
+
+## Your first hook, step by step
+
+Let me get you to a working hook. We will start with the safest possible one: a `sessionStart` hook that just writes a line to a log. It cannot break anything, and it teaches you the shape.
+
+### Where the hook lives
+
+In a repository, hooks live in JSON files under `.github/hooks/`. Any hook file you put there applies whenever a Copilot agent runs in that repo. So create the folder and a file:
+
+```text
+your-repo/
+└── .github/
+    └── hooks/
+        └── session-log.json
+```
+
+### The minimal JSON shape
+
+Every hook file needs two things: a `version` field set to `1`, and a `hooks` object. Inside `hooks`, you add an array keyed by the event name. Here is the complete, copy-pasteable first hook:
+
+```json
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "echo \"[$(date -u +%FT%TZ)] Copilot session started\" >> .copilot-session.log"
+      }
+    ]
+  }
+}
+```
+
+That is a real, working hook. Let me walk through every part, because understanding these four things is 90% of hooks.
+
+- `"version": 1` — the format version. It must be present and set to `1`. Think of it as telling Copilot which rulebook to read.
+- `"hooks"` — the container object. Everything else lives inside it.
+- `"sessionStart"` — the event name. It is an **array**, because you can attach more than one hook to the same event. They run in order.
+- `"command"` — the shell command that runs. Here it appends a timestamped line to `.copilot-session.log`. The `$(date -u ...)` gives you a UTC timestamp so the log is sortable.
+
+Start your next Copilot agent session in that repo, and a line appears in `.copilot-session.log`. That is it. You wrote a hook.
+
+One beginner tip from experience: add `.copilot-session.log` to your `.gitignore` unless you actually want the log committed. I have seen a first hook accidentally turn every session into a noisy commit.
+
+## Examples of hooks you can build
+
+Once the shape clicks, the question becomes "what should I build?" Here is a practical menu. Scan the table first, then I will show two fuller snippets.
+
+| Event | Example hook | Why you'd build it |
+|---|---|---|
+| `preToolUse` | Deny `rm -rf`, force-push, or writes outside allowed paths | Safety — stop a destructive command before it runs |
+| `postToolUse` | Run the formatter/linter after an edit | Consistency — AI code matches team style automatically |
+| `userPromptSubmitted` | Append prompt + time + user to an audit file | Compliance and usage analysis |
+| `sessionStart` | Check the branch, deps, and that no secrets are staged | Catch a bad starting state early |
+| `sessionEnd` | Archive the session log, ping a Slack/Teams channel | Record-keeping and team visibility |
+| `preToolUse` (on commit) | Run tests before letting a commit through | Deterministic quality gate |
+
+### The safety hook: block a dangerous command
+
+This is the one that would have saved Nikhil's evening. A `preToolUse` hook can inspect what the agent is about to run and deny it. The tool call details are passed to your script (Copilot provides them via stdin or environment, depending on the current spec — check the docs for the exact field names), so your script reads the proposed command and exits with a non-zero status to deny it.
+
+```json
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": ".github/hooks/deny-dangerous.sh"
+      }
+    ]
+  }
+}
+```
+
+And the script it points to:
+
+```bash
+#!/usr/bin/env bash
+# .github/hooks/deny-dangerous.sh
+# Reads the proposed tool input and denies obviously destructive commands.
+
+input="$(cat)"   # the tool call payload Copilot passes on stdin
+
+# Fail loud and non-zero to DENY the tool call.
+if echo "$input" | grep -Eq 'rm[[:space:]]+-rf|git[[:space:]]+push[[:space:]]+--force|:>[[:space:]]*/'; then
+  echo "BLOCKED: destructive command denied by hook policy" >&2
+  exit 1
+fi
+
+exit 0   # zero = allow the tool to run
+```
+
+The parts that matter: the script exits `0` to allow and non-zero to deny. It fails loud, printing to stderr so you see *why* it blocked. And it keeps the rule simple and readable, because a guard you cannot read is a guard you will eventually disable.
+
+A common mistake here: writing an over-clever regex that also blocks harmless commands. If your guard cries wolf, people turn it off, and then it protects nobody. Start narrow. Block the two or three commands you truly never want, and widen only when you have a real reason. To harden it for production, keep the deny list in a small config the team reviews, and log every block so you can tune the rules from real data.
+
+### The audit hook: log every prompt
+
+For teams, this one earns its keep fast. A `userPromptSubmitted` hook records what people asked the AI to do.
+
+```json
+{
+  "version": 1,
+  "hooks": {
+    "userPromptSubmitted": [
+      {
+        "command": "printf '%s\\t%s\\t%s\\n' \"$(date -u +%FT%TZ)\" \"${USER:-unknown}\" \"$COPILOT_USER_PROMPT\" >> .github/hooks/audit.tsv"
+      }
+    ]
+  }
+}
+```
+
+It writes a tab-separated line: timestamp, user, and the prompt (Copilot exposes the prompt to the hook; confirm the exact variable name in the current docs). Now you have a factual record of AI usage. Not a guess, not a "I think someone asked it to refactor auth" — a log. For anything touching compliance, that record is the difference between "we believe" and "we can show you".
+
+One production note: an audit log can contain sensitive text people typed into prompts. Treat that file like any other sensitive artifact. Restrict who can read it, and never commit it to a public repo.
+
+## Hooks vs Instructions vs Skills: which layer do I reach for?
+
+Beginners get these three confused, so here is the clean split. Copilot gives you layers, and each does a different job:
+
+| Layer | What it is | When you reach for it |
+|---|---|---|
+| **Instructions** | Advisory guidance in plain language | You want to shape the AI's default behaviour and tone |
+| **Skills** | A reusable, packaged method the agent can invoke | You have a repeatable task with a known-good recipe |
+| **Hooks** | Deterministic code that runs outside the model | You must **enforce** a rule that can never be skipped |
+
+The mental test is one question: *can this rule be occasionally ignored without harm?* If yes, an instruction is fine. If no — if skipping it once means a deleted folder, a broken build, or a missing audit trail — it is a hook. Instructions ask. Hooks enforce.
+
+For the deeper story on Skills, the [Skills deep dive](../github-copilot-skills-deep-dive) covers where that layer fits. Here, just remember: hooks are the layer that does not negotiate.
+
+## Beginner mistakes: do's and don'ts
+
+I have watched enough people write their first hooks to know where the potholes are. Here is the short version.
+
+| Do | Don't |
+|---|---|
+| Keep hooks fast and deterministic | Put slow or network-heavy work in a hook — it stalls the agent |
+| Fail loud, print why to stderr | Swallow errors silently, so a broken guard looks like a passing one |
+| Version hooks in the repo (`.github/hooks/`) | Keep them only on your machine, where teammates never get them |
+| Start with logging, then graduate to blocking | Block everything on day one and frustrate the whole team |
+| Keep secrets out; read them from the environment | Hardcode a token or key inside a hook script |
+
+The one I feel strongest about is *start with logging before blocking*. When you begin by logging, you learn what the agent actually does before you decide what to forbid. Half the rules people think they need turn out to be unnecessary, and the other half turn out to need a slightly different shape than they guessed. Watch first, then enforce.
+
+## The Architect's take
+
+After years of putting guardrails around systems, here is how I frame hooks for a beginner. The AI's job is to move fast and be creative. Your job is to make sure "fast and creative" can never become "fast and destructive". Hooks are how you do that without slowing the AI down at all, because a deterministic check costs milliseconds and buys you certainty.
+
+The teams that get the most out of Copilot are not the ones that trust it the most. They are the ones that gave it clear rails, so they can let it run. Trust the model for ideas. Trust your hooks for rules.
+
+## Key takeaways
+
+- A GitHub Copilot hook is a shell script that runs automatically at a lifecycle point in an agent session, **outside** the model, so it is deterministic.
+- Hooks live in `.github/hooks/*.json` in a repo (also in Copilot CLI config), with `version: 1` and a `hooks` object keyed by event name.
+- The lifecycle: `sessionStart` → `userPromptSubmitted` → `preToolUse` → tool runs → `postToolUse` → `agentStop` → `sessionEnd`, plus `preCompact` and `errorOccurred`.
+- `preToolUse` is the powerful one: it can approve or **deny** a tool call, so it can block dangerous commands before they run.
+- Use hooks for safety, consistency, auditing, and setup/teardown — the checks that must never be skipped.
+- Start with a logging hook, then graduate to a `preToolUse` guard. It is an evolving feature, so confirm syntax against current GitHub docs.
+
+## Frequently asked questions
+
+**What are GitHub Copilot hooks?**
+They are custom shell commands or scripts that run automatically at fixed points during a Copilot agent or Copilot CLI session. Because they run outside the AI model, they are deterministic and do exactly what you configured, every time.
+
+**Where do Copilot hooks live in a repo?**
+In JSON files under `.github/hooks/`. Copilot CLI also reads them from `~/.copilot/config.json` (global) or `.copilot/config.json` (repo) under a `hooks` key.
+
+**What can a hook do that instructions can't?**
+Enforce, rather than request. An instruction is advice a probabilistic model may ignore. A hook is code that runs every time, so it can hard-block a command, log every prompt, or run a formatter without fail.
+
+**Can a hook block the agent from running a command?**
+Yes. The `preToolUse` hook runs before a tool executes and can deny it, so you can stop a destructive command no matter what the model decided.
+
+**Do I need to be an expert to write a Copilot hook?**
+No. Your first hook can be one line that logs when a session starts. If you can write a basic shell command and a small JSON file, you can write a useful hook today.
+
+## Conclusion
+
+If you take one action from this article, make it this: write one real hook this week. Start with the audit log, because it is safe and it teaches you the shape. Once that feels natural, add a `preToolUse` guard for the one command you never want the agent to run. That is the moment hooks stop being theory and start protecting your work.
+
+The bigger lesson is the one I keep coming back to after eighteen years of shipping software. AI agents are a genuinely powerful teammate, but power without control is just risk. Hooks are how you keep control while letting the AI move fast. Give it rails, and you can finally stop hovering your finger over the keyboard.
+
+If you want the layer underneath this, read the [Skills deep dive](../github-copilot-skills-deep-dive) next, and revisit [Part 5 on what AI code review can and cannot do](../github-copilot-automate-code-review-limits) — because now you know exactly where those must-never-skip checks belong.

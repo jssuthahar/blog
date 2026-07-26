@@ -1,0 +1,268 @@
+---
+title: 'GitHub Copilot PR Summary: How to Get Descriptions Reviewers Actually Read'
+description: 'A software architect on the GitHub Copilot PR summary: why an auto-generated pull request description that restates the diff is noise, and how to get one reviewers actually read.'
+publishedAt: 2026-07-26
+category: copilot
+categories: ['ai', 'engineering']
+tags: ['GitHub Copilot', 'Copilot pull request summary', 'PR description', 'AI PR description', 'Pull request template', 'Code review', 'Developer productivity', 'Enterprise', '.NET']
+seoTitle: 'GitHub Copilot PR Summary: Descriptions Reviewers Read'
+highlight: 'A GitHub Copilot PR summary reads your diff and drafts a description, but its default failure mode is restating the diff, which is exactly what the diff already shows. The summary a reviewer needs answers what the diff cannot: why the change exists, what the blast radius is, how it was tested, and where to look first. Let the AI draft the what. You supply the why. That split is the whole trick.'
+series: 'agents-md-instructions'
+seriesOrder: 9
+featured: false
+draft: true
+faq:
+  - q: 'What is a GitHub Copilot PR summary?'
+    a: 'It is a pull request description that GitHub Copilot generates by reading your diff. On github.com you click the Copilot icon in the description field and select Summary, and it produces a prose overview plus a bulleted list of changes with the files they touch. It is a first draft of the "what", not a finished description — it does not know why you made the change.'
+  - q: 'Can Copilot write my pull request description automatically?'
+    a: 'Yes, for the mechanical part. Copilot can draft the summary of what changed from the diff, in the IDE or on github.com (it is not in the Copilot Free tier, and it works best when you start from a blank description). It cannot write the parts that matter most — the reason for the change, the risk, and the rollback plan — because those live in your head and the ticket, not in the diff.'
+  - q: 'Why are AI PR summaries often useless?'
+    a: 'Because they restate the diff and call it a summary. The reviewer can already read the diff. If the description just says "added CalculateRefund method, modified OrdersController", it has added nothing. A useful summary explains why the change exists, what could break, and how it was verified — and the AI cannot know any of that unless you or your template tell it to look for it.'
+  - q: 'How do I make Copilot follow our PR template?'
+    a: 'Commit a pull_request_template.md with the sections you want, and add repository custom instructions telling Copilot to fill those exact sections instead of restating the diff. Support for the template is still improving, so treat the generated draft as a starting point and edit the "why" and "risk" sections yourself before you request review.'
+  - q: 'Should the AI or the author write the PR description?'
+    a: 'Both, in that order. Let the AI draft the summary of changes so you are not staring at a blank box. Then the author owns the intent — the why, the risk, the rollback, the ticket link, and the one line telling the reviewer where to focus. AI drafts, human supplies intent. The author is still accountable for what the description claims.'
+---
+
+A one-line pull request cost my team most of an afternoon. The description said "fixes stuff" — that was it. The diff touched eleven files across the Orders service, and buried in the middle of a routine refactor was a database migration that changed a column type. Nikhil was the reviewer. He spent forty minutes reverse-engineering the intent from the diff, missed the migration on the first pass, and only caught it because he happened to expand a file he almost skipped. A risky change had hidden itself inside a boring one, and the description did nothing to stop it.
+
+That afternoon is why I care about pull request descriptions more than most people think is reasonable. A PR description is one of the highest-impact, most-skipped artifacts in software delivery. And the good news is that GitHub Copilot can now draft one for you. The bad news is that a Copilot PR summary, left on default, would have described that exact pull request as "refactored order calculation and updated schema". Technically true, completely useless to Nikhil. This article is about closing that gap: how to get a **GitHub Copilot PR summary** that a reviewer actually reads, instead of one more block of text everyone scrolls past.
+
+This is Part 6 of my Copilot series. If Skills and custom instructions are new to you, start with the [Copilot Skills explainer](../github-copilot-skills-deep-dive) for the foundation. And read this alongside [Part 5 on the limits of AI code review](../github-copilot-automate-code-review-limits) — a good summary and a good review are two halves of the same handoff.
+
+## Who is a PR description actually for?
+
+Here is the reframe that changes everything. A pull request description is not written for the author. The author already knows what they did. It is written for two other people:
+
+1. **The reviewer**, right now, who has to decide whether this is safe to merge.
+2. **Future-you**, a year from now, staring at `git blame` on a line that just caused an incident, trying to remember why it exists.
+
+Neither of them can read your mind. Both of them can already read the diff. So the description has exactly one job: **add everything the diff cannot say.**
+
+A good PR description answers five things, and only the first is in the diff:
+
+| Question | Who answers it | In the diff? |
+|---|---|---|
+| **What** changed | The diff, or the AI summary | Yes |
+| **Why** it changed | The author | No |
+| **Risk / blast radius** | The author | No |
+| **How it was tested** | The author | No |
+| **Where the reviewer should focus** | The author | No |
+
+Look at that table for a second. The diff, and therefore the AI, owns exactly one row. The four rows that decide whether a review goes well are all things only a human knows. That is not a limitation of Copilot. That is the shape of the problem.
+
+> In short: the diff shows *what*. The description exists to add *why*, *risk*, *test evidence*, and *where to look*. An AI summary that only does "what" has restated the diff.
+
+## What the GitHub Copilot PR summary does today
+
+Let me be accurate about the current feature, because it moves fast. On github.com, when you open or edit a pull request, you click into the description field, select the Copilot icon in the toolbar, and choose **Summary**. Copilot reads the diff and generates a prose overview of the change plus a bulleted list of what changed, with the files each bullet touches. There is also a "pull request assistant" style experience in the IDE and in Visual Studio that drafts the description from your commits and diff.
+
+A few honest details that matter in practice:
+
+- It is **not** in the Copilot Free tier. You need a paid Copilot license.
+- It works best from a **blank** description field. Historically it ignores text you have already typed, so half-filling a template and then hitting Summary can wipe or override your work. Draft first, then edit.
+- It reads the **diff and changed files**. That is its entire world. It does not read your Jira ticket, your incident history, your Slack thread, or the rollback plan in your head.
+
+That last point is the whole story. Because the AI only sees the diff, its default output is a very fluent restatement of the diff. It will tell you a `CalculateRefund` method was added and `OrdersController` was modified. Both true. Both already visible one tab over. This is the failure mode I want you to design around.
+
+## The core problem: a summary that restates the diff is noise
+
+I need to be blunt here, because the marketing around this feature never is. An auto-generated summary that parrots the diff does not save review time. It costs it. Now the reviewer reads a paragraph of prose *and* the diff, and the prose added nothing. Worse, fluent prose creates false confidence — it *looks* like context, so people skim it and assume the risky part was covered when it never was. That is precisely how Nikhil nearly missed the migration.
+
+The fix is not to abandon the AI. It is to change what the AI is drafting *into*. If you give Copilot a structured target — a template with the right sections and instructions to fill them — the generated draft stops being a diff echo and starts being a real first draft that a human finishes. Let me show you the machinery.
+
+## The PR template that forces the right content
+
+The single most effective thing you can commit today is a pull request template. Drop this file in your repo at `.github/pull_request_template.md` and every new PR opens pre-loaded with these sections. It costs nothing and it changes behaviour immediately, because an empty section is an obvious, embarrassing gap that people fill in.
+
+```markdown
+<!-- .github/pull_request_template.md -->
+
+## Summary
+<!-- What does this PR do, in one or two plain sentences? -->
+
+## Why
+<!-- Why is this change needed? Link the ticket or incident.
+     This is the part the diff can NOT tell the reviewer. -->
+Closes #
+
+## Changes
+<!-- The key changes. The AI-generated summary can draft this section. -->
+
+## Risk & rollback
+<!-- What is the blast radius? Any migration, data change, feature flag,
+     or breaking API change? How do we roll back if this goes wrong? -->
+
+## Testing
+<!-- How was this verified? Unit tests, manual steps, screenshots.
+     "Trust me" is not testing. -->
+
+## Reviewer focus
+<!-- Where should the reviewer spend their attention?
+     e.g. "Look hard at the migration in OrdersDbContext." -->
+```
+
+Notice what the template does. It makes "Why", "Risk & rollback", and "Reviewer focus" *mandatory-looking*. It puts `Closes #` right where the author has to type a ticket number. And it explicitly hands the "Changes" section to the AI, so the human effort goes where the human is irreplaceable. The template is the contract. The AI fills one clause of it.
+
+One production note from experience: keep this template short. I have seen teams build a fourteen-section template with checkboxes for accessibility, i18n, telemetry, and six other concerns. Everyone ticks every box without reading. A template that demands too much gets satisfied dishonestly. Six sections people actually complete beat fourteen they rubber-stamp.
+
+## Steering Copilot with custom instructions
+
+The template shapes the human. Custom instructions shape the AI. If your team uses repository custom instructions (the same mechanism I covered in the [custom instructions post](../github-copilot-custom-instructions)), you can tell Copilot how to write the summary so its draft lands in the right shape instead of as a diff dump.
+
+Here is an instruction block I have used. It goes in your repo-level Copilot instructions:
+
+```markdown
+# PR summary guidance for Copilot
+
+When drafting a pull request description:
+
+- Follow the structure in .github/pull_request_template.md.
+- Write the "Changes" section as a short, grouped list of what changed
+  and why each group of changes was made — not a file-by-file diff dump.
+- Do NOT restate the obvious. "Modified OrdersController" tells the
+  reviewer nothing they cannot see in the diff.
+- Flag anything that looks risky in its own line: database migrations,
+  schema changes, deleted endpoints, changed public method signatures,
+  new external calls, changes to auth or money calculations.
+- Leave the "Why", "Risk & rollback", and "Reviewer focus" sections
+  for the author to complete. Add a "[author: fill this in]" marker.
+- Never invent a reason for the change. If the intent is not clear
+  from the diff, say so instead of guessing.
+```
+
+Two lines in there do most of the work. "Flag anything that looks risky in its own line" is what would have surfaced Nikhil's migration instead of hiding it in a bullet. And "Never invent a reason" is the guardrail against the AI's worst habit — writing a confident, plausible, wrong explanation of *why* you made a change. I will come back to that.
+
+A caveat: how strictly Copilot honours your template and instructions is still improving, and there is active community discussion about it. Treat the generated draft as a starting point, not a finished artifact. The point is not perfect obedience. The point is a better first draft.
+
+## Bad summary vs good summary: the same PR
+
+Let me make this concrete with a change from the Orders service in this series — adding a refund calculation. Same diff, two descriptions.
+
+Here is what the default AI summary tends to produce:
+
+```markdown
+## Summary
+This pull request adds refund calculation to the Orders service.
+
+## Changes
+- Added CalculateRefund method to OrderService
+- Modified OrdersController to expose a new POST /orders/{id}/refund endpoint
+- Added RefundRequest and RefundResult models
+- Updated OrdersDbContext
+- Added RefundServiceTests
+```
+
+Read it as Nikhil would. Every line is true. Every line is already in the diff. And the one thing that will hurt in production — "Updated OrdersDbContext" — is sitting quietly in the middle, giving no hint that it is a migration that changes a stored column. This summary passed the effort test and failed the reviewer.
+
+Now here is the version where the AI drafted the "Changes" and the author did their two minutes of irreplaceable work:
+
+```markdown
+## Summary
+Adds a refund endpoint so support can issue partial refunds without a DB script.
+
+## Why
+Support has been running manual SQL to refund customers since launch (see
+INC-2291). This closes that hole. Closes #874.
+
+## Changes
+- New POST /orders/{id}/refund endpoint and RefundRequest/RefundResult models.
+- CalculateRefund refunds the amount the customer actually PAID
+  (post-discount), not the pre-discount total — this was the bug in INC-2291.
+- Migration on OrdersDbContext: adds a nullable RefundedAmount column.
+
+## Risk & rollback
+- Contains a DB migration (nullable column, additive — safe to roll forward).
+- Touches money. If the calculation is wrong we over- or under-refund
+  real customers. Rollback: revert the deploy; the column can stay, it is nullable.
+
+## Testing
+- Unit tests cover full refund, partial refund, and the post-discount case
+  from INC-2291.
+- Manually tested against a staging order with a 15% discount applied.
+
+## Reviewer focus
+- Please check CalculateRefund against the INC-2291 scenario specifically.
+- Confirm the migration is additive and won't lock the table on deploy.
+```
+
+The second one is not longer for the sake of it. Every extra line is a thing the diff could not say. The migration is announced, not hidden. The money risk is stated. The exact scenario to scrutinise is named. Nikhil now starts his review from context, not from confusion. The AI wrote maybe half of that. The half that saved the afternoon was the author's.
+
+## The efficiency payoff, and how it ties to review
+
+This is where the summary and the review from [Part 5](../github-copilot-automate-code-review-limits) meet. When the description carries the *why* and the *risk*, the reviewer's attention shifts from decoding to judging. That is the entire point of a review — to apply human judgment — and a bad description wastes it on archaeology.
+
+Here is the workflow shift, before and after:
+
+```
+BEFORE (empty or diff-restatement description)
+Author: opens PR, writes "fixes stuff"
+   -> Reviewer: reads diff cold
+   -> Reviewer: guesses intent, opens the ticket, pings the author on Slack
+   -> Author (3 hours later, different time zone): answers
+   -> Reviewer: re-reads, finally reviews the actual design
+   -> ~40 min of reviewer time, most of it spent reconstructing context
+
+AFTER (AI-drafted + author-supplied why/risk)
+Author: opens PR, hits Summary, fills Why + Risk + Focus (2 min)
+   -> Reviewer: reads a description that answers the questions up front
+   -> Reviewer: goes straight to the flagged migration and the money math
+   -> ~10 min, spent on judgment, not archaeology
+```
+
+For a team split across time zones — say reviewers in Coimbatore and authors in Kuala Lumpur — that Slack round-trip in the "before" flow is not three minutes. It is often the next working day. A good description is what keeps an async team from blocking on a question the description should have answered. That, plus cleaner `git` history and honest changelogs, is the real return. Not "AI writes my PRs for me." Better handoffs between humans.
+
+## Where the AI still gets it wrong
+
+I would be doing exactly the thing I criticise in AI hype if I did not lay out the limits plainly. Here is where a Copilot PR summary fails, from real use:
+
+- **It restates the diff and calls it a summary.** The default output describes *what* and skips *why*. On its own it is often net-negative for review time.
+- **It hallucinates the "why".** The single most dangerous failure. The AI cannot know your intent, so if you let it, it writes a confident, plausible, wrong reason for the change. A reviewer who trusts that reason reviews against the wrong goal.
+- **It buries the risky change.** Without instruction, a migration or a deleted endpoint gets one bullet among ten routine ones, exactly like the afternoon I lost.
+- **It cannot assess risk.** It does not know that this table has 40 million rows, that this endpoint is on the checkout path, or that a similar change caused last quarter's incident. Risk needs context the diff does not carry.
+- **It has no rollback plan.** Rollback is an operational decision, not a code fact. The AI has nothing to draw on.
+- **It can leak sensitive detail.** If a secret, a customer identifier, or an internal URL is in the diff, the summary can surface it into a description that is more visible and more copy-pasted than the diff itself.
+
+None of these are reasons to switch the feature off. They are the map of which parts the human must own.
+
+## Rolling this out on a team
+
+You do not adopt this by telling people to "write better PRs". You adopt it by changing the defaults. Here is the order I would do it in:
+
+1. **Commit the PR template.** Add `.github/pull_request_template.md` with Summary / Why / Changes / Risk & rollback / Testing / Reviewer focus. This alone lifts the floor for every PR, with or without Copilot.
+2. **Commit the custom instructions.** Add the Copilot instruction block so generated summaries target your template and flag risky changes instead of restating the diff.
+3. **Make the culture rule explicit.** The author owns the *why*. The AI drafts the *what*. Write that sentence down somewhere the team sees it. Tools do not create the norm; the team does.
+4. **Optionally, add a CI gate.** A lightweight check that fails a PR whose description is empty or still all template comments. Do not over-tune it. The goal is to catch "fixes stuff", not to police prose.
+5. **Pair it with the review setup from Part 5.** The AI review runs the mechanical checklist; the good description points the human reviewer at the judgment call. Together they cover both layers.
+
+Step 3 is the one teams skip, and it is the one that matters most. I have watched a perfect template fill up with `[author: fill this in]` markers that nobody replaced, because nobody agreed the author was on the hook for them.
+
+## Do's and don'ts
+
+| Do | Don't |
+|---|---|
+| Use the AI for the first draft of "what changed" | Ship a summary that just restates the diff |
+| Keep a short, committed PR template | Build a 14-section template people rubber-stamp |
+| Write the "why" and ticket link yourself | Trust an AI-invented reason for the change |
+| State the risk and rollback explicitly | Let the AI describe risk it cannot assess |
+| Name where the reviewer should focus | Bury a migration in a list of routine bullets |
+| Review the draft before requesting review | Paste secrets or customer data into the summary |
+
+## Where this series goes next
+
+Notice the pattern across these six parts. Custom instructions steer the AI's voice. Skills give it repeatable capabilities. Review Skills catch the mechanical layer. PR templates and summary instructions shape the handoff to a human reviewer. Individually, each is a tactic. Together they are a team standard.
+
+The next piece is the governance capstone: pulling shared instructions, Skills, and templates into one committed, versioned standard so a new engineer inherits the whole setup on their first clone — and so the team's AI behaviour is something you review and evolve, not something each person configures alone.
+
+## Conclusion
+
+The diff already tells the next person *what* changed. Your job — with the AI's help, not instead of it — is to make sure they understand *why*, what could break, and where to look first. That is not paperwork. A pull request description is a message to a future teammate, sometimes to a future version of you at 2am during an incident, and the AI can write the easy half of it in seconds so you have the two minutes to spare for the half only you can write.
+
+Let Copilot draft the *what*. You supply the *why*. Get that split right and your reviewers stop reverse-engineering your changes and start reviewing them — which is the whole point.
+
+*(These Copilot features change quickly. The exact buttons, tiers, and behaviour above are current as I write, but check the GitHub Copilot documentation for what is live when you read this.)*
+
+Sources:
+- [Creating a pull request summary with GitHub Copilot — GitHub Docs](https://docs.github.com/en/copilot/how-tos/copilot-on-github/copilot-for-github-tasks/create-a-pr-summary)
+- [Copilot Chat brings richer context to pull requests — GitHub Changelog](https://github.blog/changelog/2026-06-04-copilot-chat-brings-richer-context-to-pull-requests/)
+- [Let GitHub Copilot draft your pull request description — Visual Studio Blog](https://devblogs.microsoft.com/visualstudio/let-github-copilot-draft-of-your-pull-request-description/)

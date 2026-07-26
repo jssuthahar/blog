@@ -3,7 +3,18 @@ import { glob } from 'astro/loaders';
 import { CATEGORY_SLUGS } from './lib/taxonomy';
 
 const blog = defineCollection({
-  loader: glob({ base: './src/content/blog', pattern: '**/*.{md,mdx}' }),
+  loader: glob({
+    base: './src/content/blog',
+    pattern: '**/*.{md,mdx}',
+    /**
+     * Derive the id (and therefore the /blog/<id> URL) from the filename ONLY,
+     * ignoring any folders. This lets us group articles into per-series
+     * subfolders for manageability without changing a single URL — a file can
+     * move between folders and keep its slug. The one rule: filename stems must
+     * stay unique across the whole collection, since the stem IS the URL.
+     */
+    generateId: ({ entry }) => entry.split('/').pop()!.replace(/\.(md|mdx)$/, ''),
+  }),
   schema: ({ image }) =>
     z.object({
       title: z.string().max(120),

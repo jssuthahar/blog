@@ -1,0 +1,493 @@
+---
+title: 'Building a Flutter Copilot Skill: Feature-First Architecture with Riverpod and Firebase, Start to Finish'
+description: 'A hands-on build-along: create one GitHub Copilot Skill (SKILL.md) that makes Copilot write Flutter features the right way — feature-first folders, Riverpod state, Firebase behind a repository.'
+publishedAt: 2026-07-26
+category: copilot
+categories: ['mobile', 'ai']
+tags: ['GitHub Copilot', 'Copilot Skills', 'SKILL.md', 'Flutter', 'Riverpod', 'Firebase', 'Firestore', 'feature-first architecture', 'AI-assisted development', 'mobile']
+seoTitle: 'How to Build a GitHub Copilot Skill for Flutter (SKILL.md)'
+highlight: 'A Flutter Copilot Skill lives at .github/skills/<name>/SKILL.md and its description is the activation trigger. Get that one line sharp and Copilot stops calling Firestore inside build() — it writes feature-first folders, Riverpod state, and a repository layer, with a widget test, on the first try.'
+series: 'agents-md-instructions'
+seriesOrder: 6
+featured: false
+draft: true
+faq:
+  - q: 'Where do GitHub Copilot Skills live in a Flutter repo?'
+    a: 'Each Skill is a folder under .github/skills at the root of your Flutter project, with a SKILL.md inside — for example .github/skills/flutter-feature/SKILL.md. It sits beside your pubspec.yaml and lib folder, gets committed, and is reviewed in pull requests like any other file, so every developer on the team shares the same Skill.'
+  - q: 'Why won''t my Flutter Copilot Skill activate?'
+    a: 'The description is almost always too vague. Copilot matches your task against each Skill''s description, so "helps with Flutter code" never fires. Name the real trigger words a developer types — "add screen", "new feature", "Firestore", "Riverpod provider" — and the Skill activates. If it still misses, reference it by name once to confirm the body works.'
+  - q: 'Can a Copilot Skill enforce Riverpod and feature-first structure?'
+    a: 'Yes. A Skill holds hard rules and a numbered workflow, so you can require lib/features/{feature}/{data,domain,presentation} folders and state living in a Riverpod Notifier or AsyncNotifier instead of setState. Add real code examples and a validation checklist, and Copilot mirrors that structure on new features.'
+  - q: 'How do I keep Firebase out of the widget layer?'
+    a: 'Put a rule in the Skill that the UI never touches FirebaseFirestore directly and only calls a repository interface from the domain layer. The Firestore implementation lives in the data folder behind that interface. Widgets read a Riverpod provider, so your notifier logic can be tested with a fake repository and no emulator.'
+  - q: 'Does this work with the Copilot agent in VS Code and Android Studio?'
+    a: 'Skills are read by the Copilot agent. It works in VS Code and the GitHub coding agent today; Android Studio and IntelliJ support through the JetBrains plugin is moving quickly, so confirm your Copilot plan and plugin version. When in doubt, name the Skill in your prompt to force activation and verify the body is correct.'
+---
+
+Last week Devisri sent me a Flutter screen to review. She had asked GitHub Copilot to build an orders list, and Copilot did — in one file. `FirebaseFirestore.instance.collection('orders').snapshots()` was called straight inside the widget's `build()` method. State lived in a `setState` call. There was no repository, no provider, and no test. It ran fine on her Pixel. It would have fallen over the first time the widget rebuilt under load, and it was untestable without a live Firestore emulator.
+
+I have seen this exact shape a dozen times. Copilot is not wrong about Flutter. It knows the APIs. It just does not know *our* Flutter: feature-first folders, Riverpod for state, Firebase locked behind a repository. That knowledge lived in my head and in review comments nobody could reuse. So let us build the Skill that fixes this for the whole team.
+
+This is Part 3 of my Copilot Skills series. If you want the theory — what a Skill is, how progressive disclosure works, why it sits between prompts and agents — read the [Copilot Skills deep dive](../github-copilot-skills-deep-dive) first. If you want the same build-along in C#, see [the .NET version of this walkthrough](../build-first-github-copilot-skill-dotnet-clean-architecture). Here we build the Flutter one. No theory. An empty file to a working, tested Skill.
+
+## What you need before we start
+
+This is a hands-on build, so here is the setup I am assuming. Nothing exotic.
+
+- A Flutter app using **feature-first folders**: `lib/features/{feature}/{data,domain,presentation}`.
+- **Riverpod** for state (I use `flutter_riverpod` with `Notifier` / `AsyncNotifier`). If you use Bloc, the rules change but the recipe holds.
+- **Firebase / Firestore** reached *only* through a repository layer, never from a widget.
+- GitHub Copilot with Agent Skills on your plan, in VS Code or the JetBrains plugin.
+- A repo you can commit to, because Skills are files in the repo.
+
+One honest note. Agent Skills is a fast-moving area, and exact availability and folder conventions shift between Copilot releases. Treat the paths here as the current shape and confirm against your Copilot version. The thinking is stable even when the plumbing moves.
+
+### Where the Skill file lives in a Flutter project
+
+A Skill is a folder with a `SKILL.md` inside it, under `.github/skills` at the root of your Flutter repo — right next to `pubspec.yaml`. Here is the layout we are building toward.
+
+```text
+orders_app/
+├─ .github/
+│  ├─ copilot-instructions.md          # always-on, small, general
+│  └─ skills/
+│     └─ flutter-feature/
+│        ├─ SKILL.md                    # the Skill we build in this article
+│        └─ reference/
+│           └─ firestore-mapping.md     # optional detail, loaded on demand
+├─ lib/
+│  ├─ features/
+│  │  └─ orders/
+│  │     ├─ data/
+│  │     ├─ domain/
+│  │     └─ presentation/
+│  └─ main.dart
+├─ test/
+└─ pubspec.yaml
+```
+
+Keep the folder name and the `name` in the frontmatter the same. Six months from now, when someone in a pull request asks "which Skill wrote this screen?", the matching name is what answers it.
+
+## Step 1: Start with just the frontmatter
+
+Create `.github/skills/flutter-feature/SKILL.md` and write nothing but the header first. I do this on purpose. The frontmatter, and the `description` inside it, is the most important part of the whole file. It is the activation trigger. Copilot reads the description of every Skill on every task and loads the full body *only* when the description matches the work.
+
+So if the description is weak, nothing else you write matters. The Skill never fires. I cover the *why* behind this at length in [the .NET walkthrough](../build-first-github-copilot-skill-dotnet-clean-architecture); here I will keep it short.
+
+Here is a weak description, the kind I wrote on my first try:
+
+```markdown
+---
+name: flutter-feature
+description: Helps with Flutter development and app coding standards.
+---
+```
+
+That reads fine to a human and fails with Copilot. "Flutter development" matches almost any task and none of them sharply. I got flaky activation for days before I understood why.
+
+Here is the strong version. Notice it names the concrete words a Flutter developer actually types.
+
+```markdown
+---
+name: flutter-feature
+description: >
+  Use when adding or changing a feature screen in the Flutter app.
+  Enforces feature-first folders (lib/features/{feature}/{data,domain,
+  presentation}), Riverpod state via Notifier/AsyncNotifier, and Firebase
+  accessed only through a repository. Every notifier gets a widget test.
+  Trigger phrases: "add screen", "new feature", "add page", "Firestore",
+  "Riverpod provider", "list from Firebase".
+---
+```
+
+The difference is precision, not politeness. A strong description states the job, lists what the Skill enforces, and spells out the phrases that should wake it up. When Devisri types "add an orders screen backed by Firestore", the words "add screen" and "Firestore" line up with this description and the Skill activates.
+
+In short: write the description as a matching rule, not a summary.
+
+## Step 2: Add Purpose and when NOT to use it
+
+Now the body gets a spine. The first section tells Copilot what this Skill is for and, just as important, when to stay out of the way.
+
+```markdown
+# Building a Flutter feature the way we build it
+
+## Purpose
+Add or change a feature screen so it matches our architecture on the
+first try: feature-first folders, Riverpod state, a domain repository
+interface, a Firestore implementation behind it, and a widget test.
+
+## When to use
+- Adding a new screen or page tied to data (a list, a detail view, a form).
+- Adding a Riverpod provider/notifier for a feature's state.
+- Wiring a screen to Firestore through a repository.
+
+## When NOT to use
+- Pure package or build config work (pubspec.yaml, Gradle, iOS pods).
+- App-wide theming, routing setup, or localisation.
+- Backend, .NET, or Azure work — those have their own Skills.
+```
+
+I learned the value of "when not to use" the hard way. An early Skill of mine kept trying to add a Riverpod provider to a `pubspec.yaml` dependency bump, because I never told it where its job ended. Three lines fixed it. On mobile teams this matters more than on backend — a lot of Flutter tickets are pure config, and you do not want a feature Skill firing on a version bump.
+
+## Step 3: Add the inputs the Skill needs
+
+Before Copilot can build a feature, it needs a few facts. This section is short but it stops Copilot from inventing field names or guessing whether Firebase is even involved.
+
+```markdown
+## Inputs required
+Before generating code, confirm you know:
+- Feature name (e.g. Orders, Tasks, Profile).
+- Does it need Firebase/Firestore? If yes, which collection.
+- The model fields and their types.
+- The screen type: list, detail, or form.
+- Loading, empty, and error states the UI must show.
+If any of these is unclear, ask one short question before writing code.
+```
+
+That last line matters more than it looks. Without it, Copilot fills gaps with assumptions and hands you a screen wired to a `products` collection when you meant `orders`. With it, Copilot asks "which Firestore collection?" and you avoid a whole wrong file.
+
+## Step 4: Add the rules — your non-negotiables
+
+This is the heart of the Skill. These are the rules I would say out loud in a review. Writing them here means I never have to say them again.
+
+```markdown
+## Rules (non-negotiable)
+- Feature-first folders only: lib/features/{feature}/{data,domain,presentation}.
+- The UI NEVER calls FirebaseFirestore directly. Always go through a
+  repository interface defined in domain/.
+- Firestore code lives ONLY in data/ as the repository implementation.
+- State lives in a Riverpod Notifier or AsyncNotifier, never in setState
+  and never in the widget itself.
+- Screens are ConsumerWidget; build() stays cheap — no queries, no heavy
+  work, no loops building large trees on every rebuild.
+- The domain model is immutable and framework-free (no Firestore imports).
+- Every notifier ships with a widget test covering loading, data, and error.
+```
+
+Keep rules as flat statements. "Do X." "Never do Y." Copilot follows crisp, testable rules far better than paragraphs. I once wrote a rule as a soft hint ("try to keep Firebase out of widgets") and got `snapshots()` in `build()` anyway. Changed it to "The UI NEVER calls FirebaseFirestore directly" and the behaviour flipped.
+
+## Step 5: Add the numbered workflow
+
+Rules say what must be true. The workflow says what order to do things in. This is where the Skill becomes a repeatable recipe.
+
+```markdown
+## Workflow
+1. domain/ — create the immutable model + a repository interface.
+2. data/ — create the Firestore implementation of that interface,
+   with the model <-> document mapping.
+3. presentation/state/ — create an AsyncNotifier + a provider that
+   depends on the repository provider.
+4. presentation/ — create the ConsumerWidget screen that watches the
+   provider and renders loading / data / error.
+5. test/ — write a widget test using ProviderScope overrides and a
+   fake repository (no emulator).
+6. Run the validation checklist below before finishing.
+```
+
+The order is deliberate: domain first so the contract exists, then the Firestore implementation, then state, then the screen, then the test. When Copilot follows this order it rarely doubles back, because each step depends only on steps already done. Domain has no idea Firestore exists — that is the point.
+
+## Step 6: Add real code examples
+
+Now we show Copilot exactly what "correct" looks like. This is where most Skills go weak — people write abstract `Foo`/`Bar` snippets and Copilot returns abstract code. Use real, production-shaped examples with real names. I use an Orders feature so it parallels the .NET example in Part 2.
+
+First, the **domain**, meaning the immutable model and the repository interface. Notice there is not a single Firebase import here.
+
+```markdown
+## Example: domain (model + repository interface)
+```
+
+```dart
+// lib/features/orders/domain/order.dart
+class Order {
+  const Order({
+    required this.id,
+    required this.customerName,
+    required this.total,
+    required this.placedAt,
+  });
+
+  final String id;
+  final String customerName;
+  final double total;
+  final DateTime placedAt;
+}
+
+// lib/features/orders/domain/order_repository.dart
+abstract interface class OrderRepository {
+  Future<List<Order>> fetchOrders();
+  Stream<List<Order>> watchOrders();
+}
+```
+
+Why this shape works in production: the model is immutable, so nothing mutates state under you during a rebuild, and it has no dependency on Firestore. The repository is an interface, so the domain does not know *how* orders are fetched. That single decision is what lets you test the notifier later without an emulator.
+
+Next, the **data** layer — the Firestore implementation. This is the *only* place `cloud_firestore` is allowed to appear.
+
+```dart
+// lib/features/orders/data/firestore_order_repository.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../domain/order.dart';
+import '../domain/order_repository.dart';
+
+class FirestoreOrderRepository implements OrderRepository {
+  FirestoreOrderRepository(this._db);
+  final FirebaseFirestore _db;
+
+  CollectionReference<Map<String, dynamic>> get _col =>
+      _db.collection('orders');
+
+  @override
+  Future<List<Order>> fetchOrders() async {
+    final snap = await _col.orderBy('placedAt', descending: true).get();
+    return snap.docs.map(_toOrder).toList();
+  }
+
+  @override
+  Stream<List<Order>> watchOrders() =>
+      _col.orderBy('placedAt', descending: true).snapshots().map(
+            (snap) => snap.docs.map(_toOrder).toList(),
+          );
+
+  Order _toOrder(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    return Order(
+      id: doc.id,
+      customerName: data['customerName'] as String? ?? 'Unknown',
+      total: (data['total'] as num?)?.toDouble() ?? 0,
+      placedAt:
+          (data['placedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+}
+```
+
+The mapping in `_toOrder` earns its place. Firestore fields are dynamic and often missing on old documents, so I default every field rather than letting a `null` cast blow up in production. A common mistake here is `data['total'] as double`, which throws the moment Firestore hands back an `int`. `(data['total'] as num?)?.toDouble()` survives both.
+
+Now the **state** — a Riverpod `AsyncNotifier` and its provider. This is where loading, data, and error live, off the widget.
+
+```dart
+// lib/features/orders/presentation/state/orders_notifier.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/firestore_order_repository.dart';
+import '../../domain/order.dart';
+import '../../domain/order_repository.dart';
+
+final orderRepositoryProvider = Provider<OrderRepository>((ref) {
+  return FirestoreOrderRepository(FirebaseFirestore.instance);
+});
+
+class OrdersNotifier extends AsyncNotifier<List<Order>> {
+  @override
+  Future<List<Order>> build() async {
+    final repo = ref.watch(orderRepositoryProvider);
+    return repo.fetchOrders();
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(orderRepositoryProvider).fetchOrders(),
+    );
+  }
+}
+
+final ordersProvider =
+    AsyncNotifierProvider<OrdersNotifier, List<Order>>(OrdersNotifier.new);
+```
+
+Two things I always encode in the Skill. The notifier depends on `orderRepositoryProvider`, not on Firestore directly — that indirection is what a test overrides. And `refresh()` uses `AsyncValue.guard`, so a thrown Firestore error becomes an `AsyncError` state the UI can render, instead of an unhandled exception. I have shipped the version without `guard` and paid for it with a red screen in front of a client.
+
+Then the **screen**, a `ConsumerWidget` that watches the provider and does nothing else.
+
+```dart
+// lib/features/orders/presentation/orders_screen.dart
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'state/orders_notifier.dart';
+
+class OrdersScreen extends ConsumerWidget {
+  const OrdersScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final orders = ref.watch(ordersProvider);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Orders')),
+      body: orders.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Could not load orders: $e')),
+        data: (list) => list.isEmpty
+            ? const Center(child: Text('No orders yet'))
+            : ListView.builder(
+                itemCount: list.length,
+                itemBuilder: (_, i) => ListTile(
+                  title: Text(list[i].customerName),
+                  trailing: Text('\$${list[i].total.toStringAsFixed(2)}'),
+                ),
+              ),
+      ),
+    );
+  }
+}
+```
+
+Look at what is *not* here. No Firestore. No `setState`. No business logic. `build()` reads one provider and maps three states to three widgets. `ListView.builder` builds rows lazily, so a 5,000-order list does not build 5,000 widgets at once. That is the cheap `build()` the rules demanded.
+
+Finally the **test**, a widget test with a fake repository and `ProviderScope` overrides. No emulator, runs in milliseconds.
+
+```dart
+// test/features/orders/orders_screen_test.dart
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:orders_app/features/orders/domain/order.dart';
+import 'package:orders_app/features/orders/domain/order_repository.dart';
+import 'package:orders_app/features/orders/presentation/orders_screen.dart';
+import 'package:orders_app/features/orders/presentation/state/orders_notifier.dart';
+
+class FakeOrderRepository implements OrderRepository {
+  FakeOrderRepository(this._orders);
+  final List<Order> _orders;
+
+  @override
+  Future<List<Order>> fetchOrders() async => _orders;
+
+  @override
+  Stream<List<Order>> watchOrders() => Stream.value(_orders);
+}
+
+void main() {
+  Widget wrap(OrderRepository repo) => ProviderScope(
+        overrides: [orderRepositoryProvider.overrideWithValue(repo)],
+        child: const MaterialApp(home: OrdersScreen()),
+      );
+
+  testWidgets('shows orders from the repository', (tester) async {
+    final repo = FakeOrderRepository([
+      Order(
+        id: '1',
+        customerName: 'Suresh',
+        total: 249.50,
+        placedAt: DateTime(2026, 1, 1),
+      ),
+    ]);
+
+    await tester.pumpWidget(wrap(repo));
+    await tester.pump(); // let the AsyncNotifier resolve
+
+    expect(find.text('Suresh'), findsOneWidget);
+    expect(find.text('\$249.50'), findsOneWidget);
+  });
+
+  testWidgets('shows empty state when there are no orders', (tester) async {
+    await tester.pumpWidget(wrap(FakeOrderRepository([])));
+    await tester.pump();
+
+    expect(find.text('No orders yet'), findsOneWidget);
+  });
+}
+```
+
+This test is the whole payoff of the repository rule. `overrideWithValue` swaps the real Firestore repository for a fake, so the notifier logic and every UI state get tested with zero network and zero emulator. Give Copilot this example and it stops writing screens that can only be tested by hand on a device.
+
+## Step 7: Add a validation checklist
+
+The checklist turns "looks done" into "is done". I make Copilot run through it before handing work back, and it doubles as the human PR gate.
+
+```markdown
+## Validation checklist
+Before finishing, confirm every item:
+- [ ] Folders follow lib/features/{feature}/{data,domain,presentation}.
+- [ ] No Firebase/Firestore import anywhere in domain/ or presentation/.
+- [ ] Firestore code appears only in data/.
+- [ ] State is a Riverpod Notifier/AsyncNotifier, not setState.
+- [ ] Screen is a ConsumerWidget; build() has no queries or heavy work.
+- [ ] The repository is an interface in domain/, implemented in data/.
+- [ ] A widget test covers loading, data, and error/empty using overrides.
+```
+
+Here is the same checklist as a table, which is how I hold it in my head during review:
+
+| Check | Correct | Common failure |
+|---|---|---|
+| Folders | feature-first `data/domain/presentation` | everything in one `lib/screens` file |
+| Firebase isolation | Firestore only in `data/` | `snapshots()` inside `build()` |
+| State | Riverpod `AsyncNotifier` | `setState` in the widget |
+| Widget cost | `build()` reads one provider | queries + loops in `build()` |
+| Repository | interface in `domain/` | widget calls Firestore direct |
+| Model | immutable, no Firestore import | Firestore `DocumentSnapshot` leaks into UI |
+| Tests | overrides + fake repo, no emulator | no test, or needs a live device |
+
+## Step 8: Add the expected output
+
+Finish the Skill by telling Copilot what a correct result looks like as files. This removes any doubt about "am I done". When the file list matches, the feature is structurally complete.
+
+```markdown
+## Expected output
+A correct result for a new "Orders" feature produces:
+- lib/features/orders/domain/order.dart
+- lib/features/orders/domain/order_repository.dart
+- lib/features/orders/data/firestore_order_repository.dart
+- lib/features/orders/presentation/state/orders_notifier.dart
+- lib/features/orders/presentation/orders_screen.dart
+- test/features/orders/orders_screen_test.dart
+```
+
+That is the whole Skill. Frontmatter, purpose, when-not-to-use, inputs, rules, workflow, real examples, checklist, expected output. You now have a complete, assembled `SKILL.md` — the same shape as the .NET one, only the content is Flutter. Commit it and let us test it for real.
+
+## Testing the Skill: give Copilot a real task
+
+A Skill you have not tested is a guess. So let us run the exact scenario from the top of this article. Open Copilot Chat in agent mode and give it a fresh task:
+
+> Add an Orders screen backed by Firestore.
+
+Here is what good activation looks like. Copilot recognises "add", "screen", and "Firestore", matches them against your `flutter-feature` description, and pulls in the Skill. You should see it produce, in order:
+
+1. An immutable `Order` model and an `OrderRepository` interface in `domain/`.
+2. A `FirestoreOrderRepository` in `data/` with the document mapping.
+3. An `OrdersNotifier` (`AsyncNotifier`) and providers in `presentation/state/`.
+4. An `OrdersScreen` `ConsumerWidget` rendering loading, data, and empty.
+5. A widget test using `ProviderScope` overrides and a fake repository.
+
+If you get that, the Skill works. The knowledge that used to live in my review comments now runs itself.
+
+### How to tell the description failed to trigger
+
+Sometimes you ask for a screen and Copilot puts `snapshots()` straight in `build()` anyway. That is the tell that the Skill did not activate. Do not start editing the rules — they are fine, they were never loaded. The problem is the description did not match.
+
+Two quick fixes, in order:
+
+1. Add the exact words you used to the description's trigger phrases. If you typed "orders list page" and the description only lists "add screen", add "list" and "page".
+2. Reference the Skill by name once to confirm the body is good: "Using the flutter-feature skill, add an orders screen from Firestore." If that produces correct code, you have proven the body works and the fault is purely the description's matching.
+
+In short: bad output on the first prompt is usually an activation problem, not a content problem. Fix the trigger words before you touch anything else.
+
+## Flutter gotchas the Skill should encode
+
+A .NET Skill and a Flutter Skill share a shape but not their traps. Here are the Flutter-specific ones I bake into every mobile Skill, because Copilot gets them wrong by default.
+
+**Rebuild cost.** The single biggest Flutter performance mistake is doing work inside `build()`. `build()` can run many times a second. If a screen queries Firestore or builds a big widget tree on every rebuild, the app janks. The rule "build() stays cheap" plus `ListView.builder` for long lists is what keeps frames under 16ms. Watch a narrow provider, not a broad one — `ref.watch(ordersProvider)` should not force the whole page to rebuild when one unrelated value changes.
+
+**Disposing providers.** A stream that is never closed is a leak. With modern Riverpod, mark feature providers `.autoDispose` (or use the code-gen equivalent) so a provider tears down when the last widget stops listening. On a mobile device with a real memory ceiling, a screen you open and close a hundred times should not hold a hundred live Firestore streams. Encode "feature providers are autoDispose unless state must survive navigation" as a rule.
+
+**Keeping Firebase out of the UI so tests stay fast.** This is the one that pays off every single day. When Firestore lives only in `data/` behind an interface, your notifier and widget tests run against a fake with no emulator. On Devisri's original one-file screen, testing the empty state meant seeding a real collection and running on a device. With the repository split, the same test is a `pumpWidget` that runs in milliseconds in CI. That difference is the reason the whole team writes tests now instead of skipping them.
+
+## Where this series goes next
+
+You now have one working Flutter Skill. The real payoff is a small, focused library of them, one Skill per job. On my current work that means this `flutter-feature` Skill, a separate `flutter-form-validation` Skill, and the `dotnet-cqrs-feature` Skill from Part 2 living in its own repo.
+
+Part 4 goes to the cloud: an Azure Skill that encodes how we provision and deploy — the same recipe of description-as-trigger, rules, workflow, and real examples, only the stack is Bicep and pipelines instead of Dart. The moment you have three or four of these, treat them like code. Review each Skill in a pull request. When a Flutter convention changes, the Skill changes in the same PR, so the AI and the humans learn the new rule at the same moment. A Skill that drifts out of date is worse than none, because it confidently produces the old pattern.
+
+That shared, PR-reviewed Skill library is where a mobile team stops repeating the same review comment forever. Enterprise GitHub Copilot on a mobile team is not about typing faster. It is about every new screen arriving in the shape the team already agreed on.
+
+## Conclusion
+
+Devisri's one-file screen was never really Copilot's fault. The knowledge to build it right existed on our team — feature-first, Riverpod, Firebase behind a repository. It just had no home the AI could read. A `SKILL.md` gives it that home.
+
+You have now built one from an empty file: a sharp description that triggers it, rules that hold the line, a workflow that repeats, real Dart examples that set the quality bar, and a widget test that proves the split was worth it. That is not a toy. That is the file I ship on a real Flutter project.
+
+So here is my push. Pick the one thing Copilot gets wrong most often in your Flutter repo this week — Firebase in `build()`, `setState` where a notifier belongs, a screen with no test — and write a Skill that fixes exactly that. Ship it, review it in a PR, and watch the next screen come back correct on the first try. One real Flutter Skill this week beats a perfect plan next quarter.
+
+If you want the concepts behind everything you just built, go back to the [Copilot Skills deep dive](../github-copilot-skills-deep-dive). If you want the same recipe in C#, read [the .NET walkthrough](../build-first-github-copilot-skill-dotnet-clean-architecture). Then come build the next one for your own stack.

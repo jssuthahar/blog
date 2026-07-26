@@ -3,7 +3,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Avatar from '../components/Avatar.astro';
 import Newsletter from '../components/Newsletter.astro';
 import AdUnit from '../components/AdUnit.astro';
-import { SITE, AUTHOR, MAIN_SITE, IMPACT, EXPERTISE, ADSENSE_SLOT_DISPLAY } from '../config';
+import MicrosoftBadges from '../components/MicrosoftBadges.astro';
+import { SITE, AUTHOR, MAIN_SITE, IMPACT, EXPERTISE, MICROSOFT_ACHIEVEMENTS, ADSENSE_SLOT_DISPLAY } from '../config';
 
 const schema = [
   {
@@ -19,7 +20,7 @@ const schema = [
     jobTitle: AUTHOR.jobTitle,
     homeLocation: { '@type': 'Place', name: AUTHOR.location },
     knowsAbout: [...EXPERTISE],
-    award: [...AUTHOR.awards],
+    award: [...AUTHOR.awards, ...MICROSOFT_ACHIEVEMENTS.map((a) => a.name)],
     hasCredential: AUTHOR.certifications.map((name) => ({
       '@type': 'EducationalOccupationalCredential',
       name,
@@ -76,6 +77,8 @@ const links = [
         </div>
       ))}
     </section>
+
+    <MicrosoftBadges variant="full" class="mt-14" />
 
     <div class="mt-14 grid gap-12 md:grid-cols-[1.6fr_1fr]">
       <div class="prose-reading">

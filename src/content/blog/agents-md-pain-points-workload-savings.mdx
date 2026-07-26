@@ -1,6 +1,6 @@
 ---
 title: 'AGENTS.md in 2026: The One File Every AI-Assisted Developer Actually Needs'
-description: 'AI coding agents write more code every month than most teams review by hand. AGENTS.md is the one file that keeps that code consistent — for solo devs, teams, and enterprises alike.'
+description: 'AI coding agents write more code every month than most teams review by hand. AGENTS.md is the one file that keeps that code consistent — for solo devs, teams, and enterprises skill.'
 highlight: 'The pain isn''t specific to any framework, team size, or tool — it''s what happens whenever an AI coding agent generates code without shared context. A solo dev feels it as already across their own projects; a team feels it as three ''correct'' implementations of the same feature.'
 publishedAt: 2026-07-26
 updatedAt: 2026-07-26
@@ -8,9 +8,11 @@ category: copilot
 tags: ['GitHub Copilot', 'AGENTS.md', 'Agent Mode', 'AI Coding Agents', 'Team Workflow']
 cover: './images/agents-md-food-delivery-enterprise.png'
 coverAlt: 'Diagram showing three competing state management approaches from different developers converging into one shared AGENTS.md standard'
-series: 'github-copilot-custom-instructions'
-seriesOrder: 1
-draft: true
+series: 'agents-md-instructions'
+# github-copilot-custom-instructions.mdx
+seriesOrder: 2
+featured: true
+draft: false
 ---
 
 AI coding agents write a genuinely large share of the code shipped this year — GitHub, Anthropic, and OpenAI have all published numbers pointing the same direction. What gets talked about far less is what happens once more than one person, or even one person across more than one session, is generating code without anything tying those sessions together.
@@ -94,6 +96,10 @@ The simplest version costs nothing: create `AGENTS.md` at the root of your repo,
 If you're in VS Code with Copilot, there's a faster path: open Copilot Chat and type `/init`. It scans the repo and drafts a first version based on what it finds — dependencies, folder structure, whatever config exists already. Treat the output as a draft, not a finished file. It's genuinely good at picking up patterns that are already consistent in your code; it can't tell you which pattern to standardize on if your codebase already has two or three competing ones. That decision is still yours, on a solo project as much as a team one.
 
 For a monorepo or a project with genuinely different sub-projects, nest additional `AGENTS.md` files in subfolders — the file closest to the code being edited takes priority over the root one. Shared rules stay in the root file; sub-project specifics go in the nested ones.
+
+<div style="margin: 32px 0;">
+<img src="./images/agents-md-tool-support-diagram.png" alt="Diagram showing AGENTS.md read natively by Codex, Cursor, Copilot, Windsurf, Aider, and others, with Claude Code as an exception requiring a symlink or import workaround" style="width: 100%; height: auto; border-radius: 10px;" />
+</div>
 
 ## Is this only for GitHub Copilot?
 

@@ -1134,21 +1134,6 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
   </b:widget>
 </b:section>
 
-<b:if cond='data:view.isHomepage'>
-<section aria-label='Latest from blog.msdevbuild.com' class='blog-highlights container'>
-  <div class='bh-head'>
-    <div>
-      <span class='eyebrow'>From the engineering blog</span>
-      <h2 class='bh-title'>Latest deep-dives on blog.msdevbuild.com</h2>
-    </div>
-    <a class='bh-all' href='https://blog.msdevbuild.com' rel='noopener' target='_blank'>View all articles &#8594;</a>
-  </div>
-  <div class='bh-grid' id='bhGrid'>
-    <div class='bh-loading'>Loading latest articles&#8230;</div>
-  </div>
-</section>
-</b:if>
-
 <div class='layout'>
 
 <b:section class='main' id='main-section' showaddelement='no'>

@@ -1,0 +1,327 @@
+---
+title: 'The Complete AGENTS.md Playbook: Build AI Coding Agents That Work Like Your Best Engineer'
+description: 'Everything that actually belongs in an AGENTS.md file — architecture, security, testing, AI-specific rules — plus what to leave out, common mistakes, and a full reusable template.'
+highlight: "A good AGENTS.md isn't a longer file, it's a more specific one — the difference between an AI agent that writes code like a stranger and one that writes code like it's been on your team for a year comes down to about a dozen sections, each answering one narrow question instead of vaguely covering everything."
+publishedAt: 2026-07-27
+category: copilot
+tags: ['GitHub Copilot', 'AGENTS.md', 'AI Coding Agents', 'Enterprise', 'Best Practices', 'Flutter']
+cover: './images/agents-md-complete-playbook.png'
+coverAlt: 'An open playbook illustration showing AGENTS.md sections on one page and a real config example on the facing page, with a checklist of coding standards, security, and testing rules alongside'
+series: 'agents-md-instructions'
+seriesOrder: 3
+featured: false
+draft: true
+faq:
+  - q: 'Can GitHub Copilot generate AGENTS.md automatically?'
+    a: "Yes, using /init in Copilot Chat, and it does a genuinely good job inferring things like your dependencies, folder structure, and any patterns that are already consistent in your code. It cannot infer your business rules, your security policy, which of several competing patterns is the one you actually want going forward, or anything that only exists in a decision someone made in a meeting. Generate a draft, then fill in what only a human on the team actually knows."
+  - q: 'How often should AGENTS.md be updated?'
+    a: "Same cadence as any shared config that affects how code gets written — the week a convention changes, not some later cleanup sprint. A file describing patterns the team abandoned months ago is worse than no file, because it actively steers new code toward decisions that are no longer correct."
+  - q: 'Should AGENTS.md include business logic?'
+    a: "Rarely, and only as a boundary, not an explanation. 'Never charge a card before an order is confirmed' belongs in the file because it's a rule the AI must not violate. The reasoning behind pricing strategy or a multi-quarter roadmap doesn't — that belongs in a product doc, and putting it here just makes the file harder to maintain and easier to leak."
+---
+
+Most AGENTS.md guides stop at "here's what the file format looks like." That's the easy 20%. The part that actually determines whether an AI coding agent produces code your team would have written anyway — versus code that technically works but needs rewriting in review — is the specific content inside each section, and knowing which sections earn their place at all.
+
+This is the longer version: what actually belongs in a serious AGENTS.md, what doesn't, the mistakes that show up repeatedly once teams start writing these, and a full template at the end you can copy and cut down.
+
+## What AGENTS.md is, and why it's become necessary
+
+AGENTS.md is a plain-text file, read automatically by an AI coding agent before it generates anything, that describes how a project is actually built — architecture, conventions, boundaries, the parts a new contributor would otherwise have to learn by trial and error. It's not a persona and it's not something you invoke; it's context loaded in behind the scenes, every session, the same way for every developer touching the repo.
+
+It's become necessary for a fairly mechanical reason: AI agents now generate a meaningful share of new code across most active projects, and every one of those generations is a decision — which state pattern, which error-handling style, which folder something belongs in. Without a shared file, every decision gets made independently, by whichever session is running at the time. Multiply that across a team, or even across your own sessions six months apart, and inconsistency isn't a risk anymore, it's the default outcome.
+
+## README.md vs. AGENTS.md
+
+These get confused constantly, and it's worth being precise about the difference instead of hand-waving it.
+
+| | README.md | AGENTS.md |
+| --- | --- | --- |
+| Answers | "How do I run this?" | "How should this be built?" |
+| Audience | Humans, mostly new contributors | AI coding agents, and humans secondarily |
+| Contains | Install steps, setup, deployment | Architecture, conventions, boundaries |
+| Read by | People, once, at the start | Agents, automatically, every session |
+
+A README that's out of date is an annoyance — someone spends ten minutes figuring out the real install command. An AGENTS.md that's out of date is worse: it actively steers every subsequent AI-generated feature toward the wrong pattern, silently, for as long as it stays wrong.
+
+## How AI coding agents actually use the file
+
+It's loaded into context before generation, not consulted mid-task like a lookup table. That has a practical consequence worth understanding: everything in the file competes for the agent's attention with your actual prompt and whatever code it's currently looking at. A ten-line file with five sharp rules will be followed more reliably than a two-hundred-line file where the five rules that matter are buried in surrounding detail the agent has to weigh against everything else.
+
+This is also why editing the file mid-session doesn't retroactively fix anything — start a new session afterward so the update is actually part of what gets loaded.
+
+## The anatomy of a well-designed AGENTS.md
+
+Below are the sections worth having, in the order they tend to matter. Not every project needs all of them — a solo side project might only need the first four. An enterprise codebase probably wants most of the list.
+
+### Project overview
+
+Two or three lines: what the project is, the core stack, target platforms. This exists purely to stop the agent from guessing the basics.
+
+```markdown
+Flutter Food Delivery app. Flutter 3.x, Dart 3.x. Android and iOS.
+Firebase backend, REST APIs for payment and logistics providers.
+```
+
+### Architecture rules
+
+Name the architecture explicitly — Clean Architecture, MVVM, Feature-First, whatever's actually in use — and say so in a way that leaves no room for a "reasonable" alternative.
+
+```markdown
+Feature-First Clean Architecture. Each feature owns its own data,
+domain, and presentation layers. Do not introduce a different
+architectural pattern for new features, even a well-known one.
+```
+
+### Folder structure
+
+Show it, don't describe it in prose — a literal tree is faster for both humans and agents to parse correctly.
+
+```text
+lib/
+├── core/            # shared services, network, theme
+├── features/        # one folder per feature, self-contained
+│   ├── cart/
+│   ├── orders/
+│   └── payment/
+└── main.dart
+```
+
+### Coding standards
+
+The small, constant rules that don't come from a linter: prefer `const` constructors, keep functions short, avoid deeply nested conditionals, whatever's specific to how your team actually writes code day to day.
+
+### Naming conventions
+
+State the case convention per context — classes, files, variables, constants — since "follow standard conventions" means something different in every language and gets interpreted inconsistently otherwise.
+
+### Error handling standards
+
+One approach, stated plainly, because this is one of the highest-leverage sections in the whole file. If every feature handles failure differently, every feature also gets tested and reviewed differently.
+
+```markdown
+API errors return a Result<T, Error> type. Never throw exceptions
+across a repository boundary. Log unexpected errors through the
+shared Logger service, never with print() or console.log().
+```
+
+### Security guidelines
+
+This is the section most AGENTS.md files skip, and it's the one with the highest cost when skipped. Say explicitly what must never happen — hardcoded secrets, credentials in client-side code, unsanitized input reaching a query — even though these feel like they should be obvious. They aren't obvious to a model with no visibility into your specific compliance requirements.
+
+```markdown
+Never hardcode API keys or secrets — use environment configuration.
+All user input must be validated before reaching the data layer.
+Payment data never touches application logs, structured or otherwise.
+```
+
+### Performance expectations
+
+Only where it's genuinely a constraint — image loading strategy, pagination requirements, list virtualization for long lists. Skip this section if performance isn't a distinguishing concern for your project; padding it out with generic advice weakens the sections that matter more.
+
+### Testing requirements
+
+Name which test types apply and what triggers writing one. "Every new repository method needs a unit test" is something an agent can actually act on. "Write good tests" isn't.
+
+### Git workflow
+
+Branch naming, commit message format, whether the agent should ever commit directly versus only proposing changes for review.
+
+### Pull request checklist
+
+If your team has one, put it here — it gives the agent something concrete to self-check against before handing back a finished feature.
+
+### Documentation expectations
+
+Whether new public functions need doc comments, whether a new feature needs a corresponding entry in an internal docs folder. Often skipped, rarely enforced without this being written down somewhere the agent reads.
+
+### AI-specific instructions
+
+This is the section that does the most actual work, and it's worth its own explanation. Generic coding standards apply to humans and AI alike; this section is specifically about agent behavior:
+
+```markdown
+- Reuse existing components and services before creating new ones
+- Never duplicate business logic already implemented elsewhere
+- Do not introduce a new package or dependency without flagging it explicitly
+- Do not modify generated code (build_runner, protobuf, etc.)
+- When two valid approaches exist, prefer the one already used in this codebase
+- Prefer consistency with existing code over a "better" alternative pattern
+```
+
+### Approved and forbidden libraries
+
+Name what's already in use, and explicitly rule out common alternatives an agent might otherwise reach for. "Use Riverpod" is good. "Use Riverpod, not Provider or Bloc" closes the door the first version leaves open.
+
+### Business rules the AI must never violate
+
+Narrow, boundary-only. Not an explanation of your business — a hard constraint the agent must respect regardless of how a prompt is worded.
+
+```markdown
+- Never mark an order as paid without a confirmed payment gateway response
+- Never expose a user's full payment details in logs, responses, or error messages
+- Refund logic must always go through the RefundService, never a direct database write
+```
+
+## Things that should never be included
+
+Worth stating as clearly as what belongs, because the failure mode here is different — it's not a weaker file, it's a liability.
+
+| Keep out | Why |
+| --- | --- |
+| Actual secrets, API keys, credentials | The file often ends up in version control history permanently |
+| Detailed business strategy, roadmap, pricing rationale | Not a coding instruction, and it's context most AI providers don't need |
+| Personally identifiable information, real customer data | No reason for it to exist in a repo-level instructions file at all |
+| Long prose explaining *why* a decision was made | Slows the agent down parsing it for the actual rule; put reasoning in a design doc, put the rule here |
+| Instructions that contradict your linter or CI config | Creates a standing conflict the agent can't resolve either way |
+
+## Common mistakes teams make writing this file
+
+The most frequent one is treating specificity as optional. "Follow best practices" and "write clean code" are the two phrases that show up constantly and mean almost nothing — best practices differ by team, language, and sometimes by which senior engineer you ask. Every vague line is a line the agent has to interpret, and it'll interpret it differently in different sessions.
+
+The second is writing it once and treating it as done. A file describing last year's architecture actively misdirects new code toward decisions that already got reversed.
+
+The third is scope creep — the file grows to cover onboarding, culture, meeting notes, roadmap context, because once someone's already editing it, everything nearby feels like it belongs. It doesn't. If a line isn't a coding rule or a boundary, it's probably in the wrong document.
+
+The fourth, more subtle one: writing rules that sound authoritative but were never actually decided by the team. It's tempting to use the file to unilaterally settle an architecture debate no one agreed to settle. That tends to surface fast in review, and it undermines trust in the rest of the file once one section turns out to be somebody's personal preference dressed as policy.
+
+## Can Copilot generate this file for you?
+
+Partially, and it's worth being precise about the boundary. Typing `/init` in Copilot Chat scans the repository and drafts a file based on what it finds — and it's genuinely good at the inferable parts: dependencies, an existing consistent folder structure, a pattern that's used uniformly across the codebase already.
+
+What it can't know: your security policy, which of two competing patterns already in your code is the one you actually want going forward, business rules that live only in someone's head or an old Slack thread, and anything about compliance requirements specific to your industry. A generated draft is genuinely useful as a starting point. It is not a substitute for someone on the team deciding the parts that only a human can decide.
+
+## Keeping it synchronized with the actual project
+
+The practical version of this: treat AGENTS.md edits like code changes, not documentation edits. Same PR process, same review, ideally a lightweight rule that any PR changing a core pattern (swapping a library, changing folder structure) updates the file in the same PR rather than leaving it for later. "Later" is where these files go stale.
+
+## Enterprise governance for AI coding agents
+
+At team scale, a few extra practices matter beyond just writing the file well:
+
+- **Ownership.** Someone specific owns the root file — usually whoever owns architecture decisions generally. Nested, feature- or squad-specific files can be owned by that squad, with the root file staying the shared baseline.
+- **Review, not unilateral edits.** Changes go through the same review as code, specifically because a quiet edit here changes behavior for every developer's AI sessions at once, not just the editor's own.
+- **Version history matters.** Because it's just a file in the repo, `git blame` already gives you an audit trail — use it. If a rule changes, the commit message should say why.
+- **New-hire onboarding pairing.** AGENTS.md is a strong complement to human onboarding, not a replacement for it. It answers "how do I write code that fits," not "why do we do things this way" — pair it with whatever your team already does for the second question.
+
+## A complete AGENTS.md template
+
+Everything above, assembled into one file. Delete whatever doesn't apply to your project — most projects won't need all of it.
+
+```markdown
+# AGENTS.md
+
+## Project Overview
+[App name]. [Core stack]. [Platforms]. [Backend].
+
+## Architecture
+[Named pattern]. [One line on how features are organized.]
+Do not introduce a different architectural pattern for new features.
+
+## Folder Structure
+[Literal tree of your actual structure]
+
+## Coding Standards
+- [Rule]
+- [Rule]
+
+## Naming Conventions
+- Classes: [convention]
+- Files: [convention]
+- Constants: [convention]
+
+## Error Handling
+[One approach, stated as a rule, not a suggestion.]
+
+## Security Guidelines
+- Never hardcode secrets or credentials
+- [Project-specific security rule]
+- [Project-specific security rule]
+
+## Performance Expectations
+[Only if genuinely a constraint for this project]
+
+## Testing Requirements
+- [Test type]: [when it's required]
+
+## Git Workflow
+- Branch naming: [convention]
+- Commit format: [convention]
+
+## Pull Request Checklist
+- [ ] [Item]
+- [ ] [Item]
+
+## Documentation Expectations
+[What needs doc comments, what needs a docs entry]
+
+## AI-Specific Instructions
+- Reuse existing components before creating new ones
+- Never duplicate business logic
+- Do not introduce new dependencies without flagging it
+- Do not modify generated code
+- Prefer consistency with existing code over a "better" alternative
+
+## Approved Libraries
+- [Library]: use for [purpose]
+Do not use: [explicitly ruled-out alternatives]
+
+## Business Rules (Hard Constraints)
+- [Rule the AI must never violate]
+- [Rule the AI must never violate]
+
+## Off-Limits
+- [Folder/file the AI should never modify]
+```
+
+## A worked example: Flutter food delivery
+
+To make this concrete rather than abstract, here's how a chunk of that template might actually get filled in for a food delivery app — illustrative, not a real production file, but realistic enough to show the shape:
+
+```markdown
+## Architecture
+Feature-First Clean Architecture. features/cart, features/orders,
+features/payment each own their data/domain/presentation layers.
+
+## Error Handling
+Result<T, Error> from repositories. Never throw across a repository
+boundary. UI layer shows user-facing messages via the shared
+ErrorPresenter — never a raw exception message.
+
+## Security Guidelines
+- Payment tokens are never logged, in any environment
+- No card data is stored client-side, ever — tokenization only
+
+## Business Rules (Hard Constraints)
+- Never mark an order "confirmed" without a successful payment gateway response
+- Refunds only go through RefundService — no direct database writes
+- Delivery address changes are blocked once an order enters "preparing" status
+```
+
+Notice how specific these are. None of them are "write secure code" — every line is something an agent can actually check itself against.
+
+## Do's and don'ts, condensed
+
+| Do | Don't |
+| --- | --- |
+| Write rules as explicit constraints an agent can check itself against | Write vague guidance like "follow best practices" |
+| Update the file in the same PR that changes the pattern it describes | Let it drift for a "cleanup sprint" that never comes |
+| Keep business-rule sections narrow — boundaries only | Explain business strategy or reasoning at length |
+| Review changes to this file like code | Let one person quietly edit shared rules unreviewed |
+| Generate a first draft, then fill in what only a human knows | Trust a generated draft without checking which pattern it picked |
+
+## A quick checklist before you commit it
+
+- [ ] Every rule is specific enough that a violation would be obvious in review
+- [ ] Security section exists and names actual constraints, not generalities
+- [ ] Exactly one approved pattern is named for state/data, not several options
+- [ ] No secrets, credentials, or real customer data anywhere in the file
+- [ ] Off-limits folders (generated code, migrations) are listed explicitly
+- [ ] Someone specific owns updates, and changes go through review
+- [ ] It's been tested — a fresh agent session asked to describe the stack back gets it right
+
+## Key takeaways
+
+- The difference between a useless AGENTS.md and a genuinely effective one is specificity, not length — a dozen sharp rules beat a hundred vague ones
+- Security, business-rule boundaries, and AI-specific instructions are the sections most guides skip and most projects actually need
+- Never put secrets, real customer data, or long strategic reasoning in the file — keep it to rules and boundaries
+- Copilot's `/init` drafts the inferable parts well; only a human can decide which of several existing patterns is the right one and write down the business rules that live nowhere else
+- Treat it as living, reviewed code — update it in the same PR that changes the pattern it describes, not later

@@ -21,7 +21,7 @@ faq:
     a: 'You should have one for each repository with its own stack and conventions, because Copilot performs better when it sees project-specific guidance instead of guessing from the current file alone.'
 ---
 
-Two developers join the same project on the same day. Both clone the repo, both open VS Code, both start getting Copilot suggestions within a minute. By lunch, one of them has barely touched what Copilot wrote for him. The other has rewritten half of it — wrong HTTP client, wrong test framework, a folder structure Copilot invented that doesn't exist anywhere in the actual project.
+Two developers join the same project on the same day. Both clone the repo, both open VS Code, both start getting Copilot suggestions within a minute. By lunch, one of them has barely touched what Copilot wrote for him. The other has rewritten half of it: wrong HTTP client, wrong test framework, a folder structure Copilot invented that doesn't exist anywhere in the actual project.
 
 Same Copilot. Same model version. The only real difference between the two of them is a file called `copilot-instructions.md` sitting in one repo and not the other.
 
@@ -29,19 +29,19 @@ Same Copilot. Same model version. The only real difference between the two of th
 
 I ignored this file for a long time, longer than I'd like to admit. At one point I had three projects going at once — a Web API backend, a .NET MAUI app for one client, a Flutter app for another — and I was using Copilot the exact same way in all three. Open a controller in the Web API project, get suggestions that looked half-borrowed from the MAUI app. Wrong patterns, wrong assumptions about lifecycle. One time it suggested `StatefulWidget` boilerplate inside a C# file, because I'd had a Flutter tab open a few minutes before.
 
-Copilot wasn't broken. I was giving it nothing to go on and expecting it to somehow keep four different codebases straight in its head. So one morning I sat down and wrote a proper `copilot-instructions.md` for each project — I basically just answered "what would I tell a new developer on their first day" for each one. The suggestions got noticeably better almost immediately. Not flawless. But close enough that I stopped fighting it constantly. That's the actual reason I'm writing this — it's a file that takes maybe five minutes and would've saved me weeks of low-grade annoyance if I'd bothered earlier.
+Copilot wasn't broken. I was giving it nothing to go on and expecting it to somehow keep four different codebases straight in its head. So one morning I sat down and wrote a proper `copilot-instructions.md` for each project — I basically just answered "what would I tell a new developer on their first day" for each one. The suggestions got noticeably better almost immediately. Not flawless. But close enough that I stopped fighting it constantly. That's the actual reason I'm writing this. It's a file that takes maybe five minutes and would've saved me weeks of low-grade annoyance if I'd bothered earlier.
 
 ## What is GitHub Copilot custom instructions?
 
-It's a plain text file, `.github/copilot-instructions.md`, that tells Copilot how your project works before it writes anything. Rather than guessing your stack and conventions from whatever file happens to be open at that moment, Copilot reads this file automatically and carries it into every chat, every suggestion, every session — you don't have to remind it.
+It's a plain text file, `.github/copilot-instructions.md`, that tells Copilot how your project works before it writes anything. Rather than guessing your stack and conventions from whatever file happens to be open at that moment, Copilot reads this file automatically and carries it into every chat, every suggestion, every session. You don't have to remind it.
 
 I've started thinking of it like the onboarding doc you'd hand a new hire on day one. Except this particular new hire actually reads the whole thing every single time, instead of skimming the first page and forgetting the rest by Friday.
 
 ## Why does it matter so much for your project?
 
-Copilot has no idea what "normal" looks like on your team until you spell it out. It's seen millions of repos during training, every possible way to structure a project, name a variable, write a test — so left with no guidance, it just picks one. Not necessarily yours.
+Copilot has no idea what "normal" looks like on your team until you spell it out. It's seen millions of repos during training, every possible way to structure a project, name a variable, write a test. So left with no guidance, it just picks one. Not necessarily yours.
 
-That mismatch doesn't show up as one big failure. It shows up as constant small friction: `fetch` when your team wraps everything in a custom HTTP client, Jest syntax when the project actually runs on Vitest. None of it is dramatic on its own. It's just a lot of tiny corrections, and it's usually the real reason behind the complaint "Copilot doesn't get our codebase" — when what actually happened is nobody ever told it.
+That mismatch doesn't show up as one big failure. It shows up as constant small friction: `fetch` when your team wraps everything in a custom HTTP client, Jest syntax when the project actually runs on Vitest. None of it is dramatic on its own. It's just a lot of tiny corrections, and it's usually the real reason behind the complaint "Copilot doesn't get our codebase," when what actually happened is nobody ever told it.
 
 <div style="margin: 32px 0;">
   <svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated comparison showing a Copilot suggestion being corrected without instructions versus matching immediately with instructions" style="width: 100%; height: auto; border-radius: 10px;">
@@ -205,7 +205,7 @@ Three different stacks, same underlying idea: write down the facts Copilot would
 
 ## Common mistakes beginners make
 
-The one I see most is a line like *"follow best practices and write clean code."* Sounds like guidance, isn't really any — "best practices" means something different in every language and every team, so it tells Copilot almost nothing concrete. It's the same as telling someone to "cook something good" instead of just handing them a recipe.
+The one I see most is a line like *"follow best practices and write clean code."* Sounds like guidance, isn't really any; "best practices" means something different in every language and every team, so it tells Copilot almost nothing concrete. It's the same as telling someone to "cook something good" instead of just handing them a recipe.
 
 Second: treating this as a one-and-done task. Write it during week one of the project, never touch it again, and six months later it's still confidently pointing Copilot at a library you migrated off of back in March.
 
@@ -215,7 +215,7 @@ And the one that actually got me: assuming Copilot will somehow "just know" whic
 
 ## Is this only for GitHub Copilot?
 
-Not really, no — not anymore. The filename is Copilot's, but the concept has spread past it.
+Not really, no. Not anymore. The filename is Copilot's, but the concept has spread past it.
 
 What actually surprised me while digging into this: VS Code's chat customization panel (`Chat: Open Customizations`) has an agent-type dropdown now, and Claude is one of the options sitting right next to local agents and Copilot CLI. VS Code can read `CLAUDE.md` directly too, through a setting called `chat.useClaudeMdFile`, and it understands `.claude/rules` files in Claude's own rules format. So Copilot isn't the only thing in VS Code paying attention to project instructions anymore — depending on what you've got enabled, Claude reads its own version of the same idea.
 

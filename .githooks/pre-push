@@ -1,29 +1,29 @@
 #!/bin/sh
-# pre-push: block pushing blog content that reads as AI-generated.
-# Scans only the .mdx blog files changed since origin, so it stays fast.
+# pre-push: block pushing src/content prose that reads as AI-generated.
+# Scans only the .md/.mdx content files changed since origin, so it stays fast.
 #
 # Enable once with:  git config core.hooksPath .githooks
 # Bypass in a pinch:  git push --no-verify
 
-changed=$(git diff --name-only origin/HEAD...HEAD 2>/dev/null | grep 'src/content/blog/.*\.mdx$')
+changed=$(git diff --name-only origin/HEAD...HEAD 2>/dev/null | grep -E 'src/content/.*\.(md|mdx)$')
 
 if [ -z "$changed" ]; then
   # Fall back to files staged/committed but not yet on any remote branch.
-  changed=$(git diff --name-only @{push} HEAD 2>/dev/null | grep 'src/content/blog/.*\.mdx$')
+  changed=$(git diff --name-only @{push} HEAD 2>/dev/null | grep -E 'src/content/.*\.(md|mdx)$')
 fi
 
 if [ -z "$changed" ]; then
   exit 0
 fi
 
-echo "humanizer: checking blog content before push..."
+echo "humanizer: checking src/content before push..."
 # shellcheck disable=SC2086
 node scripts/check-humanizer.mjs $changed
 status=$?
 
 if [ "$status" -ne 0 ]; then
   echo ""
-  echo "Push blocked: blog content has AI tells to fix (or run 'git push --no-verify' to override)."
+  echo "Push blocked: content has AI tells to fix (or run 'git push --no-verify' to override)."
 fi
 
 exit $status

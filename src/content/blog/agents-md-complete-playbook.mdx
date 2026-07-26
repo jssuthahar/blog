@@ -1,6 +1,6 @@
 ---
 title: 'The Complete AGENTS.md Playbook: Build AI Coding Agents That Work Like Your Best Engineer'
-description: 'Everything that actually belongs in an AGENTS.md file — architecture, security, testing, AI-specific rules — plus what to leave out, common mistakes, whether Copilot can write it for you, and a full reusable template.'
+description: 'Everything that belongs in an AGENTS.md file — architecture, security, testing, AI-specific rules — plus what to leave out, common mistakes, and a full reusable template.'
 highlight: "A good AGENTS.md isn't a longer file, it's a more specific one. The difference between an agent that writes code like a stranger and one that writes code like it's been on your team for a year comes down to about a dozen sections, each answering one narrow question instead of vaguely covering everything."
 publishedAt: 2026-07-27
 category: copilot
@@ -104,7 +104,7 @@ State the case convention per context — classes, files, variables, constants. 
 
 ### Error handling standards
 
-One approach, stated plainly. This is one of the highest-leverage sections in the whole file. If every feature handles failure differently, every feature also gets tested and reviewed differently.
+One approach, stated plainly. This is one of the highest-impact sections in the whole file. If every feature handles failure differently, every feature also gets tested and reviewed differently.
 
 ```markdown
 API errors return a Result<T, Error> type. Never throw exceptions

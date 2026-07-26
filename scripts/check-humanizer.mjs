@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // check-humanizer.mjs
-// Scans blog .mdx content for common "AI-generated" tells so posts read as
-// human-written before they're committed or pushed.
+// Scans src/content .md and .mdx prose for common "AI-generated" tells so
+// content reads human-written before it's generated, committed, or pushed.
 //
 // Usage:
-//   node scripts/check-humanizer.mjs                 # scan all blog posts
-//   node scripts/check-humanizer.mjs path/to/file.mdx [...]  # scan specific files
+//   node scripts/check-humanizer.mjs                 # scan all src/content .md/.mdx
+//   node scripts/check-humanizer.mjs path/to/file.md [...]  # scan specific files
 //   node scripts/check-humanizer.mjs --strict        # also fail on soft tells / em-dash density
 //
 // Exit code: 0 = clean (or warnings only), 1 = blocking issues found.
@@ -15,7 +15,8 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, extname, relative } from 'node:path';
 
 const ROOT = process.cwd();
-const BLOG_DIR = join(ROOT, 'src', 'content', 'blog');
+const CONTENT_DIR = join(ROOT, 'src', 'content');
+const CONTENT_EXTS = new Set(['.md', '.mdx']);
 const args = process.argv.slice(2);
 const STRICT = args.includes('--strict');
 const fileArgs = args.filter((a) => !a.startsWith('--'));
@@ -38,9 +39,11 @@ const SOFT_TELLS = [
   'crucial', 'essential', 'dive into', 'let us dive', "let's dive", 'deep dive',
   "it's worth noting", 'it is worth noting', 'in conclusion', 'furthermore', 'moreover',
   'additionally', 'notably', 'importantly', 'best practices', 'cutting-edge', 'state-of-the-art',
-  'streamline', 'streamlined', 'holistic', 'pivotal', 'underscore', 'underscores',
+  'streamline', 'streamlined', 'holistic', 'pivotal',
   'foster', 'facilitate', 'ensure that', 'a wide range of', 'when it comes to',
   'at the end of the day', 'first and foremost', 'to sum up',
+  // Verb-phrase form only — bare "underscore(s)" is a literal character on coding blogs
+  'underscores the', 'underscore the importance', 'underscores that',
 ];
 
 // Density thresholds (per 1000 words). Warn always; block under --strict.
@@ -53,6 +56,8 @@ function stripForProse(raw) {
   text = text.replace(/^---\n[\s\S]*?\n---\n?/, '');
   // Strip fenced code blocks ``` ... ```
   text = text.replace(/```[\s\S]*?```/g, '');
+  // Strip inline SVG / diagram blocks — labels aren't prose
+  text = text.replace(/<svg[\s\S]*?<\/svg>/gi, '');
   // Strip inline code `...`
   text = text.replace(/`[^`]*`/g, '');
   // Strip markdown link/image URLs, keep the visible text
@@ -67,6 +72,21 @@ function countMatches(text, phrase) {
   const re = new RegExp(`${boundary}${esc}`, 'gi');
   const m = text.match(re);
   return m ? m.length : 0;
+}
+
+// Count em-dashes only in flowing paragraph prose. Markdown list items,
+// headings, blockquotes, and table rows legitimately use "term — gloss"
+// dashes for structure, so they don't signal AI-flavored writing.
+function countProseEmdashes(text) {
+  let n = 0;
+  for (const line of text.split('\n')) {
+    if (/^\s*([-*+]|\d+[.)])\s/.test(line)) continue; // list item
+    if (/^\s*#{1,6}\s/.test(line)) continue; // heading
+    if (/^\s*>/.test(line)) continue; // blockquote
+    if (/^\s*\|/.test(line)) continue; // table row
+    n += (line.match(/—/g) || []).length;
+  }
+  return n;
 }
 
 function scanFile(path) {
@@ -90,22 +110,33 @@ function scanFile(path) {
     }
   }
 
-  const emdash = (prose.match(/—/g) || []).length;
+  const emdash = countProseEmdashes(prose);
   const emdashPer1k = (emdash / words) * 1000;
   const softPer1k = (softTotal / words) * 1000;
 
   return { path, words, hard, soft, emdash, emdashPer1k, softPer1k };
 }
 
+function walkContent(dir) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...walkContent(full));
+    } else if (entry.isFile() && CONTENT_EXTS.has(extname(entry.name))) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
 function collectFiles() {
   if (fileArgs.length) {
     return fileArgs
       .map((f) => (f.startsWith('/') ? f : join(ROOT, f)))
-      .filter((f) => extname(f) === '.mdx');
+      .filter((f) => CONTENT_EXTS.has(extname(f)));
   }
-  return readdirSync(BLOG_DIR)
-    .filter((f) => extname(f) === '.mdx')
-    .map((f) => join(BLOG_DIR, f));
+  return walkContent(CONTENT_DIR);
 }
 
 function fmt(n) {

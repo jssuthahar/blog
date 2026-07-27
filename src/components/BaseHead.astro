@@ -35,10 +35,12 @@ const {
 
 const canonicalUrl = new URL(canonical ?? Astro.url.pathname, SITE.url);
 const imageUrl = new URL(image, SITE.url);
-// The blog is always attributed, so a search result or a shared link names the
-// author without the reader having to click through.
-const brand = `${SITE.title} blog ${SITE.byline}`;
-const fullTitle = title === SITE.title ? brand : `${title} | ${brand}`;
+// Every page is attributed, so a search result or a shared link names the
+// author without the reader having to click through. The home page title
+// carries the positioning line instead of the plain brand, so the site's
+// <title> reads as a multi-stack platform rather than a .NET blog.
+const brand = `${SITE.title} ${SITE.byline}`;
+const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `${title} | ${brand}`;
 ---
 
 <meta charset="utf-8" />

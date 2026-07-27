@@ -5,11 +5,31 @@
 
 export const SITE = {
   title: 'MSDEVBUILD',
+  /** Expands the wordmark: MSDEVBUILD = Multi-Stack Dev Build. */
+  alternateName: 'Multi-Stack Dev Build',
   /** Shown beside the wordmark so the blog is always attributed. */
   byline: 'by Suthahar',
-  tagline: 'Practical .NET, Azure & AI engineering',
+  /** Also used as the home-page <title> suffix, so it must read as a positioning line. */
+  tagline: 'Cloud, AI, Mobile & Web developer platform',
   description:
-    'In-depth, hands-on guides on .NET, C#, Azure, and AI engineering by Suthahar Jegatheesan — working code, real trade-offs, no filler.',
+    'A multi-stack developer learning platform by Suthahar — practical, hands-on engineering across Cloud, Azure, AI, GitHub Copilot, Mobile (Flutter, .NET MAUI) and Web. Real code, real trade-offs.',
+  /**
+   * The technology pillars the platform covers. Emitted as schema.org `about`
+   * + `keywords` on the WebSite entity and listed in llms.txt, so search
+   * engines and LLMs read MSDEVBUILD as multi-stack rather than .NET-only.
+   * Order signals emphasis: Cloud/AI lead because that is the current focus.
+   */
+  topics: [
+    'Cloud & Azure architecture',
+    'Azure AI, Generative AI & AI engineering',
+    'GitHub Copilot, AI agents & AI-powered development',
+    'Vibe coding & developer productivity',
+    'Mobile development — Flutter & .NET MAUI',
+    'Web development — Web API & React',
+    'Legacy application AI integration & modernization',
+    'Programming & software engineering fundamentals',
+    'Firebase, analytics & modern application platforms',
+  ],
   url: 'https://blog.msdevbuild.com',
   locale: 'en_US',
   lang: 'en',

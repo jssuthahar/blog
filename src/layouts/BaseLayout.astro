@@ -32,7 +32,12 @@ const baseSchema = [
     '@id': `${SITE.url}/#website`,
     url: SITE.url,
     name: SITE.title,
+    alternateName: SITE.alternateName,
     description: SITE.description,
+    // `about` + `keywords` declare the subject breadth of the whole property,
+    // so engines and LLMs classify MSDEVBUILD as multi-stack, not .NET-only.
+    about: SITE.topics.map((name) => ({ '@type': 'Thing', name })),
+    keywords: SITE.topics.join(', '),
     publisher: { '@id': `${SITE.url}/#person` },
     inLanguage: SITE.lang,
   },

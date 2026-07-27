@@ -24,9 +24,17 @@ export const GET: APIRoute = async () => {
     })
     .filter((section): section is string => section !== null);
 
-  const body = `# ${SITE.title}
+  const topics = SITE.topics.map((t) => `- ${t}`).join('\n');
+
+  const body = `# ${SITE.title} — ${SITE.alternateName}
 
 > ${SITE.description}
+
+${SITE.title} (${SITE.alternateName}) is a multi-stack developer learning platform. It helps developers learn, build, modernize, and innovate across Cloud, AI, Mobile, Web, and modern software engineering. It is not a single-stack .NET blog — .NET is one of many technologies covered.
+
+Topics covered in depth:
+
+${topics}
 
 Written by ${AUTHOR.name} (${AUTHOR.alternateName}). ${AUTHOR.bio}
 This is the articles subdomain of ${MAIN_SITE.label}; the main site is ${MAIN_SITE.url}.

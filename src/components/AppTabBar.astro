@@ -195,7 +195,9 @@ const moreActive = MORE.some((item) => isActive(item.href));
   .app-sheet {
     position: fixed;
     inset: 0;
-    z-index: 60;
+    /* Above the chat launcher and its panel (60/61), below the install
+       modal (70) — the sheet's scrim should cover the floating buttons. */
+    z-index: 65;
   }
   .app-sheet__scrim {
     position: absolute;
@@ -285,34 +287,66 @@ const moreActive = MORE.some((item) => isActive(item.href));
 </style>
 
 <style is:global>
-  /* In app mode the burger and its drop-down are dead weight, and the fixed bar
-     needs room so it never covers the end of the footer. */
+  /*
+   * Height the tab bar occupies, and the single source of truth for getting out
+   * of its way. Zero in a browser tab, which makes every rule below inert there
+   * — so each bottom-fixed element is adjusted once rather than once per mode.
+   */
+  :root {
+    --app-nav-h: 0px;
+  }
+
+  /* In app mode the burger and its drop-down are dead weight. Declared twice
+     because a media query and an attribute selector cannot share one rule: the
+     query covers Android and desktop, the attribute covers iOS. */
   @media (display-mode: standalone) and (max-width: 767px),
     (display-mode: minimal-ui) and (max-width: 767px),
     (display-mode: fullscreen) and (max-width: 767px) {
+    :root {
+      --app-nav-h: calc(3.6rem + env(safe-area-inset-bottom));
+    }
     #menu-toggle,
     #mobile-nav {
       display: none !important;
     }
-    body {
-      padding-bottom: calc(3.6rem + env(safe-area-inset-bottom));
-    }
-    /* The notifications / install pill is also bottom-fixed: lift it clear. */
-    .pwa-bar {
-      bottom: calc(4.4rem + env(safe-area-inset-bottom));
-    }
   }
   @media (max-width: 767px) {
+    html[data-standalone] {
+      --app-nav-h: calc(3.6rem + env(safe-area-inset-bottom));
+    }
     html[data-standalone] #menu-toggle,
     html[data-standalone] #mobile-nav {
       display: none !important;
     }
-    html[data-standalone] body {
-      padding-bottom: calc(3.6rem + env(safe-area-inset-bottom));
-    }
-    html[data-standalone] .pwa-bar {
-      bottom: calc(4.4rem + env(safe-area-inset-bottom));
-    }
+  }
+
+  /* The bar must not cover the end of the page. */
+  body {
+    padding-bottom: var(--app-nav-h);
+  }
+
+  /*
+   * Everything else anchored to the bottom of the viewport — the chat launchers
+   * and their panels, the reactions rail, the resume prompt, the notifications
+   * pill — would otherwise sit on top of the tabs, the chat button landing
+   * squarely on "More". Margin rather than `bottom` so each keeps whatever
+   * offset and transform it already had.
+   */
+  .site-fab,
+  .site-panel,
+  .chat-fab,
+  .chat-panel,
+  .engagement-rail,
+  .pwa-bar,
+  [data-resume-prompt] {
+    margin-bottom: var(--app-nav-h);
+  }
+
+  /* The panels are sized against the viewport, so shortening them by the same
+     amount keeps a lifted panel from running off the top of the screen. */
+  .site-panel,
+  .chat-panel {
+    max-height: calc(100dvh - 2rem - var(--app-nav-h));
   }
 </style>
 

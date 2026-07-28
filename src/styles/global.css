@@ -80,6 +80,16 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* Lock the page to vertical scrolling. A stray element a few pixels past the
+     viewport (common on narrow phones) would otherwise let the whole page swipe
+     sideways into blank white space. `clip` — not `hidden` — because it doesn't
+     create a scroll container, so the sticky header keeps working. */
+  html,
+  body {
+    overflow-x: clip;
+    max-width: 100%;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;

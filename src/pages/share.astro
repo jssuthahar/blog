@@ -1,0 +1,443 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PlatformSteps from '../components/PlatformSteps.astro';
+import { SITE, IMPACT } from '../config';
+import { qrSvg } from '../lib/qr';
+import { SHARE_MESSAGES } from '../lib/share-messages';
+
+/**
+ * The page a *visitor* lands on when they want to pass the site to someone else.
+ *
+ * It is not written at Suthahar — he already has the share row on /install. The
+ * whole page is a composer: pick who it is for, add a name, watch the message
+ * build itself, send. Seeing the finished message before sending is what removes
+ * the hesitation; a page of instructions does not.
+ */
+const installUrl = `${SITE.url}/install/`;
+const installQr = await qrSvg(installUrl, { size: 220 });
+
+// Verified figures, so the sender knows what they are putting their name to.
+const stats = IMPACT.filter((s) =>
+  ['Articles published since 2007', 'Total content views', 'Developers reached'].includes(s.label),
+);
+
+const reasons = [
+  {
+    title: 'They think the window closed',
+    body: 'AI, vibe coding and AI-driven cloud changed the job faster than most people could read about it. Plenty of good engineers have quietly decided they are already too late. They are not — they just need a way back in.',
+  },
+  {
+    title: 'It costs them nothing',
+    body: 'No paywall, no account, no email, nothing to buy. You are not putting your name behind a sales funnel — worst case, they read one article and move on.',
+  },
+  {
+    title: 'It stays on their phone',
+    body: 'Installed, it sits on the home screen and reads offline. That is the difference between a link they lose in a chat and something they actually come back to.',
+  },
+];
+
+const promises = [
+  'Every article free — no paywall, ever',
+  'No account, no sign-up, no email',
+  'Works offline once installed',
+  'Notifications only if they turn them on',
+];
+
+const schema = [
+  {
+    '@type': 'WebPage',
+    '@id': `${SITE.url}/share/#page`,
+    name: `Help your friends — share ${SITE.title}`,
+    description: `Send ${SITE.title} to a friend, a team or a developer community — a ready message in your own words, a QR code, and install steps for every device.`,
+    about: { '@id': `${SITE.url}/#person` },
+    isPartOf: { '@id': `${SITE.url}/#website` },
+  },
+];
+---
+
+<BaseLayout
+  title="Help your friends — share this"
+  description={`Pass ${SITE.title} to someone learning AI, cloud and modern app development. Pick who it is for, personalise the message, send it in one tap.`}
+  schema={schema}
+  wide
+>
+  <div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:py-14">
+    <!-- ══════════════ Hook ══════════════ -->
+    <section class="grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">
+      <div>
+        <p class="eyebrow">Help your friends</p>
+        <h1 class="display mt-2 text-[2rem] leading-tight sm:text-4xl lg:text-[2.6rem]">
+          Someone you know thinks they're behind
+        </h1>
+        <p class="mt-4 max-w-xl text-lg leading-relaxed text-muted text-pretty">
+          AI, vibe coding and AI-driven cloud moved faster than anyone could keep up with,
+          and the people struggling hardest are the ones too proud to say so. You already
+          know who they are. This takes ten seconds and costs them nothing.
+        </p>
+
+        <div class="mt-6 flex flex-wrap items-center gap-3">
+          <a href="#compose" class="btn btn-accent">
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" />
+            </svg>
+            Write the message
+          </a>
+          <button type="button" id="copy-link" data-url={installUrl} class="btn btn-outline">
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" />
+            </svg>
+            <span id="copy-link-label">Just copy the link</span>
+          </button>
+        </div>
+
+        <!-- What they are vouching for, in numbers they can check. -->
+        <dl class="mt-8 flex flex-wrap gap-x-8 gap-y-3 border-t border-default pt-5">
+          {stats.map((s) => (
+            <div>
+              <dt class="text-xl font-semibold tracking-tight text-accent">{s.value}</dt>
+              <dd class="text-xs leading-snug text-muted">{s.label}</dd>
+            </div>
+          ))}
+          <div>
+            <dt class="text-xl font-semibold tracking-tight text-accent">Free</dt>
+            <dd class="text-xs leading-snug text-muted">No account, no paywall</dd>
+          </div>
+        </dl>
+      </div>
+
+      <figure class="justify-self-start rounded-xl border border-default bg-subtle p-5 sm:justify-self-center">
+        <div class="qr-plate mx-auto w-max rounded-xl border border-default bg-white p-3" set:html={installQr} />
+        <figcaption class="mt-3 text-center text-sm">
+          <span class="block font-medium">Sitting next to them?</span>
+          <span class="mt-0.5 block text-xs leading-relaxed text-muted">
+            Let them point a camera at this.<br />
+            <a href="/qr/install.svg" download="msdevbuild-install-qr.svg" class="hover:text-accent">
+              Download QR for a slide
+            </a>
+          </span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ══════════════ Composer ══════════════ -->
+    <section id="compose" class="mt-14 scroll-mt-24 rounded-xl border border-default bg-subtle p-6 sm:p-7">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="display text-2xl sm:text-[1.75rem]">Write it in one tap</h2>
+        <p class="text-sm text-muted">Nothing is sent from here — it opens in your own app.</p>
+      </div>
+
+      <div class="mt-6 grid gap-8 lg:grid-cols-[1fr_22rem] lg:gap-10">
+        <!-- Controls -->
+        <div class="min-w-0">
+          <fieldset>
+            <legend class="text-sm font-semibold">Who is it for?</legend>
+            <div class="mt-3 flex flex-wrap gap-2">
+              {SHARE_MESSAGES.map((m, i) => (
+                <button
+                  type="button"
+                  class="audience-chip rounded-full border border-default bg-[var(--bg)] px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-subtle"
+                  data-audience={m.id}
+                  aria-pressed={i === 0 ? 'true' : 'false'}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            <p id="audience-note" class="mt-2.5 text-sm text-muted">{SHARE_MESSAGES[0].note}</p>
+          </fieldset>
+
+          <div class="mt-6">
+            <label for="recipient" class="text-sm font-semibold">Their name <span class="font-normal text-muted">(optional)</span></label>
+            <input
+              id="recipient"
+              type="text"
+              autocomplete="off"
+              maxlength="40"
+              placeholder="Arun"
+              class="mt-2 w-full max-w-xs rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-base transition-colors focus:border-[var(--accent)] focus:outline-none"
+            />
+            <p id="recipient-hint" class="mt-2 text-sm text-muted">
+              A name at the top is the difference between a forward and a favour.
+            </p>
+          </div>
+
+          <div class="mt-6 flex flex-wrap items-center gap-2">
+            <a id="send-primary" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-accent">
+              <svg class="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2a10 10 0 0 0-8.7 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1a13 13 0 0 1-6.3-5.5C6.9 10.6 6.6 9.6 6.6 9c0-.6.3-1.5.8-1.9.2-.2.4-.2.6-.2h.5c.2 0 .4 0 .6.4l.8 2c.1.2 0 .4-.1.5l-.4.5c-.1.2-.3.3-.1.6.5.9 1.5 2 2.6 2.5.3.2.5.1.6 0l.7-.8c.2-.2.3-.2.6-.1l1.9.9c.3.1.4.2.4.4.1.2.1.7-.1 1.3Z" />
+              </svg>
+              <span id="send-primary-label">Send on WhatsApp</span>
+            </a>
+            <button type="button" id="copy-message" class="btn btn-outline">
+              <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" />
+              </svg>
+              <span id="copy-message-label">Copy message</span>
+            </button>
+            <button type="button" id="native-share" hidden class="btn btn-outline">
+              <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                <path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" />
+              </svg>
+              More apps
+            </button>
+          </div>
+
+          <p id="compose-status" role="status" aria-live="polite" class="mt-3 min-h-5 text-sm text-accent"></p>
+
+          <!-- Secondary channels, for the people who live elsewhere. -->
+          <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+            <span>Somewhere else?</span>
+            <a id="send-telegram" href="#" target="_blank" rel="noopener noreferrer" class="hover:text-accent">Telegram</a>
+            <a id="send-email" href="#" class="hover:text-accent">Email</a>
+            <a id="send-x" href="#" target="_blank" rel="noopener noreferrer" class="hover:text-accent">X</a>
+            <a
+              href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(installUrl)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="hover:text-accent"
+            >LinkedIn</a>
+          </div>
+        </div>
+
+        <!-- Live preview: what lands on their phone. -->
+        <div>
+          <p class="text-sm font-semibold">What they'll see</p>
+          <div class="mt-3 rounded-2xl border border-default bg-[var(--bg)] p-4">
+            <div class="chat-bubble ml-auto max-w-full rounded-2xl px-3.5 py-2.5">
+              <p id="preview-text" class="text-sm leading-relaxed whitespace-pre-line"></p>
+
+              <!-- The link unfurl every chat app draws under the message. -->
+              <div class="mt-2.5 flex items-center gap-2.5 rounded-lg border border-default bg-[var(--bg)] p-2">
+                <img src="/icon-192.png" alt="" width="34" height="34" class="size-9 shrink-0 rounded-md" />
+                <div class="min-w-0">
+                  <p class="truncate text-xs font-semibold">Install {SITE.title} on your device</p>
+                  <p class="truncate text-[0.7rem] text-muted">blog.msdevbuild.com</p>
+                </div>
+              </div>
+
+              <p class="mt-1.5 flex items-center justify-end gap-1 text-[0.65rem] text-muted">
+                <span id="preview-time">now</span>
+                <svg class="size-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m2 13 4 4 8-9" /><path d="m11 16 1 1 8-9" />
+                </svg>
+              </p>
+            </div>
+          </div>
+          <p class="mt-2.5 text-xs leading-relaxed text-muted">
+            Edit it into your own words after it opens — a message that sounds like you
+            gets read.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ Why it lands ══════════════ -->
+    <section class="mt-14 border-t border-default pt-8">
+      <h2 class="display text-2xl sm:text-[1.75rem]">Why this one is worth sending</h2>
+      <div class="mt-6 grid gap-5 md:grid-cols-3">
+        {reasons.map((r) => (
+          <div class="rounded-xl border border-default p-5">
+            <h3 class="font-semibold leading-snug tracking-tight">{r.title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">{r.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="mt-6 rounded-xl border border-default bg-subtle p-5">
+        <p class="text-sm font-semibold">What you're putting your name to</p>
+        <ul class="mt-3 grid gap-2.5 sm:grid-cols-2">
+          {promises.map((p) => (
+            <li class="flex items-start gap-2.5 text-sm text-muted">
+              <svg class="mt-0.5 size-4 shrink-0 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m5 13 4 4L19 7" />
+              </svg>
+              <span>{p}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <!-- ══════════════ Steps, so you can talk them through it ══════════════ -->
+    <section class="mt-14 border-t border-default pt-8">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="display text-2xl sm:text-[1.75rem]">If they get stuck</h2>
+        <a href="/install/" class="btn btn-outline btn-sm">Open the install page</a>
+      </div>
+      <p class="mt-2 max-w-2xl text-muted">
+        Ten seconds on any device. iPhone is the fiddly one — Apple allows no install
+        button, so it has to go through Safari's Share menu.
+      </p>
+      <PlatformSteps class="mt-6" />
+    </section>
+  </div>
+
+  <!-- Message set, read by the composer. Kept out of the markup so the copy can
+       change without touching the script. -->
+  <script
+    type="application/json"
+    id="share-messages"
+    data-install-url={installUrl}
+    is:inline
+    set:html={JSON.stringify(SHARE_MESSAGES)}
+  ></script>
+</BaseLayout>
+
+<style>
+  .audience-chip[aria-pressed='true'] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* A chat bubble, not a WhatsApp costume — same shape, this site's accent. */
+  .chat-bubble {
+    background: var(--accent-soft);
+    border: 1px solid var(--border);
+    border-bottom-right-radius: 0.35rem;
+  }
+
+  .qr-plate :global(svg) {
+    display: block;
+    width: 10rem;
+    height: 10rem;
+  }
+  @media (min-width: 640px) {
+    .qr-plate :global(svg) {
+      width: 11.5rem;
+      height: 11.5rem;
+    }
+  }
+</style>
+
+<script>
+  interface ShareMessage {
+    id: string;
+    label: string;
+    note: string;
+    channel: 'whatsapp' | 'linkedin';
+    greeting?: string;
+    body: string;
+  }
+
+  function initComposer() {
+    const data = document.getElementById('share-messages');
+    const preview = document.getElementById('preview-text');
+    if (!data || !preview) return;
+
+    const messages: ShareMessage[] = JSON.parse(data.textContent!);
+    const installUrl = data.dataset.installUrl!;
+    const encodedUrl = encodeURIComponent(installUrl);
+    const chips = [...document.querySelectorAll<HTMLButtonElement>('.audience-chip')];
+    const note = document.getElementById('audience-note')!;
+    const recipient = document.getElementById('recipient') as HTMLInputElement;
+    const recipientHint = document.getElementById('recipient-hint')!;
+    const status = document.getElementById('compose-status')!;
+
+    const sendPrimary = document.getElementById('send-primary') as HTMLAnchorElement;
+    const sendPrimaryLabel = document.getElementById('send-primary-label')!;
+    const copyButton = document.getElementById('copy-message') as HTMLButtonElement;
+    const copyLabel = document.getElementById('copy-message-label')!;
+    const nativeButton = document.getElementById('native-share') as HTMLButtonElement;
+    const telegram = document.getElementById('send-telegram') as HTMLAnchorElement;
+    const email = document.getElementById('send-email') as HTMLAnchorElement;
+    const x = document.getElementById('send-x') as HTMLAnchorElement;
+
+    let active = messages[0];
+
+    const flash = (message: string) => {
+      status.textContent = message;
+      setTimeout(() => (status.textContent = ''), 2400);
+    };
+
+    /** The finished message, greeting folded in only when a name was typed. */
+    const compose = (): string => {
+      const name = recipient.value.trim();
+      if (!name || !active.greeting) return active.body;
+      return `${active.greeting.replace('{name}', name)} ${active.body}`;
+    };
+
+    const render = () => {
+      const text = compose();
+      const encoded = encodeURIComponent(text);
+      preview.textContent = text;
+
+      // LinkedIn accepts no pre-filled post text, so copy is the real action
+      // there and the button says so instead of pretending to send.
+      const isPost = active.channel === 'linkedin';
+      sendPrimary.href = isPost
+        ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`
+        : `https://wa.me/?text=${encoded}`;
+      sendPrimaryLabel.textContent = isPost ? 'Open LinkedIn' : 'Send on WhatsApp';
+      copyLabel.textContent = isPost ? 'Copy the post' : 'Copy message';
+
+      recipient.disabled = !active.greeting;
+      recipientHint.textContent = active.greeting
+        ? 'A name at the top is the difference between a forward and a favour.'
+        : 'A public post goes to everyone, so no name is used here.';
+
+      telegram.href = `https://t.me/share/url?url=${encodedUrl}&text=${encoded}`;
+      email.href = `mailto:?subject=${encodeURIComponent('Something worth ten seconds')}&body=${encoded}`;
+      x.href = `https://x.com/intent/tweet?text=${encoded}`;
+    };
+
+    for (const chip of chips) {
+      chip.addEventListener('click', () => {
+        active = messages.find((m) => m.id === chip.dataset.audience) ?? messages[0];
+        for (const other of chips) other.setAttribute('aria-pressed', String(other === chip));
+        note.textContent = active.note;
+        render();
+      });
+    }
+
+    recipient.addEventListener('input', render);
+
+    copyButton.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(compose());
+        flash(active.channel === 'linkedin' ? 'Copied — now paste it into LinkedIn.' : "Copied. That's the whole favour.");
+      } catch {
+        flash('Copy failed — select the text and copy it manually.');
+      }
+    });
+
+    if ('share' in navigator) {
+      nativeButton.hidden = false;
+      nativeButton.addEventListener('click', async () => {
+        // A cancelled share sheet rejects; that is not worth surfacing.
+        try {
+          await navigator.share({ text: compose() });
+        } catch {}
+      });
+    }
+
+    sendPrimary.addEventListener('click', () => flash('Thank you — that one link may save them a year.'));
+
+    render();
+  }
+
+  function initCopyLink() {
+    const button = document.getElementById('copy-link') as HTMLButtonElement | null;
+    const label = document.getElementById('copy-link-label');
+    if (!button || !label) return;
+
+    button.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.url!);
+        label.textContent = 'Copied';
+      } catch {
+        label.textContent = 'Copy failed';
+      }
+      setTimeout(() => (label.textContent = 'Just copy the link'), 2000);
+    };
+  }
+
+  function initSharePage() {
+    initComposer();
+    initCopyLink();
+  }
+
+  initSharePage();
+  document.addEventListener('astro:page-load', initSharePage);
+</script>

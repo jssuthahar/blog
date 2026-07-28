@@ -1,0 +1,357 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ShareRow from '../components/ShareRow.astro';
+import PlatformSteps from '../components/PlatformSteps.astro';
+import { SITE, AUTHOR, PUSH } from '../config';
+import { qrSvg } from '../lib/qr';
+
+/**
+ * The link you hand to people: blog.msdevbuild.com/install
+ *
+ * The header install icon only appears where the browser reports the site is
+ * installable, which makes it impossible to point someone at. This page is the
+ * shareable version — it prompts directly where it can, and always shows the
+ * manual steps for the platform the visitor is actually on.
+ */
+const installUrl = `${SITE.url}/install/`;
+const shareTitle = `Install the ${SITE.title} app — hands-on Cloud, AI, Mobile & Web engineering by ${AUTHOR.name.split(' ')[0]}`;
+const pushConfigured = PUSH.publicKey.length > 0;
+
+// Encoded once at build time — the same code also ships as /qr/install.svg for
+// slides and print.
+const installQr = await qrSvg(installUrl, { size: 200 });
+
+const benefits = [
+  {
+    title: 'Opens like an app',
+    body: 'Its own icon on the home screen or dock, full screen, no browser chrome.',
+    icon: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+  },
+  {
+    title: 'Reads offline',
+    body: 'Articles you have opened stay readable on a plane or a bad connection.',
+    icon: 'M5 18a4 4 0 0 1 .6-8A6 6 0 0 1 17 9a3.5 3.5 0 0 1 .5 7H5z',
+  },
+  {
+    title: 'New-article alerts',
+    body: 'Optional notifications when something new is published. Off by default.',
+    icon: 'M18 16V10a6 6 0 1 0-12 0v6l-2 2h16zM10 21h4',
+  },
+  {
+    title: 'Nothing to download',
+    body: 'No app store, no account, a few hundred kilobytes. Uninstall like any app.',
+    icon: 'M12 3v11M8 11l4 4 4-4M5 20h14',
+  },
+];
+
+const faqs = [
+  {
+    q: 'Is this from an app store?',
+    a: 'No. It is a Progressive Web App — the site itself, installed by the browser. Nothing goes through Google Play or the App Store, and there is no account to create.',
+  },
+  {
+    q: 'How much space does it take?',
+    a: 'A few hundred kilobytes, plus the articles you read while offline caching is active. A normal app download is tens of megabytes.',
+  },
+  {
+    q: 'How do I remove it?',
+    a: 'Uninstall it exactly like any other app — long-press the icon on mobile, or use the app window menu on desktop. The site keeps working in the browser afterwards.',
+  },
+  {
+    q: 'Will it send me notifications?',
+    a: 'Only if you turn them on yourself, and only for new articles and announcements. Permission is never requested on install.',
+  },
+];
+
+const schema = [
+  {
+    '@type': 'WebApplication',
+    '@id': `${SITE.url}/#app`,
+    name: `${SITE.title} — by ${AUTHOR.name.split(' ')[0]}`,
+    url: installUrl,
+    description: SITE.description,
+    applicationCategory: 'EducationalApplication',
+    operatingSystem: 'Android, iOS, Windows, macOS, Linux',
+    browserRequirements: 'Requires a modern browser with service worker support',
+    installUrl,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    author: { '@id': `${SITE.url}/#person` },
+    isPartOf: { '@id': `${SITE.url}/#website` },
+  },
+  {
+    '@type': 'FAQPage',
+    '@id': `${installUrl}#faq`,
+    mainEntity: faqs.map(({ q, a }) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text: a },
+    })),
+  },
+];
+---
+
+<BaseLayout
+  title="Install the app"
+  description={`Install ${SITE.title} as an app on Android, iPhone, iPad, Windows or Mac — free, no app store, works offline. Share this link with anyone.`}
+  schema={schema}
+  wide
+>
+  <div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:py-14">
+    <!-- ══════════════ Install ══════════════ -->
+    <section class="grid items-start gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-12">
+      <div>
+        <p class="eyebrow">Free app · No app store</p>
+        <h1 class="display mt-2 text-[2rem] leading-tight sm:text-4xl">
+          Install {SITE.title} on your device
+        </h1>
+        <p class="mt-4 max-w-xl text-lg leading-relaxed text-muted text-pretty">
+          The whole library — Cloud, Azure, AI, GitHub Copilot, .NET, Flutter and Web —
+          as an app on your home screen. It installs from this page in one tap, reads
+          offline, and takes a fraction of the space of a store download.
+        </p>
+
+        <div class="mt-6 flex flex-wrap items-center gap-3">
+          <button type="button" id="install-now" class="btn btn-accent">
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3v11" /><path d="m8 11 4 4 4-4" /><path d="M5 20h14" />
+            </svg>
+            <span id="install-now-label">Install app</span>
+          </button>
+          <a href="#how" class="btn btn-outline">See the steps</a>
+        </div>
+
+        <p id="install-status" role="status" aria-live="polite" class="mt-3 text-sm text-muted">
+          Checking what your browser supports…
+        </p>
+      </div>
+
+      <!-- What the installed app looks like, stated plainly rather than mocked up. -->
+      <div class="rounded-xl border border-default bg-subtle p-5">
+        <div class="flex items-center gap-3">
+          <img
+            src="/icon-192.png"
+            alt=""
+            width="52"
+            height="52"
+            class="size-13 rounded-xl border border-default bg-[var(--bg)]"
+          />
+          <div class="min-w-0">
+            <p class="font-semibold tracking-tight">{SITE.title}</p>
+            <p class="truncate text-sm text-muted">{SITE.byline} Jegatheesan · blog.msdevbuild.com</p>
+          </div>
+        </div>
+        <dl class="mt-5 space-y-3.5">
+          {benefits.map((b) => (
+            <div class="flex gap-3">
+              <svg class="mt-0.5 size-4 shrink-0 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d={b.icon} />
+              </svg>
+              <div>
+                <dt class="text-sm font-semibold leading-snug">{b.title}</dt>
+                <dd class="mt-0.5 text-sm leading-relaxed text-muted">{b.body}</dd>
+              </div>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+
+    <!-- ══════════════ Manual steps, per platform ══════════════ -->
+    <section id="how" class="mt-14 scroll-mt-24 border-t border-default pt-8">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="display text-2xl sm:text-[1.75rem]">How to install</h2>
+        <p class="text-sm text-muted">Takes about ten seconds.</p>
+      </div>
+
+      <PlatformSteps class="mt-6" />
+
+      {pushConfigured && (
+        <p class="mt-5 text-sm text-muted">
+          On iPhone and iPad, notifications only work once the app is on the Home Screen —
+          open it from the new icon first, then enable them from the prompt at the bottom.
+        </p>
+      )}
+    </section>
+
+    <!-- ══════════════ Share ══════════════ -->
+    <section class="mt-14 rounded-xl border border-default bg-subtle p-6 sm:p-7">
+      <div class="grid gap-8 sm:grid-cols-[1fr_auto] sm:gap-10">
+        <div class="min-w-0">
+          <h2 class="display text-2xl sm:text-[1.75rem]">Share the app</h2>
+          <p class="mt-2 max-w-xl text-muted">
+            Send this one link to a team, a class, or a community group — it works on every
+            platform and shows each person the right steps for their own device.
+          </p>
+
+          <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <code
+              id="install-url"
+              class="flex-1 truncate rounded-lg border border-default bg-[var(--bg)] px-4 py-3 font-mono text-sm"
+            >{installUrl}</code>
+            <button
+              type="button"
+              id="copy-install-url"
+              data-url={installUrl}
+              class="btn btn-outline shrink-0"
+            >
+              <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" />
+              </svg>
+              <span id="copy-install-label">Copy link</span>
+            </button>
+          </div>
+
+          <div class="mt-5">
+            <ShareRow title={shareTitle} path="/install/" />
+          </div>
+
+          <p class="mt-4 text-sm text-muted">
+            Sending it to a group? <a href="/share/" class="font-medium text-accent hover:underline">
+            Ready-made messages are here</a> — WhatsApp, LinkedIn and Tamil, copy and send.
+          </p>
+        </div>
+
+        <!-- Point a phone camera at a laptop screen, a slide, or a printout. -->
+        <figure class="justify-self-start sm:justify-self-end">
+          <div class="qr-plate rounded-xl border border-default bg-white p-3" set:html={installQr} />
+          <figcaption class="mt-2.5 text-center text-xs leading-relaxed text-muted">
+            Scan to install<br />
+            <a href="/qr/install.svg" download="msdevbuild-install-qr.svg" class="hover:text-accent">
+              Download QR (SVG)
+            </a>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ══════════════ FAQ ══════════════ -->
+    <section class="mt-14 border-t border-default pt-8">
+      <h2 class="display text-2xl sm:text-[1.75rem]">Questions</h2>
+      <div class="mt-5 grid gap-5 sm:grid-cols-2">
+        {faqs.map(({ q, a }) => (
+          <div>
+            <h3 class="font-semibold tracking-tight">{q}</h3>
+            <p class="mt-1.5 text-sm leading-relaxed text-muted">{a}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  /* The generated SVG carries its own pixel size; let the plate decide instead. */
+  .qr-plate :global(svg) {
+    display: block;
+    width: 9rem;
+    height: 9rem;
+  }
+  @media (min-width: 640px) {
+    .qr-plate :global(svg) {
+      width: 10.5rem;
+      height: 10.5rem;
+    }
+  }
+</style>
+
+<script>
+  import {
+    currentPlatform,
+    getInstallPrompt,
+    isIosSafari,
+    onInstallStateChange,
+    promptInstall,
+  } from '../lib/install';
+  import { isIos, isStandalone } from '../lib/push';
+
+  // View transitions build a fresh page each navigation, so the window-level
+  // listeners are bound once and always call the current page's render.
+  let rerender: () => void = () => {};
+
+  function initInstallPage() {
+    const button = document.getElementById('install-now') as HTMLButtonElement | null;
+    if (!button) return;
+
+    const label = document.getElementById('install-now-label')!;
+    const status = document.getElementById('install-status')!;
+
+    // Four states, each with an honest button: already installed, a real prompt
+    // available, iOS (manual only), or a browser that cannot install at all.
+    const render = () => {
+      if (isStandalone()) {
+        button.hidden = true;
+        status.textContent = "You're already using the installed app. Share the link below with someone else.";
+        return;
+      }
+
+      button.hidden = false;
+
+      if (getInstallPrompt()) {
+        label.textContent = 'Install app';
+        status.textContent = 'Your browser can install it directly — one tap, no download.';
+        return;
+      }
+
+      if (isIos()) {
+        label.textContent = 'Show me how';
+        status.textContent = isIosSafari()
+          ? 'Apple allows no install button — the three Safari steps are below.'
+          : 'Open this page in Safari to add it to your Home Screen — Chrome on iOS cannot.';
+        return;
+      }
+
+      label.textContent = 'Show me how';
+      status.textContent =
+        'This browser has no install button. Chrome, Edge or Brave can install it — or follow the steps below.';
+    };
+
+    button.onclick = async () => {
+      if (getInstallPrompt()) {
+        const outcome = await promptInstall();
+        status.textContent =
+          outcome === 'accepted'
+            ? 'Installed. Open MSDEVBUILD from your home screen or dock.'
+            : 'No problem — the link stays here whenever you want it.';
+        button.hidden = outcome === 'accepted';
+        return;
+      }
+
+      const target = document.getElementById(`how-${currentPlatform()}`);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
+    // A prompt can arrive after this page has rendered, and an install started
+    // from the header icon should settle this page too.
+    rerender = render;
+    render();
+  }
+
+  if (!(window as any).__installPageBound) {
+    (window as any).__installPageBound = true;
+    onInstallStateChange(() => rerender());
+    window.addEventListener('appinstalled', () => rerender());
+  }
+
+  function initCopyLink() {
+    const button = document.getElementById('copy-install-url') as HTMLButtonElement | null;
+    const label = document.getElementById('copy-install-label');
+    if (!button || !label) return;
+
+    button.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.url!);
+        label.textContent = 'Copied';
+      } catch {
+        label.textContent = 'Copy failed';
+      }
+      setTimeout(() => (label.textContent = 'Copy link'), 2000);
+    };
+  }
+
+  initInstallPage();
+  initCopyLink();
+  document.addEventListener('astro:page-load', () => {
+    initInstallPage();
+    initCopyLink();
+  });
+</script>

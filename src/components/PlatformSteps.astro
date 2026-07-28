@@ -1,0 +1,68 @@
+---
+import { INSTALL_PLATFORMS } from '../lib/install-steps';
+
+/**
+ * The three manual install routes. Shown in full on every device — a visitor
+ * sharing the page with someone else needs to read the steps for a platform
+ * they are not currently holding — with their own platform promoted.
+ */
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<div class:list={['grid gap-5 md:grid-cols-3', className]}>
+  {INSTALL_PLATFORMS.map((p) => (
+    <div
+      id={`how-${p.id}`}
+      data-platform={p.id}
+      class="platform-card scroll-mt-24 rounded-xl border border-default p-5"
+    >
+      <div class="flex items-baseline justify-between gap-2">
+        <h3 class="font-semibold tracking-tight">{p.label}</h3>
+        <span class="platform-badge hidden text-xs font-semibold text-accent">You're here</span>
+      </div>
+      <p class="mt-0.5 text-sm text-muted">{p.sub}</p>
+      <ol class="mt-4 space-y-2.5 text-sm leading-relaxed text-muted">
+        {p.steps.map((step, i) => (
+          <li class="flex gap-2.5">
+            <span
+              class="mt-px flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+              style="background: var(--accent-soft); color: var(--accent);"
+              aria-hidden="true"
+            >
+              {i + 1}
+            </span>
+            <span set:html={step} />
+          </li>
+        ))}
+      </ol>
+    </div>
+  ))}
+</div>
+
+<style>
+  .platform-card[data-current='true'] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .platform-card[data-current='true'] .platform-badge {
+    display: inline;
+  }
+</style>
+
+<script>
+  import { currentPlatform } from '../lib/install';
+
+  function markCurrentPlatform() {
+    const id = currentPlatform();
+    for (const card of document.querySelectorAll<HTMLElement>('.platform-card')) {
+      card.dataset.current = String(card.dataset.platform === id);
+    }
+  }
+
+  markCurrentPlatform();
+  document.addEventListener('astro:page-load', markCurrentPlatform);
+</script>

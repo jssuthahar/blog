@@ -155,12 +155,17 @@ const pushConfigured = PUSH.publicKey.length > 0;
 
 <script>
   import { enablePush, isPushSupported, isSubscribed, isIos, isStandalone, recordInstallOnce } from '../lib/push';
+  import {
+    captureInstallPrompt,
+    clearInstallPrompt,
+    getInstallPrompt,
+    isIosSafari,
+    onInstallStateChange,
+    promptInstall,
+    type InstallPromptEvent,
+  } from '../lib/install';
 
   const DISMISS_KEY = 'pwa:bar-dismissed';
-
-  // The install prompt event may fire before the bar for a given page exists,
-  // so it is held at module scope and reflected onto whatever bar is current.
-  let deferredPrompt: any = null;
 
   async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
@@ -229,17 +234,15 @@ const pushConfigured = PUSH.publicKey.length > 0;
     const iosModal = document.getElementById('pwa-ios') as HTMLElement | null;
     const iosNeedsManual = isIos() && !isStandalone();
 
-    if (!deferredPrompt && !iosNeedsManual) {
+    if (!getInstallPrompt() && !iosNeedsManual) {
       btn.hidden = true;
       return;
     }
 
     btn.hidden = false;
     btn.onclick = async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        await deferredPrompt.userChoice;
-        deferredPrompt = null;
+      if (getInstallPrompt()) {
+        await promptInstall();
         btn.hidden = true;
       } else if (iosModal) {
         iosModal.hidden = false; // iOS: manual Add-to-Home-Screen steps.
@@ -311,14 +314,6 @@ const pushConfigured = PUSH.publicKey.length > 0;
     };
   }
 
-  // Add-to-Home-Screen is a Safari-only feature. Chrome/Firefox on iOS and
-  // in-app webviews (LinkedIn, Instagram…) don't offer it, so warn if we're not
-  // in Safari and the steps won't work as written.
-  function isIosSafari(): boolean {
-    const ua = navigator.userAgent;
-    return isIos() && /Safari/.test(ua) && !/(CriOS|FxiOS|EdgiOS|GSA|FBAN|FBAV|Instagram|Line)/.test(ua);
-  }
-
   // The iOS Add-to-Home-Screen sheet, opened from the header install icon.
   function wireIosModal() {
     const modal = document.getElementById('pwa-ios') as HTMLElement | null;
@@ -339,17 +334,19 @@ const pushConfigured = PUSH.publicKey.length > 0;
 
     window.addEventListener('beforeinstallprompt', (e: Event) => {
       e.preventDefault(); // Suppress the mini-infobar; we show our own button.
-      deferredPrompt = e;
-      render();
+      captureInstallPrompt(e as InstallPromptEvent);
     });
     window.addEventListener('appinstalled', () => {
-      deferredPrompt = null;
+      clearInstallPrompt();
       // Funnel signal for GA (Android/desktop only — iOS never fires this).
       if (typeof (window as any).gtag === 'function') {
         (window as any).gtag('event', 'pwa_install', { method: 'browser_prompt' });
       }
-      render();
     });
+
+    // Both capture and clear announce themselves, so the header icon also
+    // follows an install started from the /install page.
+    onInstallStateChange(render);
   }
 
   // Re-render on first load and after every client-side navigation.

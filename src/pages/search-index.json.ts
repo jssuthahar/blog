@@ -39,6 +39,8 @@ export const GET: APIRoute = async () => {
       { title: 'Testimonials', url: '/testimonials/', text: 'testimonials reviews feedback readers' },
       { title: 'Contribution record', url: '/contributions/', text: 'contributions record talks community' },
       { title: 'Contact', url: '/contact/', text: 'contact get in touch enquiry' },
+      { title: 'Install the app', url: '/install/', text: 'install app pwa android ios iphone home screen offline download' },
+      { title: 'Help your friends — share this', url: '/share/', text: 'share invite friends whatsapp linkedin qr code community group' },
     ].map((p) => ({ ...p, kind: 'Page', category: '', external: false, text: `${p.title} ${p.text}`.toLowerCase() })),
   ];
 

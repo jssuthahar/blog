@@ -39,6 +39,17 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     technologies: ['Flutter', 'Firebase', '.NET MAUI', 'Android', 'iOS', 'Mobile Architecture'],
   },
   {
+    slug: 'web',
+    emoji: '🌐',
+    label: 'Web',
+    description: 'The browser and the API behind it — ASP.NET Core Web APIs, REST, and React front-ends.',
+    hue: 100,
+    technologies: [
+      'ASP.NET Core', 'Web API', 'Minimal APIs', 'REST API', 'GraphQL',
+      'React', 'TypeScript', 'Blazor',
+    ],
+  },
+  {
     slug: 'azure',
     emoji: '☁️',
     label: 'Azure',
@@ -122,7 +133,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
  * validate against exactly these values with no drift.
  */
 export const CATEGORY_SLUGS = [
-  'programming', 'mobile', 'azure', 'ai', 'copilot', 'architecture', 'devops', 'engineering', 'career',
+  'programming', 'mobile', 'web', 'azure', 'ai', 'copilot', 'architecture', 'devops', 'engineering', 'career',
 ] as const;
 
 export type CategorySlug = (typeof CATEGORY_SLUGS)[number];

@@ -295,6 +295,25 @@ export const NEWSLETTER = {
 } as const;
 
 /**
+ * Web Push (PWA notifications). Standard VAPID push — no Firebase SDK ships to
+ * the browser; the service worker (`public/sw.js`) receives the push directly.
+ *
+ * `publicKey` is the VAPID *public* key and is safe to publish — it is what the
+ * browser encrypts its subscription to. The matching *private* key lives only
+ * in `.env` (VAPID_PRIVATE_KEY) and is used by `scripts/send-push.mjs` to sign
+ * sends; it must never be committed. Regenerate both with `npm run push:keys`.
+ *
+ * Subscriptions are stored in Firestore (`pushSubscriptions`), so this reuses
+ * the same free-tier Firestore already powering views and subscribers — no
+ * Cloud Functions, no billing. Blank `publicKey` disables the notify UI.
+ */
+export const PUSH = {
+  publicKey: 'BJdVP1Fm0wckAPotGdybEqQnxcrv9zWITDdq0PPU3MbtgvHxSMwWByudsKmQGr8eyG307zLamI0bu-8ZMLk6erI',
+  /** Shown in the browser's permission prompt context and the notify button. */
+  label: 'New articles & announcements',
+} as const;
+
+/**
  * Firestore project for view counts, subscribers, and testimonials. Everything
  * talks to the REST API directly, so no Firebase SDK ships to the browser.
  * Empty projectId disables those features.

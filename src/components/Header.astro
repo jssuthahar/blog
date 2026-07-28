@@ -54,6 +54,21 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
           <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
         </svg>
       </a>
+      <!-- Install as an app (PWA). Hidden until the browser reports the site is
+           installable, or on iOS where it opens Add-to-Home-Screen steps. Same
+           quiet icon treatment as search — no coloured button. -->
+      <button
+        id="pwa-install"
+        type="button"
+        hidden
+        class="rounded-md p-2 transition-colors hover:bg-subtle"
+        aria-label="Install app"
+        title="Install app"
+      >
+        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v11" /><path d="m8 11 4 4 4-4" /><path d="M5 20h14" />
+        </svg>
+      </button>
       <ThemeToggle />
       <button
         id="menu-toggle"

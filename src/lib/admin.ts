@@ -304,3 +304,93 @@ export function contactMessagesToCsv(rows: ContactMessage[]): string {
     ),
   ].join('\n');
 }
+
+// ------------------------------------------------------------- push notifications
+
+export interface PushOutboxItem {
+  id: string;
+  title: string;
+  body: string;
+  url: string;
+  status: 'pending' | 'sending' | 'sent' | 'failed';
+  delivered: number;
+  pruned: number;
+  failed: number;
+  createdAt: string;
+  sentAt: string;
+}
+
+const int = (f: any) => Number(f?.integerValue ?? 0);
+
+/**
+ * Queue a push notification. It is NOT sent from the browser — the VAPID
+ * private key required to sign a send can never ship in client code. This only
+ * writes the message to Firestore as `pending`; the scheduled GitHub Action
+ * (which holds the key as a secret) sends it to every subscriber within a few
+ * minutes. See docs/PWA.md.
+ */
+export async function queuePushNotification(input: {
+  title: string;
+  body: string;
+  url: string;
+}): Promise<void> {
+  // Any unique id works as the document name; a UUID avoids a round-trip.
+  const id = crypto.randomUUID();
+  const name = `projects/${FIREBASE.projectId}/databases/(default)/documents/pushOutbox/${id}`;
+
+  await authed(':commit', {
+    method: 'POST',
+    body: JSON.stringify({
+      writes: [
+        {
+          update: {
+            name,
+            fields: {
+              title: { stringValue: input.title },
+              body: { stringValue: input.body },
+              url: { stringValue: input.url },
+              status: { stringValue: 'pending' },
+            },
+          },
+          // Server-stamped so the rules can require createdAt == request.time.
+          updateTransforms: [{ fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME' }],
+          // A true create, so a client-picked id can never clobber an existing row.
+          currentDocument: { exists: false },
+        },
+      ],
+    }),
+  });
+}
+
+/** How many installed apps are currently subscribed — the send's reach. */
+export async function countPushSubscriptions(): Promise<number> {
+  let total = 0;
+  let pageToken = '';
+  do {
+    const q = new URLSearchParams({ pageSize: '300' });
+    if (pageToken) q.set('pageToken', pageToken);
+    const body = await authed(`/pushSubscriptions?${q.toString()}`);
+    total += (body.documents ?? []).length;
+    pageToken = body.nextPageToken ?? '';
+  } while (pageToken);
+  return total;
+}
+
+export async function listPushOutbox(): Promise<PushOutboxItem[]> {
+  const body = await authed('/pushOutbox?pageSize=50');
+
+  return ((body.documents ?? []) as any[])
+    .map((doc) => ({
+      id: doc.name.split('/').pop() as string,
+      title: str(doc.fields.title),
+      body: str(doc.fields.body),
+      url: str(doc.fields.url),
+      status: (str(doc.fields.status) || 'pending') as PushOutboxItem['status'],
+      delivered: int(doc.fields.delivered),
+      pruned: int(doc.fields.pruned),
+      failed: int(doc.fields.failed),
+      createdAt: doc.fields.createdAt?.timestampValue ?? doc.createTime,
+      sentAt: doc.fields.sentAt?.timestampValue ?? '',
+    }))
+    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+}

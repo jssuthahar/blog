@@ -13,7 +13,9 @@
     "sync": "npm run sync:articles && npm run sync:repos && npm run sync:testimonials",
     "sync:testimonials": "node scripts/sync-testimonials.mjs",
     "check:humanizer": "node scripts/check-humanizer.mjs",
-    "seed:testimonials": "node scripts/seed-testimonials.mjs"
+    "seed:testimonials": "node scripts/seed-testimonials.mjs",
+    "push:keys": "node scripts/push-keys.mjs",
+    "push:send": "node --env-file=.env scripts/send-push.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.7",
@@ -31,6 +33,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "web-push": "^3.6.7"
   }
 }

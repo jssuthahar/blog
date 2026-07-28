@@ -1,0 +1,279 @@
+---
+/**
+ * PWA runtime: registers the service worker, drives the header "Install app"
+ * icon (Android / desktop via beforeinstallprompt, iOS via an Add-to-Home-Screen
+ * sheet), and a notifications toggle backed by Web Push (src/lib/push.ts).
+ *
+ * Rendered once from BaseLayout. Install lives as a quiet icon in the header
+ * (see Header.astro #pwa-install); this only supplies the notifications bar,
+ * which appears when there is something to offer and remembers a dismissal.
+ */
+import { PUSH } from '../config';
+
+const pushConfigured = PUSH.publicKey.length > 0;
+---
+
+{pushConfigured && (
+  <div id="pwa-bar" class="pwa-bar" hidden aria-live="polite">
+    <span class="pwa-msg" id="pwa-msg">Get notified about new articles</span>
+    <div class="pwa-actions">
+      <button type="button" id="pwa-notify" class="pwa-btn" hidden>
+        Enable notifications
+      </button>
+      <button type="button" id="pwa-close" class="pwa-x" aria-label="Dismiss">&times;</button>
+    </div>
+  </div>
+)}
+
+<!-- iOS install instructions (Safari has no install prompt API). -->
+<div id="pwa-ios" class="pwa-modal" hidden role="dialog" aria-modal="true" aria-labelledby="pwa-ios-title">
+  <div class="pwa-modal__card">
+    <button type="button" id="pwa-ios-close" class="pwa-x pwa-x--modal" aria-label="Close">&times;</button>
+    <h2 id="pwa-ios-title">Install on iPhone or iPad</h2>
+    <ol>
+      <li>Tap the <strong>Share</strong> button in Safari's toolbar (the square with an up-arrow).</li>
+      <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+      <li>Tap <strong>Add</strong>. Open MSDEVBUILD from the new icon to launch it like an app — and to turn on notifications.</li>
+    </ol>
+  </div>
+</div>
+
+<style>
+  .pwa-bar {
+    position: fixed;
+    z-index: 60;
+    left: 50%;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: calc(100vw - 1.5rem);
+    padding: 0.6rem 0.75rem 0.6rem 1rem;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    box-shadow: 0 12px 34px -14px rgba(0, 0, 0, 0.45);
+    font: inherit;
+    font-size: 0.9rem;
+  }
+  .pwa-msg {
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pwa-actions { display: flex; align-items: center; gap: 0.4rem; }
+  .pwa-btn {
+    appearance: none;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--bg-subtle);
+    color: var(--text);
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.45rem 0.9rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+  }
+  .pwa-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .pwa-btn:disabled { opacity: 0.6; cursor: default; }
+  .pwa-x {
+    appearance: none;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.35rem;
+    line-height: 1;
+    padding: 0 0.35rem;
+    border-radius: 9999px;
+  }
+  .pwa-x:hover { color: var(--text); }
+
+  .pwa-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: grid;
+    place-items: end center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.45);
+  }
+  .pwa-modal__card {
+    position: relative;
+    width: 100%;
+    max-width: 26rem;
+    margin-bottom: env(safe-area-inset-bottom);
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.5rem 1.5rem 1.25rem;
+    box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.5);
+  }
+  .pwa-modal__card h2 { margin: 0 0 0.75rem; font-size: 1.1rem; }
+  .pwa-modal__card ol { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.6rem; }
+  .pwa-modal__card li { color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; }
+  .pwa-modal__card strong { color: var(--text); }
+  .pwa-x--modal { position: absolute; top: 0.6rem; right: 0.75rem; font-size: 1.6rem; }
+
+  @media (min-width: 640px) {
+    .pwa-modal { place-items: center; }
+    .pwa-modal__card { margin-bottom: 0; }
+  }
+</style>
+
+<script>
+  import { enablePush, isPushSupported, isSubscribed, isIos, isStandalone } from '../lib/push';
+
+  const DISMISS_KEY = 'pwa:bar-dismissed';
+
+  // The install prompt event may fire before the bar for a given page exists,
+  // so it is held at module scope and reflected onto whatever bar is current.
+  let deferredPrompt: any = null;
+
+  async function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      // Activate a freshly-installed worker without forcing a jarring reload;
+      // network-first HTML already keeps content current.
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        sw?.addEventListener('statechange', () => {
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            reg.waiting?.postMessage('SKIP_WAITING');
+          }
+        });
+      });
+    } catch {
+      /* SW registration failing must never break the page. */
+    }
+  }
+
+  // View Transitions swap the <body> on navigation, so the header icon / bar /
+  // modal are new elements each page. render() re-attaches to the current ones
+  // and reflects the current install/notification state. Window-level listeners
+  // are bound once (below) and just call render() when state changes.
+  function render() {
+    renderInstallIcon();
+    wireIosModal();
+    void renderBar();
+  }
+
+  // The install control is a quiet icon in the header, shown only when the site
+  // is actually installable. Not tied to the notifications bar, so dismissing
+  // the bar never hides it.
+  function renderInstallIcon() {
+    const btn = document.getElementById('pwa-install') as HTMLButtonElement | null;
+    if (!btn) return;
+    const iosModal = document.getElementById('pwa-ios') as HTMLElement | null;
+    const iosNeedsManual = isIos() && !isStandalone();
+
+    if (!deferredPrompt && !iosNeedsManual) {
+      btn.hidden = true;
+      return;
+    }
+
+    btn.hidden = false;
+    btn.onclick = async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        btn.hidden = true;
+      } else if (iosModal) {
+        iosModal.hidden = false; // iOS: manual Add-to-Home-Screen steps.
+      }
+    };
+  }
+
+  async function renderBar() {
+    const bar = document.getElementById('pwa-bar') as HTMLElement | null;
+    if (!bar || localStorage.getItem(DISMISS_KEY) === '1') return;
+
+    const msg = document.getElementById('pwa-msg') as HTMLElement;
+    const notifyBtn = document.getElementById('pwa-notify') as HTMLButtonElement | null;
+    const closeBtn = document.getElementById('pwa-close') as HTMLButtonElement;
+
+    const hideBar = () => { bar.hidden = !notifyBtn || notifyBtn.hidden; };
+
+    closeBtn.onclick = () => {
+      bar.hidden = true;
+      localStorage.setItem(DISMISS_KEY, '1');
+    };
+
+    if (notifyBtn) await renderNotify(notifyBtn, msg, hideBar);
+    hideBar();
+  }
+
+  async function renderNotify(
+    btn: HTMLButtonElement,
+    msg: HTMLElement,
+    hideBar: () => void,
+  ) {
+    // Only offer when it can work and hasn't already been dealt with.
+    if (!isPushSupported() || Notification.permission === 'denied' || (await isSubscribed())) {
+      btn.hidden = true;
+      return;
+    }
+
+    btn.hidden = false;
+
+    btn.onclick = async () => {
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = 'Enabling…';
+      try {
+        await enablePush();
+        btn.textContent = 'Notifications on';
+        setTimeout(() => { btn.hidden = true; hideBar(); }, 1400);
+      } catch (err: any) {
+        btn.disabled = false;
+        btn.textContent = original;
+        const reason = err?.message;
+        if (reason === 'not-installed') {
+          msg.textContent = 'Install from the header first, then enable notifications';
+        } else if (reason === 'denied') {
+          msg.textContent = 'Notifications are blocked in your browser settings';
+          btn.hidden = true;
+          hideBar();
+        } else {
+          msg.textContent = "Couldn't enable notifications — try again";
+        }
+      }
+    };
+  }
+
+  // The iOS Add-to-Home-Screen sheet, opened from the header install icon.
+  function wireIosModal() {
+    const modal = document.getElementById('pwa-ios') as HTMLElement | null;
+    const close = document.getElementById('pwa-ios-close') as HTMLButtonElement | null;
+    if (!modal || !close) return;
+    close.onclick = () => { modal.hidden = true; };
+    modal.onclick = (e) => { if (e.target === modal) modal.hidden = true; };
+  }
+
+  // One-time setup: SW registration and window-level listeners.
+  if (!(window as any).__pwaBound) {
+    (window as any).__pwaBound = true;
+
+    registerServiceWorker();
+
+    window.addEventListener('beforeinstallprompt', (e: Event) => {
+      e.preventDefault(); // Suppress the mini-infobar; we show our own button.
+      deferredPrompt = e;
+      render();
+    });
+    window.addEventListener('appinstalled', () => {
+      deferredPrompt = null;
+      render();
+    });
+  }
+
+  // Re-render on first load and after every client-side navigation.
+  document.addEventListener('astro:page-load', render);
+</script>

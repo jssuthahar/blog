@@ -1,0 +1,40 @@
+name: Send push notifications
+
+# Delivers notifications composed in /admin. The admin console queues each one
+# into Firestore (pushOutbox); this job signs each send with the VAPID private
+# key — which lives only in the secrets below, never in the repo or the browser.
+on:
+  schedule:
+    # Every 5 minutes (GitHub's minimum). A queued notification therefore goes
+    # out within a few minutes with no further action. GitHub throttles cron
+    # under load, so treat the interval as "up to a few minutes", not exact.
+    - cron: '*/5 * * * *'
+  # Lets you fire immediately from the Actions tab instead of waiting for cron.
+  workflow_dispatch:
+
+# Only one drain at a time, so two runs never send the same notification twice.
+concurrency:
+  group: send-push
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Drain the outbox and send
+        env:
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          # Optional overrides; the script has safe defaults for these.
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+        run: node scripts/drain-push-outbox.mjs

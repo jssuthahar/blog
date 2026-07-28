@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline — MSDEVBUILD</title>
+    <meta name="theme-color" content="#1e5fd1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #ffffff;
+        --ink: #16181d;
+        --muted: #5b616e;
+        --accent: #1e5fd1;
+        --card: #f6f7f9;
+        --border: #e4e6ea;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f1115;
+          --ink: #eef0f3;
+          --muted: #a2a8b4;
+          --accent: #6ea2ff;
+          --card: #171a20;
+          --border: #262a31;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        display: grid;
+        place-items: center;
+        padding: 1.5rem;
+        line-height: 1.5;
+      }
+      .card {
+        max-width: 26rem;
+        width: 100%;
+        text-align: center;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        padding: 2.25rem 1.75rem;
+      }
+      .logo {
+        width: 64px;
+        height: 64px;
+        border-radius: 9999px;
+        object-fit: cover;
+        margin: 0 auto 1.25rem;
+        display: block;
+      }
+      h1 { font-size: 1.35rem; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+      p { color: var(--muted); margin: 0 0 1.5rem; font-size: 0.95rem; }
+      button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        padding: 0.7rem 1.4rem;
+        border-radius: 9999px;
+      }
+      button:active { transform: translateY(1px); }
+      .hint { margin-top: 1rem; font-size: 0.8rem; color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img class="logo" src="/icon-192.png" alt="MSDEVBUILD" width="64" height="64" />
+      <h1>You're offline</h1>
+      <p>
+        This page isn't available without a connection yet. Pages you've already
+        visited stay readable offline — try again once you're back online.
+      </p>
+      <button onclick="location.reload()">Try again</button>
+      <div class="hint">MSDEVBUILD — by Suthahar</div>
+    </div>
+    <script>
+      // Auto-recover the moment the network returns.
+      addEventListener('online', () => location.reload());
+    </script>
+  </body>
+</html>

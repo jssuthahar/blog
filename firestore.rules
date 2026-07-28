@@ -224,6 +224,65 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Web Push subscriptions (PWA notifications).
+    //
+    // The document ID is a SHA-256 of the push endpoint, so re-subscribing from
+    // the same browser updates one row instead of piling up duplicates. A
+    // subscription is an encryption target, not a secret, but the endpoint can
+    // be used to send to that browser — so the list is NEVER publicly readable.
+    // Only the signed-in admin (and the sender script, using the admin token)
+    // may read it; the sender also prunes dead subscriptions, hence admin
+    // delete. Anyone may register their own, but the shape is pinned down.
+    match /pushSubscriptions/{id} {
+      allow read, delete: if isAdmin();
+
+      allow create, update: if request.resource.data.keys().hasOnly(
+                                 ['endpoint', 'p256dh', 'auth', 'ua', 'createdAt'])
+                            && request.resource.data.endpoint is string
+                            && request.resource.data.endpoint.matches('^https://.*')
+                            && request.resource.data.endpoint.size() <= 1000
+                            && request.resource.data.p256dh is string
+                            && request.resource.data.p256dh.size() <= 200
+                            && request.resource.data.auth is string
+                            && request.resource.data.auth.size() <= 100
+                            && request.resource.data.ua is string
+                            && request.resource.data.ua.size() <= 300
+                            // Server-stamped, so a subscription cannot be backdated.
+                            && request.resource.data.createdAt == request.time;
+    }
+
+    // Push notification outbox.
+    //
+    // The admin composes a notification in /admin, which lands here as
+    // `pending`. A scheduled GitHub Action signs in as the admin, reads the
+    // pending rows, fans each out to every push subscription with the VAPID
+    // private key (which lives only in GitHub Secrets, never in the browser),
+    // and marks the row `sent` with delivery counts. Only the admin can touch
+    // this collection at all — a visitor cannot queue or read notifications.
+    match /pushOutbox/{id} {
+      allow read, delete: if isAdmin();
+
+      allow create: if isAdmin()
+                    && request.resource.data.keys().hasOnly(['title', 'body', 'url', 'status', 'createdAt'])
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() >= 1
+                    && request.resource.data.title.size() <= 100
+                    && request.resource.data.body is string
+                    && request.resource.data.body.size() <= 300
+                    && request.resource.data.url is string
+                    && request.resource.data.url.size() <= 300
+                    // Server-stamped, so a queued notification cannot be backdated.
+                    && request.resource.data.createdAt == request.time;
+
+      // The sender (as admin) records the outcome — status plus counts, nothing
+      // that would change what gets sent.
+      allow update: if isAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['status', 'sentAt', 'delivered', 'pruned', 'failed'])
+                    && request.resource.data.status in ['pending', 'sending', 'sent', 'failed'];
+    }
+
     // Everything else is closed.
     match /{document=**} {
       allow read, write: if false;

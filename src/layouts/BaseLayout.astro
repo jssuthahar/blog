@@ -5,6 +5,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import CommandPalette from '../components/CommandPalette.astro';
 import ArticleCapture from '../components/ArticleCapture.astro';
+import PwaController from '../components/PwaController.astro';
 import { SITE, AUTHOR, MAIN_SITE } from '../config';
 
 interface Props {
@@ -83,5 +84,8 @@ const baseSchema = [
 
     <!-- Records click-throughs to off-site articles into reading history. -->
     <ArticleCapture />
+
+    <!-- PWA: service-worker registration, install prompt, push notifications. -->
+    <PwaController />
   </body>
 </html>

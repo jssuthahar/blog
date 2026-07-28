@@ -121,9 +121,9 @@ if (data.faq.length > 0) {
     <!-- Header spans the full column; the body below is narrower for reading. -->
     <header class="mx-auto max-w-3xl">
       <nav aria-label="Breadcrumb" class="text-sm text-muted">
-        <a href="/blog" class="hover:text-accent">Blog</a>
+        <a href="/blog/" class="hover:text-accent">Blog</a>
         <span aria-hidden="true" class="mx-2">/</span>
-        <a href={`/category/${data.category}`} class="hover:text-accent">{category.label}</a>
+        <a href={`/category/${data.category}/`} class="hover:text-accent">{category.label}</a>
       </nav>
 
       <h1 class="mt-4 text-3xl font-bold tracking-tight text-balance sm:text-4xl md:text-[2.75rem] md:leading-[1.15]">
@@ -133,7 +133,7 @@ if (data.faq.length > 0) {
       <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">{data.description}</p>
 
       <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
-        <span>By <a href="/about" class="hover:text-accent">{AUTHOR.name}</a></span>
+        <span>By <a href="/about/" class="hover:text-accent">{AUTHOR.name}</a></span>
         <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time>
         {data.updatedAt && (
           <span class="text-accent">Updated {formatDate(data.updatedAt)}</span>
@@ -247,7 +247,7 @@ if (data.faq.length > 0) {
               {data.tags.map((tag) => (
                 <li>
                   <a
-                    href={`/tag/${slugifyTag(tag)}`}
+                    href={`/tag/${slugifyTag(tag)}/`}
                     class="inline-block rounded-full border border-default px-3 py-1 text-sm text-muted transition-colors hover:text-accent hover:bg-subtle"
                   >
                     #{tag}

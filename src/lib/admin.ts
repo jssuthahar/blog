@@ -362,6 +362,15 @@ export async function queuePushNotification(input: {
   });
 }
 
+/** Total app installs (public counter). How many people installed the PWA. */
+export async function countAppInstalls(): Promise<number> {
+  // Public counter, so a plain unauthenticated read is enough.
+  const res = await fetch(`${FIRESTORE}/appInstalls/count`).catch(() => null);
+  if (!res || !res.ok) return 0;
+  const doc = await res.json().catch(() => null);
+  return Number(doc?.fields?.count?.integerValue ?? 0);
+}
+
 /** How many installed apps are currently subscribed — the send's reach. */
 export async function countPushSubscriptions(): Promise<number> {
   let total = 0;

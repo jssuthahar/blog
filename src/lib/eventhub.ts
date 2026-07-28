@@ -21,7 +21,7 @@ async function loadEvents(): Promise<HostedEvent[]> {
 }
 
 export function eventUrl(event: HostedEvent): string {
-  return `/events/${event.id}`;
+  return `/events/${event.id}/`;
 }
 
 /** An event counts as "past" once its end (or start) has fully elapsed. */

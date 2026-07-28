@@ -166,7 +166,7 @@ const TOPICS = ['Azure', 'AI', '.NET MAUI', 'GitHub Copilot', 'Xamarin'];
         await new Promise((r) => setTimeout(r, 400));
 
         if (!hits.length) {
-          typing.innerHTML = 'I couldn’t find anything on that. Try a broader term like “Azure” or “.NET”, or <a href="/articles" class="font-medium underline" style="color:var(--accent)">browse all articles →</a>';
+          typing.innerHTML = 'I couldn’t find anything on that. Try a broader term like “Azure” or “.NET”, or <a href="/articles/" class="font-medium underline" style="color:var(--accent)">browse all articles →</a>';
           return;
         }
         typing.innerHTML =

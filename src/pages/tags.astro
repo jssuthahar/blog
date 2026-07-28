@@ -15,7 +15,7 @@ const tags = await getAllTags();
     {tags.map(({ slug, label, count }) => (
       <li>
         <a
-          href={`/tag/${slug}`}
+          href={`/tag/${slug}/`}
           class="inline-block rounded-full border border-default px-4 py-2 text-sm transition-colors hover:text-accent hover:bg-subtle"
         >
           #{label} <span class="text-xs text-muted">{count}</span>

@@ -60,7 +60,7 @@ const facts: { label: string; value: string; href?: string }[] = [
   { label: 'Format', value: EVENT_FORMAT_LABELS[data.format] },
   { label: 'Price', value: data.price },
   // The host/speaker links to the About page — it's who's running the event.
-  ...(data.host ? [{ label: 'Host', value: data.host, href: '/about' }] : []),
+  ...(data.host ? [{ label: 'Host', value: data.host, href: '/about/' }] : []),
 ];
 ---
 
@@ -74,7 +74,7 @@ const facts: { label: string; value: string; href?: string }[] = [
 >
   <div class="mx-auto max-w-5xl px-4 py-10 sm:px-6">
     <nav aria-label="Breadcrumb" class="text-sm text-muted">
-      <a href="/events" class="hover:text-accent">Events</a>
+      <a href="/events/" class="hover:text-accent">Events</a>
       <span aria-hidden="true" class="mx-2">/</span>
       <span>{EVENT_FORMAT_LABELS[data.format]}</span>
     </nav>

@@ -139,6 +139,42 @@ export async function disablePush(): Promise<void> {
   localStorage.removeItem(PUSH_ENABLED_KEY);
 }
 
+export const INSTALL_COUNTED_KEY = 'pwa:install-counted';
+
+/**
+ * Count this device as an install, once, the first time the app is opened as an
+ * installed PWA. Standalone launch is the only signal that works everywhere —
+ * iOS never fires `appinstalled`. Uses the same transform-increment upsert as
+ * the view counter, against the public `appInstalls` counter.
+ */
+export async function recordInstallOnce(): Promise<void> {
+  if (!FIREBASE.projectId) return;
+  if (!isStandalone()) return;
+  if (localStorage.getItem(INSTALL_COUNTED_KEY) === '1') return;
+  localStorage.setItem(INSTALL_COUNTED_KEY, '1');
+
+  const base = `https://firestore.googleapis.com/v1/projects/${FIREBASE.projectId}/databases/(default)/documents`;
+  await fetch(`${base}:commit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      writes: [
+        {
+          update: {
+            name: `projects/${FIREBASE.projectId}/databases/(default)/documents/appInstalls/count`,
+            fields: {},
+          },
+          updateMask: { fieldPaths: [] },
+          updateTransforms: [{ fieldPath: 'count', increment: { integerValue: '1' } }],
+        },
+      ],
+    }),
+  }).catch(() => {
+    // A counter is decoration — a failed bump must never surface to the user.
+    localStorage.removeItem(INSTALL_COUNTED_KEY);
+  });
+}
+
 /** Current subscription state, for reflecting the toggle on load. */
 export async function isSubscribed(): Promise<boolean> {
   if (!isPushSupported() || Notification.permission !== 'granted') return false;

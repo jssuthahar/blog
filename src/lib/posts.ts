@@ -157,7 +157,7 @@ export function readingTime(body: string): number {
 }
 
 export function postUrl(post: Post): string {
-  return `/blog/${post.id}`;
+  return `/blog/${post.id}/`;
 }
 
 export function formatDate(date: Date): string {

@@ -20,7 +20,9 @@ export default defineConfig({
         !page.includes('/preview') &&
         !page.includes('/admin') &&
         !page.includes('/write') &&
-        !page.includes('/search'),
+        !page.includes('/search') &&
+        !page.includes('/history') &&
+        !page.includes('/events/new'),
     }),
   ],
 

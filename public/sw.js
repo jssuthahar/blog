@@ -15,7 +15,7 @@
  * are cleaned out on activate.
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const STATIC_CACHE = `msdevbuild-static-${CACHE_VERSION}`;
 const PAGES_CACHE = `msdevbuild-pages-${CACHE_VERSION}`;
 const OFFLINE_URL = '/offline.html';
@@ -61,6 +61,43 @@ const isHashedAsset = (url) =>
   url.pathname.startsWith('/fonts/') ||
   /\.(?:css|js|woff2?|png|jpe?g|svg|webp|avif|ico)$/.test(url.pathname);
 
+// Hashed static assets: serve from cache instantly, refresh in the background.
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(STATIC_CACHE);
+  const cached = await cache.match(request);
+  const network = fetch(request)
+    .then((response) => {
+      if (response.ok) cache.put(request, response.clone());
+      return response;
+    })
+    .catch(() => cached);
+  return cached || network;
+}
+
+// Pages: network-first so an online visit is always fresh, then fall back to
+// the cached copy, then to the offline screen. Crucially, this caches the HTML
+// however it was loaded — a full navigation OR the client router's own fetch of
+// the next article — so anything read online stays readable offline.
+async function pageStrategy(request) {
+  try {
+    const response = await fetch(request);
+    const type = response.headers.get('content-type') || '';
+    if (response.ok && (request.mode === 'navigate' || type.includes('text/html'))) {
+      const cache = await caches.open(PAGES_CACHE);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    // A refresh with no cached copy shows the offline screen. A failed router
+    // fetch instead rejects, so Astro falls back to a real navigation (which
+    // then hits this same path and gets the offline screen).
+    if (request.mode === 'navigate') return caches.match(OFFLINE_URL);
+    return Response.error();
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
@@ -70,39 +107,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Page navigations: network-first, falling back to the cached page, then to
-  // the offline screen. This keeps content fresh on every online visit.
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(PAGES_CACHE).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(async () => {
-          const cached = await caches.match(request);
-          return cached || caches.match(OFFLINE_URL);
-        }),
-    );
-    return;
-  }
-
-  // Hashed static assets: serve from cache instantly, refresh in the background.
-  if (isHashedAsset(url)) {
-    event.respondWith(
-      caches.open(STATIC_CACHE).then(async (cache) => {
-        const cached = await cache.match(request);
-        const network = fetch(request)
-          .then((response) => {
-            if (response.ok) cache.put(request, response.clone());
-            return response;
-          })
-          .catch(() => cached);
-        return cached || network;
-      }),
-    );
-  }
+  event.respondWith(isHashedAsset(url) ? staleWhileRevalidate(request) : pageStrategy(request));
 });
 
 /* ---------------------------------------------------------------- Web Push -- */

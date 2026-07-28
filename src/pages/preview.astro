@@ -47,7 +47,7 @@ const rows = drafts.map((post) => {
         <h1 class="display mt-1.5 text-2xl">Drafts</h1>
       </div>
       <div class="flex flex-wrap items-center gap-3">
-        <a href="/admin" class="btn btn-outline btn-sm">← Console</a>
+        <a href="/admin/" class="btn btn-outline btn-sm">← Console</a>
         <span id="who" class="text-sm text-muted"></span>
         <button id="sign-out" hidden class="btn btn-outline btn-sm">Sign out</button>
       </div>
@@ -58,7 +58,7 @@ const rows = drafts.map((post) => {
         <p class="font-semibold">Setup needed</p>
         <p class="mt-2 text-muted">
           Configure <code>ADMIN.uid</code> and <code>FIREBASE.apiKey</code> in
-          <code>src/config.ts</code> first — see <a href="/admin" class="text-accent hover:underline">/admin</a>.
+          <code>src/config.ts</code> first — see <a href="/admin/" class="text-accent hover:underline">/admin</a>.
         </p>
       </div>
     )}
@@ -92,14 +92,14 @@ const rows = drafts.map((post) => {
           {rows.map((r) => (
             <li class="flex flex-wrap items-center justify-between gap-3 p-4">
               <div class="min-w-0">
-                <a href={`/preview/${r.id}`} class="font-medium hover:text-accent">{r.title}</a>
+                <a href={`/preview/${r.id}/`} class="font-medium hover:text-accent">{r.title}</a>
                 <p class="mt-1 text-xs text-muted">
                   {r.category} · {r.date}{r.series ? ` · series: ${r.series}` : ''}
                 </p>
               </div>
               <div class="flex shrink-0 items-center gap-2">
                 <button type="button" class="btn btn-outline btn-sm" data-edit-raw={r.raw} data-edit-file={r.filename}>Edit</button>
-                <a href={`/preview/${r.id}`} class="btn btn-outline btn-sm">Preview →</a>
+                <a href={`/preview/${r.id}/`} class="btn btn-outline btn-sm">Preview →</a>
               </div>
             </li>
           ))}

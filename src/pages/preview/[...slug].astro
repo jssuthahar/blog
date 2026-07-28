@@ -89,7 +89,7 @@ const fileName = `${post.id.split('/').pop()}.${ext}`;
           <button type="submit" class="btn btn-accent btn-sm w-full">Sign in</button>
           <p id="pv-status" role="status" aria-live="polite" class="text-sm"></p>
         </form>
-        <p class="mt-4 text-xs text-muted">noindex · unlisted · <a href="/preview" class="text-accent hover:underline">all drafts</a></p>
+        <p class="mt-4 text-xs text-muted">noindex · unlisted · <a href="/preview/" class="text-accent hover:underline">all drafts</a></p>
       </div>
     </section>
 
@@ -107,13 +107,13 @@ const fileName = `${post.id.split('/').pop()}.${ext}`;
       <div class="flex items-center gap-3">
         <button id="edit-toggle" type="button" class="text-accent hover:underline">Edit source</button>
         <button id="preview-signout" type="button" class="text-accent hover:underline">Sign out</button>
-        <a href="/preview" class="text-accent hover:underline">← All drafts</a>
+        <a href="/preview/" class="text-accent hover:underline">← All drafts</a>
       </div>
     </div>
 
     <header class="mx-auto max-w-3xl">
       <nav aria-label="Breadcrumb" class="text-sm text-muted">
-        <a href="/preview" class="hover:text-accent">Drafts</a>
+        <a href="/preview/" class="hover:text-accent">Drafts</a>
         <span aria-hidden="true" class="mx-2">/</span>
         <span>{category.label}</span>
       </nav>
@@ -125,7 +125,7 @@ const fileName = `${post.id.split('/').pop()}.${ext}`;
       <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">{data.description}</p>
 
       <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
-        <span>By <a href="/about" class="hover:text-accent">{AUTHOR.name}</a></span>
+        <span>By <a href="/about/" class="hover:text-accent">{AUTHOR.name}</a></span>
         <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time>
         {data.updatedAt && <span class="text-accent">Updated {formatDate(data.updatedAt)}</span>}
         <span>{minutes} min read</span>
@@ -163,7 +163,7 @@ const fileName = `${post.id.split('/').pop()}.${ext}`;
                   {p.id === post.id ? (
                     <span class="font-medium" aria-current="true">{p.data.title}</span>
                   ) : (
-                    <a href={p.data.draft ? `/preview/${p.id}` : postUrl(p)} class="text-muted hover:text-accent">
+                    <a href={p.data.draft ? `/preview/${p.id}/` : postUrl(p)} class="text-muted hover:text-accent">
                       {p.data.title}
                     </a>
                   )}
@@ -184,7 +184,7 @@ const fileName = `${post.id.split('/').pop()}.${ext}`;
                       {p.id === post.id ? (
                         <span class="font-medium" aria-current="true">{p.data.title}</span>
                       ) : (
-                        <a href={p.data.draft ? `/preview/${p.id}` : postUrl(p)} class="text-muted hover:text-accent">
+                        <a href={p.data.draft ? `/preview/${p.id}/` : postUrl(p)} class="text-muted hover:text-accent">
                           {p.data.title}
                         </a>
                       )}

@@ -57,7 +57,7 @@ const items: Item[] = [
     kind: 'talk' as const,
     date: e.data.date,
     venue: e.data.venue ?? e.data.location,
-    url: e.data.url ?? '/speaking',
+    url: e.data.url ?? '/speaking/',
     external: Boolean(e.data.url),
     meta: e.data.audience,
   })),

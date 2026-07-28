@@ -321,7 +321,7 @@ const schema = [
 
     if (!search || items.length === 0) return;
 
-    // Deep link support: /articles?category=azure arrives pre-filtered, so topic
+    // Deep link support: /articles/?category=azure arrives pre-filtered, so topic
     // links elsewhere on the site land on the right slice of the library.
     const requested = new URLSearchParams(location.search).get('category');
     const known = chips.some((c) => c.dataset.filter === requested);

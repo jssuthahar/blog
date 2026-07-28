@@ -220,11 +220,11 @@ export const SOCIAL = [
 
 export const NAV = [
   { label: 'Home', href: '/' },
-  { label: 'Articles', href: '/articles' },
-  { label: 'Events', href: '/events' },
-  { label: 'Speaking', href: '/speaking' },
-  { label: 'Open source', href: '/open-source' },
-  { label: 'About', href: '/about' },
+  { label: 'Articles', href: '/articles/' },
+  { label: 'Events', href: '/events/' },
+  { label: 'Speaking', href: '/speaking/' },
+  { label: 'Open source', href: '/open-source/' },
+  { label: 'About', href: '/about/' },
 ] as const;
 
 /**

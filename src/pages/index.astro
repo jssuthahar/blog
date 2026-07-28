@@ -74,7 +74,7 @@ const eventSlides: Slide[] = upcoming.slice(0, 2).map((e) => ({
   kind: 'Upcoming event',
   title: e.data.talk ?? e.data.title,
   description: e.data.talk ? e.data.title : `${e.data.venue ?? ''} ${e.data.location}`.trim(),
-  href: e.data.registrationUrl ?? e.data.url ?? '/speaking',
+  href: e.data.registrationUrl ?? e.data.url ?? '/speaking/',
   external: Boolean(e.data.registrationUrl ?? e.data.url),
   meta: `${FORMAT_LABELS[e.data.format]} · ${formatEventDate(e)}`,
   cta: 'Event details',
@@ -88,7 +88,7 @@ for (let i = 0; i < 3; i++) {
 }
 
 // No email is published; booking goes to the scheduler or the contact page.
-const bookingHref = BOOKING.scheduler || '/contact';
+const bookingHref = BOOKING.scheduler || '/contact/';
 
 const schema = [
   {
@@ -118,7 +118,10 @@ const schema = [
   <section class="mx-auto max-w-6xl px-4 pt-12 pb-10 sm:px-6 lg:pt-16 lg:pb-12">
     <div class="grid items-center gap-10 lg:grid-cols-[1.3fr_0.9fr]">
       <div>
-        <div class="flex items-center gap-3">
+        <p class="eyebrow">
+          <span class="text-accent">MS</span>DEVBUILD — {SITE.alternateName}
+        </p>
+        <div class="mt-3 flex items-center gap-3">
           <Avatar size={40} />
           <div class="text-sm">
             <p class="font-semibold">{AUTHOR.name}</p>
@@ -165,7 +168,7 @@ const schema = [
 
         <div class="mt-6 flex flex-wrap items-center gap-3">
           <a href={bookingHref} class="btn btn-primary">Book me to speak</a>
-          <a href="/about" class="btn btn-outline">Full profile</a>
+          <a href="/about/" class="btn btn-outline">Full profile</a>
           {BOOKING.available && (
             <span class="inline-flex items-center gap-2 text-sm text-muted">
               <span class="size-2 rounded-full" style="background: var(--accent);"></span>
@@ -194,7 +197,7 @@ const schema = [
         <h2 id="impact-heading" class="text-sm font-semibold tracking-wider uppercase text-muted">
           Contribution to the developer community
         </h2>
-        <a href="/contributions" class="text-sm font-semibold text-accent hover:underline">
+        <a href="/contributions/" class="text-sm font-semibold text-accent hover:underline">
           Full contribution record →
         </a>
       </div>
@@ -233,7 +236,7 @@ const schema = [
           500+ articles, written from production
         </h2>
       </div>
-      <a href="/articles" class="btn btn-outline btn-sm">Browse all {articles.length}</a>
+      <a href="/articles/" class="btn btn-outline btn-sm">Browse all {articles.length}</a>
     </div>
 
     <!-- Topic chips double as an at-a-glance map of what the library covers. -->
@@ -241,7 +244,7 @@ const schema = [
       {topics.map(({ label, count, slug }) => (
         <li>
           <a
-            href={`/articles?category=${slug}`}
+            href={`/articles/?category=${slug}`}
             class="inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1 text-xs transition-colors hover:bg-subtle"
           >
             {label}
@@ -306,7 +309,7 @@ const schema = [
           </li>
         ))}
       </ul>
-      <a href="/articles" class="mt-4 inline-block text-sm font-semibold text-accent hover:underline">
+      <a href="/articles/" class="mt-4 inline-block text-sm font-semibold text-accent hover:underline">
         See all {articles.length} articles →
       </a>
     </div>
@@ -315,7 +318,7 @@ const schema = [
       <div class="mt-10">
         <div class="flex items-baseline justify-between border-b border-default pb-2">
           <h3 class="text-sm font-semibold tracking-wider uppercase text-muted">Latest on the blog</h3>
-          <a href="/blog" class="text-sm font-semibold text-accent hover:underline">All posts →</a>
+          <a href="/blog/" class="text-sm font-semibold text-accent hover:underline">All posts →</a>
         </div>
 
         <ul class="divide-y divide-[var(--border)]">
@@ -367,7 +370,7 @@ const schema = [
               Book an appointment
             </a>
             <a
-              href="/speaking"
+              href="/speaking/"
               class="btn"
               style="background: transparent; color: #fff; border: 1.5px solid rgb(255 255 255 / 0.35);"
             >
@@ -415,7 +418,7 @@ const schema = [
       </div>
       <p class="text-sm text-muted">
         {repoIndex.count} repos · {repoIndex.totalStars} stars · {repoIndex.totalForks} forks
-        <a href="/open-source" class="ml-3 font-semibold text-accent hover:underline">All projects →</a>
+        <a href="/open-source/" class="ml-3 font-semibold text-accent hover:underline">All projects →</a>
       </p>
     </div>
 
@@ -457,7 +460,7 @@ const schema = [
           <button type="button" data-open-feedback class="btn btn-accent btn-sm">
             Add your feedback
           </button>
-          <a href="/testimonials" class="btn btn-outline btn-sm">All testimonials</a>
+          <a href="/testimonials/" class="btn btn-outline btn-sm">All testimonials</a>
         </div>
       </div>
 
@@ -496,7 +499,7 @@ const schema = [
         </p>
 
         <div class="mt-6 flex flex-wrap gap-3">
-          <a href="/contact" class="btn btn-primary">Get in touch</a>
+          <a href="/contact/" class="btn btn-primary">Get in touch</a>
           <a href={bookingHref} class="btn btn-outline">Book an appointment</a>
         </div>
 
@@ -505,7 +508,7 @@ const schema = [
             { label: 'LinkedIn', value: 'in/jssuthahar', href: AUTHOR.linkedin },
             { label: 'GitHub', value: '@jssuthahar', href: 'https://github.com/jssuthahar' },
             { label: 'YouTube', value: '@MSDEVBUILD', href: 'https://www.youtube.com/@MSDEVBUILD' },
-            { label: 'Contact', value: 'Send a message', href: '/contact' },
+            { label: 'Contact', value: 'Send a message', href: '/contact/' },
           ].map(({ label, value, href }) => (
             <div class="min-w-0">
               <dt class="text-xs text-muted">{label}</dt>

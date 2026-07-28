@@ -31,14 +31,14 @@ export const GET: APIRoute = async () => {
     })),
 
     ...[
-      { title: 'About Suthahar', url: '/about', text: 'about bio profile credentials certifications' },
-      { title: 'Speaking', url: '/speaking', text: 'speaking talks sessions conference book' },
-      { title: 'Open source', url: '/open-source', text: 'open source github repositories code' },
-      { title: 'Articles', url: '/articles', text: 'all articles archive library' },
-      { title: 'Topics & technologies', url: '/topics', text: 'topics technologies dotnet azure ai mobile architecture devops career tags' },
-      { title: 'Testimonials', url: '/testimonials', text: 'testimonials reviews feedback readers' },
-      { title: 'Contribution record', url: '/contributions', text: 'contributions record talks community' },
-      { title: 'Contact', url: '/contact', text: 'contact get in touch enquiry' },
+      { title: 'About Suthahar', url: '/about/', text: 'about bio profile credentials certifications' },
+      { title: 'Speaking', url: '/speaking/', text: 'speaking talks sessions conference book' },
+      { title: 'Open source', url: '/open-source/', text: 'open source github repositories code' },
+      { title: 'Articles', url: '/articles/', text: 'all articles archive library' },
+      { title: 'Topics & technologies', url: '/topics/', text: 'topics technologies dotnet azure ai mobile architecture devops career tags' },
+      { title: 'Testimonials', url: '/testimonials/', text: 'testimonials reviews feedback readers' },
+      { title: 'Contribution record', url: '/contributions/', text: 'contributions record talks community' },
+      { title: 'Contact', url: '/contact/', text: 'contact get in touch enquiry' },
     ].map((p) => ({ ...p, kind: 'Page', category: '', external: false, text: `${p.title} ${p.text}`.toLowerCase() })),
   ];
 

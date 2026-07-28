@@ -23,7 +23,7 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
           <span class="text-accent">MS</span>DEVBUILD
           <span class="font-normal text-muted">/ blog</span>
         </span>
-        <span class="block text-[0.7rem] text-muted">{SITE.byline}</span>
+        <span class="block text-[0.7rem] text-muted">{SITE.alternateName} · {SITE.byline}</span>
       </span>
     </a>
 
@@ -45,7 +45,7 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
     <div class="ml-auto flex items-center gap-1 sm:ml-0">
       <!-- Opens the ⌘K palette; falls back to /search if JS is unavailable. -->
       <a
-        href="/search"
+        href="/search/"
         data-open-search
         class="rounded-md p-2 transition-colors hover:bg-subtle"
         aria-label="Search (⌘K)"
@@ -55,19 +55,19 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
         </svg>
       </a>
       <!-- Install as an app (PWA). Hidden until the browser reports the site is
-           installable, or on iOS where it opens Add-to-Home-Screen steps. Same
-           quiet icon treatment as search — no coloured button. -->
+           installable, or on iOS where it opens Add-to-Home-Screen steps. Solid
+           accent pill so it stands out and invites the install. -->
       <button
         id="pwa-install"
         type="button"
         hidden
-        class="rounded-md p-2 transition-colors hover:bg-subtle"
+        class="btn btn-accent btn-sm"
         aria-label="Install app"
-        title="Install app"
       >
-        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 3v11" /><path d="m8 11 4 4 4-4" /><path d="M5 20h14" />
         </svg>
+        Install app
       </button>
       <ThemeToggle />
       <button

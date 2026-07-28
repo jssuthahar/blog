@@ -156,6 +156,10 @@ const SHARE = [
     (() => {
       const BASE = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
 
+      // Displayed starting count per reaction, matching Reactions.astro so the
+      // rail and the bottom block always show the same number.
+      const BASE_COUNT = 2;
+
       const format = (n) =>
         n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
 
@@ -204,7 +208,7 @@ const SHARE = [
             const fields = doc?.fields ?? {};
             buttons.forEach((btn) => {
               const key = btn.dataset.react;
-              paint(key, Number(fields[key]?.integerValue ?? 0));
+              paint(key, BASE_COUNT + Number(fields[key]?.integerValue ?? 0));
               if (localStorage.getItem(`reacted:${slug}:${key}`) !== null) {
                 btn.dataset.reacted = '';
               }
@@ -251,7 +255,8 @@ const SHARE = [
               if (!res.ok) throw new Error(String(res.status));
 
               const doc = await fetch(docPath).then((r) => (r.ok ? r.json() : null));
-              paint(key, Number(doc?.fields?.[key]?.integerValue ?? optimistic + 1));
+              const raw = doc?.fields?.[key]?.integerValue;
+              paint(key, raw != null ? BASE_COUNT + Number(raw) : optimistic + 1);
             } catch {
               localStorage.removeItem(guard);
               delete btn.dataset.reacted;

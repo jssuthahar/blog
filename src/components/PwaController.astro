@@ -25,16 +25,34 @@ const pushConfigured = PUSH.publicKey.length > 0;
   </div>
 )}
 
+<!-- One-time nudge for iOS Safari (no install prompt exists there). Points to
+     the guided Add-to-Home-Screen sheet; shown once, then remembered. -->
+<div id="pwa-ios-banner" class="pwa-bar" hidden aria-live="polite">
+  <span class="pwa-msg">Install MSDEVBUILD on your Home Screen</span>
+  <div class="pwa-actions">
+    <button type="button" id="pwa-ios-banner-show" class="pwa-btn">Show how</button>
+    <button type="button" id="pwa-ios-banner-close" class="pwa-x" aria-label="Dismiss">&times;</button>
+  </div>
+</div>
+
 <!-- iOS install instructions (Safari has no install prompt API). -->
 <div id="pwa-ios" class="pwa-modal" hidden role="dialog" aria-modal="true" aria-labelledby="pwa-ios-title">
   <div class="pwa-modal__card">
     <button type="button" id="pwa-ios-close" class="pwa-x pwa-x--modal" aria-label="Close">&times;</button>
     <h2 id="pwa-ios-title">Install on iPhone or iPad</h2>
+    <p class="pwa-modal__note">Apple only allows adding an app from <strong>Safari</strong>. Three quick taps:</p>
     <ol>
-      <li>Tap the <strong>Share</strong> button in Safari's toolbar (the square with an up-arrow).</li>
-      <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-      <li>Tap <strong>Add</strong>. Open MSDEVBUILD from the new icon to launch it like an app — and to turn on notifications.</li>
+      <li>
+        <span>Tap the <strong>Share</strong> button
+        <svg class="pwa-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="m8 8 4-4 4 4"/><path d="M6 12H5a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2h-1"/></svg>
+        — bottom bar on iPhone, top-right on iPad.</span>
+      </li>
+      <li>Scroll down and tap <strong>Add to Home&nbsp;Screen</strong>.</li>
+      <li>Tap <strong>Add</strong>, then open MSDEVBUILD from the new icon — it launches like an app, and only then can you turn on notifications.</li>
     </ol>
+    <p class="pwa-modal__hint" id="pwa-ios-safari-hint" hidden>
+      You're not in Safari right now. Open <strong>blog.msdevbuild.com</strong> in Safari, then follow these steps.
+    </p>
   </div>
 </div>
 
@@ -114,10 +132,19 @@ const pushConfigured = PUSH.publicKey.length > 0;
     padding: 1.5rem 1.5rem 1.25rem;
     box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.5);
   }
-  .pwa-modal__card h2 { margin: 0 0 0.75rem; font-size: 1.1rem; }
+  .pwa-modal__card h2 { margin: 0 0 0.4rem; font-size: 1.1rem; }
+  .pwa-modal__note { margin: 0 0 0.9rem; color: var(--text-muted); font-size: 0.9rem; }
   .pwa-modal__card ol { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.6rem; }
   .pwa-modal__card li { color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; }
   .pwa-modal__card strong { color: var(--text); }
+  .pwa-share {
+    display: inline-block; width: 1.05em; height: 1.05em; vertical-align: -0.2em;
+    margin: 0 0.1em; color: var(--accent);
+  }
+  .pwa-modal__hint {
+    margin: 1rem 0 0; padding: 0.7rem 0.85rem; border-radius: 0.6rem;
+    background: var(--accent-soft); color: var(--text); font-size: 0.86rem; line-height: 1.45;
+  }
   .pwa-x--modal { position: absolute; top: 0.6rem; right: 0.75rem; font-size: 1.6rem; }
 
   @media (min-width: 640px) {
@@ -127,7 +154,7 @@ const pushConfigured = PUSH.publicKey.length > 0;
 </style>
 
 <script>
-  import { enablePush, isPushSupported, isSubscribed, isIos, isStandalone } from '../lib/push';
+  import { enablePush, isPushSupported, isSubscribed, isIos, isStandalone, recordInstallOnce } from '../lib/push';
 
   const DISMISS_KEY = 'pwa:bar-dismissed';
 
@@ -161,7 +188,36 @@ const pushConfigured = PUSH.publicKey.length > 0;
   function render() {
     renderInstallIcon();
     wireIosModal();
+    renderIosBanner();
     void renderBar();
+    // Count this device once, when the app is opened as an installed PWA.
+    void recordInstallOnce();
+  }
+
+  // A single, dismissible "Add to Home Screen" nudge for iOS Safari, where no
+  // install button is ever offered by the OS. Opens the guided sheet. Never
+  // shown once dismissed, once installed (standalone), or outside iOS Safari.
+  const IOS_BANNER_KEY = 'pwa:ios-banner-dismissed';
+  function renderIosBanner() {
+    const banner = document.getElementById('pwa-ios-banner') as HTMLElement | null;
+    if (!banner) return;
+
+    if (!isIosSafari() || isStandalone() || localStorage.getItem(IOS_BANNER_KEY) === '1') {
+      banner.hidden = true;
+      return;
+    }
+
+    banner.hidden = false;
+    const show = document.getElementById('pwa-ios-banner-show') as HTMLButtonElement;
+    const close = document.getElementById('pwa-ios-banner-close') as HTMLButtonElement;
+    show.onclick = () => {
+      const modal = document.getElementById('pwa-ios') as HTMLElement | null;
+      if (modal) modal.hidden = false;
+    };
+    close.onclick = () => {
+      banner.hidden = true;
+      localStorage.setItem(IOS_BANNER_KEY, '1');
+    };
   }
 
   // The install control is a quiet icon in the header, shown only when the site
@@ -215,8 +271,15 @@ const pushConfigured = PUSH.publicKey.length > 0;
     msg: HTMLElement,
     hideBar: () => void,
   ) {
-    // Only offer when it can work and hasn't already been dealt with.
-    if (!isPushSupported() || Notification.permission === 'denied' || (await isSubscribed())) {
+    // Only offer when it can work and hasn't already been dealt with. On iOS,
+    // push only works once installed, so don't offer it before then — the
+    // install banner handles that case instead.
+    if (
+      !isPushSupported() ||
+      (isIos() && !isStandalone()) ||
+      Notification.permission === 'denied' ||
+      (await isSubscribed())
+    ) {
       btn.hidden = true;
       return;
     }
@@ -248,6 +311,14 @@ const pushConfigured = PUSH.publicKey.length > 0;
     };
   }
 
+  // Add-to-Home-Screen is a Safari-only feature. Chrome/Firefox on iOS and
+  // in-app webviews (LinkedIn, Instagram…) don't offer it, so warn if we're not
+  // in Safari and the steps won't work as written.
+  function isIosSafari(): boolean {
+    const ua = navigator.userAgent;
+    return isIos() && /Safari/.test(ua) && !/(CriOS|FxiOS|EdgiOS|GSA|FBAN|FBAV|Instagram|Line)/.test(ua);
+  }
+
   // The iOS Add-to-Home-Screen sheet, opened from the header install icon.
   function wireIosModal() {
     const modal = document.getElementById('pwa-ios') as HTMLElement | null;
@@ -255,6 +326,9 @@ const pushConfigured = PUSH.publicKey.length > 0;
     if (!modal || !close) return;
     close.onclick = () => { modal.hidden = true; };
     modal.onclick = (e) => { if (e.target === modal) modal.hidden = true; };
+
+    const hint = document.getElementById('pwa-ios-safari-hint') as HTMLElement | null;
+    if (hint) hint.hidden = isIosSafari();
   }
 
   // One-time setup: SW registration and window-level listeners.
@@ -270,6 +344,10 @@ const pushConfigured = PUSH.publicKey.length > 0;
     });
     window.addEventListener('appinstalled', () => {
       deferredPrompt = null;
+      // Funnel signal for GA (Android/desktop only — iOS never fires this).
+      if (typeof (window as any).gtag === 'function') {
+        (window as any).gtag('event', 'pwa_install', { method: 'browser_prompt' });
+      }
       render();
     });
   }

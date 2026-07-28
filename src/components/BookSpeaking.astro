@@ -9,7 +9,7 @@ const { compact = false } = Astro.props;
 
 // No email is published, so the booking path is the scheduler when one is
 // configured and the contact page otherwise — never a dead end.
-const href = BOOKING.scheduler || '/contact';
+const href = BOOKING.scheduler || '/contact/';
 const isScheduler = BOOKING.scheduler.length > 0;
 ---
 
@@ -58,7 +58,7 @@ const isScheduler = BOOKING.scheduler.length > 0;
       {isScheduler ? 'Check availability →' : 'Send a speaking invitation →'}
     </a>
     <a
-      href="/speaking"
+      href="/speaking/"
       class="rounded-lg border border-default bg-[var(--bg)] px-5 py-3 text-sm font-medium transition-colors hover:bg-subtle"
     >
       See talks &amp; topics

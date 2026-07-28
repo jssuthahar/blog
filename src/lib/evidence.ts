@@ -98,7 +98,7 @@ export function contributionPillars() {
       value: '500+',
       label: 'Articles published',
       detail: `${allArticles().length} indexed here since ${span.firstYear}`,
-      href: '/articles',
+      href: '/articles/',
     },
     {
       value: '5M+',
@@ -110,25 +110,25 @@ export function contributionPillars() {
       value: '50+',
       label: 'Sessions delivered',
       detail: 'conferences and communities',
-      href: '/speaking',
+      href: '/speaking/',
     },
     {
       value: `${repoIndex.count}`,
       label: 'Open-source repos',
       detail: `${repoIndex.totalStars} stars · ${repoIndex.totalForks} forks`,
-      href: '/open-source',
+      href: '/open-source/',
     },
     {
       value: '15,000+',
       label: 'Developers reached',
       detail: 'through sessions and content',
-      href: '/about',
+      href: '/about/',
     },
     {
       value: `${topicsCovered()}`,
       label: 'Technology areas',
       detail: 'Azure, AI, .NET, mobile',
-      href: '/articles',
+      href: '/articles/',
     },
   ];
 }

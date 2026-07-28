@@ -49,7 +49,7 @@ const schema = [
       >
         <h2 id={`topic-${group.slug}`} class="flex items-center gap-2 text-lg font-semibold tracking-tight">
           <span aria-hidden="true">{group.emoji}</span>
-          <a href={`/category/${group.slug}`} class="hover:text-accent">{group.label}</a>
+          <a href={`/category/${group.slug}/`} class="hover:text-accent">{group.label}</a>
         </h2>
         <p class="mt-1.5 text-sm text-muted">{group.description}</p>
 
@@ -57,7 +57,7 @@ const schema = [
           {group.technologies.map((tech) => (
             <li>
               <a
-                href={`/articles?category=${slugifyCategory(tech)}`}
+                href={`/articles/?category=${slugifyCategory(tech)}`}
                 class="inline-block rounded-full border border-default px-2.5 py-1 text-xs text-muted transition-colors hover:bg-subtle hover:text-accent"
               >
                 {tech}

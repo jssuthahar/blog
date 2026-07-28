@@ -4,6 +4,7 @@ import PostCard from '../../components/PostCard.astro';
 import TestimonialCard from '../../components/TestimonialCard.astro';
 import TestimonialForm from '../../components/TestimonialForm.astro';
 import AdUnit from '../../components/AdUnit.astro';
+import SeriesQuickNav from '../../components/SeriesQuickNav.astro';
 import { SITE, ADSENSE_SLOT_DISPLAY } from '../../config';
 import { getPublishedPosts } from '../../lib/posts';
 import { featuredTestimonials, testimonialIndex } from '../../lib/testimonials';
@@ -26,12 +27,27 @@ const schema: Record<string, unknown>[] = [];
   description={`Every article on ${SITE.title} — Cloud, Azure, AI, GitHub Copilot, Mobile, and Web development guides.`}
   schema={schema}
 >
-  <header class="max-w-2xl">
-    <h1 class="display text-3xl sm:text-4xl">All posts</h1>
-    <p class="mt-3 text-muted">
-      {posts.length} {posts.length === 1 ? 'article' : 'articles'} on .NET, Azure, and AI engineering.
-    </p>
-  </header>
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <header class="max-w-2xl">
+      <h1 class="display text-3xl sm:text-4xl">All posts</h1>
+      <p class="mt-3 text-muted">
+        {posts.length} {posts.length === 1 ? 'article' : 'articles'} on .NET, Azure, and AI engineering,
+        newest first.
+      </p>
+    </header>
+
+    <a href="/rss.xml" class="btn btn-outline btn-sm" title="Subscribe to the RSS feed — newest post first">
+      <svg class="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <circle cx="6.18" cy="17.82" r="2.18" />
+        <path d="M4 10.1v2.9a7 7 0 0 1 7 7h2.9A9.9 9.9 0 0 0 4 10.1Zm0-5.1v2.9A14.1 14.1 0 0 1 18.1 22H21A17 17 0 0 0 4 5Z" />
+      </svg>
+      RSS feed
+    </a>
+  </div>
+
+  <!-- Series first: a reader who wants the whole guide should not have to spot
+       the parts among the individual posts. -->
+  <SeriesQuickNav class="mt-6" />
 
   <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
     {posts.map((post) => <PostCard post={post} />)}

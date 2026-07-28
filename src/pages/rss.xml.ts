@@ -9,7 +9,14 @@ import { CATEGORIES, getPublishedPosts, postUrl } from '../lib/posts';
  * descriptions good — they become the email preview text.
  */
 export const GET: APIRoute = async (context) => {
-  const posts = await getPublishedPosts();
+  // getPublishedPosts is already newest-first; sorted again here because the
+  // feed's contract is that item one is the latest post, and a reader or a
+  // newsletter automation that trusts document order must never get otherwise.
+  const posts = (await getPublishedPosts()).sort(
+    (a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime(),
+  );
+
+  const latest = posts[0]?.data.publishedAt ?? new Date();
 
   return rss({
     title: `${SITE.title} — ${SITE.tagline}`,
@@ -25,6 +32,8 @@ export const GET: APIRoute = async (context) => {
       // rather than publishing one. Attribution is carried by the feed title.
       categories: [CATEGORIES[post.data.category].label, ...post.data.tags],
     })),
-    customData: `<language>${SITE.lang}</language>`,
+    // lastBuildDate is the newest post's date, not the build time: a rebuild
+    // that changed nothing should not tell every reader the feed is new.
+    customData: `<language>${SITE.lang}</language><lastBuildDate>${latest.toUTCString()}</lastBuildDate>`,
   });
 };

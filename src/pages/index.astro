@@ -20,10 +20,17 @@ import AdUnit from '../components/AdUnit.astro';
 import HeroCarousel, { type Slide } from '../components/HeroCarousel.astro';
 import MicrosoftBadges from '../components/MicrosoftBadges.astro';
 import RecentlyRead from '../components/RecentlyRead.astro';
+import SeriesQuickNav from '../components/SeriesQuickNav.astro';
+import CoverArt from '../components/CoverArt.astro';
 import { formatEventDate, FORMAT_LABELS } from '../lib/speaking';
 
 const posts = await getPublishedPosts();
-const recentPosts = posts.slice(0, 4);
+
+// The blog leads the page: the newest post gets the large card, the next five
+// sit beside it as rows. Everything else on the home page is supporting proof.
+const [latestPost, ...olderPosts] = posts;
+const nextPosts = olderPosts.slice(0, 5);
+const latestCategory = latestPost ? CATEGORIES[latestPost.data.category] : undefined;
 
 // The main-site library is the deepest proof of expertise — lead with it
 // rather than leaving 236 articles one click away.
@@ -47,8 +54,9 @@ const restQuotes = testimonials.filter((t) => !t.featured);
 
 /**
  * Banner slides, interleaved so the first three cover all three kinds — a
- * visitor sees an article, a post, and an event without waiting through a
- * run of the same type.
+ * visitor sees a post, an article, and an event without waiting through a
+ * run of the same type. Blog posts go first in each round: they are the
+ * writing this site is actually for.
  */
 const articleSlides: Slide[] = articles.slice(0, 3).map((a) => ({
   kind: 'Latest article',
@@ -61,7 +69,7 @@ const articleSlides: Slide[] = articles.slice(0, 3).map((a) => ({
   cta: 'Read the article',
 }));
 
-const blogSlides: Slide[] = posts.slice(0, 2).map((p) => ({
+const blogSlides: Slide[] = posts.slice(0, 3).map((p) => ({
   kind: 'From the blog',
   title: p.data.title,
   description: p.data.description,
@@ -82,7 +90,7 @@ const eventSlides: Slide[] = upcoming.slice(0, 2).map((e) => ({
 
 const slides: Slide[] = [];
 for (let i = 0; i < 3; i++) {
-  for (const group of [articleSlides, blogSlides, eventSlides]) {
+  for (const group of [blogSlides, articleSlides, eventSlides]) {
     if (group[i]) slides.push(group[i]);
   }
 }
@@ -187,6 +195,133 @@ const schema = [
        Hidden for first-time visitors; populated from local history so returning
        readers can pick up where they left off before anything else. -->
   <RecentlyRead limit={4} />
+
+  <!-- ══════════════ Latest from the blog ══════════════
+       The blog is what this site is for, so it sits above the stats, the
+       badges and the syndicated article library: newest post large, the next
+       five as rows beside it, then series entry points and the feed. -->
+  {latestPost && (
+    <section
+      id="latest"
+      class="border-y border-default bg-subtle scroll-mt-16"
+      aria-labelledby="latest-heading"
+    >
+      <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Latest</p>
+            <h2 id="latest-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">
+              New on the blog
+            </h2>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <a href="/blog/" class="btn btn-primary btn-sm">All {posts.length} posts</a>
+            <!-- The feed is also the newsletter pipeline, so it gets a real
+                 control here rather than only a footer link. -->
+            <a
+              href="/rss.xml"
+              class="btn btn-outline btn-sm"
+              title="Subscribe to the RSS feed — newest post first"
+            >
+              <svg class="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <circle cx="6.18" cy="17.82" r="2.18" />
+                <path d="M4 10.1v2.9a7 7 0 0 1 7 7h2.9A9.9 9.9 0 0 0 4 10.1Zm0-5.1v2.9A14.1 14.1 0 0 1 18.1 22H21A17 17 0 0 0 4 5Z" />
+              </svg>
+              RSS feed
+            </a>
+          </div>
+        </div>
+
+        <div class="mt-6 grid gap-8 lg:grid-cols-[1.05fr_1fr]">
+          <!-- Newest post, full card. -->
+          <article class="group relative flex flex-col overflow-hidden rounded-xl border border-default bg-[var(--bg)]">
+            <div class="aspect-[16/9] overflow-hidden">
+              <CoverArt
+                post={latestPost}
+                large
+                eager
+                class="transition-transform duration-500 group-hover:scale-[1.03]"
+              />
+            </div>
+
+            <div class="flex flex-1 flex-col p-5">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                <span
+                  class="rounded-full px-2 py-0.5 font-medium"
+                  style={`background: oklch(0.62 0.17 ${latestCategory!.hue} / 0.14); color: oklch(0.62 0.17 ${latestCategory!.hue});`}
+                >
+                  {latestCategory!.label}
+                </span>
+                <span class="font-semibold text-accent">Latest post</span>
+                <time datetime={latestPost.data.publishedAt.toISOString()} class="text-muted">
+                  {formatDate(latestPost.data.publishedAt)}
+                </time>
+                <span class="text-muted">{readingTime(latestPost.body ?? '')} min read</span>
+              </div>
+
+              <h3 class="mt-2.5 text-xl leading-snug font-semibold tracking-tight text-balance sm:text-2xl">
+                <a href={postUrl(latestPost)} class="after:absolute after:inset-0 group-hover:text-accent">
+                  {latestPost.data.title}
+                </a>
+              </h3>
+
+              <p class="mt-2 leading-relaxed text-muted text-pretty">
+                {latestPost.data.description}
+              </p>
+
+              <span class="mt-4 text-sm font-semibold text-accent">Read the post →</span>
+            </div>
+          </article>
+
+          <!-- The five behind it, dense rows so more titles fit the same height. -->
+          <div>
+            <h3 class="border-b border-default pb-2 text-xs font-semibold tracking-wider uppercase text-muted">
+              More recent posts
+            </h3>
+
+            <ul class="divide-y divide-[var(--border)]">
+              {nextPosts.map((post) => {
+                const category = CATEGORIES[post.data.category];
+                return (
+                  <li class="group relative py-3.5">
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                      <span class="font-medium" style={`color: oklch(0.62 0.17 ${category.hue});`}>
+                        {category.label}
+                      </span>
+                      <time datetime={post.data.publishedAt.toISOString()} class="text-muted">
+                        {formatDate(post.data.publishedAt)}
+                      </time>
+                      <span class="text-muted">{readingTime(post.body ?? '')} min</span>
+                      {post.data.series && (
+                        <span class="text-muted">Part {post.data.seriesOrder}</span>
+                      )}
+                    </div>
+                    <h4 class="mt-1 leading-snug font-medium">
+                      <a href={postUrl(post)} class="after:absolute after:inset-0 group-hover:text-accent">
+                        {post.data.title}
+                      </a>
+                    </h4>
+                    <p class="mt-1 line-clamp-2 text-sm leading-relaxed text-muted">
+                      {post.data.description}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <a href="/blog/" class="mt-4 inline-block text-sm font-semibold text-accent hover:underline">
+              Every post on the blog →
+            </a>
+          </div>
+        </div>
+
+        <!-- Series entry points: the fastest way into a multi-part guide. -->
+        <div class="mt-8 border-t border-default pt-5">
+          <SeriesQuickNav label="Jump into a series" />
+        </div>
+      </div>
+    </section>
+  )}
 
   <!-- ══════════════ Contribution at a glance ══════════════
        Each number links to the evidence behind it, so the claim and the proof
@@ -314,34 +449,6 @@ const schema = [
       </a>
     </div>
 
-    {recentPosts.length > 0 && (
-      <div class="mt-10">
-        <div class="flex items-baseline justify-between border-b border-default pb-2">
-          <h3 class="text-sm font-semibold tracking-wider uppercase text-muted">Latest on the blog</h3>
-          <a href="/blog/" class="text-sm font-semibold text-accent hover:underline">All posts →</a>
-        </div>
-
-        <ul class="divide-y divide-[var(--border)]">
-          {recentPosts.map((post) => {
-            const category = CATEGORIES[post.data.category];
-            return (
-              <li class="group relative flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
-                <span class="w-16 shrink-0 text-xs font-medium" style={`color: oklch(0.55 0.15 ${category.hue});`}>
-                  {category.label}
-                </span>
-                <h4 class="min-w-0 flex-1 font-medium">
-                  <a href={postUrl(post)} class="after:absolute after:inset-0 group-hover:text-accent">
-                    {post.data.title}
-                  </a>
-                </h4>
-                <span class="text-xs text-muted">{formatDate(post.data.publishedAt)}</span>
-                <span class="w-14 text-right text-xs text-muted">{readingTime(post.body ?? '')} min</span>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    )}
   </section>
 
   <!-- ══════════════ Speaker ══════════════

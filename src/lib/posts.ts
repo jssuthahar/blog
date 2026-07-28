@@ -81,6 +81,57 @@ export async function getPostsByCategory(category: CategoryId): Promise<Post[]> 
   return (await getPublishedPosts()).filter((p) => postCategories(p).includes(category));
 }
 
+export interface SeriesSummary {
+  id: string;
+  title: string;
+  description: string;
+  order: number;
+  parts: Post[];
+  /** Most recently published part — drives the "updated" line on quick links. */
+  latest: Post;
+}
+
+/**
+ * Every series that has at least one published post, reading order first.
+ *
+ * A series exists as soon as posts reference it, whether or not someone wrote
+ * the definition file — so the home page, the blog index and /series all show
+ * the same set. Shared here rather than recomputed per page so the three never
+ * disagree about what a series is called.
+ */
+export async function getSeriesIndex(): Promise<SeriesSummary[]> {
+  const [definitions, posts] = await Promise.all([
+    getCollection('series'),
+    getPublishedPosts(),
+  ]);
+
+  const ids = [...new Set(posts.map((p) => p.data.series).filter((s): s is string => Boolean(s)))];
+
+  return ids
+    .map((id) => {
+      const meta = definitions.find((d) => d.id === id);
+      const parts = posts
+        .filter((p) => p.data.series === id)
+        .sort((a, b) => (a.data.seriesOrder ?? 0) - (b.data.seriesOrder ?? 0));
+
+      return {
+        id,
+        title: meta?.data.title ?? id.replace(/-/g, ' '),
+        description: meta?.data.description ?? '',
+        order: meta?.data.order ?? 99,
+        parts,
+        // getPublishedPosts is newest-first, so the first match is the newest part.
+        latest: posts.find((p) => p.data.series === id)!,
+      };
+    })
+    .sort((a, b) => a.order - b.order);
+}
+
+/** Series live as anchored sections on one page, so links are hash links. */
+export function seriesUrl(id: string): string {
+  return `/series/#${id}`;
+}
+
 export async function getPostsInSeries(seriesId: string): Promise<Post[]> {
   const posts = await getPublishedPosts();
   return posts

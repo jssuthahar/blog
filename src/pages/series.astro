@@ -1,30 +1,9 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getPublishedPosts, postUrl } from '../lib/posts';
+import SeriesQuickNav from '../components/SeriesQuickNav.astro';
+import { getSeriesIndex, formatDate, postUrl } from '../lib/posts';
 
-const definitions = await getCollection('series');
-const posts = await getPublishedPosts();
-
-// A series exists if posts reference it, whether or not it has a definition file.
-const ids = new Set(posts.map((p) => p.data.series).filter((s): s is string => Boolean(s)));
-
-const series = [...ids]
-  .map((id) => {
-    const meta = definitions.find((d) => d.id === id);
-    const parts = posts
-      .filter((p) => p.data.series === id)
-      .sort((a, b) => (a.data.seriesOrder ?? 0) - (b.data.seriesOrder ?? 0));
-
-    return {
-      id,
-      title: meta?.data.title ?? id.replace(/-/g, ' '),
-      description: meta?.data.description ?? '',
-      order: meta?.data.order ?? 99,
-      parts,
-    };
-  })
-  .sort((a, b) => a.order - b.order);
+const series = await getSeriesIndex();
 ---
 
 <BaseLayout
@@ -38,10 +17,20 @@ const series = [...ids]
     </p>
   </header>
 
+  <!-- Same chips as the home page, so a link from anywhere lands on a page that
+       still offers the other series. -->
+  <SeriesQuickNav label="" class="mt-6" />
+
   <div class="mt-10 space-y-8">
-    {series.map(({ title, description, parts }) => (
-      <section class="rounded-xl border border-default p-6">
-        <h2 class="text-xl font-semibold tracking-tight capitalize">{title}</h2>
+    {series.map(({ id, title, description, parts, latest }) => (
+      <!-- id + scroll-mt: /series/#slug is how every quick link arrives here. -->
+      <section id={id} class="scroll-mt-20 rounded-xl border border-default p-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 class="text-xl font-semibold tracking-tight capitalize">{title}</h2>
+          <p class="text-xs text-muted">
+            {parts.length} parts · updated {formatDate(latest.data.publishedAt)}
+          </p>
+        </div>
         {description && <p class="mt-2 text-muted">{description}</p>}
         <ol class="mt-5 space-y-3">
           {parts.map((post) => (

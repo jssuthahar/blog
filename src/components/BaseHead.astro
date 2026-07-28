@@ -141,6 +141,13 @@ const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `
     const theme =
       stored ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.dataset.theme = theme;
+
+    // Installed-app mode drives a different navigation (icon tab bar instead of
+    // the burger menu). CSS handles this on its own via `display-mode:
+    // standalone`; the attribute exists for iOS, where Safari reports the mode
+    // through a non-standard flag rather than the media query. Set here so the
+    // app never paints the browser navigation first.
+    if (navigator.standalone === true) document.documentElement.dataset.standalone = '';
   })();
 </script>
 

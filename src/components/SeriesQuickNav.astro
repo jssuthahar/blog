@@ -1,0 +1,37 @@
+---
+import { getSeriesIndex, seriesUrl } from '../lib/posts';
+
+interface Props {
+  /** Heading text; set to '' to render the chips on their own. */
+  label?: string;
+  class?: string;
+}
+
+const { label = 'Read a series', class: className = '' } = Astro.props;
+
+const series = await getSeriesIndex();
+---
+
+{
+  series.length > 0 && (
+    <nav class:list={['flex flex-wrap items-center gap-2', className]} aria-label="Series">
+      {label && (
+        <span class="mr-1 text-xs font-semibold tracking-wider uppercase text-muted">{label}</span>
+      )}
+
+      {series.map(({ id, title, parts }) => (
+        <a
+          href={seriesUrl(id)}
+          class="inline-flex items-center gap-2 rounded-full border border-default px-3 py-1.5 text-sm capitalize transition-colors hover:border-[var(--accent)] hover:text-accent"
+        >
+          {title}
+          <span class="text-xs text-muted">{parts.length} parts</span>
+        </a>
+      ))}
+
+      <a href="/series/" class="text-sm font-semibold text-accent hover:underline">
+        All series →
+      </a>
+    </nav>
+  )
+}

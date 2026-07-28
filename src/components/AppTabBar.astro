@@ -1,0 +1,342 @@
+---
+/**
+ * Navigation for the installed app.
+ *
+ * A burger menu is a browser pattern: it hides every destination behind a tap
+ * and looks wrong in a window with no address bar. Installed, the site gets a
+ * fixed icon tab bar instead — five destinations always visible, plus a "More"
+ * sheet of icon tiles for the rest. The burger is hidden in that mode, and
+ * nothing here renders in a normal browser tab.
+ *
+ * Visibility is CSS-only via `display-mode: standalone`, with
+ * `html[data-standalone]` covering iOS, which reports the mode through a
+ * non-standard flag instead (set in BaseHead before first paint).
+ */
+
+interface Item {
+  label: string;
+  href: string;
+  icon: string;
+}
+
+// Inline paths rather than an icon dependency: five tabs and nine tiles is not
+// worth a package, and these ship with the HTML instead of a second request.
+const ICONS: Record<string, string> = {
+  home: '<path d="M4 10.5 12 3.5l8 7"/><path d="M6.5 9.5V20h11V9.5"/>',
+  blog: '<rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>',
+  series: '<path d="m12 3 8 4.2-8 4.2-8-4.2L12 3Z"/><path d="m4 12 8 4.2 8-4.2"/><path d="m4 16.3 8 4.2 8-4.2"/>',
+  articles: '<path d="M5 4.5h5a2 2 0 0 1 2 2V20a2 2 0 0 0-2-2H5Z"/><path d="M19 4.5h-5a2 2 0 0 0-2 2V20a2 2 0 0 1 2-2h5Z"/>',
+  more: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  events: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',
+  speaking: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11.5a7 7 0 0 0 14 0"/><path d="M12 18.5V21"/>',
+  code: '<path d="m9 8-5 4 5 4"/><path d="m15 8 5 4-5 4"/>',
+  topics: '<path d="M11.5 3.5H4v7.5l9.5 9.5 7.5-7.5-9.5-9.5Z"/><circle cx="7.6" cy="7.6" r="1.3"/>',
+  quote: '<path d="M20 14.5a3.5 3.5 0 0 1-3.5 3.5H8.5L4 21V6.5A3.5 3.5 0 0 1 7.5 3h9A3.5 3.5 0 0 1 20 6.5Z"/>',
+  history: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.2l3.2 2"/>',
+  about: '<circle cx="12" cy="8" r="3.6"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/>',
+  contact: '<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="m4.5 7.5 7.5 5.5 7.5-5.5"/>',
+};
+
+// Five tabs is the practical ceiling before targets get too narrow to hit.
+const TABS: Item[] = [
+  { label: 'Home', href: '/', icon: 'home' },
+  { label: 'Blog', href: '/blog/', icon: 'blog' },
+  { label: 'Series', href: '/series/', icon: 'series' },
+  { label: 'Articles', href: '/articles/', icon: 'articles' },
+];
+
+const MORE: Item[] = [
+  { label: 'Search', href: '/search/', icon: 'search' },
+  { label: 'Events', href: '/events/', icon: 'events' },
+  { label: 'Speaking', href: '/speaking/', icon: 'speaking' },
+  { label: 'Open source', href: '/open-source/', icon: 'code' },
+  { label: 'Topics', href: '/topics/', icon: 'topics' },
+  { label: 'Testimonials', href: '/testimonials/', icon: 'quote' },
+  { label: 'Reading', href: '/history/', icon: 'history' },
+  { label: 'About', href: '/about/', icon: 'about' },
+  { label: 'Contact', href: '/contact/', icon: 'contact' },
+];
+
+const path = Astro.url.pathname;
+const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+
+// "More" carries the active state when the open page lives inside the sheet,
+// so the bar never looks like it has lost the reader's position.
+const moreActive = MORE.some((item) => isActive(item.href));
+---
+
+<nav class="app-tabs" aria-label="App">
+  {
+    TABS.map(({ label, href, icon }) => (
+      <a href={href} class="app-tab" aria-current={isActive(href) ? 'page' : undefined}>
+        <svg
+          class="app-tab__icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          set:html={ICONS[icon]}
+        />
+        <span class="app-tab__label">{label}</span>
+      </a>
+    ))
+  }
+
+  <button
+    type="button"
+    id="app-more-toggle"
+    class="app-tab"
+    aria-expanded="false"
+    aria-controls="app-more"
+    aria-current={moreActive ? 'page' : undefined}
+  >
+    <svg
+      class="app-tab__icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+      set:html={ICONS.more}
+    />
+    <span class="app-tab__label">More</span>
+  </button>
+</nav>
+
+<!-- Everything the five tabs do not cover, as icon tiles rather than a list. -->
+<div id="app-more" class="app-sheet" hidden>
+  <div class="app-sheet__scrim" data-close></div>
+  <div class="app-sheet__panel" role="dialog" aria-modal="true" aria-label="More">
+    <div class="app-sheet__grip" aria-hidden="true"></div>
+    <div class="app-sheet__grid">
+      {
+        MORE.map(({ label, href, icon }) => (
+          <a href={href} class="app-tile" aria-current={isActive(href) ? 'page' : undefined}>
+            <span class="app-tile__badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+                set:html={ICONS[icon]}
+              />
+            </span>
+            {label}
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Hidden in a browser tab — the header nav and burger stay in charge there. */
+  .app-tabs,
+  .app-sheet {
+    display: none;
+  }
+
+  .app-tabs {
+    position: fixed;
+    z-index: 55;
+    inset: auto 0 0;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    align-items: stretch;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .app-tab {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 0.2rem;
+    /* Comfortably over the 44px touch target minimum, indicator included. */
+    min-height: 3.4rem;
+    padding: 0.45rem 0.25rem 0.5rem;
+    border: 0;
+    border-top: 2px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app-tab__icon {
+    width: 1.45rem;
+    height: 1.45rem;
+  }
+  .app-tab__label {
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  /* The current tab is marked twice — colour and a top rule — so it still
+     reads for anyone who cannot separate the accent from the muted grey. */
+  .app-tab[aria-current='page'] {
+    color: var(--accent);
+    border-top-color: var(--accent);
+  }
+  .app-tab:active {
+    background: var(--bg-subtle);
+  }
+
+  .app-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+  }
+  .app-sheet__scrim {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.45);
+  }
+  .app-sheet__panel {
+    position: absolute;
+    inset: auto 0 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    border-radius: 1.1rem 1.1rem 0 0;
+    padding: 0.6rem 1rem 1rem;
+    /* Clears the tab bar it opens above. */
+    padding-bottom: calc(4.4rem + env(safe-area-inset-bottom));
+    box-shadow: 0 -18px 50px -20px rgb(0 0 0 / 0.5);
+  }
+  .app-sheet__grip {
+    width: 2.4rem;
+    height: 0.25rem;
+    margin: 0 auto 0.9rem;
+    border-radius: 9999px;
+    background: var(--border);
+  }
+  .app-sheet__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+  .app-tile {
+    display: grid;
+    justify-items: center;
+    gap: 0.4rem;
+    padding: 0.85rem 0.35rem;
+    border-radius: 0.85rem;
+    color: var(--text);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app-tile__badge {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 0.8rem;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    color: var(--accent);
+  }
+  .app-tile__badge svg {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+  .app-tile[aria-current='page'] .app-tile__badge {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+  .app-tile:active {
+    background: var(--bg-subtle);
+  }
+
+  /* Installed and phone-sized: the tab bar replaces the burger. Written twice
+     because a media query and an attribute selector cannot share one rule —
+     the media query covers Android and desktop, the attribute covers iOS. */
+  /* minimal-ui and fullscreen are listed too: the manifest allows them as
+     fallbacks, and any of the three means "launched as an app". */
+  @media (display-mode: standalone) and (max-width: 767px),
+    (display-mode: minimal-ui) and (max-width: 767px),
+    (display-mode: fullscreen) and (max-width: 767px) {
+    .app-tabs {
+      display: grid;
+    }
+    .app-sheet:not([hidden]) {
+      display: block;
+    }
+  }
+  @media (max-width: 767px) {
+    :global(html[data-standalone]) .app-tabs {
+      display: grid;
+    }
+    :global(html[data-standalone]) .app-sheet:not([hidden]) {
+      display: block;
+    }
+  }
+</style>
+
+<style is:global>
+  /* In app mode the burger and its drop-down are dead weight, and the fixed bar
+     needs room so it never covers the end of the footer. */
+  @media (display-mode: standalone) and (max-width: 767px),
+    (display-mode: minimal-ui) and (max-width: 767px),
+    (display-mode: fullscreen) and (max-width: 767px) {
+    #menu-toggle,
+    #mobile-nav {
+      display: none !important;
+    }
+    body {
+      padding-bottom: calc(3.6rem + env(safe-area-inset-bottom));
+    }
+    /* The notifications / install pill is also bottom-fixed: lift it clear. */
+    .pwa-bar {
+      bottom: calc(4.4rem + env(safe-area-inset-bottom));
+    }
+  }
+  @media (max-width: 767px) {
+    html[data-standalone] #menu-toggle,
+    html[data-standalone] #mobile-nav {
+      display: none !important;
+    }
+    html[data-standalone] body {
+      padding-bottom: calc(3.6rem + env(safe-area-inset-bottom));
+    }
+    html[data-standalone] .pwa-bar {
+      bottom: calc(4.4rem + env(safe-area-inset-bottom));
+    }
+  }
+</style>
+
+<script>
+  function initAppTabs() {
+    const sheet = document.getElementById('app-more');
+    const toggle = document.getElementById('app-more-toggle');
+    if (!sheet || !toggle) return;
+
+    const setOpen = (open: boolean) => {
+      sheet.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+    };
+
+    toggle.addEventListener('click', () => setOpen(sheet.hidden));
+    sheet.querySelector('[data-close]')?.addEventListener('click', () => setOpen(false));
+    // Tapping a tile navigates; close first so a same-page link still dismisses.
+    sheet.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => setOpen(false)));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !sheet.hidden) setOpen(false);
+    });
+  }
+
+  initAppTabs();
+  // View Transitions replace the body, so re-bind against the new elements.
+  document.addEventListener('astro:page-load', initAppTabs);
+</script>

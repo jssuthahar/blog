@@ -41,15 +41,21 @@
   ],
   "shortcuts": [
     {
-      "name": "Latest articles",
-      "short_name": "Articles",
-      "url": "/articles?source=pwa",
+      "name": "Latest posts",
+      "short_name": "Blog",
+      "url": "/blog?source=pwa",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "About Suthahar",
-      "short_name": "About",
-      "url": "/about?source=pwa",
+      "name": "Read a series",
+      "short_name": "Series",
+      "url": "/series?source=pwa",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Article library",
+      "short_name": "Articles",
+      "url": "/articles?source=pwa",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]

@@ -220,6 +220,11 @@ export const SOCIAL = [
 
 export const NAV = [
   { label: 'Home', href: '/' },
+  // Blog and Series sit ahead of the syndicated article library: the posts
+  // written here are the point of the site, and a series is the way most
+  // readers want to read them.
+  { label: 'Blog', href: '/blog/' },
+  { label: 'Series', href: '/series/' },
   { label: 'Articles', href: '/articles/' },
   { label: 'Events', href: '/events/' },
   { label: 'Speaking', href: '/speaking/' },

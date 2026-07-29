@@ -22,9 +22,15 @@ interface Props {
   noindex?: boolean;
   /** Wide pages (home, listings) opt out of the narrow reading column. */
   wide?: boolean;
+  /**
+   * Show the app's tab bar instead of the browser navigation, whether or not
+   * this is an installed launch. Set by /app, so the feed can be reviewed — and
+   * used — in an ordinary tab.
+   */
+  appShell?: boolean;
 }
 
-const { wide = false, schema = [], ...head } = Astro.props;
+const { wide = false, appShell = false, schema = [], ...head } = Astro.props;
 
 // Site-level identity nodes, emitted on every page so search engines and
 // LLMs consistently resolve the same entity.
@@ -58,7 +64,7 @@ const baseSchema = [
 ];
 ---
 
-<html lang={SITE.lang} data-theme="light">
+<html lang={SITE.lang} data-theme="light" data-app-shell={appShell ? '' : undefined}>
   <head>
     <BaseHead {...head} schema={[...baseSchema, ...schema]} />
     <ClientRouter />

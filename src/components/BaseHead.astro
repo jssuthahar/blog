@@ -148,6 +148,19 @@ const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `
     // through a non-standard flag rather than the media query. Set here so the
     // app never paints the browser navigation first.
     if (navigator.standalone === true) document.documentElement.dataset.standalone = '';
+
+    // A reader who entered through /app keeps the app's tab bar for the rest of
+    // the session, so tapping a card in a browser tab does not drop them back
+    // into the website's navigation. /app itself renders the attribute
+    // server-side; this carries it to every page after that. Session-scoped, so
+    // closing the tab returns to the normal site.
+    try {
+      if (sessionStorage.getItem('app-shell') !== null) {
+        document.documentElement.dataset.appShell = '';
+      }
+    } catch {
+      /* Private mode blocks sessionStorage — the browser navigation is fine. */
+    }
   })();
 </script>
 

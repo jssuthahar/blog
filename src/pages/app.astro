@@ -28,7 +28,17 @@ const seriesTitle = new Map(series.map((s) => [s.id, s.title]));
   description="The latest engineering articles from MSDEVBUILD, plus the article you were last reading."
   noindex
   wide
+  appShell
 >
+  <!-- Carries the app chrome to every page opened from the feed, for this tab. -->
+  <script is:inline>
+    try {
+      sessionStorage.setItem('app-shell', '1');
+    } catch {
+      /* Private mode: the feed still works, later pages just use site nav. */
+    }
+  </script>
+
   <div class="mx-auto max-w-2xl pb-10">
     <AppSeriesRail />
 

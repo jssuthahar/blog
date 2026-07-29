@@ -11,6 +11,12 @@ seriesOrder: 1
 faq:
   - q: 'Are Minimal APIs suitable for large applications?'
     a: 'Yes, provided you move endpoint definitions out of Program.cs into feature modules registered via extension methods. The performance and simplicity benefits hold at scale; only the default single-file layout does not.'
+  - q: 'At what point does Program.cs stop scaling?'
+    a: 'Around twenty endpoints. Below that the single-file layout is genuinely simpler than controllers. Past it, routing, validation and handler code all compete for one file, and every new feature means editing the same place — which is where merge conflicts and inconsistent patterns start.'
+  - q: 'How should you organise Minimal API endpoints by feature?'
+    a: 'Give each operation one file holding its request, response and handler together, then register each feature as a module through an extension method that Program.cs calls. Everything that changes for one reason lives in one place, which is what makes a vertical slice easier to move or delete than a layered folder tree.'
+  - q: 'Should Minimal API handlers be static classes?'
+    a: 'Static classes work well here. The handler takes its dependencies as parameters and lets the framework inject them, so there is no constructor and no per-request instance. It also keeps the request record, response record and handler visible together in one short file.'
 ---
 
 The Minimal API tutorials all put endpoints in `Program.cs`. That is fine for a demo and untenable by the twentieth endpoint.

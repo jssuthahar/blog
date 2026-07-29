@@ -13,6 +13,8 @@ seriesOrder: 2
 faq:
   - q: 'Do Minimal APIs support the same authentication as controllers?'
     a: 'Yes. Minimal APIs use the identical authentication and authorization middleware as MVC controllers. The only difference is that you apply policies with RequireAuthorization() on endpoints or route groups instead of [Authorize] attributes.'
+  - q: 'What are the most common JWT configuration mistakes in ASP.NET Core?'
+    a: 'Five recur: calling UseAuthorization() before UseAuthentication(), a signing key under 256 bits, committing the key to appsettings.json, setting ValidateAudience to false, and leaving the default ClockSkew so expired tokens keep working for five more minutes. Each one silently weakens or breaks auth rather than failing loudly.'
   - q: 'Why does my JWT return 401 even though the token looks valid?'
     a: 'The most common cause is a mismatch between the issuer or audience in the token and the TokenValidationParameters, followed by calling UseAuthorization() before UseAuthentication(). Enable IdentityModelEventSource.ShowPII in development to see the exact validation failure.'
 ---

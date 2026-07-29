@@ -2,6 +2,15 @@
 title: 'AGENTS.md in 2026: The One File Every AI-Assisted Developer Actually Needs'
 description: 'AI agents write more code each month than teams can review by hand. AGENTS.md is the one file that keeps it consistent — solo, team or enterprise.'
 highlight: 'This problem is not about your framework, your team size, or your tool. It shows up any time an AI agent writes code without shared context. A solo dev sees it as messy inconsistency in their own project. A team sees it as three "correct" versions of the same feature.'
+faq:
+  - q: 'What is the difference between AGENTS.md and copilot-instructions.md?'
+    a: 'Scope and audience. copilot-instructions.md is read by GitHub Copilot only and lives at one fixed path in the repo root. AGENTS.md is an open, vendor-neutral standard read natively by Codex, Cursor, Copilot, Windsurf, Aider and others, and supports nested files per monorepo package. You can run both with no conflict.'
+  - q: 'Does Claude Code read AGENTS.md?'
+    a: 'Not natively — Claude Code uses its own CLAUDE.md file. The documented workaround is to symlink the two with "ln -s AGENTS.md CLAUDE.md", or put the line @AGENTS.md inside CLAUDE.md so it imports the shared rules. Native support has been requested but not shipped, so check the current docs.'
+  - q: 'Which AI coding tools read AGENTS.md natively?'
+    a: 'OpenAI Codex, Cursor, GitHub Copilot, Windsurf, Aider, Cline, Continue, Goose and Zed all pick it up with no per-tool configuration, because they agreed on the same filename and location. Claude Code is the notable exception and needs a symlink or an import line.'
+  - q: 'How much time does AGENTS.md actually save?'
+    a: 'There is no controlled study, so treat any exact figure as a guess. An honest range is 20-40% less time lost to inconsistency-driven rework and review friction. The lower end fits smaller projects that adopt it early; the higher end fits larger ones that let drift run for months.'
 publishedAt: 2026-07-26
 updatedAt: 2026-07-26
 category: copilot

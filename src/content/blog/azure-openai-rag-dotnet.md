@@ -10,6 +10,10 @@ faq:
     a: 'Start with 500 to 800 tokens per chunk with roughly 15 percent overlap. Smaller chunks retrieve more precisely but lose surrounding context; larger chunks dilute the embedding and push irrelevant text into the prompt.'
   - q: 'Do I need a vector database for RAG in .NET?'
     a: 'Not necessarily. Azure AI Search supports vector and hybrid search directly, and for small corpora an in-memory index is enough. A dedicated vector database matters when you need millions of vectors or independent scaling of the index.'
+  - q: 'Why use hybrid search instead of pure vector search?'
+    a: 'Pure vector search misses exact terms like product codes, error numbers and API names, while pure keyword search misses paraphrases. Hybrid runs both and fuses the rankings. Retrieve around 20 candidates by vector, let semantic reranking order them, then keep the top 8 — the reranking step is where most of the quality gain comes from.'
+  - q: 'How do you stop a RAG app answering from the model''s own memory?'
+    a: 'Constrain it in the system prompt: instruct the model to answer using only the numbered context supplied, cite the sources it used, and return a fixed refusal string when the context does not contain the answer. Grounding is a prompt-design problem, not only a retrieval problem.'
 ---
 
 Retrieval-augmented generation is how you get an LLM to answer questions about data it was never trained on. The pattern is simple; the quality lives almost entirely in the retrieval half.

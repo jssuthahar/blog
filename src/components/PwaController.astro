@@ -25,6 +25,16 @@ const pushConfigured = PUSH.publicKey.length > 0;
   </div>
 )}
 
+<!-- Shown when a newer build is on the server than the one running. Not gated on
+     push being configured: an installed app needs this regardless. -->
+<div id="pwa-update" class="pwa-bar" hidden aria-live="polite">
+  <span class="pwa-msg">A new version is ready</span>
+  <div class="pwa-actions">
+    <button type="button" id="pwa-update-go" class="pwa-btn">Reload</button>
+    <button type="button" id="pwa-update-close" class="pwa-x" aria-label="Not now">&times;</button>
+  </div>
+</div>
+
 <!-- One-time nudge for iOS Safari (no install prompt exists there). Points to
      the guided Add-to-Home-Screen sheet; shown once, then remembered. -->
 <div id="pwa-ios-banner" class="pwa-bar" hidden aria-live="polite">
@@ -166,11 +176,16 @@ const pushConfigured = PUSH.publicKey.length > 0;
   } from '../lib/install';
 
   const DISMISS_KEY = 'pwa:bar-dismissed';
+  const UPDATE_SNOOZE_KEY = 'pwa:update-snoozed';
+
+  /** The registration, kept so the update check can ask it to look again. */
+  let registration: ServiceWorkerRegistration | null = null;
 
   async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
     try {
       const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      registration = reg;
       // Activate a freshly-installed worker without forcing a jarring reload;
       // network-first HTML already keeps content current.
       reg.addEventListener('updatefound', () => {
@@ -183,6 +198,79 @@ const pushConfigured = PUSH.publicKey.length > 0;
       });
     } catch {
       /* SW registration failing must never break the page. */
+    }
+  }
+
+  /* ---------------------------------------------------------- Updates -- */
+  /*
+   * Why this exists: an installed app is opened by tapping an icon, and can be
+   * resumed from the app switcher for days without a single navigation. Nothing
+   * in that flow re-checks the server, so the reader can sit on a build from
+   * last week and never know. Two checks cover it — the service worker is asked
+   * to look for a new copy of itself, and the build stamp in this page's head is
+   * compared with /version.json, which catches a content-only deploy where sw.js
+   * did not change at all.
+   */
+
+  const CHECK_EVERY = 5 * 60 * 1000;
+  let lastCheck = 0;
+
+  const loadedBuild = (): string =>
+    document.querySelector<HTMLMetaElement>('meta[name="build-id"]')?.content ?? '';
+
+  const updateBarVisible = (): boolean => {
+    const bar = document.getElementById('pwa-update') as HTMLElement | null;
+    return Boolean(bar && !bar.hidden);
+  };
+
+  function showUpdateBar() {
+    const bar = document.getElementById('pwa-update') as HTMLElement | null;
+    if (!bar || sessionStorage.getItem(UPDATE_SNOOZE_KEY) === '1') return;
+    bar.hidden = false;
+
+    // These share the same fixed slot, so stand them down while this is up.
+    for (const id of ['pwa-bar', 'pwa-ios-banner']) {
+      const other = document.getElementById(id);
+      if (other) other.hidden = true;
+    }
+
+    const go = document.getElementById('pwa-update-go') as HTMLButtonElement | null;
+    const close = document.getElementById('pwa-update-close') as HTMLButtonElement | null;
+    if (go) {
+      go.onclick = () => {
+        go.disabled = true;
+        // A plain reload is enough: HTML is network-first, so this pulls the new
+        // document, and its hashed assets come with it.
+        location.reload();
+      };
+    }
+    if (close) {
+      close.onclick = () => {
+        bar.hidden = true;
+        // Session-scoped: an update prompt should come back next launch, not be
+        // silenced for good like the notifications nudge.
+        sessionStorage.setItem(UPDATE_SNOOZE_KEY, '1');
+      };
+    }
+  }
+
+  async function checkForUpdate(force = false) {
+    const now = Date.now();
+    if (!force && now - lastCheck < CHECK_EVERY) return;
+    lastCheck = now;
+
+    // Picks up changes to the worker itself (caching logic, push handling).
+    void registration?.update().catch(() => {});
+
+    const running = loadedBuild();
+    if (!running) return;
+    try {
+      const res = await fetch('/version.json', { cache: 'no-store' });
+      if (!res.ok) return;
+      const { build } = (await res.json()) as { build?: string };
+      if (build && build !== running) showUpdateBar();
+    } catch {
+      /* Offline, or the endpoint is missing — nothing to tell the reader. */
     }
   }
 
@@ -207,7 +295,12 @@ const pushConfigured = PUSH.publicKey.length > 0;
     const banner = document.getElementById('pwa-ios-banner') as HTMLElement | null;
     if (!banner) return;
 
-    if (!isIosSafari() || isStandalone() || localStorage.getItem(IOS_BANNER_KEY) === '1') {
+    if (
+      !isIosSafari() ||
+      isStandalone() ||
+      localStorage.getItem(IOS_BANNER_KEY) === '1' ||
+      updateBarVisible()
+    ) {
       banner.hidden = true;
       return;
     }
@@ -253,6 +346,9 @@ const pushConfigured = PUSH.publicKey.length > 0;
   async function renderBar() {
     const bar = document.getElementById('pwa-bar') as HTMLElement | null;
     if (!bar || localStorage.getItem(DISMISS_KEY) === '1') return;
+    // One bar at a time, and an update outranks a notifications nudge: it is
+    // actionable now, and the nudge will still be there next launch.
+    if (updateBarVisible()) return;
 
     const msg = document.getElementById('pwa-msg') as HTMLElement;
     const notifyBtn = document.getElementById('pwa-notify') as HTMLButtonElement | null;
@@ -347,8 +443,28 @@ const pushConfigured = PUSH.publicKey.length > 0;
     // Both capture and clear announce themselves, so the header icon also
     // follows an install started from the /install page.
     onInstallStateChange(render);
+
+    // Coming back to the app is the moment that matters: the reader has been
+    // away, and the server may have moved on.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') void checkForUpdate();
+    });
+
+    // A worker taking over after this page loaded means the code on screen is no
+    // longer the code in charge — offer the same Reload rather than yanking the
+    // page out from under someone mid-article. Ignored for the very first
+    // controller, which is only the initial install claiming this page.
+    const hadController = Boolean(navigator.serviceWorker?.controller);
+    navigator.serviceWorker?.addEventListener('controllerchange', () => {
+      if (hadController) showUpdateBar();
+    });
   }
 
   // Re-render on first load and after every client-side navigation.
-  document.addEventListener('astro:page-load', render);
+  document.addEventListener('astro:page-load', () => {
+    render();
+    // A navigation already fetched fresh HTML, so this is cheap insurance for
+    // the launch case: opening the app icon straight onto a cached document.
+    void checkForUpdate();
+  });
 </script>

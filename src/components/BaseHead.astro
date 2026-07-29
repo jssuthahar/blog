@@ -3,6 +3,7 @@ import '@fontsource-variable/inter';
 import '@fontsource-variable/source-serif-4';
 import '../styles/global.css';
 import { SITE, GA_ID, ADSENSE_CLIENT } from '../config';
+import { BUILD_ID } from '../lib/build-id';
 
 interface Props {
   title: string;
@@ -45,6 +46,9 @@ const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- Which build served this page. The installed app compares it with
+     /version.json to know when it is running stale code. -->
+<meta name="build-id" content={BUILD_ID} />
 <meta name="generator" content={Astro.generator} />
 
 <title>{fullTitle}</title>

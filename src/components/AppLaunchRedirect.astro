@@ -1,0 +1,40 @@
+---
+/**
+ * Sends an installed launch that lands on `/` to the app feed instead.
+ *
+ * The manifest's start_url is `/app/?source=pwa`, but the OS caches the manifest
+ * from whenever the app was installed: Chrome re-reads it on its own schedule,
+ * and iOS only picks up a change when the icon is removed and re-added. So an
+ * existing install keeps opening the old start_url — the marketing home page —
+ * and the reader has to tap Home to reach the feed they installed the app for.
+ *
+ * This bridges that gap without touching anyone's browsing. It fires only when
+ * all three are true:
+ *   1. running as an installed app (standalone / minimal-ui / fullscreen, or
+ *      iOS Safari's non-standard flag),
+ *   2. the URL carries `source=pwa`, which only a manifest launch adds, and
+ *   3. we are on `/` — never on any other page.
+ *
+ * A reader who taps a link to the home page inside the app therefore still gets
+ * the home page: that navigation has no `source=pwa`. Ordinary browser visitors
+ * are never affected, standalone being false.
+ *
+ * `location.replace` keeps the redirect out of history, so Back does not bounce
+ * between the two. Rendered inline and early so it runs before the old page
+ * paints anything worth looking at.
+ */
+---
+
+<script is:inline>
+  (() => {
+    if (location.pathname !== '/') return;
+    if (new URLSearchParams(location.search).get('source') !== 'pwa') return;
+
+    const installed =
+      ['standalone', 'minimal-ui', 'fullscreen'].some(
+        (mode) => window.matchMedia(`(display-mode: ${mode})`).matches,
+      ) || window.navigator.standalone === true;
+
+    if (installed) location.replace('/app/?source=pwa');
+  })();
+</script>

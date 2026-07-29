@@ -94,15 +94,40 @@ Write so a mid-level developer gets it on the first read:
 - Vary sentence length. After a dense technical paragraph, add a short plain-English summary line ("In short: …").
 - Avoid jargon stacking. If a sentence needs three technical terms to parse, split it.
 
-## SEO & AEO
+## SEO & AEO (not optional — two scripts enforce this)
 
-- Clear H1/H2/H3 hierarchy. Descriptive, keyword-aware headings — many phrased as the exact question a developer would type or ask a voice assistant.
-- Put the primary keyword in the H1, the `description`, the first 100 words, and at least one H2 — naturally, never stuffed.
-- Give direct, quotable answers near the top of each section; short definitions and summaries help AI search.
-- **AEO (Answer Engine Optimization):** structure content so an AI/answer engine can lift a clean answer. Under a question heading, put a 1–2 sentence direct answer FIRST, then the detail. Use the `highlight` frontmatter for the single most quotable takeaway. Add a "quick answer" or definition line where it fits so the passage stands alone out of context.
-- Prefer scannable formats AI engines extract well: short definition lists, step-by-step numbered lists, and comparison tables for "X vs Y" sections.
-- Suggest 1–3 internal links to related posts on this site (check `src/content/blog/` for real slugs; use markdown `[text](../slug)` style consistent with existing posts — verify, don't invent).
-- Populate the `faq` frontmatter with 3–6 real questions a developer would search, each answered directly in 2–4 sentences — these feed both SEO FAQ rich results and answer engines.
+SEO gets the article ranked. **AEO gets it quoted** by Google AI Overviews, ChatGPT, Claude, Perplexity and Copilot — with Suthahar and MSDEVBUILD named as the source. AEO is now the higher-stakes half, because a reader who gets their answer from an AI Overview never sees the link; the only thing that survives is the attribution.
+
+Full rulebook: [seo-agent.md](.claude/agents/seo-agent.md). Hand off to **seo-agent** for site-wide audits, schema, or the entity graph. The rules you must apply while writing:
+
+**Before you write.** Decide the target query, then make the slug state it — `check-aeo.mjs` warns when the title drifts from the slug. Grep `src/content/blog/` for the 2–3 existing posts this one should link to. Do this first; retrofitting links later is how posts end up orphaned.
+
+**Titles.** Every page renders as `<title> | MSDEVBUILD by Suthahar`, and that suffix eats ~250px of the 600px search budget, leaving ~45 characters. Keep the specific H1 you want readers to see, and **add a short `seoTitle` (≤70 chars, keyword first) whenever the full title exceeds the budget.** The checker tells you when.
+
+**Descriptions.** 50–170 chars AND ≤960px rendered. This is also the visible lede paragraph and card copy, so it must read as human prose, never a keyword string.
+
+**`faq` — 3–6 entries, mandatory before publish.** This is the single highest-value AEO field: it emits `FAQPage` schema that answer engines lift close to verbatim.
+- Real queries only — what a developer would actually type. "What is the difference between X and Y?" yes; "What are the benefits of X?" nobody searches that.
+- **Direct answer in the first sentence**, then qualify.
+- 40–340 characters. Under 40 is not an answer; over 340 stops being quotable.
+- **Self-contained** — must make sense lifted out of the page. No "as mentioned above", no unresolved "it".
+- At least one should answer the sceptical question: when NOT to use this, what it costs. Competing pages omit those, so they get quoted.
+
+**`highlight`.** The one insight worth quoting — specific and opinionated, with a number or a named trade-off. Not a summary of the article.
+
+**Headings.** ≥3 H2s, ≥2 phrased as the exact question a developer types (`## Why does Program.cs stop scaling past twenty endpoints?` beats `## Scaling considerations`). Under each, a 1–2 sentence direct answer FIRST, then the detail. Never invent a question to hit the count. Do not add a markdown `#` H1 — the page already renders the title as the H1.
+
+**Structures engines extract well.** Comparison tables for "X vs Y", numbered steps, short definition lists — each able to stand alone if lifted out. Use prose for reasoning and story, not for the facts you want cited.
+
+**Links.** ≥2 internal links to real MSDEVBUILD posts with descriptive anchor text (verify the slug — URLs are flat `/blog/<slug>` even for posts in subfolders; a broken link blocks the check). ≥1 outbound link to an authoritative source (Microsoft Learn, official docs) — citing sources is a trust signal and answer engines weight cited claims higher.
+
+**`cover` + `coverAlt`.** Ship a cover image. Without one the post falls back to the generic OG image and every share of it looks unbranded.
+
+**Keyword placement.** Primary keyword in the title, `description`, the first 100 words, and ≥1 H2 — naturally. Never stuff. Never repeat "Suthahar" or "MSDEVBUILD" in body prose to chase the brand: the schema, byline and OG tags already carry attribution correctly, and repetition reads as spam.
+
+**Suthahar's first-person experience is an SEO asset, not decoration.** It is the E-E-A-T *Experience* signal and the one thing no competitor and no model can copy. Never strip it to make room for keywords.
+
+**Before you report done:** `npm run check:all` (humanizer + seo + aeo) must exit 0. Hooks run these anyway and will block your write.
 
 ## Repo file format (produce a valid file)
 
@@ -110,29 +135,33 @@ Write the article to `src/content/blog/<kebab-case-slug>.mdx`. The frontmatter i
 
 ```yaml
 ---
-title: '...'                # REQUIRED, <= 120 chars
-description: '...'          # REQUIRED, 50–200 chars (hard min AND max) — becomes the meta description
+title: '...'                # REQUIRED, <= 120 chars — but aim <= 45 chars, see the pixel rule below
+description: '...'          # REQUIRED, 50–170 chars (hard min AND max) — becomes the meta description
 publishedAt: YYYY-MM-DD     # REQUIRED (maps to schema `publishedAt`)
 updatedAt: YYYY-MM-DD       # optional; set when revising an old post — freshness is a ranking signal
 category: '...'             # REQUIRED, exactly one of: programming | mobile | azure | ai | copilot | architecture | devops | engineering | career
 categories: ['...']         # optional; extra categories to cross-list under (same enum as `category`)
-tags: ['...', '...']        # optional array of free-text tags
-highlight: '...'            # optional, <= 400 chars, one-paragraph takeaway box (also the passage AI engines quote). Falls back to description when omitted
+tags: ['...', '...']        # feeds schema.org keywords — always set these
+highlight: '...'            # REQUIRED before publish, <= 400 chars — the passage AI engines quote
+cover: './images/....png'   # ship one; without it every share uses the generic unbranded OG image
+coverAlt: '...'             # REQUIRED whenever cover is set
 series: '...'               # optional; if set, seriesOrder is REQUIRED
 seriesOrder: N              # positive int, only with series
-seoTitle: '...'             # optional, <= 70 chars — overrides the <title> tag for SEO
+seoTitle: '...'             # REQUIRED when title + ' | MSDEVBUILD by Suthahar' > 600px. <= 70 chars, keyword first
 canonical: 'https://...'    # optional, must be a valid URL — when the canonical lives elsewhere
 redirectFrom: ['/2023/05/old-slug.html']  # optional; old Blogger paths that should 301 here
 featured: false             # optional, defaults false
 draft: true                 # start as draft unless told otherwise
-faq:
-  - q: '...'
+faq:                        # REQUIRED before publish: 3-6 entries, answers 40-340 chars
+  - q: '...?'
     a: '...'
 ---
 ```
 
+The AEO gate binds when `draft: false`. Drafts are never blocked, so write freely — but a post cannot go live without `faq`, `highlight`, and a rendered description under 960px.
+
 Notes:
-- **Count the `description`.** It must be **at least 50 and at most 200 characters** — this is the field most likely to fail the build. Do not exceed 200; trim rather than push the limit.
+- **Measure the `description`, don't count it.** The schema caps it at 170 characters, but the real gate is 1000 rendered pixels — `node scripts/check-seo.mjs <file>` is the only reliable check. Aim for 140–155 characters so a later edit doesn't push it over. Trim filler; never truncate mid-thought.
 - Only set `cover`/`coverAlt` if a real image exists in `src/content/blog/images/`; otherwise omit both (`coverAlt` is required whenever `cover` is set). Do not invent image paths.
 - Use today's date for `publishedAt` unless told otherwise.
 - `category` takes ONE value; put additional primary topics in `categories`, and everything else in `tags`.

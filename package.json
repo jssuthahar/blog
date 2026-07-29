@@ -13,6 +13,10 @@
     "sync": "npm run sync:articles && npm run sync:repos && npm run sync:testimonials",
     "sync:testimonials": "node scripts/sync-testimonials.mjs",
     "check:humanizer": "node scripts/check-humanizer.mjs",
+    "check:seo": "node scripts/check-seo.mjs",
+    "check:seo:dist": "npm run build && node scripts/check-seo.mjs --dist",
+    "check:aeo": "node scripts/check-aeo.mjs",
+    "check:all": "npm run check:humanizer && npm run check:seo && npm run check:aeo",
     "seed:testimonials": "node scripts/seed-testimonials.mjs",
     "push:keys": "node scripts/push-keys.mjs",
     "push:send": "node --env-file=.env scripts/send-push.mjs"

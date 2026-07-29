@@ -18,8 +18,13 @@ const blog = defineCollection({
   schema: ({ image }) =>
     z.object({
       title: z.string().max(120),
-      /** Shown on cards and used as the meta description fallback. Keep it under 200 chars. */
-      description: z.string().min(50).max(200),
+      /**
+       * Card copy, article lede, and the meta description. The real limit is
+       * 1000px rendered (Arial 14px) — `npm run check:seo` measures it. This
+       * character cap is only a coarse build-time backstop: 200 chars was wide
+       * enough to ship descriptions Google truncated, 170 is not.
+       */
+      description: z.string().min(50).max(170),
       publishedAt: z.coerce.date(),
       /** Surfaced in the UI and in JSON-LD — freshness is a strong ranking signal. */
       updatedAt: z.coerce.date().optional(),

@@ -11,8 +11,9 @@ export const SITE = {
   byline: 'by Suthahar',
   /** Also used as the home-page <title> suffix, so it must read as a positioning line. */
   tagline: 'Cloud, AI, Mobile & Web developer platform',
+  /** Kept under ~155 chars so Google renders it without truncating (~1000px). */
   description:
-    'A multi-stack developer learning platform by Suthahar — practical, hands-on engineering across Cloud, Azure, AI, GitHub Copilot, Mobile (Flutter, .NET MAUI) and Web. Real code, real trade-offs.',
+    'Multi-stack developer learning platform by Suthahar — hands-on Cloud, Azure, AI, GitHub Copilot, Flutter, .NET MAUI and Web. Real code, real trade-offs.',
   /**
    * The technology pillars the platform covers. Emitted as schema.org `about`
    * + `keywords` on the WebSite entity and listed in llms.txt, so search

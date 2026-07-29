@@ -17,6 +17,8 @@ interface Item {
   label: string;
   href: string;
   icon: string;
+  /** Extra path prefixes that should light this tab up. */
+  also?: string[];
 }
 
 // Inline paths rather than an icon dependency: five tabs and nine tiles is not
@@ -27,6 +29,7 @@ const ICONS: Record<string, string> = {
   series: '<path d="m12 3 8 4.2-8 4.2-8-4.2L12 3Z"/><path d="m4 12 8 4.2 8-4.2"/><path d="m4 16.3 8 4.2 8-4.2"/>',
   articles: '<path d="M5 4.5h5a2 2 0 0 1 2 2V20a2 2 0 0 0-2-2H5Z"/><path d="M19 4.5h-5a2 2 0 0 0-2 2V20a2 2 0 0 1 2-2h5Z"/>',
   more: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
+  library: '<path d="M5 4.5h5a2 2 0 0 1 2 2V20a2 2 0 0 0-2-2H5Z"/><path d="M19 4.5h-5a2 2 0 0 0-2 2V20a2 2 0 0 1 2-2h5Z"/><path d="M12 6.5V18"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   events: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',
   speaking: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11.5a7 7 0 0 0 14 0"/><path d="M12 18.5V21"/>',
@@ -39,37 +42,42 @@ const ICONS: Record<string, string> = {
 };
 
 // Five tabs is the practical ceiling before targets get too narrow to hit.
+// The four destinations a reader uses on a phone: the feed, finding something,
+// what they saved, and who wrote it. Browsing by blog/series/article listing is
+// a lean-back activity that belongs in the sheet.
 const TABS: Item[] = [
-  { label: 'Home', href: '/', icon: 'home' },
-  { label: 'Blog', href: '/blog/', icon: 'blog' },
-  { label: 'Series', href: '/series/', icon: 'series' },
-  { label: 'Articles', href: '/articles/', icon: 'articles' },
+  // '/' is here too, so an older install launching at the root still lights up.
+  { label: 'Home', href: '/app/', icon: 'home', also: ['/'] },
+  { label: 'Search', href: '/search/', icon: 'search' },
+  { label: 'Library', href: '/history/', icon: 'library' },
+  { label: 'Profile', href: '/about/', icon: 'about' },
 ];
 
 const MORE: Item[] = [
-  { label: 'Search', href: '/search/', icon: 'search' },
+  { label: 'Blog', href: '/blog/', icon: 'blog' },
+  { label: 'Series', href: '/series/', icon: 'series' },
+  { label: 'Articles', href: '/articles/', icon: 'articles' },
   { label: 'Events', href: '/events/', icon: 'events' },
   { label: 'Speaking', href: '/speaking/', icon: 'speaking' },
   { label: 'Open source', href: '/open-source/', icon: 'code' },
   { label: 'Topics', href: '/topics/', icon: 'topics' },
   { label: 'Testimonials', href: '/testimonials/', icon: 'quote' },
-  { label: 'Reading', href: '/history/', icon: 'history' },
-  { label: 'About', href: '/about/', icon: 'about' },
   { label: 'Contact', href: '/contact/', icon: 'contact' },
 ];
 
 const path = Astro.url.pathname;
-const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+const matches = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+const isActive = (item: Item) => matches(item.href) || (item.also ?? []).some(matches);
 
 // "More" carries the active state when the open page lives inside the sheet,
 // so the bar never looks like it has lost the reader's position.
-const moreActive = MORE.some((item) => isActive(item.href));
+const moreActive = MORE.some(isActive);
 ---
 
 <nav class="app-tabs" aria-label="App">
   {
-    TABS.map(({ label, href, icon }) => (
-      <a href={href} class="app-tab" aria-current={isActive(href) ? 'page' : undefined}>
+    TABS.map((item) => (
+      <a href={item.href} class="app-tab" aria-current={isActive(item) ? 'page' : undefined}>
         <svg
           class="app-tab__icon"
           viewBox="0 0 24 24"
@@ -79,9 +87,9 @@ const moreActive = MORE.some((item) => isActive(item.href));
           stroke-linecap="round"
           stroke-linejoin="round"
           aria-hidden="true"
-          set:html={ICONS[icon]}
+          set:html={ICONS[item.icon]}
         />
-        <span class="app-tab__label">{label}</span>
+        <span class="app-tab__label">{item.label}</span>
       </a>
     ))
   }
@@ -117,7 +125,7 @@ const moreActive = MORE.some((item) => isActive(item.href));
     <div class="app-sheet__grid">
       {
         MORE.map(({ label, href, icon }) => (
-          <a href={href} class="app-tile" aria-current={isActive(href) ? 'page' : undefined}>
+          <a href={href} class="app-tile" aria-current={matches(href) ? 'page' : undefined}>
             <span class="app-tile__badge">
               <svg
                 viewBox="0 0 24 24"

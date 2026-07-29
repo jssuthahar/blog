@@ -3,7 +3,7 @@
   "short_name": "MSDEVBUILD",
   "description": "Practical, hands-on engineering across Cloud, AI, GitHub Copilot, Mobile and Web by Suthahar Jegatheesan.",
   "id": "/",
-  "start_url": "/?source=pwa",
+  "start_url": "/app/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],

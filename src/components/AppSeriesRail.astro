@@ -1,0 +1,121 @@
+---
+/**
+ * Series strip for the installed app, in reading order.
+ *
+ * The ring around each series is its progress: how many of its parts this
+ * browser has opened. That makes the row a status display rather than
+ * decoration — a reader can see at a glance which thread they are behind on.
+ * Progress is filled in by /app's script, since it lives in localStorage.
+ *
+ * Each series carries its part slugs so the client can count reads without
+ * knowing anything about the taxonomy.
+ */
+import { CATEGORIES, coverArt, getSeriesIndex, seriesUrl } from '../lib/posts';
+
+const series = await getSeriesIndex();
+
+// A monogram beats a truncated title in a 58px circle. Initials of the first
+// two words, so "Copilot Skills" reads as CS and "AGENTS.md" as AM.
+const monogram = (title: string): string =>
+  title
+    .replace(/[^\p{L}\p{N} .]/gu, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join('');
+---
+
+{series.length > 0 && (
+  <nav class="app-rail" aria-label="Series, with how much of each you have read">
+    <ul class="flex gap-3.5 overflow-x-auto px-4 pb-1">
+      {series.map((s) => {
+        // The series' own colour comes from its newest part's category, so the
+        // rail matches the covers below it.
+        const category = CATEGORIES[s.latest.data.category];
+        const art = coverArt(s.id, s.latest.data.category);
+        return (
+          <li class="shrink-0">
+            <a
+              href={seriesUrl(s.id)}
+              class="grid w-16 justify-items-center gap-1.5 text-center"
+              data-series-slugs={s.parts.map((p) => p.id).join(',')}
+              data-series-total={s.parts.length}
+            >
+              <span class="app-ring" style="--p: 0">
+                <span class="app-ring__inner">
+                  <span
+                    class="app-ring__mono"
+                    style={`background: linear-gradient(${art.angle}deg, ${art.from}, ${art.to});`}
+                  >
+                    {monogram(s.title)}
+                  </span>
+                </span>
+              </span>
+              <span class="text-[0.66rem] leading-tight text-muted">
+                {s.title.split(' ')[0]}
+                <span data-series-count class="block text-[0.6rem] tabular-nums opacity-80">
+                  0/{s.parts.length}
+                </span>
+              </span>
+              <span class="sr-only">{s.title} — {category.label}</span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  </nav>
+)}
+
+<style>
+  .app-rail ul {
+    scrollbar-width: none;
+  }
+  .app-rail ul::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* The progress ring itself: accent for the read share, border for the rest. */
+  .app-ring {
+    display: grid;
+    place-items: center;
+    width: 3.6rem;
+    height: 3.6rem;
+    padding: 2px;
+    border-radius: 9999px;
+    background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--border) 0);
+    transition: transform 0.18s;
+  }
+  .app-rail a:active .app-ring {
+    transform: scale(0.94);
+  }
+
+  .app-ring__inner {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 2px;
+    border-radius: 9999px;
+    /* A gap in the page colour, so the ring reads as a ring at any progress. */
+    background: var(--bg);
+  }
+
+  .app-ring__mono {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 9999px;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .app-ring {
+      transition: none;
+    }
+  }
+</style>

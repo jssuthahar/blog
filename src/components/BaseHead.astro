@@ -19,6 +19,15 @@ interface Props {
   /** Path to the raw Markdown twin of this page, for AI crawlers. */
   markdownUrl?: string;
   noindex?: boolean;
+  /**
+   * Load AdSense on a page that is otherwise excluded by `noindex`.
+   *
+   * Ads follow indexing by default, which correctly keeps them out of /admin and
+   * the editor. The app feed is the one page where those two things come apart:
+   * it is deliberately unindexed and still a reader-facing screen, so it opts in
+   * explicitly rather than by inference.
+   */
+  ads?: boolean;
 }
 
 const {
@@ -32,7 +41,10 @@ const {
   schema = [],
   markdownUrl,
   noindex = false,
+  ads,
 } = Astro.props;
+
+const showAds = ads ?? !noindex;
 
 const canonicalUrl = new URL(canonical ?? Astro.url.pathname, SITE.url);
 const imageUrl = new URL(image, SITE.url);
@@ -106,7 +118,7 @@ const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `
 
 <!-- Google AdSense Auto ads. One snippet site-wide; Google places the units.
      Skipped on private tooling pages so ads never render in the admin/editor. -->
-{ADSENSE_CLIENT && !noindex && (
+{ADSENSE_CLIENT && showAds && (
   <>
     <script
       is:inline

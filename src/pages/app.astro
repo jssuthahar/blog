@@ -12,21 +12,48 @@
  * share a single set of listeners and a single IntersectionObserver.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
+import AdUnit from '../components/AdUnit.astro';
 import AppPostCard from '../components/AppPostCard.astro';
 import AppSeriesRail from '../components/AppSeriesRail.astro';
 import { getPublishedPosts, getSeriesIndex } from '../lib/posts';
+import {
+  ADSENSE_LAYOUT_KEY_IN_FEED,
+  ADSENSE_SLOT_DISPLAY,
+  ADSENSE_SLOT_IN_FEED,
+} from '../config';
 
 const [posts, series] = await Promise.all([getPublishedPosts(), getSeriesIndex()]);
 
 // Enough to scroll through on a phone without shipping the whole archive.
 const feed = posts.slice(0, 12);
 const seriesTitle = new Map(series.map((s) => [s.id, s.title]));
+
+/*
+ * One ad, and only one, placed after the fourth card.
+ *
+ * Deliberately mid-scroll: the reader has passed real content to reach it, and
+ * it is nowhere near the tab bar or a card's own reaction row, where a stray
+ * thumb would land on an ad instead of the control it aimed for. It also never
+ * takes the last slot, so the feed does not end on an advert.
+ *
+ * Native in-feed when that unit exists, otherwise the responsive display unit —
+ * a correct placement either way, just not native until the unit is created.
+ */
+const AD_AFTER = 4;
+const adNative = Boolean(ADSENSE_SLOT_IN_FEED && ADSENSE_LAYOUT_KEY_IN_FEED);
+const adSlot = adNative ? ADSENSE_SLOT_IN_FEED : ADSENSE_SLOT_DISPLAY;
+// Only worth showing when enough cards follow it to keep the feed reading as a
+// feed rather than ending on an advert.
+const showAd = feed.length > AD_AFTER + 1;
+const feedBefore = showAd ? feed.slice(0, AD_AFTER) : feed;
+const feedAfter = showAd ? feed.slice(AD_AFTER) : [];
 ---
 
 <BaseLayout
   title="Your feed"
   description="The latest engineering articles from MSDEVBUILD, plus the article you were last reading."
   noindex
+  ads
   wide
   appShell
 >
@@ -56,11 +83,30 @@ const seriesTitle = new Map(series.map((s) => [s.id, s.title]));
     </div>
 
     <div class="mt-4 grid gap-4 px-4">
-      {feed.map((post, i) => (
+      {feedBefore.map((post, i) => (
         <AppPostCard
           post={post}
           seriesTitle={post.data.series ? seriesTitle.get(post.data.series) : undefined}
           eager={i === 0}
+        />
+      ))}
+
+      <!-- Hairlines on the page background, never card chrome: an ad must not be
+           mistakable for an article. min-h reserves a 320x100 banner so the cards
+           below it do not jump when the unit fills. -->
+      {showAd && (
+        <AdUnit
+          slot={adSlot}
+          format={adNative ? 'in-feed' : 'display'}
+          layoutKey={ADSENSE_LAYOUT_KEY_IN_FEED}
+          class="!my-0 !max-w-none min-h-[100px] border-y border-default py-4"
+        />
+      )}
+
+      {feedAfter.map((post) => (
+        <AppPostCard
+          post={post}
+          seriesTitle={post.data.series ? seriesTitle.get(post.data.series) : undefined}
         />
       ))}
     </div>

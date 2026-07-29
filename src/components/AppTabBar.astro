@@ -294,24 +294,15 @@ const moreActive = MORE.some(isActive);
   }
 
   /* The /app route is app chrome by definition, so it gets the tab bar in an
-     ordinary tab as well — at any width, since that is the only navigation the
-     screen offers. */
-  :global(html[data-app-shell]) .app-tabs {
-    display: grid;
-  }
-  :global(html[data-app-shell]) .app-sheet:not([hidden]) {
-    display: block;
-  }
-
-  /* On a desktop-width tab, sit under the feed column rather than stretching
-     the full window. */
-  @media (min-width: 768px) {
-    :global(html[data-app-shell]:not([data-standalone])) .app-tabs {
-      max-width: 42rem;
-      margin-inline: auto;
-      border-inline: 1px solid var(--border);
-      border-start-start-radius: 1rem;
-      border-start-end-radius: 1rem;
+     ordinary tab too — but only at phone widths. On a desktop window the header
+     nav is right there, and a bar pinned across the bottom of a wide viewport
+     reads as a broken page rather than an app. */
+  @media (max-width: 767px) {
+    :global(html[data-app-shell]) .app-tabs {
+      display: grid;
+    }
+    :global(html[data-app-shell]) .app-sheet:not([hidden]) {
+      display: block;
     }
   }
 </style>
@@ -350,13 +341,16 @@ const moreActive = MORE.some(isActive);
     }
   }
 
-  /* App-shell pages reserve the same space, at any width. */
-  html[data-app-shell] {
-    --app-nav-h: calc(3.6rem + env(safe-area-inset-bottom));
-  }
-  html[data-app-shell] #menu-toggle,
-  html[data-app-shell] #mobile-nav {
-    display: none !important;
+  /* App-shell pages reserve the same space — only where the bar actually shows,
+     or a desktop window would carry 3.6rem of empty padding at the bottom. */
+  @media (max-width: 767px) {
+    html[data-app-shell] {
+      --app-nav-h: calc(3.6rem + env(safe-area-inset-bottom));
+    }
+    html[data-app-shell] #menu-toggle,
+    html[data-app-shell] #mobile-nav {
+      display: none !important;
+    }
   }
 
   /* The bar must not cover the end of the page. */

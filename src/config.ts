@@ -391,6 +391,19 @@ export const ADSENSE_CLIENT = 'ca-pub-3425499927549926';
 //   DISPLAY    — a responsive "Display" unit, used on listing pages.
 //   MULTIPLEX  — an "autorelaxed" grid of recommendations, used once at the very
 //                bottom of a post so it never competes with the article itself.
+//   IN_FEED    — an "In-feed" native unit for the app feed (/app), the only unit
+//                type Google designs to sit *between* list items.
 export const ADSENSE_SLOT_IN_ARTICLE = '1663662929';
 export const ADSENSE_SLOT_DISPLAY = '6724417913';
 export const ADSENSE_SLOT_MULTIPLEX = '4098254574';
+
+/**
+ * In-feed unit for the app feed. Create it in AdSense → Ads → By ad unit →
+ * In-feed, style it, then paste both values Google gives you: the numeric slot
+ * and the `data-ad-layout-key` (looks like `-fb+5w+4e-db+86`).
+ *
+ * Until both are filled the feed falls back to the responsive DISPLAY unit,
+ * which is a valid placement — just not the native one.
+ */
+export const ADSENSE_SLOT_IN_FEED = '';
+export const ADSENSE_LAYOUT_KEY_IN_FEED = '';

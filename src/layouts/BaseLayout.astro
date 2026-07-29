@@ -20,6 +20,8 @@ interface Props {
   schema?: Record<string, unknown>[];
   markdownUrl?: string;
   noindex?: boolean;
+  /** Passed through to BaseHead: run ads on a page that is noindex. */
+  ads?: boolean;
   /** Wide pages (home, listings) opt out of the narrow reading column. */
   wide?: boolean;
   /**

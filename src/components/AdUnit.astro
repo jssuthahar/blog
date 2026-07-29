@@ -8,17 +8,21 @@ interface Props {
    * 'in-article' — fluid unit for the end of a reading page (default).
    * 'display'    — responsive unit for listing pages.
    * 'multiplex'  — autorelaxed grid of recommendations for the foot of a post.
+   * 'in-feed'    — native unit sized to sit between items in the app feed.
    */
-  format?: 'in-article' | 'display' | 'multiplex';
+  format?: 'in-article' | 'display' | 'multiplex' | 'in-feed';
+  /** Required by 'in-feed': the data-ad-layout-key AdSense generates. */
+  layoutKey?: string;
   /** Extra classes for the wrapping <aside>. */
   class?: string;
 }
 
-const { slot, format = 'in-article', class: className } = Astro.props;
+const { slot, format = 'in-article', layoutKey, class: className } = Astro.props;
 
 // Render only when both the account client and a real slot exist, so no empty
-// ad frame ever ships to readers before the unit is configured.
-const show = Boolean(ADSENSE_CLIENT && slot);
+// ad frame ever ships to readers before the unit is configured. An in-feed unit
+// additionally needs its layout key — without it Google renders nothing.
+const show = Boolean(ADSENSE_CLIENT && slot && (format !== 'in-feed' || layoutKey));
 ---
 
 {show && (
@@ -49,6 +53,17 @@ const show = Boolean(ADSENSE_CLIENT && slot);
         data-ad-slot={slot}
         data-ad-format="auto"
         data-full-width-responsive="true"
+      ></ins>
+    )}
+
+    {format === 'in-feed' && (
+      <ins
+        class="adsbygoogle"
+        style="display:block;"
+        data-ad-format="fluid"
+        data-ad-layout-key={layoutKey}
+        data-ad-client={ADSENSE_CLIENT}
+        data-ad-slot={slot}
       ></ins>
     )}
 

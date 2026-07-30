@@ -1,0 +1,169 @@
+---
+title: 'How to Save AI Tokens: 15 Habits That Cut My Copilot Context Waste'
+description: 'Fifteen tested habits that cut my monthly AI token usage without cutting how much I use AI, from context discipline to knowing when to restart a chat.'
+publishedAt: 2026-07-30
+category: copilot
+categories: ['ai', 'engineering']
+tags: ['GitHub Copilot', 'AI tokens', 'token optimization', 'context window', 'prompt engineering', 'AI-assisted development', 'developer productivity', 'Copilot agent mode']
+seoTitle: 'How to Save AI Tokens: 15 Copilot Context Tips'
+highlight: 'The largest AI token saving is not a shorter prompt, it is a shorter conversation. Every turn resends the entire thread plus every attached file, so ten turns over two files can cost six times the first turn. Start a new chat per task, select 40 lines instead of attaching a 600-line file, and ask for a diff instead of a rewritten file, and a month of the same work costs a fraction of what it did.'
+series: 'agents-md-instructions'
+seriesOrder: 13
+featured: false
+draft: false
+faq:
+  - q: 'What is the fastest way to reduce AI token usage?'
+    a: 'Start a new chat for every new task. A conversation resends its entire history on each turn, so a ten-turn thread pays for the same attached files ten times. Closing the thread and reopening with a sharper prompt is usually a five-fold saving on its own, and it produces better answers because the model is not carrying earlier wrong turns.'
+  - q: 'Does attaching a whole file cost more than selecting part of it?'
+    a: 'Yes, and the gap is large. At roughly 10 tokens per line, a 600-line file costs about 6,000 tokens each turn while the 40 lines the question is really about cost around 400. Selecting just that region gives the same answer for a fraction of the context, and it usually improves accuracy because less irrelevant code distracts the model.'
+  - q: 'Do instruction files like AGENTS.md waste tokens?'
+    a: 'A small one saves far more than it costs. It is resent on every request, so keep it under about 100 lines and push detail into reference files the agent loads only when needed. The saving comes from removing exploration and correction rounds, each of which resends the whole context, so a tight file pays for itself in a couple of turns.'
+  - q: 'Should I ask AI for a diff instead of the full file?'
+    a: 'Almost always. Asking for only the changed method or a unified diff cuts output tokens sharply and makes review faster, because you can see exactly what moved. Full-file rewrites also invite silent changes elsewhere in the file, so the cheaper option is usually the safer one.'
+  - q: 'How can I check how many tokens my prompt uses?'
+    a: 'Paste it into a public tokenizer such as the OpenAI tokenizer page, or count locally with the tiktoken library. Do this once for a typical file and a typical prompt in your own codebase and you will have working rules of thumb, which for most C# or TypeScript projects lands near 10 tokens per line of code.'
+---
+
+My company allocates 400,000 AI tokens per developer per month. Two articles back I covered [what a token is and why AI cost is calculated in them](../what-is-ai-token-cost-calculated), and in [the previous part](../ai-token-budget-daily-copilot-workflow) I worked out what that number really buys and built a daily Copilot workflow around it: deterministic tools first, unmetered chat for generic questions, Copilot for work inside an open file, agent mode reserved for a few planned jobs a month.
+
+Routing is the big lever. This article is the small ones, and there are more of them than I expected. These are 15 habits I changed after watching where my tokens actually went. Most of them are not on any documentation page, because they are not features. They are consequences of how these tools work underneath.
+
+None of these are about using AI less. That is the wrong trade. They are about paying once for context instead of eleven times.
+
+## Why does a long AI chat cost so much?
+
+Start here, because seven of the fifteen habits follow from this one fact.
+
+A chat with an AI model is stateless underneath. The model does not remember turn 4 when you send turn 5. The client resends the whole conversation every single time: your first question, its first answer, everything since, and every file you attached along the way.
+
+So the cost of an N-turn conversation is not N times the first turn. It grows with the square of N.
+
+Here is what that looks like with two 300-line files attached, at about 10 tokens per line.
+
+| Turn | What gets sent | Tokens that turn | Running total |
+|---|---|---|---|
+| 1 | Files + question | 6,500 | 6,500 |
+| 3 | Files + 3 questions + 2 answers | 8,500 | 22,500 |
+| 6 | Files + 6 questions + 5 answers | 11,500 | 52,000 |
+| 10 | Files + 10 questions + 9 answers | 15,500 | 105,000 |
+
+Ten turns cost 105,000 tokens. The same ten questions asked in three short threads cost somewhere near 25,000. Nothing about the questions changed. Only the container did.
+
+Once you have seen this table you cannot unsee it, and the habits below stop feeling like penny-pinching.
+
+### 1. One task, one chat
+
+Close the thread when the task is done. Not when you log off for the evening, not when the topic drifts, when the task is done. A new thread is free. Continuing an old one is not.
+
+### 2. When an answer is wrong, restart instead of arguing
+
+This is the one that saved me the most, and it is the least intuitive.
+
+When turn 3 comes back wrong, the reflex is to explain the mistake in turn 4. That turn buys the entire thread again, including the wrong answer, which now sits in context influencing everything after it. Two more corrections and you have spent 40,000 tokens getting back to where turn 1 should have landed.
+
+Instead: read why it went wrong, close the chat, and rewrite the original prompt with the missing constraint in it. It feels like conceding. It costs about a fifth as much and the answer is cleaner, because the model is not reasoning around its own earlier mistake.
+
+### 3. Batch related questions into one turn
+
+Five small questions about the same file, asked as five turns, pay for that file five times. Asked as one numbered list in one turn, once. I keep a scratch note during a task and ask in groups.
+
+## Context discipline: pay for what you need
+
+### 4. Select, do not attach
+
+The single biggest per-turn saving. Highlight the 40 lines the question is about instead of attaching the 600-line file. Roughly 400 tokens instead of 6,000, for the same answer.
+
+There is a quality argument too. A model given 600 lines when 40 are relevant has 560 lines of distraction, and it will occasionally answer about the wrong method.
+
+### 5. Never ask a broad-context question you could ask specifically
+
+"Where is authentication handled in this project" makes the tool search and read half your repository. "Explain the token validation in `JwtBearerOptions` in `AuthExtensions.cs`" reads one file.
+
+If you know the symbol, name the symbol. If you do not, find it with your editor's search in two seconds, then ask specifically. Repository-wide context is the most expensive thing you can request and it is almost never what the question needed.
+
+### 6. Paste the failure, not the log
+
+Stack traces, build output, and test runs are enormous and mostly repetition. A full `dotnet test` failure log can be 4,000 tokens of which 15 lines matter.
+
+Paste the exception type, the message, and the frames that are your code. Delete the framework frames. Delete the base64 blobs, the request payloads, and the timestamps. I do this by hand in about ten seconds and it routinely cuts a debugging turn by 80%.
+
+### 7. Keep instruction files small, and push detail into references
+
+Counter-intuitive one. Your `copilot-instructions.md` or `AGENTS.md` is prepended to every request. A 400-line instruction file is a 4,000-token surcharge on every turn you take, all month.
+
+This is exactly why progressive disclosure matters in [Copilot Skills](../github-copilot-skills-deep-dive), and I originally read that design as an organisational nicety. It is a cost design. The `SKILL.md` body stays short, the detail sits in reference files, and the agent loads a reference only when the task needs it.
+
+My rule: the always-on instruction file stays under roughly 100 lines and holds only rules that apply to nearly every change. Everything else moves into a Skill or a reference file. If you are unsure what belongs where, [the complete AGENTS.md playbook](../agents-md-complete-playbook) covers the split in detail.
+
+### 8. Exclude generated and vendored code from context
+
+Lock files, `*.g.cs`, migrations, build output, minified bundles, and vendored libraries are pure token weight with almost no signal. They are also the files most likely to get swept into a broad context request.
+
+Copilot supports content exclusion rules at the repository and organisation level, and most gateways support similar path filters. Set them once. Nobody has ever needed `package-lock.json` explained to them.
+
+## Output discipline
+
+### 9. Ask for a diff, not a file
+
+"Show only the changed method" or "give me a unified diff" instead of "rewrite this file". A 600-line file returned in full is 6,000 output tokens for a 12-line change. It is also harder to review and it invites quiet edits elsewhere in the file.
+
+### 10. Cap the explanation explicitly
+
+By default these tools explain themselves at length, and every word is metered. "Code only, no explanation" or "two sentences of rationale, then the code" is a small phrase that removes several hundred tokens per turn, several times a day.
+
+I keep the explanation on when I am learning something and off when I am not.
+
+### 11. Do the thinking in the prompt
+
+A vague prompt is cheap to type and expensive to fix. "Add caching to this method" invites the wrong cache, the wrong lifetime, and the wrong invalidation, and then three correction turns at full thread price.
+
+Sixty words of constraints up front, naming the cache type, key shape, expiry, and what should happen on a miss, costs about 80 tokens and reliably saves 20,000. Precision is the cheapest thing in this whole article.
+
+### 12. Match the model to the mechanical work
+
+Most tools let you pick a model per request. Renaming things, writing a DTO, converting JSON to a class, and writing a straightforward test do not need the most capable model available, and on token-metered plans the cheaper models are usually the ones with lower multipliers.
+
+Save the strong model for architecture, tricky concurrency, and debugging something genuinely strange.
+
+## Agent mode: where the real money goes
+
+### 13. Stop an agent the moment it goes off course
+
+An agent that has misunderstood the task does not self-correct. It compounds. Every step reads more files, produces more tool output, and carries all of it into the next step.
+
+Watch the first two or three actions. If it opened the wrong folder or started editing a file you never mentioned, stop it immediately. Fix the prompt, and start again. Letting a wrong run finish because it might recover is the most expensive habit in this list, and I have done it more than once.
+
+### 14. Prepare before an agent run, the way you would for a deploy
+
+An agent that has to discover your conventions will spend 20,000 to 30,000 tokens exploring before writing anything useful, and it may still get the shape wrong and need a full rerun. An agent told the conventions up front starts writing on step two.
+
+Commit your work first, so you can throw away a bad run with `git checkout` rather than an unpicking session. Name the exact files in scope. State the acceptance test. These sound like quality habits and they are, but the reason they show up on a token budget is that a rerun is the single largest cost event in a normal month.
+
+### 15. Measure yourself once, then trust the numbers
+
+Spend twenty minutes on this and you will never guess again.
+
+Paste a typical file from your own codebase into the [OpenAI tokenizer page](https://platform.openai.com/tokenizer), or count locally with [tiktoken](https://github.com/openai/tiktoken), and divide by the line count. You now have your own tokens-per-line figure instead of mine. For my C# and Dart it lands close to 10. For a JSON-heavy or comment-heavy codebase it can be 14 or more.
+
+Then check your usage dashboard weekly rather than monthly. Weekly is early enough to change behaviour. Monthly is a post-mortem.
+
+## What I did not bother with
+
+Two things I tried and dropped, because honest lists should include the misses.
+
+**Abbreviating prompts.** Writing "impl repo pattern for Order w/ EF" instead of a proper sentence saves maybe 15 tokens and costs accuracy. The prompt is never the expensive part. The context is.
+
+**Manually clearing context mid-thread.** Some tools let you trim history. In practice, by the time a thread is long enough to need trimming, restarting it is faster and cheaper. Habit 1 makes this one unnecessary.
+
+There is also a genuine unknown worth flagging. Prompt caching, where a repeated context prefix is billed at a discount, changes some of this arithmetic, but whether your company's gateway passes that discount through to your allowance varies. If it does, keeping a stable prefix (same instruction file, same file order) becomes worth doing deliberately. Ask before you build habits around it. The [GitHub Copilot documentation](https://docs.github.com/en/copilot) is the place to confirm what your specific plan counts.
+
+## Key takeaways
+
+- Conversation length, not prompt length, is what drains a token budget. Every turn resends the whole thread and every attached file.
+- One task per chat, and restart rather than argue when an answer comes back wrong.
+- Select the 40 relevant lines instead of attaching the 600-line file. Same answer, a tenth of the cost.
+- Name the symbol you mean. Repository-wide context is the most expensive request available and rarely the one you needed.
+- Keep always-on instruction files under about 100 lines and push detail into reference files that load on demand.
+- Ask for diffs, cap explanations, and put your constraints in the first prompt rather than in three corrections.
+- In agent mode, stop a wrong run immediately and prepare properly before starting one. A rerun is the biggest single cost event in a normal month.
+- Measure tokens per line in your own codebase once, then check usage weekly instead of monthly.

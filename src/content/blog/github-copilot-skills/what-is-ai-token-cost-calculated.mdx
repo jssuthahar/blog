@@ -1,0 +1,180 @@
+---
+title: 'What Is an AI Token? Why Every AI Cost Is Calculated in Them'
+description: 'Tokens are not words, and they are not characters. Here is what a token really is, why AI billing counts them, and how to work out the cost of a request.'
+publishedAt: 2026-07-30
+category: ai
+categories: ['copilot', 'engineering']
+tags: ['AI tokens', 'tokenization', 'LLM', 'GitHub Copilot', 'Azure OpenAI', 'token cost', 'context window', 'AI fundamentals']
+seoTitle: 'What Is an AI Token? How AI Cost Is Calculated'
+highlight: 'A token is a subword fragment from a fixed vocabulary, not a word and not a character. English prose averages about four characters per token and code about three, which puts a line of C# near 10 tokens. Billing counts tokens because tokens are what the model actually processes, and output costs more than input because it is generated one token at a time.'
+series: 'agents-md-instructions'
+seriesOrder: 11
+featured: true
+draft: false
+faq:
+  - q: 'What is a token in AI?'
+    a: 'A token is a fragment of text from a fixed vocabulary the model was trained on, usually a whole common word, a piece of a longer word, or a single punctuation mark. Models never see letters or words directly. Text is converted into token IDs before it reaches the model, and every price, limit, and quota is counted in those units.'
+  - q: 'How many tokens is one word?'
+    a: 'For English prose, roughly 1,000 tokens per 750 words, or about four characters per token. Common words cost one token each while rare names and technical terms split into several. Code is denser at around three characters per token, so a line of C# or Dart usually lands near 10 tokens.'
+  - q: 'Why is AI billed per token instead of per request?'
+    a: 'Because tokens are the actual unit of work. The model runs a forward pass for every token in the context and again for every token it generates, so a 50-token request and a 50,000-token request cost wildly different amounts of compute. Flat per-request pricing would either overcharge short prompts or lose money on long ones.'
+  - q: 'Why do output tokens cost more than input tokens?'
+    a: 'Input is processed in one parallel pass over the whole prompt, which hardware handles efficiently. Output is generated one token at a time, and each new token needs another pass over everything before it. That sequential work costs far more per token, which is why providers price output three to five times higher than input.'
+  - q: 'Is the context window the same as my token budget?'
+    a: 'No. The context window is the maximum tokens allowed in a single request, while a budget or quota is the total you may spend over a month. They interact badly: filling a 200,000 token window once consumes half of a 400,000 token monthly allowance in a single call, so a large window is permission to spend, not free capacity.'
+---
+
+When my company told me I had 400,000 AI tokens a month, my honest first reaction was that I had no idea whether that was a lot. I had been using GitHub Copilot daily for two years and I had never once needed to know what a token was. The tool worked, the code appeared, nobody sent me a bill.
+
+Then the bill arrived in the shape of a quota, and the number meant nothing to me. Four hundred thousand words? Characters? Requests? I could not convert it into anything I recognised, which meant I could not plan around it.
+
+This article fixes that, and it is the one I should have read first. What a token actually is, why every AI price on earth is quoted in them, and how to work out what a request costs before you send it. Parts 12 and 13 of this series then put the arithmetic to work: [what a 400K monthly budget really buys and the daily Copilot workflow that fits inside it](../ai-token-budget-daily-copilot-workflow), and [15 habits that cut token usage](../save-ai-tokens-tips-copilot-context). Both of those assume you already understand this page.
+
+## What is a token, exactly?
+
+A token is a fragment of text drawn from a fixed vocabulary that the model was trained with. Not a word. Not a character. A fragment.
+
+Modern models have vocabularies of roughly 100,000 to 200,000 entries. Every piece of text you send is chopped into pieces that exist in that vocabulary, and each piece is swapped for its ID number. The model never sees your letters. It sees a list of integers.
+
+Take a sentence:
+
+```text
+The order service returns null.
+```
+
+That splits into something close to seven tokens: `The`, ` order`, ` service`, ` returns`, ` null`, `.` and whatever remains. Notice the leading spaces. In most tokenizers a space belongs to the word that follows it, so ` order` is one token rather than two. This is why adding spaces to "format" a prompt nicely is almost free, and why it is not worth stripping them out.
+
+Now take a name:
+
+```text
+Jegatheesan
+```
+
+That is one word to you and around four or five tokens to the model, because it is not in the vocabulary as a unit and has to be assembled from smaller pieces. Common text is cheap. Unusual text is expensive. That single rule explains most of what follows.
+
+The algorithm behind this is byte pair encoding. It is built by scanning an enormous amount of text and repeatedly merging the most frequent adjacent pairs of characters into single units. Frequent sequences like `the`, `ing`, and `tion` end up as one token. Rare sequences never earn a merge, so they stay fragmented. Nothing about it is semantic. The tokenizer has no idea what a word means, only how often that sequence of bytes appeared.
+
+## Why is AI cost measured in tokens?
+
+Because tokens are the unit of work, not a unit of accounting invented for pricing.
+
+When you send a request, the model performs a forward pass over every token in the context. Then, to produce a reply, it generates one token, appends it, and runs again. And again. A response of 400 tokens is 400 sequential passes, each one attending over everything that came before it.
+
+So the compute cost of a request scales with how many tokens go in and how many come out. Not with how many requests you make. A one-line question and a 50,000-token repository dump are both "one request" and they differ in cost by four orders of magnitude. Any pricing model that ignored that would either punish small prompts or lose money on large ones.
+
+This also explains the pricing asymmetry that confuses people the first time they see it.
+
+**Input tokens are processed in one parallel pass.** The whole prompt goes through together, and GPUs are extremely good at that shape of work.
+
+**Output tokens are generated one at a time.** Each new token needs another pass, and it cannot start until the previous one exists. There is no parallelism to exploit.
+
+That is why providers typically price output three to five times higher than input. It is not a margin decision. It reflects a real difference in how much sequential compute each one takes. The practical consequence, which I lean on constantly in [the habits article](../save-ai-tokens-tips-copilot-context): asking for a diff instead of a rewritten file is not a stylistic preference, it is the cheapest change available to you.
+
+## How is a token count calculated?
+
+There is no formula. Tokenization is a lookup against a specific vocabulary, so the only exact answer comes from running the actual tokenizer. But you can estimate well enough to plan, and these are the ratios I use.
+
+| Content | Characters per token | Practical rule |
+|---|---|---|
+| English prose | ~4 | 1,000 tokens ≈ 750 words |
+| C#, Dart, TypeScript | ~3 | ~10 tokens per line |
+| JSON and XML payloads | ~2.5 | Punctuation-heavy, worse than it looks |
+| Base64, GUIDs, hashes | ~2 | Effectively random, worst case |
+| Tamil, Hindi, Arabic script | ~1 to 2 | Two to five times English for the same meaning |
+
+Two rows on that table deserve their own explanation.
+
+### Why does code cost more per character than prose?
+
+Because code is full of things the tokenizer has no merged entry for.
+
+An identifier like `IServiceCollection` is not one token. It splits into several pieces. `services.AddScoped<IOrderRepository, OrderRepository>();` is a dozen or more tokens once you count the generics, the dot, the angle brackets, the parentheses, and the semicolon. Punctuation that reads as noise to you is a separate token each to the model.
+
+Deep indentation adds up too. Most modern tokenizers have merged entries for runs of spaces, which helps, but a heavily nested file still carries real weight in leading whitespace alone.
+
+Hence the number I use for planning everywhere: **a line of application code is about 10 tokens.** A 300-line service class is roughly 3,000 tokens, every single time it enters a request.
+
+### Why do Indian language prompts cost more than English?
+
+This one matters to me and it rarely gets mentioned.
+
+These vocabularies were built mostly from English text, so English gets the good merges. Tamil, Hindi, Telugu, and Arabic often fall back to byte-level fragments, where a single visible character can become two or three tokens on its own. The same sentence, with the same meaning, can cost two to five times more in Tamil than in English.
+
+If you are writing prompts in an Indian language against a metered budget, you are paying a tax that an English speaker does not pay. It is worth knowing before you conclude your usage is high because you are careless. My own habit is to write prompts in English and ask for explanations in whatever language I want to read, since the output is where the language choice actually matters to me.
+
+## What gets counted in one Copilot request?
+
+This is the part that surprised me most, because the answer is "far more than what you typed".
+
+| Part of the request | Typical size | Do you control it? |
+|---|---|---|
+| Provider system prompt | 1,000 – 3,000 | No |
+| Tool and function definitions | 500 – 5,000 | Yes, by installing fewer tools |
+| Your instructions file or `AGENTS.md` | 200 – 4,000 | Yes, by keeping it short |
+| Attached or selected files | 500 – 20,000 | Yes, and this is the big one |
+| Conversation history so far | Grows every turn | Yes, by starting fresh threads |
+| Your actual question | 20 – 200 | Barely worth optimising |
+| The reply | 200 – 2,000 | Yes, by asking for less |
+
+Your question is the smallest line in that table. This is why "write shorter prompts" is such poor advice, and why the two follow-up articles focus almost entirely on the rows above it.
+
+Two of those rows are worth a special mention because they are silent. Tool definitions are sent on every request whether or not any tool gets used, so a pile of installed integrations is a standing charge on everything you do. And an always-on instructions file is exactly the same shape of cost, which is the real reason [custom instructions](../github-copilot-custom-instructions) should be tight rather than exhaustive.
+
+## Context window and token budget are different things
+
+People mix these up constantly, so let me separate them.
+
+The **context window** is the maximum number of tokens allowed in a single request, input and output together. Current models advertise anything from 128,000 to well over a million.
+
+Your **token budget** is how many tokens you are allowed to spend over a month.
+
+A big context window is permission to spend, not spare capacity. If your model accepts 200,000 tokens in one call and your monthly allowance is 400,000, then two maximal requests end your month. Reading "1M context window" as "I can attach everything" is the single most expensive misunderstanding available to a developer on a quota.
+
+There is a quality argument too, quite apart from cost. Models get measurably worse at using information buried in the middle of a very long context. Attaching more is not the same as being understood better, and it often makes the answer worse and the invoice larger at the same time.
+
+## How do I count tokens myself?
+
+Three options, in order of effort.
+
+**Paste it into a tokenizer page.** The [OpenAI tokenizer](https://platform.openai.com/tokenizer) shows the exact split for a piece of text and colour-codes the boundaries. Spend five minutes putting your own code through it. Watching a familiar method break into pieces teaches the whole concept faster than any explanation, including this one.
+
+**Count in Python with tiktoken.** [tiktoken](https://github.com/openai/tiktoken) is the reference implementation and it is a few lines to get an exact count for a file.
+
+**Count in C#.** For .NET work I use the `Microsoft.ML.Tokenizers` package, which gives me exact counts inside the application rather than a guess.
+
+```csharp
+using Microsoft.ML.Tokenizers;
+
+var tokenizer = TiktokenTokenizer.CreateForModel("gpt-4o");
+
+var source = File.ReadAllText("OrderService.cs");
+var count = tokenizer.CountTokens(source);
+
+Console.WriteLine($"{count} tokens, {source.Split('\n').Length} lines");
+Console.WriteLine($"{(double)count / source.Split('\n').Length:F1} tokens per line");
+```
+
+That last line is the one worth running. It gives you your own tokens-per-line figure for your own codebase instead of my estimate, and you will use it for planning from then on. The package API has shifted between releases, so check the current version on [Microsoft Learn](https://learn.microsoft.com/en-us/dotnet/api/microsoft.ml.tokenizers) before wiring it into anything permanent.
+
+The reason to count inside your own application, rather than only in a browser tab, is that any product feature calling a model on a user's behalf needs a cap. Counting before you send is how you enforce one.
+
+## The numbers worth memorising
+
+If you take nothing else from this article, take these four.
+
+- **10 tokens per line of code.** Converts any file into a cost instantly.
+- **750 words per 1,000 tokens.** Converts any document into a cost.
+- **Output costs roughly 4x input.** Ask for diffs, not files.
+- **Every turn resends the whole conversation.** Cost grows with the square of the thread length, not in a straight line.
+
+That last one is the foundation for everything in the next two articles, and it is the one that no amount of using these tools will teach you on its own. It is not visible in the interface. You only find it by looking at a usage dashboard and wondering what happened.
+
+## Key takeaways
+
+- A token is a subword fragment from a fixed vocabulary, so common text is cheap and rare names, identifiers, and non-English scripts are expensive.
+- Billing counts tokens because tokens are the actual unit of compute. The model runs a pass per token in and per token out.
+- Output is priced higher than input because it is generated sequentially while input is processed in a single parallel pass.
+- Code runs near 10 tokens per line, English prose near 750 words per 1,000 tokens, and Indian language text can cost several times its English equivalent.
+- Your typed question is the smallest part of a request. System prompts, tool definitions, instruction files, attached files, and conversation history are all larger.
+- A context window is a per-request limit and a budget is a monthly one. A large window is permission to spend, not free capacity.
+- Measure your own codebase once with a tokenizer, and you will never have to guess again.

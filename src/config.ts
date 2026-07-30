@@ -72,6 +72,11 @@ export const AUTHOR = {
     'https://my.linkedin.com/in/jssuthahar',
     'https://github.com/jssuthahar',
     'https://www.youtube.com/@MSDEVBUILD',
+    // The two MSDEVBUILD-branded channels. They belong on the Person node
+    // because this Person is also the publisher — MSDEVBUILD is its
+    // alternateName, not a separate Organization entity anywhere in the graph.
+    'https://www.linkedin.com/company/31318247/',
+    'https://whatsapp.com/channel/0029Va5j2rHEFeXcTlUhQB0J',
   ],
 
   /** Emitted as schema.org `award`. Award reviewers and LLMs both read this. */
@@ -191,29 +196,71 @@ export const IMPACT = [
 /**
  * Follow targets. Each carries its own verb — "subscribe" on YouTube, "follow"
  * elsewhere — because the ask should match what the platform actually calls it.
+ *
+ * `cta` is the one-line ask used wherever the target appears as a plain link
+ * (the row variant of FollowCTA, the footer). It is written out per entry
+ * rather than assembled from `action` + `label`, because two of these are
+ * LinkedIn — the personal profile and the MSDEVBUILD page — and a generated
+ * "Follow on LinkedIn page" reads like a bug.
+ *
+ * `icon` selects the glyph in FollowCTA.astro, so the two LinkedIn entries can
+ * share one path without sharing an id.
  */
 export const SOCIAL = [
   {
     id: 'linkedin',
+    icon: 'linkedin',
     label: 'LinkedIn',
     handle: 'in/jssuthahar',
     action: 'Follow',
+    cta: 'Follow on LinkedIn',
     href: 'https://my.linkedin.com/in/jssuthahar',
     blurb: 'Architecture notes and career posts',
   },
   {
+    id: 'whatsapp',
+    icon: 'whatsapp',
+    label: 'WhatsApp',
+    handle: 'MSDEVBUILD channel',
+    action: 'Follow',
+    cta: 'Follow the WhatsApp channel',
+    href: 'https://whatsapp.com/channel/0029Va5j2rHEFeXcTlUhQB0J',
+    blurb: 'Every new article, straight to your chats',
+  },
+  {
+    id: 'linkedin-page',
+    icon: 'linkedin',
+    // Kept short so it sits on one line in the five-across card grid; the
+    // handle line underneath is what names the page.
+    label: 'LinkedIn page',
+    handle: 'MSDEVBUILD',
+    action: 'Follow',
+    cta: 'Follow the MSDEVBUILD page',
+    /**
+     * The public page, not the /admin/dashboard/ URL — that one only resolves
+     * for logged-in page admins and 404s for everyone else. LinkedIn redirects
+     * the numeric company id to the page's vanity URL.
+     */
+    href: 'https://www.linkedin.com/company/31318247/',
+    blurb: 'The publication feed for the blog',
+  },
+  {
     id: 'github',
+    icon: 'github',
     label: 'GitHub',
     handle: '@jssuthahar',
     action: 'Follow',
+    cta: 'Follow on GitHub',
     href: 'https://github.com/jssuthahar',
     blurb: 'Sample code and open-source projects',
   },
   {
     id: 'youtube',
+    icon: 'youtube',
     label: 'YouTube',
     handle: '@MSDEVBUILD',
     action: 'Subscribe',
+    cta: 'Subscribe on YouTube',
     href: 'https://www.youtube.com/@MSDEVBUILD?sub_confirmation=1',
     blurb: 'Video walkthroughs in English and Tamil',
   },

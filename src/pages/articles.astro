@@ -100,7 +100,6 @@ const featured: Slide[] = entries
   .map((e) => ({
     kind: e.primary,
     title: e.title,
-    description: e.excerpt,
     href: e.url,
     external: e.external,
     image: e.image,
@@ -223,7 +222,7 @@ const schema = [
             {entry.image ? (
               <img
                 src={entry.image}
-                alt=""
+                alt={entry.title}
                 loading="lazy"
                 decoding="async"
                 referrerpolicy="no-referrer"

@@ -6,7 +6,7 @@ import EventCard from '../components/EventCard.astro';
 import Newsletter from '../components/Newsletter.astro';
 import SubscribePopup from '../components/SubscribePopup.astro';
 import TestimonialCard from '../components/TestimonialCard.astro';
-import FeedbackDialog from '../components/FeedbackDialog.astro';
+import ShareRow from '../components/ShareRow.astro';
 import SiteChat from '../components/SiteChat.astro';
 import TestimonialForm from '../components/TestimonialForm.astro';
 import { homeTestimonials } from '../lib/testimonials';
@@ -62,7 +62,6 @@ const restQuotes = testimonials.filter((t) => !t.featured);
 const articleSlides: Slide[] = articles.slice(0, 3).map((a) => ({
   kind: 'Latest article',
   title: a.title,
-  description: a.excerpt,
   href: a.url,
   external: true,
   image: a.image,
@@ -73,7 +72,6 @@ const articleSlides: Slide[] = articles.slice(0, 3).map((a) => ({
 const blogSlides: Slide[] = posts.slice(0, 3).map((p) => ({
   kind: 'From the blog',
   title: p.data.title,
-  description: p.data.description,
   href: postUrl(p),
   meta: CATEGORIES[p.data.category].label,
   cta: 'Read the post',
@@ -82,10 +80,13 @@ const blogSlides: Slide[] = posts.slice(0, 3).map((p) => ({
 const eventSlides: Slide[] = upcoming.slice(0, 2).map((e) => ({
   kind: 'Upcoming event',
   title: e.data.talk ?? e.data.title,
-  description: e.data.talk ? e.data.title : `${e.data.venue ?? ''} ${e.data.location}`.trim(),
   href: e.data.registrationUrl ?? e.data.url ?? '/speaking/',
   external: Boolean(e.data.registrationUrl ?? e.data.url),
-  meta: `${FORMAT_LABELS[e.data.format]} · ${formatEventDate(e)}`,
+  // The event name rides along in the meta line when the title is the talk,
+  // so dropping the slide summary costs the reader nothing.
+  meta: [FORMAT_LABELS[e.data.format], formatEventDate(e), e.data.talk ? e.data.title : e.data.location]
+    .filter(Boolean)
+    .join(' · '),
   cta: 'Event details',
 }));
 
@@ -146,11 +147,14 @@ const schema = [
           <span style="color: var(--accent);">developer community</span>
         </h1>
 
+        <!-- The lead deliberately repeats the H1 wording ("contributing to the
+             developer community") — auditors flag an H1 whose terms never
+             appear in the body copy. -->
         <p class="mt-4 max-w-xl leading-relaxed text-muted text-pretty">
           {AUTHOR.yearsExperience}+ years as a solutions architect across Cloud, AI, Mobile and Web —
-          Azure, .NET, Flutter and modern web — and {span.activeYears} years publishing what I learn.
-          {articles.length} articles, 50+ conference sessions, {repoIndex.count} open-source
-          projects, 15,000+ developers reached.
+          Azure, .NET, Flutter and modern web. {span.activeYears} of those years went into
+          contributing to the developer community: {articles.length} articles, 50+ conference
+          sessions, {repoIndex.count} open-source projects, 15,000+ developers reached.
         </p>
 
         <!-- Recognition moved inline so the panel slot can carry the banner. -->
@@ -400,7 +404,7 @@ const schema = [
           <div class="aspect-[4/3] w-28 shrink-0 overflow-hidden rounded-md border border-default md:aspect-[16/9] md:w-full">
             <img
               src={article.image!}
-              alt=""
+              alt={article.title}
               loading="lazy"
               decoding="async"
               referrerpolicy="no-referrer"
@@ -568,9 +572,10 @@ const schema = [
           </h2>
         </div>
         <div class="flex flex-wrap gap-3">
-          <button type="button" data-open-feedback class="btn btn-accent btn-sm">
-            Add your feedback
-          </button>
+          <!-- The form is on this page already, so the button jumps to it rather
+               than opening the popup — a second copy of the form would repeat
+               its heading and help text in the page source. -->
+          <a href="#write-testimonial" class="btn btn-accent btn-sm">Add your feedback</a>
           <a href="/testimonials/" class="btn btn-outline btn-sm">All testimonials</a>
         </div>
       </div>
@@ -587,9 +592,8 @@ const schema = [
         </div>
       )}
 
-      <!-- The form inline as well as in the popup: a reader who scrolls this far
-           should not have to open a dialog to answer. Distinct formId so the two
-           forms on this page keep separate field ids. -->
+      <!-- The one form on this page: a reader who scrolls this far should not
+           have to open a dialog to answer. -->
       <div class="mt-8">
         <TestimonialForm compact formId="home" />
       </div>
@@ -629,6 +633,13 @@ const schema = [
             </div>
           ))}
         </dl>
+
+        <!-- Sharing the site itself. Only one ShareRow may render per page —
+             its script wires up the first [data-share-row] it finds — so this
+             stays on the home page and posts keep their own row. -->
+        <div class="mt-8 border-t border-default pt-6">
+          <ShareRow title={`${SITE.title} — ${SITE.tagline}`} path="/" />
+        </div>
       </div>
 
       <div id="subscribe" class="scroll-mt-20 self-center">
@@ -639,9 +650,6 @@ const schema = [
 
   <!-- Home page only, once per visitor. -->
   <SubscribePopup />
-
-  <!-- Opened by any [data-open-feedback] trigger on the page. -->
-  <FeedbackDialog />
 
   <!-- Site-wide find-an-article assistant (home only; posts have their own chat). -->
   <SiteChat />

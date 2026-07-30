@@ -7,7 +7,7 @@ const year = new Date().getFullYear();
 
 // Follow targets come from SOCIAL so the verbs stay consistent with the CTA.
 const elsewhere = [
-  ...SOCIAL.map(({ label, action, href }) => ({ label: `${action} on ${label}`, href })),
+  ...SOCIAL.map(({ cta, href }) => ({ label: cta, href })),
   { label: 'Install the app', href: '/install/' },
   { label: 'Help your friends share this', href: '/share/' },
   { label: 'Testimonials', href: '/testimonials/' },

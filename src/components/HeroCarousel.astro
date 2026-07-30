@@ -1,9 +1,14 @@
 ---
+/**
+ * A slide carries no summary line on purpose. Every item promoted here is also
+ * listed in full further down the same page, and repeating the excerpt in both
+ * places registers as duplicate on-page text with search engines. The banner
+ * gets the artwork, the label and the title; the card below owns the prose.
+ */
 export interface Slide {
   /** Category label shown above the title. */
   kind: string;
   title: string;
-  description: string;
   href: string;
   external?: boolean;
   image?: string | null;
@@ -27,9 +32,9 @@ const { slides, label = 'Featured highlights' } = Astro.props;
     aria-roledescription="carousel"
     aria-label={label}
   >
-    <!-- Tall enough for the 16:9 media plus three lines of copy and the CTA;
+    <!-- Tall enough for the 16:9 media plus a three-line title and the CTA;
          slides are absolutely positioned, so the container must reserve it. -->
-    <div class="relative" style="min-height: 430px;">
+    <div class="relative" style="min-height: 400px;">
       {slides.map((slide, index) => (
         <article
           class="carousel-slide absolute inset-0 flex flex-col"
@@ -41,9 +46,12 @@ const { slides, label = 'Featured highlights' } = Astro.props;
         >
           {slide.image ? (
             <div class="aspect-[16/9] shrink-0 overflow-hidden bg-subtle">
+              <!-- Cover art is content, not decoration: it is usually a title
+                   card or diagram, so it carries the item's own name and is
+                   indexable in image search. -->
               <img
                 src={slide.image}
-                alt=""
+                alt={slide.title}
                 loading={index === 0 ? 'eager' : 'lazy'}
                 decoding="async"
                 referrerpolicy="no-referrer"
@@ -70,12 +78,9 @@ const { slides, label = 'Featured highlights' } = Astro.props;
               {slide.meta && <span class="text-muted">{slide.meta}</span>}
             </div>
 
-            <h3 class="mt-2 line-clamp-2 leading-snug font-semibold tracking-tight">
+            <h3 class="mt-2 line-clamp-3 leading-snug font-semibold tracking-tight">
               {slide.title}
             </h3>
-            <p class="mt-1.5 line-clamp-2 text-sm leading-relaxed text-muted">
-              {slide.description}
-            </p>
 
             <a
               href={slide.href}

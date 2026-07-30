@@ -56,8 +56,10 @@ const schema = [
         <ul class="mt-4 flex flex-wrap gap-1.5">
           {group.technologies.map((tech) => (
             <li>
+              <!-- Faceted filter URL — nofollow, same as the home-page chips. -->
               <a
                 href={`/articles/?category=${slugifyCategory(tech)}`}
+                rel="nofollow"
                 class="inline-block rounded-full border border-default px-2.5 py-1 text-xs text-muted transition-colors hover:bg-subtle hover:text-accent"
               >
                 {tech}

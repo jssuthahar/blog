@@ -50,6 +50,10 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
         <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
           <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
         </svg>
+        <!-- Anchor text for crawlers, which read markup and do not credit
+             aria-label. The aria-label still wins for assistive tech, so this
+             is not announced twice. -->
+        <span class="sr-only">Search</span>
       </a>
       <!-- Install as an app (PWA). Hidden until the browser reports the site is
            installable, or on iOS where it opens Add-to-Home-Screen steps. Solid

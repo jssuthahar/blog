@@ -382,12 +382,16 @@ const schema = [
       <a href="/articles/" class="btn btn-outline btn-sm">Browse all {articles.length}</a>
     </div>
 
-    <!-- Topic chips double as an at-a-glance map of what the library covers. -->
+    <!-- Topic chips double as an at-a-glance map of what the library covers.
+         nofollow because these are faceted filter URLs: each one is a subset of
+         /articles/, so crawling them spends budget on near-duplicate listings
+         of pages already reachable from the unfiltered index. -->
     <ul class="mt-5 flex flex-wrap gap-2">
       {topics.map(({ label, count, slug }) => (
         <li>
           <a
             href={`/articles/?category=${slug}`}
+            rel="nofollow"
             class="inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1 text-xs transition-colors hover:bg-subtle"
           >
             {label}

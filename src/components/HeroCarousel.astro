@@ -41,7 +41,7 @@ const { slides, label = 'Featured highlights' } = Astro.props;
           data-slide
           role="group"
           aria-roledescription="slide"
-          aria-label={`${index + 1} of ${slides.length}`}
+          aria-label={`${index + 1} of ${slides.length}: ${slide.title}`}
           aria-hidden={index === 0 ? 'false' : 'true'}
         >
           {slide.image ? (
@@ -78,16 +78,23 @@ const { slides, label = 'Featured highlights' } = Astro.props;
               {slide.meta && <span class="text-muted">{slide.meta}</span>}
             </div>
 
-            <h3 class="mt-2 line-clamp-3 leading-snug font-semibold tracking-tight">
-              {slide.title}
-            </h3>
-
+            <!-- The title is not a heading, and the link wraps it rather than
+                 sitting beside it, both for the same reason: everything on a
+                 slide is also a card further down the page. A second heading
+                 with identical text would duplicate the page outline, and a
+                 bare "Read the post" link would repeat one anchor text across
+                 every slide. Wrapping makes the anchor text the item's title. -->
             <a
               href={slide.href}
               rel={slide.external ? 'noopener' : undefined}
-              class="mt-3 text-sm font-semibold text-accent hover:underline"
+              class="group mt-2 flex flex-1 flex-col"
             >
-              {slide.cta} →
+              <p class="line-clamp-3 leading-snug font-semibold tracking-tight group-hover:text-accent">
+                {slide.title}
+              </p>
+              <span class="mt-3 text-sm font-semibold text-accent group-hover:underline">
+                {slide.cta} →
+              </span>
             </a>
           </div>
         </article>

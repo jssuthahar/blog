@@ -15,6 +15,7 @@ Run & build (use these when validating changes):
 - `npm run sync:repos` — refresh GitHub repo cache
 - `npm run sync:testimonials` — refresh testimonials cache
 - `npm run sync` — run all sync helpers sequentially
+- `npm run test:rules` — Firestore rules tests against the emulator (needs Java)
 
 Key places to inspect when making changes:
 
@@ -23,6 +24,8 @@ Key places to inspect when making changes:
 - `src/content.config.ts` — collection schemas and validation rules
 - `src/lib/taxonomy.ts` — category/topic slugs and site taxonomy
 - `src/config.ts` — site-wide settings, feature flags, analytics, and comment integrations
+- `firestore.rules` — the ONLY security boundary; change it with `npm run test:rules` green
+- `docs/COMMUNITY.md` — reader accounts, appreciations, badges, public profiles
 - `src/pages/` — page routes and content rendering
 - `src/components/` — UI components used across the site
 - `scripts/` — sync scripts that update committed caches

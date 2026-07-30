@@ -1,0 +1,67 @@
+name: Community update
+
+# Recomputes reader stats and badges, then refreshes the public profile cache.
+#
+# This is the trusted half of the community features. `stats/{uid}` is
+# admin-write-only in firestore.rules, so badges can only be awarded by
+# something holding the admin credentials — that is this job, not the browser.
+# Cloud Functions would be the obvious home for it, but they need a paid plan;
+# a scheduled Action does the same work for nothing.
+on:
+  schedule:
+    # 03:00 UTC daily. Counts on a profile are described as "updated once a
+    # day", so anything more frequent would be spending reads for no promise.
+    - cron: '0 3 * * *'
+  # Lets you refresh immediately after approving or hiding a profile.
+  workflow_dispatch:
+
+# Needed to commit the refreshed profile cache.
+permissions:
+  contents: write
+
+# Never two runs at once: both write the same documents and the same file.
+concurrency:
+  group: community
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Order matters: badges are written first so the profile cache picks up
+      # the same run's totals rather than yesterday's.
+      - name: Recompute stats and badges
+        env:
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: node scripts/evaluate-badges.mjs
+
+      - name: Refresh the public profile cache
+        env:
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: node scripts/sync-profiles.mjs
+
+      - name: Commit if the published profiles changed
+        run: |
+          if git diff --quiet -- src/data/profiles.json; then
+            echo "Public profiles unchanged; nothing to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/profiles.json
+
+          COUNT=$(node -p "require('./src/data/profiles.json').count")
+          git commit -m "chore: sync public profiles (${COUNT} total)"
+          git push

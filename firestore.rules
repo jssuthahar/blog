@@ -302,6 +302,206 @@ service cloud.firestore {
                     && request.resource.data.status in ['pending', 'sending', 'sent', 'failed'];
     }
 
+    // ---------------------------------------------------------------------
+    // Community: reader accounts, appreciations, profiles, badges.
+    //
+    // Everything below requires a signed-in reader. The article reading
+    // experience does not depend on any of it: a signed-out visitor still
+    // reads, still reacts through `reactions` above, and touches nothing here.
+    // ---------------------------------------------------------------------
+
+    function signedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // A banned reader keeps their account and can still read, but cannot write
+    // anything the site would publish. Checked on writes only, so a normal page
+    // view never pays for it.
+    function notBanned() {
+      return !exists(/databases/$(database)/documents/moderation/$(request.auth.uid))
+          || get(/databases/$(database)/documents/moderation/$(request.auth.uid)).data.banned != true;
+    }
+
+    // Appreciations — the signed-in half of a reaction.
+    //
+    // The public counters in `reactions` are unchanged and still anonymous.
+    // This collection records WHO appreciated WHAT, and only for readers who
+    // asked for that by signing in. The document ID is `{uid}__{slug}`, so a
+    // second appreciation for the same article is the same document — a
+    // duplicate is impossible by construction rather than by convention.
+    //
+    // `source` separates the two ways a record can appear: 'live' is written at
+    // the moment of the click and is trustworthy; 'claimed' is backfilled from
+    // localStorage when a returning reader first signs in, and is therefore
+    // self-asserted. Badges weigh them differently.
+    match /appreciations/{id} {
+      // Never public. The profile shows a total, published through `stats`,
+      // not this collection — so nobody can enumerate what a reader read.
+      allow read: if isSelf(resource.data.uid) || isAdmin();
+
+      allow create: if isSelf(request.resource.data.uid)
+                    && notBanned()
+                    && id == request.auth.uid + '__' + request.resource.data.slug
+                    && request.resource.data.keys().hasOnly(['uid', 'slug', 'type', 'source', 'createdAt'])
+                    && request.resource.data.slug is string
+                    && request.resource.data.slug.size() >= 1
+                    && request.resource.data.slug.size() <= 200
+                    // The same fixed set the public counters use.
+                    && request.resource.data.type in ['like', 'love', 'celebrate', 'insightful']
+                    && request.resource.data.source in ['live', 'claimed']
+                    // Server-stamped, so an appreciation cannot be backdated to
+                    // fake a long history for a badge.
+                    && request.resource.data.createdAt == request.time;
+
+      // Nothing about a recorded appreciation is editable — a reader who wants
+      // a different reaction deletes and writes again, which keeps `createdAt`
+      // honest.
+      allow update: if false;
+      allow delete: if isSelf(resource.data.uid) || isAdmin();
+    }
+
+    // Handle registry — the public username → uid map.
+    //
+    // The handle IS the document ID, so uniqueness is enforced by Firestore
+    // itself: a create against a taken handle fails, and the first claimant
+    // wins with no race and no lookup.
+    match /handles/{handle} {
+      // Public, because /u/?h=<handle> resolves through it for profiles that
+      // are newer than the last build.
+      allow read: if true;
+
+      allow create: if isSelf(request.resource.data.uid)
+                    && notBanned()
+                    && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+                    && handle.matches('^[a-z0-9][a-z0-9-]{2,29}$')
+                    // Keep the namespace clear of routes and impersonation.
+                    && !(handle in ['admin', 'about', 'blog', 'search', 'profile',
+                                    'signin', 'settings', 'suthahar', 'msdevbuild', 'support'])
+                    && request.resource.data.createdAt == request.time;
+
+      // A handle is never edited in place; releasing it is a delete, which lets
+      // someone else claim it afterwards.
+      allow update: if false;
+      allow delete: if isSelf(resource.data.uid) || isAdmin();
+    }
+
+    // Public developer profiles.
+    //
+    // Only the owner writes this, and only fields that are safe to publish —
+    // the email address deliberately lives in `profileContacts` instead,
+    // because rules cannot hide a field: a public read returns the whole
+    // document, and the nightly sync bakes it into static HTML.
+    //
+    // `skills` is a comma-separated STRING rather than a list. Rules have no
+    // loop, so the elements of a list cannot be length-checked individually —
+    // a capped string is the only shape that is fully validatable here. The UI
+    // splits it into chips and the sync splits it into JSON-LD `knowsAbout`.
+    match /profiles/{uid} {
+      function validProfile() {
+        return request.resource.data.keys().hasOnly(
+                 ['handle', 'name', 'photo', 'bio', 'skills', 'linkedin',
+                  'github', 'visibility', 'createdAt', 'updatedAt'])
+            && request.resource.data.keys().hasAll(
+                 ['handle', 'name', 'visibility', 'createdAt', 'updatedAt'])
+            && request.resource.data.handle is string
+            && request.resource.data.handle.matches('^[a-z0-9][a-z0-9-]{2,29}$')
+            // The handle must actually be registered to this uid, so a profile
+            // can never advertise a name someone else owns.
+            && get(/databases/$(database)/documents/handles/$(request.resource.data.handle)).data.uid == uid
+            && request.resource.data.name is string
+            && request.resource.data.name.size() >= 2
+            && request.resource.data.name.size() <= 80
+            && request.resource.data.visibility in ['public', 'private']
+            && (!('bio' in request.resource.data)
+                || (request.resource.data.bio is string && request.resource.data.bio.size() <= 400))
+            && (!('skills' in request.resource.data)
+                || (request.resource.data.skills is string && request.resource.data.skills.size() <= 200))
+            && (!('photo' in request.resource.data)
+                || (request.resource.data.photo is string
+                    && request.resource.data.photo.size() <= 500
+                    && (request.resource.data.photo == '' || request.resource.data.photo.matches('^https://.*'))))
+            && (!('linkedin' in request.resource.data)
+                || (request.resource.data.linkedin is string
+                    && request.resource.data.linkedin.size() <= 200
+                    && (request.resource.data.linkedin == ''
+                        || request.resource.data.linkedin.matches('^https://[a-z]*[.]?linkedin[.]com/.*'))))
+            && (!('github' in request.resource.data)
+                || (request.resource.data.github is string
+                    && request.resource.data.github.size() <= 200
+                    && (request.resource.data.github == ''
+                        || request.resource.data.github.matches('^https://github[.]com/.*'))))
+            && request.resource.data.updatedAt == request.time;
+      }
+
+      // A profile is published only when its owner asks for it to be. The admin
+      // hides an abusive one by setting `hidden` in `moderation`, which the
+      // sync honours before anything reaches a built page.
+      allow read: if resource.data.visibility == 'public'
+                  || isSelf(uid)
+                  || isAdmin();
+
+      allow create: if isSelf(uid) && notBanned() && validProfile()
+                    && request.resource.data.createdAt == request.time;
+
+      allow update: if isSelf(uid) && notBanned() && validProfile()
+                    // Immutable, so an account cannot claim to be older than it is.
+                    && request.resource.data.createdAt == resource.data.createdAt;
+
+      allow delete: if isSelf(uid) || isAdmin();
+    }
+
+    // The reader's email, kept OUT of the public profile — same split, and for
+    // the same reason, as testimonials/testimonialContacts above.
+    match /profileContacts/{uid} {
+      allow read, delete: if isSelf(uid) || isAdmin();
+
+      allow create, update: if isSelf(uid)
+                            && request.resource.data.keys().hasOnly(['email', 'provider', 'updatedAt'])
+                            && request.resource.data.email is string
+                            && request.resource.data.email.size() <= 254
+                            && request.resource.data.provider is string
+                            && request.resource.data.provider.size() <= 40
+                            && request.resource.data.updatedAt == request.time;
+    }
+
+    // Private reading progress, mirrored up from localStorage by /profile.
+    //
+    // Owner-written, so the numbers here are self-reported — there is no
+    // trusted client on a static site. It drives the "articles read" figure and
+    // the per-series rings, never a badge that is meant to be defensible.
+    match /progress/{uid} {
+      allow read: if isSelf(uid) || isAdmin();
+
+      allow create, update: if isSelf(uid)
+                            && notBanned()
+                            && request.resource.data.keys().hasOnly(['read', 'updatedAt'])
+                            && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isSelf(uid) || isAdmin();
+    }
+
+    // Published reader stats and badges.
+    //
+    // Public, because the profile page and the nightly sync both read it — and
+    // ADMIN-WRITE-ONLY, because it is the score. The nightly GitHub Action signs
+    // in as the admin, recomputes each reader's totals from `appreciations` and
+    // `progress`, and writes the result here. A reader cannot award themselves
+    // a badge or edit their own count.
+    match /stats/{uid} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Moderation flags. Nothing client-side ever needs to read these; the rules
+    // above check them server-side through exists()/get().
+    match /moderation/{uid} {
+      allow read, write: if isAdmin();
+    }
+
     // Everything else is closed.
     match /{document=**} {
       allow read, write: if false;

@@ -385,6 +385,35 @@ export const FIREBASE = {
    * blog.msdevbuild.com in Google Cloud Console → Credentials.
    */
   apiKey: 'AIzaSyC1oOQOPnd4i-6W0vXkhDHrzRAFYpd0nDk',
+  /**
+   * Where Firebase hosts the OAuth callback (`/__/auth/handler`). It is a
+   * different origin from this site, which is exactly why /signin uses
+   * `signInWithPopup` and never `signInWithRedirect` — the redirect flow needs
+   * a third-party cookie that Safari and Firefox block.
+   */
+  authDomain: 'msdevbuild-blog.firebaseapp.com',
+} as const;
+
+/**
+ * Reader accounts — optional, and deliberately invisible to anyone who does not
+ * want one. Reading an article never requires signing in; an account only makes
+ * appreciations, badges and a public profile stick to a person instead of a
+ * browser.
+ *
+ * Turning this off hides every entry point (footer link, header avatar) and
+ * stops the article page recording anything, without removing the pages.
+ */
+export const COMMUNITY = {
+  enabled: true,
+  /** Sign-in providers offered on /signin, in the order they are shown. */
+  providers: ['google.com', 'microsoft.com', 'github.com', 'email'] as const,
+  /** Reader-facing labels for the four reaction keys the counters already use. */
+  reactionLabels: {
+    like: 'Appreciated',
+    love: 'Loved',
+    celebrate: 'Celebrated',
+    insightful: 'Found insightful',
+  } as Record<string, string>,
 } as const;
 
 /**

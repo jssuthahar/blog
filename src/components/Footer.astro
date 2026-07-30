@@ -1,5 +1,5 @@
 ---
-import { SITE, AUTHOR, MAIN_SITE, SOCIAL } from '../config';
+import { SITE, AUTHOR, MAIN_SITE, SOCIAL, COMMUNITY } from '../config';
 import { TOPIC_GROUPS } from '../lib/taxonomy';
 import FollowCTA from './FollowCTA.astro';
 
@@ -66,7 +66,10 @@ const elsewhere = [
   <div class="border-t border-default">
     <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <p>&copy; {year} {AUTHOR.name}. All rights reserved.</p>
-      <p class="flex gap-4">
+      <p class="flex flex-wrap gap-4">
+        {COMMUNITY.enabled && (
+          <a href="/profile/" class="hover:text-accent" data-account-link>Your profile</a>
+        )}
         <a href="/history/" class="hover:text-accent">Reading history</a>
         <a href="/privacy/" class="hover:text-accent">Privacy</a>
         <a href="/llms.txt" class="hover:text-accent">llms.txt</a>

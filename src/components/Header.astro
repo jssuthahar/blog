@@ -1,5 +1,5 @@
 ---
-import { SITE, NAV } from '../config';
+import { SITE, NAV, COMMUNITY } from '../config';
 import ThemeToggle from './ThemeToggle.astro';
 import Avatar from './Avatar.astro';
 
@@ -75,6 +75,31 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
         </svg>
         <span class="max-sm:hidden">Install app</span>
       </button>
+      <!-- Account: one slot, two states.
+           Signed out renders in the HTML, so the link works with no JS at all.
+           Signed in swaps to the chip — initials rather than the provider photo,
+           which keeps an external image request off every page and avoids the
+           layout shift when it loads. -->
+      {COMMUNITY.enabled && (
+        <>
+          <a
+            id="account-signin"
+            href="/signin/"
+            class="rounded-md px-2.5 py-2 text-sm text-muted transition-colors hover:bg-subtle hover:text-accent max-sm:hidden"
+          >
+            Sign in
+          </a>
+          <a
+            id="account-chip"
+            href="/profile/"
+            hidden
+            class="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-accent ring-1 ring-[var(--border)]"
+            aria-label="Your profile"
+          >
+            <span data-account-initials>·</span>
+          </a>
+        </>
+      )}
       <ThemeToggle />
       <button
         id="menu-toggle"
@@ -97,6 +122,28 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
         {label}
       </a>
     ))}
+    <!-- The header link is desktop-only (the phone header has no room), so the
+         same entry point lives here. Same swap: the script hides whichever of
+         the two does not apply. -->
+    {COMMUNITY.enabled && (
+      <>
+        <a
+          id="account-signin-mobile"
+          href="/signin/"
+          class="block rounded-md px-3 py-2.5 text-sm transition-colors hover:bg-subtle"
+        >
+          Sign in
+        </a>
+        <a
+          id="account-profile-mobile"
+          href="/profile/"
+          hidden
+          class="block rounded-md px-3 py-2.5 text-sm transition-colors hover:bg-subtle"
+        >
+          Your profile
+        </a>
+      </>
+    )}
   </nav>
 </header>
 
@@ -138,4 +185,47 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
   }
   initSearchTriggers();
   document.addEventListener('astro:page-load', initSearchTriggers);
+
+  // Swaps the header's account slot between "Sign in" and the chip. Reads one
+  // localStorage key and touches nothing else — no network either way. The
+  // signed-out link is in the HTML already, so this only ever hides it; the
+  // msdev:auth event keeps both in step when someone signs in or out without a
+  // reload.
+  function initAccountChip() {
+    const chip = document.getElementById('account-chip');
+    const signin = document.getElementById('account-signin');
+    if (!chip) return;
+
+    let session: { name?: string; email?: string } | null = null;
+    try {
+      session = JSON.parse(localStorage.getItem('msdev:auth:v1') ?? 'null');
+    } catch {
+      session = null;
+    }
+
+    const mobileSignin = document.getElementById('account-signin-mobile');
+    const mobileProfile = document.getElementById('account-profile-mobile');
+
+    chip.hidden = !session;
+    if (signin) signin.hidden = !!session;
+    if (mobileSignin) mobileSignin.hidden = !!session;
+    if (mobileProfile) mobileProfile.hidden = !session;
+    if (!session) return;
+
+    const label = (session.name || session.email || '').trim();
+    const initials =
+      label
+        .split(/[\s@.]+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? '')
+        .join('') || '·';
+
+    const target = chip.querySelector('[data-account-initials]');
+    if (target) target.textContent = initials;
+  }
+
+  initAccountChip();
+  document.addEventListener('astro:page-load', initAccountChip);
+  addEventListener('msdev:auth', initAccountChip);
 </script>

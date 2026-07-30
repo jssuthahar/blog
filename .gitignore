@@ -22,3 +22,8 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Firestore emulator output (npm run test:rules)
+firestore-debug.log
+ui-debug.log
+firebase-debug.log

@@ -403,3 +403,135 @@ export async function listPushOutbox(): Promise<PushOutboxItem[]> {
     }))
     .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
 }
+
+// ------------------------------------------------------------------ community
+
+export interface AdminReader {
+  uid: string;
+  handle: string;
+  name: string;
+  bio: string;
+  visibility: 'public' | 'private';
+  /** From the private contact record, which never appears on a public profile. */
+  email: string;
+  provider: string;
+  appreciations: number;
+  articlesRead: number;
+  badges: string[];
+  manualBadges: string[];
+  hidden: boolean;
+  banned: boolean;
+  createdAt: string;
+}
+
+const list = (f: any): string[] =>
+  ((f?.arrayValue?.values ?? []) as any[]).map((v) => v.stringValue ?? '').filter(Boolean);
+
+/**
+ * Every reader with a profile, joined with their stats, private contact record
+ * and moderation flags.
+ *
+ * Four small collection reads rather than one per reader — the console is used
+ * by one person a few times a week, but the free tier's read budget is shared
+ * with the whole site.
+ */
+export async function listReaders(): Promise<AdminReader[]> {
+  const [profiles, stats, contacts, moderation] = await Promise.all([
+    authed('/profiles?pageSize=300'),
+    authed('/stats?pageSize=300'),
+    authed('/profileContacts?pageSize=300'),
+    authed('/moderation?pageSize=300'),
+  ]);
+
+  const index = (body: any) =>
+    new Map(
+      ((body.documents ?? []) as any[]).map((doc) => [doc.name.split('/').pop() as string, doc.fields ?? {}]),
+    );
+
+  const statsById = index(stats);
+  const contactsById = index(contacts);
+  const moderationById = index(moderation);
+
+  return ((profiles.documents ?? []) as any[])
+    .map((doc) => {
+      const uid = doc.name.split('/').pop() as string;
+      const stat = statsById.get(uid) ?? {};
+      const contact = contactsById.get(uid) ?? {};
+      const flags = moderationById.get(uid) ?? {};
+
+      return {
+        uid,
+        handle: str(doc.fields.handle),
+        name: str(doc.fields.name),
+        bio: str(doc.fields.bio),
+        visibility: (str(doc.fields.visibility) || 'private') as AdminReader['visibility'],
+        email: str(contact.email),
+        provider: str(contact.provider),
+        appreciations: int(stat.appreciations),
+        articlesRead: int(stat.articlesRead),
+        badges: list(stat.badges),
+        manualBadges: list(stat.manualBadges),
+        hidden: bool(flags.hidden),
+        banned: bool(flags.banned),
+        createdAt: doc.fields.createdAt?.timestampValue ?? doc.createTime,
+      };
+    })
+    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+}
+
+/**
+ * Hides a profile or bans a reader.
+ *
+ * Hiding keeps the profile out of the published cache on the next sync; banning
+ * also stops the reader writing anything at all, enforced in the rules rather
+ * than here.
+ */
+export async function moderateReader(
+  uid: string,
+  patch: { hidden?: boolean; banned?: boolean },
+): Promise<void> {
+  const fields: Record<string, unknown> = {};
+  const mask: string[] = [];
+
+  if (patch.hidden !== undefined) {
+    fields.hidden = { booleanValue: patch.hidden };
+    mask.push('hidden');
+  }
+  if (patch.banned !== undefined) {
+    fields.banned = { booleanValue: patch.banned };
+    mask.push('banned');
+  }
+
+  const query = mask.map((f) => `updateMask.fieldPaths=${f}`).join('&');
+  await authed(`/moderation/${uid}?${query}`, { method: 'PATCH', body: JSON.stringify({ fields }) });
+}
+
+/**
+ * Grants or revokes a badge by hand.
+ *
+ * Manual grants live in `manualBadges` and are merged back into `badges` on
+ * every nightly run, so an award survives recomputation instead of vanishing
+ * the next morning.
+ */
+export async function setManualBadges(uid: string, badges: string[], earned: string[]): Promise<void> {
+  const merged = [...new Set([...earned, ...badges])];
+
+  await authed(
+    `/stats/${uid}?updateMask.fieldPaths=manualBadges&updateMask.fieldPaths=badges`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        fields: {
+          manualBadges: { arrayValue: { values: badges.map((b) => ({ stringValue: b })) } },
+          badges: { arrayValue: { values: merged.map((b) => ({ stringValue: b })) } },
+        },
+      }),
+    },
+  );
+}
+
+/** Removes a reader's profile and handle. Their account and history stay theirs. */
+export async function deleteReaderProfile(uid: string, handle: string): Promise<void> {
+  await authed(`/profiles/${uid}`, { method: 'DELETE' });
+  if (handle) await authed(`/handles/${handle}`, { method: 'DELETE' }).catch(() => {});
+}

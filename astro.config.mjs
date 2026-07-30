@@ -22,6 +22,12 @@ export default defineConfig({
         !page.includes('/write') &&
         !page.includes('/search') &&
         !page.includes('/history') &&
+        !page.includes('/signin') &&
+        !page.includes('/profile') &&
+        // The /u/ fallback renders a profile client-side from ?h=, so it is
+        // noindex — but the prerendered /u/<handle>/ pages below it belong in
+        // the sitemap, hence matching the bare route rather than the prefix.
+        !/\/u\/?$/.test(page) &&
         !page.includes('/events/new'),
     }),
   ],

@@ -1,0 +1,622 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { COMMUNITY, FIREBASE, SITE } from '../config';
+import { BADGES } from '../lib/badges.js';
+import { getSeriesIndex } from '../lib/posts';
+
+const enabled = COMMUNITY.enabled && FIREBASE.projectId.length > 0;
+
+// Series and their parts, handed to the client as data. Progress is worked out
+// in the browser from reading history, so the rings need no Firestore read.
+const series = (await getSeriesIndex()).map(({ id, title, parts }) => ({
+  id,
+  title,
+  slugs: parts.map((p) => p.id),
+}));
+
+// Escape `<` so a value containing `</script>` cannot close the block early.
+const seriesJson = JSON.stringify(series).replace(/</g, '\\u003c');
+
+const FIELDS = [
+  { id: 'name', label: 'Name', type: 'text', max: 80, hint: 'Shown on your public profile.' },
+  { id: 'photo', label: 'Photo URL', type: 'url', max: 500, hint: 'Defaults to the picture from your sign-in provider.' },
+  { id: 'linkedin', label: 'LinkedIn', type: 'url', max: 200, hint: 'https://www.linkedin.com/in/…' },
+  { id: 'github', label: 'GitHub', type: 'url', max: 200, hint: 'https://github.com/…' },
+] as const;
+---
+
+<BaseLayout
+  title="Your profile"
+  description="Your reader account — appreciations, badges, reading progress, and your public developer profile."
+  noindex
+>
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <p class="eyebrow">Reader account</p>
+    <h1 class="display mt-1.5 text-2xl">Your profile</h1>
+
+    {!enabled && (
+      <p class="mt-8 rounded-lg border border-default bg-subtle p-4 text-sm text-muted">
+        Reader accounts are not switched on for this site yet.
+      </p>
+    )}
+
+    {enabled && (
+      <>
+        <!-- Signed out. Reading never needed an account, so this is an offer,
+             not a wall. -->
+        <section data-signed-out hidden class="mt-8 rounded-lg border border-default p-6">
+          <h2 class="font-semibold">You are not signed in</h2>
+          <p class="mt-2 text-sm leading-relaxed text-muted">
+            Every article stays open either way. An account only keeps your
+            appreciations, badges and profile with you instead of with this browser.
+          </p>
+          <a href="/signin/?next=/profile/" class="btn btn-accent btn-sm mt-4">Sign in</a>
+        </section>
+
+        <div data-signed-in hidden>
+          <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-default pb-6">
+            <p class="text-sm text-muted">
+              Signed in as <span data-account-email class="font-medium text-[var(--fg)]"></span>
+              <span data-account-provider class="text-xs"></span>
+            </p>
+            <div class="flex gap-2">
+              <a data-public-link href="/" hidden class="btn btn-outline btn-sm">View public profile →</a>
+              <button type="button" data-sign-out class="btn btn-outline btn-sm">Sign out</button>
+            </div>
+          </div>
+
+          <!-- Counts come from `stats`, which only the nightly job may write.
+               Until it has run for a new account these read 0, which is honest:
+               nothing has been counted yet. -->
+          <section class="mt-8 grid gap-3 sm:grid-cols-3" aria-label="Your activity">
+            {[
+              ['appreciations', 'Appreciations'],
+              ['articlesRead', 'Articles read'],
+              ['badgeCount', 'Badges'],
+            ].map(([key, label]) => (
+              <div class="rounded-lg border border-default p-4">
+                <p data-stat={key} class="text-2xl font-semibold tabular-nums">0</p>
+                <p class="mt-0.5 text-xs text-muted">{label}</p>
+              </div>
+            ))}
+          </section>
+          <p data-stats-note class="mt-2 text-xs text-muted"></p>
+
+          <section class="mt-10" aria-labelledby="badges-heading">
+            <h2 id="badges-heading" class="text-lg font-semibold tracking-tight">Badges</h2>
+            <p class="mt-1 text-sm text-muted">
+              Awarded once a day by a scheduled job, never by this page — so a badge
+              always reflects something you actually did.
+            </p>
+            <ul class="mt-4 grid gap-3 sm:grid-cols-2">
+              {BADGES.map((badge) => (
+                <li
+                  data-badge={badge.id}
+                  class="flex items-start gap-3 rounded-lg border border-default p-3 opacity-45 transition-opacity"
+                >
+                  <span class="badge-glyph grid size-9 shrink-0 place-items-center rounded-full bg-subtle text-xs font-semibold">
+                    {badge.glyph}
+                  </span>
+                  <span class="min-w-0">
+                    <span class="block text-sm font-medium">{badge.label}</span>
+                    <span class="block text-xs text-muted">{badge.description}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section class="mt-10" aria-labelledby="progress-heading">
+            <h2 id="progress-heading" class="text-lg font-semibold tracking-tight">Learning progress</h2>
+            <p class="mt-1 text-sm text-muted">
+              How far you are through each series, from this browser's reading history.
+            </p>
+            <ul data-series class="mt-4 space-y-3"></ul>
+          </section>
+
+          <!-- One-time claim of reactions this browser made before signing in.
+               Marked `claimed` rather than `live`, because localStorage is the
+               reader's own and cannot be verified. -->
+          <section data-claim-panel hidden class="mt-10 rounded-lg border border-default bg-subtle p-5">
+            <h2 class="font-semibold">Keep your earlier appreciations</h2>
+            <p class="mt-1.5 text-sm leading-relaxed text-muted">
+              This browser remembers <span data-claim-count class="font-medium">0</span>
+              article(s) you reacted to before signing in. Add them to your account?
+            </p>
+            <button type="button" data-claim class="btn btn-accent btn-sm mt-3">Add them</button>
+          </section>
+
+          <section class="mt-10" aria-labelledby="public-heading">
+            <h2 id="public-heading" class="text-lg font-semibold tracking-tight">Public profile</h2>
+            <p class="mt-1 text-sm text-muted">
+              Private until you publish it. Nothing here is shown to anyone while
+              visibility is set to private.
+            </p>
+
+            <form data-profile-form class="mt-5 space-y-4" novalidate>
+              <div>
+                <label for="handle" class="block text-sm font-medium">Handle</label>
+                <div class="mt-1.5 flex items-center gap-2">
+                  <span class="text-sm text-muted">{SITE.url.replace('https://', '')}/u/</span>
+                  <input
+                    id="handle"
+                    data-field="handle"
+                    type="text"
+                    required
+                    maxlength="30"
+                    autocomplete="off"
+                    placeholder="your-handle"
+                    class="w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm"
+                  />
+                </div>
+                <p class="mt-1 text-xs text-muted">
+                  3–30 characters: lowercase letters, numbers and hyphens. Claimed once, first come first served.
+                </p>
+              </div>
+
+              {FIELDS.map(({ id, label, type, max, hint }) => (
+                <div>
+                  <label for={id} class="block text-sm font-medium">{label}</label>
+                  <input
+                    id={id}
+                    data-field={id}
+                    type={type}
+                    maxlength={max}
+                    class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm"
+                  />
+                  <p class="mt-1 text-xs text-muted">{hint}</p>
+                </div>
+              ))}
+
+              <div>
+                <label for="bio" class="block text-sm font-medium">Bio</label>
+                <textarea
+                  id="bio"
+                  data-field="bio"
+                  rows="3"
+                  maxlength="400"
+                  class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm"
+                ></textarea>
+                <p class="mt-1 text-xs text-muted"><span data-bio-count>0</span>/400</p>
+              </div>
+
+              <div>
+                <label for="skills" class="block text-sm font-medium">Skills</label>
+                <input
+                  id="skills"
+                  data-field="skills"
+                  type="text"
+                  maxlength="200"
+                  placeholder="Azure, .NET MAUI, Flutter"
+                  class="mt-1.5 w-full rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm"
+                />
+                <p class="mt-1 text-xs text-muted">Comma-separated, up to 200 characters.</p>
+              </div>
+
+              <fieldset>
+                <legend class="text-sm font-medium">Visibility</legend>
+                <div class="mt-2 space-y-2">
+                  <label class="flex items-start gap-2.5 text-sm">
+                    <input type="radio" name="visibility" value="private" checked class="mt-1" />
+                    <span>
+                      <span class="font-medium">Private</span>
+                      <span class="block text-xs text-muted">Only you and the site admin can see it.</span>
+                    </span>
+                  </label>
+                  <label class="flex items-start gap-2.5 text-sm">
+                    <input type="radio" name="visibility" value="public" class="mt-1" />
+                    <span>
+                      <span class="font-medium">Public</span>
+                      <span class="block text-xs text-muted">
+                        Published at a public URL and included in the site's profile pages
+                        once it has a bio and at least one skill.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <div class="flex items-center gap-3">
+                <button type="submit" class="btn btn-accent btn-sm">Save profile</button>
+                <p data-status role="status" aria-live="polite" class="text-sm"></p>
+              </div>
+            </form>
+          </section>
+
+          <section class="mt-12 rounded-lg border border-red-300/60 p-5 dark:border-red-900/60">
+            <h2 class="font-semibold">Delete your account</h2>
+            <p class="mt-1.5 text-sm leading-relaxed text-muted">
+              Removes your profile, your handle, your appreciations and your reading
+              progress, then deletes the account itself. It cannot be undone, and the
+              public article counts stay as they are — they were never tied to you.
+            </p>
+            <button type="button" data-delete class="btn btn-outline btn-sm mt-3">Delete everything</button>
+            <p data-delete-status role="status" aria-live="polite" class="mt-2 text-sm"></p>
+          </section>
+        </div>
+      </>
+    )}
+  </div>
+
+  <script is:inline type="application/json" data-series-json set:html={seriesJson} />
+</BaseLayout>
+
+<style>
+  [data-badge][data-earned] {
+    opacity: 1;
+    border-color: var(--accent);
+  }
+  [data-badge][data-earned] .badge-glyph {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+</style>
+
+<script>
+  import { loadSession, freshToken, signOut } from '../lib/auth';
+  import {
+    getProfile,
+    saveProfile,
+    claimHandle,
+    releaseHandle,
+    getStats,
+    saveProgress,
+    recordAppreciation,
+    deleteAccount,
+    handleError,
+    type Profile,
+    type ReactionType,
+  } from '../lib/community';
+  import { BADGES } from '../lib/badges.js';
+  import { getHistory } from '../lib/reading-history';
+
+  interface SeriesInfo {
+    id: string;
+    title: string;
+    slugs: string[];
+  }
+
+  function initProfile() {
+    const page = document.querySelector<HTMLElement>('[data-profile-form]')?.closest('[data-signed-in]');
+    const signedOut = document.querySelector<HTMLElement>('[data-signed-out]');
+    const signedIn = document.querySelector<HTMLElement>('[data-signed-in]');
+    if (!signedOut || !signedIn || !page) return;
+    if (signedIn.dataset.bound === '') return;
+    signedIn.dataset.bound = '';
+
+    const form = document.querySelector<HTMLFormElement>('[data-profile-form]')!;
+    const status = form.querySelector<HTMLElement>('[data-status]')!;
+    const field = (name: string) =>
+      form.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[data-field="${name}"]`)!;
+
+    const say = (el: HTMLElement, message: string, tone: 'ok' | 'error' | 'muted' = 'muted') => {
+      el.textContent = message;
+      el.className =
+        'text-sm ' +
+        (tone === 'error'
+          ? 'text-red-600 dark:text-red-400'
+          : tone === 'ok'
+            ? 'text-accent'
+            : 'text-muted');
+    };
+
+    const session = loadSession();
+    if (!session) {
+      signedOut.hidden = false;
+      return;
+    }
+    signedIn.hidden = false;
+
+    document.querySelector('[data-account-email]')!.textContent = session.email || session.name || 'your account';
+    document.querySelector('[data-account-provider]')!.textContent = session.provider
+      ? ` · ${session.provider.replace('.com', '').replace('password', 'email link')}`
+      : '';
+
+    document.querySelector('[data-sign-out]')?.addEventListener('click', () => {
+      signOut();
+      location.href = '/';
+    });
+
+    /** The handle currently registered to this account, so a rename can release it. */
+    let storedHandle = '';
+
+    // ------------------------------------------------------------- load
+
+    (async () => {
+      const token = await freshToken();
+      if (!token) {
+        // The refresh token was revoked or expired: this is a signed-out state.
+        signedIn.hidden = true;
+        signedOut.hidden = false;
+        return;
+      }
+
+      const [profile, stats] = await Promise.all([
+        getProfile(session.uid, token).catch(() => null),
+        getStats(session.uid).catch(() => null),
+      ]);
+
+      if (profile) {
+        storedHandle = profile.handle ?? '';
+        field('handle').value = profile.handle ?? '';
+        field('name').value = profile.name ?? '';
+        field('photo').value = profile.photo ?? '';
+        field('bio').value = profile.bio ?? '';
+        field('skills').value = profile.skills ?? '';
+        field('linkedin').value = profile.linkedin ?? '';
+        field('github').value = profile.github ?? '';
+
+        const visible = form.querySelector<HTMLInputElement>(
+          `input[name="visibility"][value="${profile.visibility ?? 'private'}"]`,
+        );
+        if (visible) visible.checked = true;
+
+        showPublicLink(profile.handle, profile.visibility);
+      } else {
+        // First visit: start from what the provider already told us.
+        field('name').value = session.name ?? '';
+        field('photo').value = session.photo ?? '';
+      }
+
+      updateBioCount();
+
+      const badges = stats?.badges ?? [];
+      document.querySelector('[data-stat="appreciations"]')!.textContent = String(stats?.appreciations ?? 0);
+      document.querySelector('[data-stat="articlesRead"]')!.textContent = String(stats?.articlesRead ?? 0);
+      document.querySelector('[data-stat="badgeCount"]')!.textContent = String(badges.length);
+
+      document.querySelector('[data-stats-note]')!.textContent = stats?.updatedAt
+        ? `Last counted ${new Date(stats.updatedAt).toLocaleDateString()}.`
+        : 'Your first counts appear after tonight’s update.';
+
+      BADGES.forEach((badge) => {
+        const el = document.querySelector<HTMLElement>(`[data-badge="${badge.id}"]`);
+        if (el && badges.includes(badge.id)) el.dataset.earned = '';
+      });
+
+      renderSeries();
+      await syncReadingProgress();
+      offerClaim();
+    })();
+
+    // -------------------------------------------------- series progress
+
+    function seriesData(): SeriesInfo[] {
+      const raw = document.querySelector('[data-series-json]')?.textContent;
+      try {
+        return raw ? (JSON.parse(raw) as SeriesInfo[]) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function renderSeries() {
+      const list = document.querySelector<HTMLElement>('[data-series]');
+      if (!list) return;
+
+      const history = getHistory();
+      const done = new Set(history.filter((e) => e.completed).map((e) => e.slug));
+
+      const rows = seriesData()
+        .map((s) => {
+          const finished = s.slugs.filter((slug) => done.has(slug)).length;
+          const pct = s.slugs.length ? Math.round((finished / s.slugs.length) * 100) : 0;
+          return { ...s, finished, pct };
+        })
+        .sort((a, b) => b.pct - a.pct);
+
+      if (!rows.length) {
+        list.innerHTML = '<li class="text-sm text-muted">No series published yet.</li>';
+        return;
+      }
+
+      list.innerHTML = rows
+        .map(
+          (r) => `
+        <li class="rounded-lg border border-default p-3">
+          <div class="flex items-baseline justify-between gap-3">
+            <a href="/series/#${r.id}" class="text-sm font-medium hover:text-accent">${escapeHtml(r.title)}</a>
+            <span class="shrink-0 text-xs tabular-nums text-muted">${r.finished}/${r.slugs.length} · ${r.pct}%</span>
+          </div>
+          <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-subtle">
+            <div class="h-full rounded-full bg-[var(--accent)]" style="width:${r.pct}%"></div>
+          </div>
+        </li>`,
+        )
+        .join('');
+    }
+
+    const escapeHtml = (s: string) =>
+      s.replace(/[&<>"']/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c,
+      );
+
+    /**
+     * Mirrors this browser's reading history up to the account.
+     *
+     * Owner-written and therefore self-reported — it drives the rings and the
+     * "articles read" figure, never a badge that is meant to be defensible.
+     */
+    async function syncReadingProgress() {
+      const history = getHistory();
+      if (!history.length) return;
+
+      const read = Object.fromEntries(
+        history.map((e) => [e.slug, { pct: Math.round(e.progress * 100), completedAt: e.completed ? e.lastViewedAt : 0 }]),
+      );
+
+      await saveProgress(session!.uid, read).catch(() => {});
+    }
+
+    // ----------------------------------------------------------- claim
+
+    /** Reaction guards this browser wrote before there was an account. */
+    function pastReactions(): { slug: string; type: ReactionType }[] {
+      const found: { slug: string; type: ReactionType }[] = [];
+      const seen = new Set<string>();
+
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i) ?? '';
+        const match = /^reacted:(.+):(like|love|celebrate|insightful)$/.exec(key);
+        if (!match || seen.has(match[1])) continue;
+        seen.add(match[1]);
+        found.push({ slug: match[1], type: match[2] as ReactionType });
+      }
+      return found;
+    }
+
+    function offerClaim() {
+      const panel = document.querySelector<HTMLElement>('[data-claim-panel]');
+      const pending = pastReactions();
+      if (!panel || !pending.length) return;
+
+      panel.hidden = false;
+      document.querySelector('[data-claim-count]')!.textContent = String(pending.length);
+
+      document.querySelector('[data-claim]')?.addEventListener('click', async (event) => {
+        const button = event.currentTarget as HTMLButtonElement;
+        button.disabled = true;
+        button.textContent = 'Adding…';
+
+        for (const { slug, type } of pending) {
+          await recordAppreciation(session!.uid, slug, type, 'claimed').catch(() => {});
+        }
+
+        panel.innerHTML =
+          '<p class="text-sm text-muted">Added. They will show in your totals after tonight’s update.</p>';
+      });
+    }
+
+    // ------------------------------------------------------------ save
+
+    function updateBioCount() {
+      const count = document.querySelector('[data-bio-count]');
+      if (count) count.textContent = String(field('bio').value.length);
+    }
+    field('bio').addEventListener('input', updateBioCount);
+
+    function showPublicLink(handle: string, visibility: string) {
+      const link = document.querySelector<HTMLAnchorElement>('[data-public-link]');
+      if (!link) return;
+      link.hidden = !handle || visibility !== 'public';
+      link.href = `/u/${handle}/`;
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const handle = field('handle').value.trim().toLowerCase();
+      const problem = handleError(handle);
+      if (problem) {
+        say(status, problem, 'error');
+        return;
+      }
+
+      const name = field('name').value.trim();
+      if (name.length < 2) {
+        say(status, 'Add a name of at least two characters.', 'error');
+        return;
+      }
+
+      const profile: Profile = {
+        handle,
+        name,
+        photo: field('photo').value.trim(),
+        bio: field('bio').value.trim(),
+        skills: field('skills').value.trim(),
+        linkedin: field('linkedin').value.trim(),
+        github: field('github').value.trim(),
+        visibility:
+          (form.querySelector<HTMLInputElement>('input[name="visibility"]:checked')?.value as
+            | 'public'
+            | 'private') ?? 'private',
+      };
+
+      const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+      button.disabled = true;
+      say(status, 'Saving…');
+
+      try {
+        // The handle must be registered BEFORE the profile: the rules check
+        // `get(handles/<handle>).uid`, and rules `get()` sees the state before
+        // the current commit, so these can never be one batched write.
+        if (handle !== storedHandle) {
+          try {
+            await claimHandle(session!.uid, handle);
+          } catch (err) {
+            const code = String((err as Error).message);
+            if (code === 'ALREADY_EXISTS' || code === 'FAILED_PRECONDITION') {
+              say(status, 'That handle is taken. Try another.', 'error');
+              button.disabled = false;
+              return;
+            }
+            throw err;
+          }
+        }
+
+        await saveProfile(session!.uid, profile);
+
+        // Only release the old handle once the new one is live, so a failure
+        // never leaves the account with no handle at all.
+        if (storedHandle && storedHandle !== handle) {
+          await releaseHandle(storedHandle).catch(() => {});
+        }
+        storedHandle = handle;
+
+        showPublicLink(handle, profile.visibility);
+        say(
+          status,
+          profile.visibility === 'public'
+            ? 'Saved. Your public page appears within a day of the next site build.'
+            : 'Saved and kept private.',
+          'ok',
+        );
+      } catch (err) {
+        const code = String((err as Error).message);
+        say(
+          status,
+          code === 'PERMISSION_DENIED'
+            ? 'That was refused. Check the links point at linkedin.com and github.com.'
+            : 'Could not save. Please try again.',
+          'error',
+        );
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    // ---------------------------------------------------------- delete
+
+    document.querySelector('[data-delete]')?.addEventListener('click', async (event) => {
+      const button = event.currentTarget as HTMLButtonElement;
+      const note = document.querySelector<HTMLElement>('[data-delete-status]')!;
+
+      if (button.dataset.confirm !== '') {
+        button.dataset.confirm = '';
+        button.textContent = 'Click again to delete permanently';
+        say(note, 'This cannot be undone.', 'error');
+        return;
+      }
+
+      button.disabled = true;
+      say(note, 'Deleting…');
+
+      try {
+        await deleteAccount(session!.uid, storedHandle);
+        location.href = '/';
+      } catch (err) {
+        say(
+          note,
+          String((err as Error).message) === 'REAUTH_REQUIRED'
+            ? 'Your data is deleted. Sign in once more to remove the account itself.'
+            : 'Could not delete everything. Please try again.',
+          'error',
+        );
+        button.disabled = false;
+      }
+    });
+  }
+
+  initProfile();
+  document.addEventListener('astro:page-load', initProfile);
+</script>

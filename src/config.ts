@@ -55,6 +55,9 @@ export const AUTHOR = {
    * LinkedIn or the contact form so the address is never scrapeable.
    */
   linkedin: 'https://my.linkedin.com/in/jssuthahar',
+  x: 'https://x.com/jssuthahar',
+  /** Bare handle, for the `twitter:creator` / `twitter:site` card metadata. */
+  xHandle: '@jssuthahar',
   jobTitle: 'Cloud, AI & Mobile Solutions Architect',
   location: 'Malaysia',
   yearsExperience: 18,
@@ -72,6 +75,7 @@ export const AUTHOR = {
     'https://my.linkedin.com/in/jssuthahar',
     'https://github.com/jssuthahar',
     'https://www.youtube.com/@MSDEVBUILD',
+    'https://x.com/jssuthahar',
     // The two MSDEVBUILD-branded channels. They belong on the Person node
     // because this Person is also the publisher — MSDEVBUILD is its
     // alternateName, not a separate Organization entity anywhere in the graph.
@@ -263,6 +267,16 @@ export const SOCIAL = [
     cta: 'Subscribe on YouTube',
     href: 'https://www.youtube.com/@MSDEVBUILD?sub_confirmation=1',
     blurb: 'Video walkthroughs in English and Tamil',
+  },
+  {
+    id: 'x',
+    icon: 'x',
+    label: 'X',
+    handle: '@jssuthahar',
+    action: 'Follow',
+    cta: 'Follow on X',
+    href: 'https://x.com/jssuthahar',
+    blurb: 'Short takes and new posts as they publish',
   },
 ] as const;
 

@@ -1,52 +1,59 @@
+import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
-import { OGImageRoute } from 'astro-og-canvas';
 import { SITE } from '../../config';
+import { CATEGORIES, readingTime } from '../../lib/posts';
+import { renderOGCard, type OGCardOptions } from '../../lib/og-card';
 
-// Every published post gets its own share image, plus a site-wide "default"
-// used by the home page and any page that doesn't set its own image. Generated
-// at build time into /og/<id>.png — no runtime cost, no external service.
+/**
+ * Every published post gets its own share image, plus a site-wide "default"
+ * used by the home page and any page that doesn't set its own image. Generated
+ * at build time into /og/<id>.png — no runtime cost, no external service.
+ *
+ * The card itself is drawn in lib/og-card.ts.
+ */
 const posts = await getCollection('blog', ({ data }) => !data.draft);
 
-const pages: Record<string, { title: string; description: string }> = {
-  default: { title: SITE.title, description: SITE.tagline },
+const cards: Record<string, OGCardOptions> = {
+  default: {
+    title: 'Cloud, AI, Mobile & Web — built and explained',
+    description: SITE.description,
+    eyebrow: 'Developer platform',
+    meta: `${posts.length} hands-on articles`,
+  },
   ...Object.fromEntries(
-    posts.map((post) => [
-      post.id,
-      { title: post.data.title, description: post.data.description },
-    ]),
+    posts.map((post) => {
+      const category = CATEGORIES[post.data.category];
+      return [
+        post.id,
+        {
+          title: post.data.title,
+          description: post.data.description,
+          eyebrow: category.label,
+          hue: category.hue,
+          // Reading time rather than the publish date: a share card is seen
+          // long after publication, and "12 min read" ages better than a
+          // month that makes the post look stale.
+          meta: `${readingTime(post.body ?? '')} min read`,
+        } satisfies OGCardOptions,
+      ];
+    }),
   ),
 };
 
-export const { getStaticPaths, GET } = await OGImageRoute({
-  pages,
-  getImageOptions: (_id, page) => ({
-    title: page.title,
-    description: page.description,
-    // Deep navy gradient with the site's blue accent as a left spine — the same
-    // restrained palette as the site itself.
-    bgGradient: [
-      [18, 24, 38],
-      [30, 41, 66],
-    ],
-    border: { color: [47, 106, 217], width: 24, side: 'inline-start' },
-    padding: 70,
-    font: {
-      title: {
-        color: [255, 255, 255],
-        weight: 'Bold',
-        size: 64,
-        lineHeight: 1.15,
-      },
-      description: {
-        color: [176, 186, 204],
-        size: 30,
-        lineHeight: 1.4,
-      },
+export function getStaticPaths() {
+  return Object.keys(cards).map((id) => ({ params: { route: `${id}.png` } }));
+}
+
+export const GET: APIRoute = async ({ params }) => {
+  const id = (params.route ?? '').replace(/\.png$/, '');
+  const card = cards[id];
+  if (!card) return new Response('Not found', { status: 404 });
+
+  const png = await renderOGCard(card);
+  return new Response(new Uint8Array(png), {
+    headers: {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=31536000, immutable',
     },
-    // Bold + regular weights so the title renders heavier than the description.
-    fonts: [
-      'https://api.fontsource.org/v1/fonts/noto-sans/latin-700-normal.ttf',
-      'https://api.fontsource.org/v1/fonts/noto-sans/latin-400-normal.ttf',
-    ],
-  }),
-});
+  });
+};

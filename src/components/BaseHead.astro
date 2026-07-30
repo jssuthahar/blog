@@ -2,7 +2,7 @@
 import '@fontsource-variable/inter';
 import '@fontsource-variable/source-serif-4';
 import '../styles/global.css';
-import { SITE, GA_ID, ADSENSE_CLIENT } from '../config';
+import { SITE, AUTHOR, GA_ID, ADSENSE_CLIENT } from '../config';
 import { BUILD_ID } from '../lib/build-id';
 
 interface Props {
@@ -104,6 +104,8 @@ const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `
 
 <!-- Twitter/X -->
 <meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content={AUTHOR.xHandle} />
+<meta name="twitter:creator" content={AUTHOR.xHandle} />
 <meta name="twitter:title" content={title} />
 <meta name="twitter:description" content={description} />
 <meta name="twitter:image" content={imageUrl} />

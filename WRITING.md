@@ -170,6 +170,24 @@ the label.
 
 ---
 
+## 5b. The reference project
+
+Code samples come from **one real app** wherever the topic allows it — the
+MSDevBuild Eats Flutter food delivery project — so readers follow a working
+implementation instead of isolated snippets.
+
+| | |
+| --- | --- |
+| Source | <https://github.com/jssuthahar/food-delivery-app> |
+| Live web | <https://jssuthahar.github.io/food-delivery-app/> |
+| Android build | <https://appdistribution.firebase.dev/i/00432c5aa60de58b> |
+
+Put the three links near the top of the post in a `<Callout type="tip">`, use
+real file paths from the repo, and give the reader something to run. Full
+guidance, including when *not* to use it: [`docs/REFERENCE-PROJECT.md`](docs/REFERENCE-PROJECT.md).
+
+---
+
 ## 6. Writing the body
 
 Plain Markdown below the frontmatter.

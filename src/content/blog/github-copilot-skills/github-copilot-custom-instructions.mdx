@@ -1,8 +1,10 @@
 ---
 title: 'What Is GitHub Copilot Custom Instructions? (And Why Your Project Needs One)'
-description: 'GitHub Copilot custom instructions explained simply — what the file is, why every project needs one, and the mistakes beginners make when writing it.'
+seoTitle: 'Copilot Custom Instructions'
+description: 'GitHub Copilot custom instructions explained with a real Flutter app you can clone: what the file is, why every project needs one, and beginner mistakes.'
 highlight: 'Custom instructions are one file — .github/copilot-instructions.md — that Copilot reads before every single suggestion in your repo. Skip it and Copilot guesses your conventions from scratch each time; write it once and every suggestion matches your codebase from day one.'
 publishedAt: 2026-07-25
+updatedAt: 2026-07-31
 category: copilot
 tags: ['GitHub Copilot', 'Custom Instructions', 'AI Coding Assistant', 'C#', '.NET MAUI', 'Flutter', 'Web API', '.NET 10']
 cover: './images/copilot-instructions-before-after.png'
@@ -19,11 +21,25 @@ faq:
     a: 'Put them in .github/copilot-instructions.md at the root of the repository so GitHub Copilot can read them automatically for that project.'
   - q: 'Do I need one for every project?'
     a: 'You should have one for each repository with its own stack and conventions, because Copilot performs better when it sees project-specific guidance instead of guessing from the current file alone.'
+  - q: 'Is there a real project I can practise custom instructions on?'
+    a: 'Yes. Clone the MSDevBuild Eats Flutter food delivery app at github.com/jssuthahar/food-delivery-app. It ships a real .github/copilot-instructions.md, runs offline with no API keys, and has a live web build and an Android build so you can compare the code against a working app.'
 ---
+
+import Callout from '../../../components/mdx/Callout.astro';
 
 Two developers join the same project on the same day. Both clone the repo, both open VS Code, both start getting Copilot suggestions within a minute. By lunch, one of them has barely touched what Copilot wrote for him. The other has rewritten half of it: wrong HTTP client, wrong test framework, a folder structure Copilot invented that doesn't exist anywhere in the actual project.
 
 Same Copilot. Same model version. The only real difference between the two of them is a file called `copilot-instructions.md` sitting in one repo and not the other.
+
+<Callout type="tip" title="Follow along in a real app, not a snippet">
+Everything below is written against **MSDevBuild Eats**, a Flutter food delivery app I built — customer, restaurant partner and rider in one codebase, Clean Architecture, BLoC, 40-odd use cases. It runs with no API keys and no Firebase project, so you can clone it and have Copilot working inside it in about two minutes.
+
+- **Source code** — [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web** — [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (sign in with `customer@msdevbuild.com` / `demo1234`)
+- **Android build** — [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b) through Firebase App Distribution
+
+Open the live app in one tab and the repo in another while you read. The instructions file discussed here is the one actually committed at [`.github/copilot-instructions.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/copilot-instructions.md).
+</Callout>
 
 ## My own wake-up call with this
 
@@ -123,7 +139,65 @@ Roughly: whatever you'd tell a new developer during their first week, minus the 
 | Testing | "Tests are xUnit, run with `dotnet test`, one test class per service." |
 | Boundaries | "Never modify anything in /Migrations — that's Entity Framework's." |
 
-I work across a few different stacks, so here are four real examples instead of one generic one.
+I work across a few different stacks, so here are three real examples instead of one generic one. The first is the file from the food delivery app, and you can open the repo alongside it to see every rule it describes.
+
+### Example: the Flutter food delivery app
+
+This one is worth walking through line by line, because each rule in it exists for a reason you can go and verify in the repo.
+
+```markdown
+# Copilot instructions
+
+MSDevBuild Eats — a Flutter food delivery app (customer, restaurant partner and
+delivery rider in one codebase) running on web, Android, iOS and tablet.
+
+## Stack
+
+- Flutter, Dart SDK `>=3.5.0 <4.0.0`
+- State: BLoC / Cubit (flutter_bloc), with bloc_concurrency for event
+  transformers. Not Riverpod, not Provider, not setState
+- DI: get_it, one graph in lib/app/di/service_locator.dart
+- Navigation: go_router, routes in lib/app/router/
+- Tests: flutter_test + bloc_test + mocktail
+
+## Architecture
+
+Clean Architecture, three layers, dependencies point inward only.
+
+- lib/domain/ — entities, repository interfaces, use cases. Pure Dart.
+  Never import package:flutter/*, Firebase or shared_preferences here
+- lib/data/ — models with JSON mapping, data sources, repository
+  implementations of the domain interfaces
+- lib/features/<feature>/ — presentation. Each feature owns bloc/ and
+  presentation/widgets/. Never import from lib/data/
+- lib/core/ — shared and feature-agnostic
+
+## Conventions
+
+- Repositories and use cases return Result<T> — never throw across the
+  repository boundary
+- Data sources throw AppException; repositories translate to a domain Failure
+  through mapErrorToFailure, and nowhere else
+- Orchestration lives in use cases, not in blocs
+- Blocs are not registered in get_it. Only AuthBloc, CartBloc and ThemeCubit
+  are hoisted to the app root
+- Entities are immutable, Equatable, and carry their own rules
+- Lints: single quotes, const constructors, declared return types, no print
+
+## Off-limits
+
+- Don't edit lib/firebase_options.dart by hand — flutterfire generates it
+- Don't add a package to pubspec.yaml without asking first
+- Don't touch build/, .dart_tool/ or any *.g.dart file
+```
+
+Three of those lines carry most of the weight:
+
+**"Not Riverpod, not Provider, not setState."** Flutter has four popular ways to hold state and Copilot has seen all of them. Ask for a new screen without this line and roughly half the time you get a `StatefulWidget` with `setState`, which is a straight contradiction of how every other screen in the app works. Naming what you *don't* use turns out to matter more in Flutter than in any other stack I write in.
+
+**"Return `Result<T>` — never throw across the repository boundary."** The whole error contract in this app depends on it. Data sources throw, repositories catch once in `mapErrorToFailure`, and everything above that gets `Success<T>` or `FailureResult<T>` in the type signature. Copilot's default instinct is a `try/catch` in the bloc, which quietly puts error handling in three layers instead of one.
+
+**"Blocs are not registered in get_it."** This is the kind of rule nobody can infer from reading one file. `get_it` is right there in the dependency list, blocs are right there in every feature folder, and the obvious conclusion is wrong. It's exactly the sort of thing you'd say out loud to a new developer in their first week and then never think about again.
 
 ### Example: C# Web API
 
@@ -169,29 +243,35 @@ This is a .NET MAUI app (Android + iOS) using MVVM with CommunityToolkit.Mvvm.
 - Don't suggest Xamarin.Forms syntax — this is MAUI, not the old framework
 ```
 
-### Example: Flutter
+Three different stacks, same underlying idea: write down the facts Copilot would otherwise have to guess at, for the specific project it's sitting in right now.
 
-```markdown
-# Copilot instructions
+## How do I try this on a real project?
 
-This is a Flutter app using Riverpod for state management, not Provider or Bloc.
+Reading an instructions file teaches you the shape of one. Watching Copilot change its answer because of one teaches you why it's worth writing. Twenty minutes, no accounts, no keys:
 
-## Stack
-- State: Riverpod, providers live in /lib/providers
-- Widgets: prefer StatelessWidget + Riverpod's ConsumerWidget over StatefulWidget
-- Tests: flutter_test + mocktail for provider mocking
-
-## Conventions
-- No business logic inside widget build() methods — push it into providers
-- Use named routes via go_router, defined in /lib/router
-- Null-safety is mandatory — no `!` unless it's genuinely impossible to be null
-
-## Off-limits
-- Don't modify anything in /lib/generated
-- Don't suggest setState() — this project doesn't use StatefulWidget for state
+```bash
+git clone https://github.com/jssuthahar/food-delivery-app
+cd food-delivery-app
+flutter pub get
+flutter run -d chrome
 ```
 
-Three different stacks, same underlying idea: write down the facts Copilot would otherwise have to guess at, for the specific project it's sitting in right now.
+Sign in as `customer@msdevbuild.com` / `demo1234`. There's no server behind it — a seeded in-memory backend with 20 restaurants and 100 dishes stands in, and it even walks your order from confirmed to delivered on a timer.
+
+Then run the comparison:
+
+1. **Delete the instructions file first** — `rm .github/copilot-instructions.md`. You want to see the default behaviour before you see the corrected one.
+2. **Open a fresh Copilot Chat** and ask: *"add a loyalty points field to the cart and show it in the price breakdown."*
+3. **Read what comes back.** In my run it reached for `setState` inside the cart widget, computed the points in the UI layer, and wrapped the repository call in a `try/catch`. Three separate violations of how the app is built, none of them obviously wrong if you'd never seen the codebase.
+4. **Restore the file** — `git checkout .github/copilot-instructions.md` — open a *new* chat, and ask the exact same question.
+5. **Read it again.** Now it adds a `CartEvent`, puts the calculation on the `Cart` entity next to the rest of the pricing, and returns `Result<T>` instead of throwing.
+
+Same question, same model, same repo. The only variable is whether Copilot knew where it was.
+
+Two things worth doing while the repo is open, because they make the code concrete rather than abstract:
+
+- **Try the [live web build](https://jssuthahar.github.io/food-delivery-app/)** and place an order, then find the code that ran it. The order status timeline you watched is `OrderStatus` in `lib/domain/entities/` — a state machine the customer timeline, the partner's "advance order" button and the rider's job card all read from.
+- **[Install the Android build](https://appdistribution.firebase.dev/i/00432c5aa60de58b)** and put it next to the web tab. Identical Dart, one responsive layer. When your instructions file says "never import from `lib/data/`", that constraint is what lets one codebase serve both without a fork.
 
 ## Do's and don'ts
 
@@ -219,7 +299,7 @@ Not really, no. Not anymore. The filename is Copilot's, but the concept has spre
 
 What actually surprised me while digging into this: VS Code's chat customization panel (`Chat: Open Customizations`) has an agent-type dropdown now, and Claude is one of the options sitting right next to local agents and Copilot CLI. VS Code can read `CLAUDE.md` directly too, through a setting called `chat.useClaudeMdFile`, and it understands `.claude/rules` files in Claude's own rules format. So Copilot isn't the only thing in VS Code paying attention to project instructions anymore — depending on what you've got enabled, Claude reads its own version of the same idea.
 
-Then there's `AGENTS.md`, which I covered in an earlier post — built specifically to be tool-agnostic, read by Copilot, Claude, Codex, and others without any extra configuration on your end. If a repo has both a `copilot-instructions.md` and an `AGENTS.md`, your personal user-level instructions still win over both, but the two repo-level files can sit there together without stepping on each other.
+Then there's `AGENTS.md`, which I covered in [an earlier post](/blog/agents-md-pain-points-workload-savings) and then took apart properly in [the full playbook](/blog/agents-md-complete-playbook) — built specifically to be tool-agnostic, read by Copilot, Claude, Codex, and others without any extra configuration on your end. If a repo has both a `copilot-instructions.md` and an `AGENTS.md`, your personal user-level instructions still win over both, but the two repo-level files can sit there together without stepping on each other.
 
 How I'd actually decide which to set up:
 
@@ -248,5 +328,7 @@ The underlying idea doesn't change from tool to tool — hand the model your pro
 - Without it, Copilot guesses your stack and conventions fresh, every single time
 - Type `/init` in Copilot Chat for a fast first draft, then edit it by hand
 - Keep it short, specific, and written as rules, not prose — one file per project, even if you juggle several
+- Name what you *don't* use ("not Riverpod, not setState") — in a stack with several popular options, that line does more work than any other
+- Clone [the food delivery app](https://github.com/jssuthahar/food-delivery-app), delete its instructions file, ask Copilot the same question twice — the difference is the whole argument
 - It's not locked to Copilot forever: VS Code can read CLAUDE.md for the Claude agent too, and AGENTS.md works across tools entirely
-- It's the first thing anyone learning Copilot should set up, before agents, hooks, or anything more advanced
+- It's the first thing anyone learning Copilot should set up, before [skills](/blog/github-copilot-skills-deep-dive), agents, or anything more advanced

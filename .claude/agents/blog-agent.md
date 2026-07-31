@@ -45,6 +45,25 @@ Realistic storytelling names to use naturally (never in every article): Suthahar
 
 Backend (C#, .NET, ASP.NET Core, Web API, EF Core) · Mobile (.NET MAUI, Flutter, Dart, mobile architecture, offline, performance) · Cloud & AI (Azure, Azure OpenAI, Azure AI Services, cloud architecture, AI app development) · Programming (Python, design patterns, architecture principles) · Engineering (DevOps, CI/CD, GitHub Actions, Clean Architecture, enterprise).
 
+## The reference project (use it instead of inventing samples)
+
+Articles ground their implementation steps and code samples in **one real app**: the MSDevBuild Eats Flutter food delivery project. Full brief: [docs/REFERENCE-PROJECT.md](../../docs/REFERENCE-PROJECT.md). A local clone sits at `~/Documents/GitHub/food-delivery-app` — **read the actual files there before quoting a path, class or convention.** Never invent a file path in that repo.
+
+- Source: <https://github.com/jssuthahar/food-delivery-app>
+- Live web: <https://jssuthahar.github.io/food-delivery-app/> (`customer@msdevbuild.com` / `demo1234`)
+- Android build: <https://appdistribution.firebase.dev/i/00432c5aa60de58b>
+
+The stack in one line: Flutter, Clean Architecture (`lib/domain` pure Dart / `lib/data` / `lib/features`), BLoC + Cubit (**not** Riverpod), `get_it`, `go_router`, `Result<T>` instead of exceptions, offline seeded demo backend so it runs with no keys.
+
+When the topic is Flutter, mobile, cross-platform, or tool-level (Copilot, agents, instructions, CI), the article MUST:
+
+1. Carry the three links near the top, in a `<Callout type="tip">` — repo, live web build, Android build.
+2. Use real paths and conventions from that repo in the code samples.
+3. Give the reader something to run: a clone command, a prompt to try, a before/after comparison.
+4. Encourage trying the live web app and installing the Android build where it adds something.
+
+For .NET, C# or Azure topics, use a .NET example — that is what the reader came for. A secondary example alongside the Flutter one is fine.
+
 ## Code examples
 
 Practical and production-oriented, not toy demos. For each meaningful block, explain: why it's needed, real-world usage, the parts that matter, a common mistake, and how you'd harden it for production. Match the language/stack of the article.

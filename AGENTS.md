@@ -32,6 +32,7 @@ Conventions agents should follow:
 
 - Prefer small, focused changes; do not refactor unrelated files.
 - When editing content, follow `WRITING.md` and run `npm run check` locally.
+- Ground article code samples in the reference project (MSDevBuild Eats Flutter food delivery app) rather than generic snippets — see [docs/REFERENCE-PROJECT.md](docs/REFERENCE-PROJECT.md).
 - The build fails on invalid frontmatter or schema violations, so fix those before merging.
 - `src/data/` is a committed cache, not a source of truth; update it only by running the appropriate `npm run sync:*` command.
 - Use relative image paths for post images and `coverAlt` whenever `cover` is set.
@@ -43,6 +44,7 @@ Useful references in this repo:
 
 - Primary README: [README.md](README.md)
 - Writing guide and frontmatter rules: [WRITING.md](WRITING.md)
+- Reference project used in article samples: [docs/REFERENCE-PROJECT.md](docs/REFERENCE-PROJECT.md)
 - Content schema and collections: [src/content.config.ts](src/content.config.ts)
 - Topic/category source of truth: [src/lib/taxonomy.ts](src/lib/taxonomy.ts)
 - Site settings and feature flags: [src/config.ts](src/config.ts)

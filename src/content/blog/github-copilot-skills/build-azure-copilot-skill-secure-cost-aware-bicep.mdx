@@ -1,7 +1,7 @@
 ---
 title: 'Building an Azure Copilot Skill: Secure, Cost-Aware Cloud Baselines with Bicep, Start to Finish'
 description: 'Build one GitHub Copilot Skill (SKILL.md) that guards your Azure Bicep — Managed Identity, private networking and cost tiers Copilot will not violate.'
-publishedAt: 2026-07-26
+publishedAt: 2026-07-31
 category: copilot
 categories: ['azure', 'devops']
 tags: ['GitHub Copilot', 'Copilot Skills', 'SKILL.md', 'Azure', 'Bicep', 'Infrastructure as Code', 'Managed Identity', 'Key Vault', 'Cloud Security', 'FinOps', 'AI-assisted development']
@@ -9,8 +9,8 @@ seoTitle: 'Build a GitHub Copilot Azure Skill for Bicep (SKILL.md)'
 highlight: 'An Azure Copilot Skill is not a code generator — it is a policy your AI will not violate. It lives at .github/skills/azure-service-baseline/SKILL.md and shifts security and cost catches left, into the editor: Managed Identity over keys, secrets in Key Vault, public network access off, and cheap tiers in non-prod, before any of it reaches a PR or a cloud bill.'
 series: 'agents-md-instructions'
 seriesOrder: 7
-featured: false
-draft: true
+featured: true
+draft: false
 faq:
   - q: 'Can a GitHub Copilot Skill enforce cloud security policy?'
     a: 'Yes, at authoring time. A Skill encodes hard rules — Managed Identity over keys, secrets in Key Vault, public network access disabled — that Copilot follows when it writes Bicep, so the insecure default never gets typed in the first place. It is a preventive control in the editor, not a runtime enforcement engine, so pair it with Azure Policy for the guarantee.'

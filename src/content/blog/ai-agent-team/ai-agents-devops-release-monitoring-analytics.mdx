@@ -1,0 +1,267 @@
+---
+title: 'AI Agents for DevOps, Release, Monitoring and Analytics'
+seoTitle: 'AI DevOps and Release Agents'
+description: 'The four AI agents that get software out and keep it watched — DevOps, release management, monitoring and analytics — with working prompts and hooks.'
+highlight: "We shipped a build from a laptop that was pointed at the production Firebase project, and nothing in the process could have caught it. These four agents exist because the code being finished and the software being shipped are different events, usually separated by the weeks nobody plans for."
+publishedAt: 2026-07-31
+category: devops
+tags: ['AI Coding Agents', 'GitHub Copilot', 'DevOps', 'GitHub Actions', 'Release Management', 'Monitoring', 'Analytics', 'Flutter', 'Firebase']
+series: 'ai-agent-team'
+seriesOrder: 5
+draft: true
+faq:
+  - q: 'What should a DevOps agent produce that a developer would not?'
+    a: "The environment separation. A developer writes the build that works; a DevOps agent asks which Firebase project, which signing key and which config each flavour uses, and makes it impossible to build the wrong combination from a laptop."
+  - q: 'Can an AI agent write release notes automatically?'
+    a: "It can draft them from merged pull requests, but a changelog generated purely from commit messages reads like a diff. Give the agent the requirements files as well, so the notes describe what a user can now do rather than which files changed."
+  - q: 'What is the real deliverable of a monitoring agent?'
+    a: "The list of questions you will want answered at two in the morning, written before the incident. The dashboards and alerts follow from that list. Instrumentation decided during an outage is always the wrong instrumentation."
+  - q: 'Why do analytics events need a specification file?'
+    a: "Because event names drift within weeks — order_placed, OrderComplete and purchase all end up in the same product. Once bad data is collected it cannot be fixed retroactively, so the taxonomy has to exist before the first event ships."
+  - q: 'Do small teams need a separate release management agent?'
+    a: "Not at first. On a small team the DevOps agent can own versioning and the changelog. Split release management out when you have staged rollouts, more than one store, or anyone outside the team asking what changed."
+---
+
+Three weeks before launch, Nikhil sent a build to the client for review. It installed, it worked, and it was writing to the production Firebase project from his laptop.
+
+Nothing in our process could have caught that, because we did not have a process. We had a person who knew how to make a build, a signing key in a shared drive folder, and a `google-services.json` that had been copied into the repo months earlier by someone solving a different problem. The code was finished. The software was nowhere near shipped.
+
+That gap is what this part is about. [Part 4](../ai-agents-testing-code-review-performance-ui) checked the work. These four agents get it out of the building and then tell you what happens to it once it is out there.
+
+## Why is "code complete" not the same as "shipped"?
+
+Because everything between those two points is work nobody estimated. Signing, flavours, environment config, store metadata, staged rollout, crash reporting, and the analytics somebody asked for in the kickoff and nobody wired up.
+
+On our project that gap was five weeks. Not one of those weeks was spent writing features. I have seen the same shape on enterprise .NET projects and on two-person mobile apps, and the ratio only gets worse as the coding half speeds up. If an assistant helps you finish the code in half the time, the unshipped half of the project does not shrink at all.
+
+## The DevOps Agent
+
+Start with what went wrong, because it names the job exactly. There was no way to tell, from a built APK, which Firebase project it pointed at. The dev, staging and production configs were the same file at different times. Whoever built last decided which environment the client tested against.
+
+A DevOps agent's real contribution is not writing a workflow file. Copilot writes a passable GitHub Actions workflow with very little help. It is asking the questions that turn a build into a pipeline: which flavour, which config, which key, which secret store, and what makes the wrong combination impossible rather than merely unlikely.
+
+**What I hand it:** the platforms, the flavours, an honest inventory of every secret and where it lives today, and the constraint that hurts. Ours was that iOS signing lived on one Mac.
+
+**What I get back:** workflow files per flavour, a config layout where each environment has its own file, a secrets list mapped to repository secrets, and a plain statement of what still needs a human.
+
+```markdown
+<!-- .ai/prompts/devops.md -->
+Stack: Flutter + Firebase. Platforms: {platforms}.
+Flavours: dev / staging / prod, each with its own Firebase project.
+Secrets today: {inventory — be honest, including the ones in the repo}
+
+Produce:
+1. A GitHub Actions workflow per flavour. Build, test, artefact.
+2. The config layout: which file each flavour reads, and how the
+   build fails loudly if a flavour and a config disagree.
+3. Every secret mapped to a repository secret. Name each one.
+4. What cannot be automated yet, and what it would take.
+
+Rules:
+- No credential is ever committed. If one is in the repo today,
+  list it in a migration section with the rotation step.
+- The prod flavour must not be buildable from a developer machine
+  without an explicit override. Say how you enforce that.
+```
+
+Point 4 matters more than it looks. The first workflow I generated claimed to handle iOS signing and quietly assumed a certificate that did not exist in CI. An agent that lists what it could not do is worth more than one that produces a green-looking file that fails on the first real run.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — credentials and prod config never enter the repo
+blocked='google-services\.json|GoogleService-Info\.plist|\.keystore$|\.jks$|\.p12$'
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+
+echo "$staged" | grep -E "$blocked" && {
+  echo "devops: credential or platform config staged for commit."
+  echo "These belong in repository secrets, not in git history."
+  exit 1
+}
+
+for f in $staged; do
+  grep -nEi 'api[_-]?key|secret|password' "$f" 2>/dev/null \
+    | grep -vE 'process\.env|System\.getenv|String\.fromEnvironment|SECRET_NAME' \
+    && { echo "devops: possible hard-coded credential in $f"; exit 1; }
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | GitHub Actions · Flutter flavours · Firebase environments · secret management |
+| **Triggers on** | A new environment, a new platform, any change to build config |
+| **Fails the build when** | A credential or platform config file is staged for commit |
+
+## The Release Management Agent
+
+We had no release notes for a simple reason: we had never released anything. Version stayed at `1.0.0+1` for nine weeks. When the first real release came, somebody had to reconstruct three months of changes from the commit log at eleven at night, and what they produced was a list of file names.
+
+That is the difference between a changelog and release notes. A changelog says `fix: null check in order_repository.dart`. Release notes say a customer can now cancel an order before the restaurant accepts it. Only one of those is useful to the person reading your store listing, and only one takes real input.
+
+**What I hand it:** the merged pull requests since the last tag, the requirements files those PRs implemented, and the current version.
+
+**What I get back:** the next version with the reason for that bump, release notes in user language, store metadata, a rollout plan, and the rollback step. That last one is not optional and it is the one people skip.
+
+I have written separately about why an auto-generated summary that restates the diff gets ignored — [the PR summary article](../github-copilot-pr-summary-reviewers-actually-read) is the same problem one level down, and the same fix applies: give the generator the intent, not only the change.
+
+```markdown
+<!-- .ai/prompts/release.md -->
+Since tag {last}: {merged PRs}. Requirements: docs/requirements/*.md
+Current version: {version}. Store: {Play / App Store}. Audience: {who}
+
+Produce:
+1. Next version, and one line on why that bump (breaking / feature / fix).
+2. Release notes in user language. What can a person now DO?
+   No file names. No internal terms. Under 500 characters for the store.
+3. A staged rollout plan with the number that would make you stop.
+4. The rollback step, written so someone who did not build this
+   can follow it at 2am.
+
+Flag anything in this release that changes stored data shape.
+Those cannot be rolled back by reinstalling an older build.
+```
+
+That final flag came out of experience rather than planning. A rollback is easy until a migration has already rewritten the documents on the device.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-push — a tag needs a version bump and a changelog entry
+tag=$(git describe --tags --exact-match HEAD 2>/dev/null) || exit 0
+version=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}')
+
+[ "$tag" = "v${version%%+*}" ] || {
+  echo "release: tag $tag does not match pubspec version $version"; exit 1; }
+
+grep -q "## ${version%%+*}" CHANGELOG.md || {
+  echo "release: no CHANGELOG entry for ${version%%+*}"; exit 1; }
+```
+
+| | |
+| --- | --- |
+| **Skills** | Semantic versioning · store listing rules · staged rollout · migration awareness |
+| **Triggers on** | A release tag |
+| **Fails the build when** | The tag, the version and the changelog disagree |
+
+## The Monitoring and Observability Agent
+
+Here is the failure I still think about. For about a month after launch, a small group of users on Android 9 opened the app, saw it close immediately, and uninstalled it. We found out because a support message mentioned it in passing. There was no crash report, no alert, no dashboard. Crashlytics was not wired up, because wiring it up had never been anybody's ticket.
+
+Those users did not complain. Almost nobody complains. They uninstall, and your metrics show a slightly lower retention number that looks like normal variance.
+
+The deliverable of this agent is not dashboards. **It is the list of questions you will want answered at two in the morning, written down before the incident.** Dashboards and alerts fall out of that list. Instrumentation you invent during an outage is always instrumentation for the last outage.
+
+**What I hand it:** the architecture, the failure modes we already know about, and what a bad night looks like — payments failing, orders not arriving, the app not opening.
+
+**What I get back:** what to instrument, the alerts with thresholds and who they wake, the context every error report must carry, and the questions the current instrumentation cannot answer.
+
+```markdown
+<!-- .ai/prompts/monitoring.md -->
+System: {architecture}. Known failure modes: {list}.
+A bad night looks like: {symptoms}
+
+Produce:
+1. The questions we will need answered during an incident.
+   Start here — everything else follows from this list.
+2. For each question: the signal that answers it, and where it comes from.
+3. Alerts. Threshold, who it wakes, and what they should do first.
+   An alert nobody acts on gets muted, so justify each one.
+4. The context every error report must carry (build, flavour, screen,
+   device class). Never anything that identifies a person.
+5. Questions from (1) that we cannot answer today.
+
+Rank alerts by how much a false positive costs. Noisy alerting
+is how teams learn to ignore real alerts.
+```
+
+Point 4 has a hard boundary on it, and privacy gets its own agent in Part 7. It is easy to make debugging simpler by attaching a user identifier to every error, and that decision is not the monitoring agent's to make.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — a swallowed exception is an invisible incident
+offenders=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '\.dart$' \
+  | xargs -r grep -nE 'catch\s*\([^)]*\)\s*\{\s*\}|on\s+\w+\s*\{\s*\}')
+
+if [ -n "$offenders" ]; then
+  echo "monitoring: empty catch block — this failure will never be seen:"
+  echo "$offenders" | sed 's/^/  /'
+  echo "Report it via FirebaseCrashlytics.instance.recordError, or rethrow."
+  exit 1
+fi
+```
+
+| | |
+| --- | --- |
+| **Skills** | [Crashlytics](https://firebase.google.com/docs/crashlytics) · structured logging · alert design · incident questions |
+| **Triggers on** | Before first release, after every incident |
+| **Fails the build when** | An exception is caught and discarded |
+
+## The Analytics Agent
+
+Product asked for analytics in the kickoff. Eleven screens later, two of them had events. The events that did exist were named `order_placed`, `OrderComplete` and `purchase`, all logged from different screens, all meaning roughly the same thing, none of them meaning it precisely.
+
+The part that stings is that you cannot repair this. Three months of data collected under three names for one action is three months of data you cannot trust. There is no migration for events you never sent.
+
+So this agent's deliverable is a specification, written before the events ship: `analytics/events.yaml`, with the taxonomy, the naming rule, the parameters, and which funnel each event belongs to.
+
+**What I hand it:** the product questions. Not "add analytics" — the actual questions someone will ask, such as where people abandon the order flow, and whether users who browse offline come back.
+
+**What I get back:** the event spec, the funnel each event completes, and the questions the current spec cannot answer.
+
+```markdown
+<!-- .ai/prompts/analytics.md -->
+Questions the business will ask: {questions}
+Screens and flows: {list}
+
+Produce analytics/events.yaml:
+- name (snake_case, verb_noun, past tense: order_placed)
+- when it fires, exactly once, and from where
+- parameters with types
+- which funnel it belongs to and its position
+
+Then:
+1. Funnels with a missing step — the gap makes the whole funnel unusable.
+2. Events that would collect anything personal. List them separately;
+   they need a privacy decision before they ship.
+3. Questions from the list that this spec cannot answer.
+
+Never propose two names for one user action.
+```
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — no event may be logged that the spec does not define
+for name in $(git diff --cached -U0 -- '*.dart' \
+              | grep '^+' | grep -oE "logEvent\(\s*name:\s*'[a-z_]+'" \
+              | grep -oE "'[a-z_]+'" | tr -d "'" | sort -u); do
+  grep -q "name: $name" analytics/events.yaml || {
+    echo "analytics: '$name' is not defined in analytics/events.yaml."
+    echo "Undefined events become data nobody can read in three months."
+    exit 1
+  }
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Event taxonomy · funnel design · Firebase Analytics · privacy boundaries |
+| **Triggers on** | A new flow, a new product question |
+| **Fails the build when** | Code logs an event the specification does not define |
+
+## What I got wrong with these four
+
+- **I treated the pipeline as a week-one chore and then a week-nine emergency.** By then the secrets were in the repo and rotating them was its own small project.
+- **I asked for release notes from commit messages.** I got a diff in prose. The requirements files were sitting right there, unused.
+- **I wired crash reporting after launch.** The month I did not have it is the month I have no data for, permanently.
+- **I let events ship before the spec existed.** Three names for one action, and no way to reconcile them afterwards.
+
+Every one of those is the same mistake in a different costume: doing the thinking after the shipping instead of before.
+
+## Key takeaways
+
+- Finishing the code and shipping the software are separate events, and the gap between them does not shrink when coding gets faster.
+- A DevOps agent's value is environment separation, not workflow syntax. Make the wrong build impossible, not unlikely.
+- Release notes need intent as input. Generated from commits alone, they read like a diff and get ignored.
+- Write your incident questions before the incident. Dashboards follow from the questions, never the other way round.
+- An analytics spec has to exist before the first event ships. Bad event data cannot be fixed retroactively.
+
+Next in this series: **Part 6 — the Security, Cybersecurity and Penetration Testing agents**, three separate roles that disagree with each other on purpose, and the six weeks our Firestore rules cost us.

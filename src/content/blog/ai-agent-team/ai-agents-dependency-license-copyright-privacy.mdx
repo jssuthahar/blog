@@ -1,0 +1,294 @@
+---
+title: 'AI Agents for Dependency, License, Copyright and Privacy Compliance'
+seoTitle: 'AI License and Privacy Agents'
+description: 'Four AI agents for the risks that arrive from outside your code — dependencies, open source licenses, copyright and privacy — with real blocking hooks.'
+highlight: "The license problem took four days to fix and the license was not the hard part. A package added months earlier to save two hours had spread into three features, and removing it meant rewriting all three. License risk compounds with time, not with size, which is why this belongs in a hook that fires the day the dependency arrives."
+publishedAt: 2026-07-31
+category: engineering
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Dependency Management', 'Open Source Licenses', 'Copyright', 'Privacy', 'Compliance', 'Flutter', 'SPDX']
+series: 'ai-agent-team'
+seriesOrder: 7
+draft: true
+faq:
+  - q: 'Should license checking be an AI agent or a script?'
+    a: "A script, for the check itself. Reading a dependency tree and matching license identifiers against a deny list is deterministic, so a hook does it faster and cannot be argued out of a finding. Keep the agent for the judgement: whether a license fits how you actually ship."
+  - q: 'Why do transitive dependencies matter for license compliance?'
+    a: "Because the license you accepted is the direct one. A permissive package can pull in a copyleft dependency two levels down, and it ships in your binary just the same. Scan the resolved tree, not the file you edited."
+  - q: 'What is the difference between license compliance and copyright compliance?'
+    a: "License compliance asks whether you are allowed to ship a dependency and on what terms. Copyright compliance asks whether the code, images, fonts or sample data in your repository are substantially somebody else's work in the first place."
+  - q: 'How do you keep a Play Store data safety declaration accurate?'
+    a: "Treat the declaration as a promise and the app as the evidence, then check them against each other automatically. Most inaccuracies are drift: the form was filled in honestly, and analytics or a new SDK started collecting something afterwards."
+  - q: 'When should a small team add a dependency management agent?'
+    a: "The first time nobody can explain why a package is in the manifest. Before that, the manifest is short enough to read. After that, the cost of removing something grows every week nobody looks at it."
+---
+
+Nikhil found it eleven days before launch, doing something unrelated. A package in `pubspec.yaml`, under a license our client's legal team would not accept in a shipped mobile app.
+
+It had been added five months earlier to solve a problem that would have taken about two hours to solve by hand. Nobody had reviewed it, because adding a dependency does not feel like a decision. It feels like typing a line.
+
+Removing it took four days, and here is the part worth remembering: the license was not what cost four days. By then that package had spread into three features, and pulling it out meant rewriting all three under launch pressure. **License risk compounds with time, not with size.** The day it arrives, a wrong dependency costs two hours. Five months later it costs a week and everyone's nerves.
+
+[Part 6](../ai-agents-security-cybersecurity-penetration-testing) covered the attacker outside your system. This part covers the four risks that arrive quietly through the front door, in things you chose to install.
+
+One honest note before the agents: I am an architect, not a lawyer, and neither is your AI agent. Everything below is about catching problems early enough to ask a real lawyer a cheap question instead of an expensive one.
+
+## Why do these problems get worse if you wait?
+
+Because all four of them are cheap to fix on the day they arrive and expensive later, and none of them announce themselves. A dependency spreads. A license obligation follows every release you ship. An asset's origin is forgotten. A privacy declaration drifts away from what the app does.
+
+Compare that with a bug, which gets reported. Nothing here gets reported. You find it eleven days before launch because somebody was doing something unrelated, which is exactly how we found ours.
+
+## The Dependency Management Agent
+
+We ended that project with 47 packages. I could confidently explain about fifteen of them.
+
+That is not carelessness, it is arithmetic. Three developers over nine weeks, each solving an immediate problem the quickest way, and every solution was reasonable on the afternoon it was chosen. What accumulated was a manifest nobody could read, containing one package whose last release was three years old and one that pulled in twelve transitive dependencies to format a date.
+
+A dependency agent's job is not to update everything. Running `flutter pub outdated` and upgrading the lot is how you spend a Friday discovering which of thirty packages broke you. Its job is **classification**: what each dependency is for, how deeply it has spread, what it would cost to remove, and which ones are quietly unmaintained.
+
+**What I hand it:** the manifest, the lock file, and a grep of where each package is actually imported.
+
+**What I get back:** an inventory with usage count and removal cost per package, a maintenance signal for each, an update order that starts with the safest, and a list of packages used in one place for one function.
+
+```markdown
+<!-- .ai/prompts/dependencies.md -->
+Manifest: {pubspec.yaml}. Lock: {pubspec.lock}
+Import counts per package: {grep output}
+
+Produce a table: package | why it is here | files importing it |
+last release | removal cost (hours) | replaceable by stdlib?
+
+Then:
+1. Packages imported in ONE file for ONE function. These are the
+   cheapest to remove and the most likely to be regretted.
+2. Anything with no release in 18 months, and what depends on it.
+3. An update order, safest first, with the ones that need a test run.
+4. Transitive dependencies pulled in by only one direct package —
+   say how many arrive per package.
+
+Do not recommend upgrading everything. Recommend an order.
+```
+
+Point 1 is the one that surprises people. On our project four packages existed to do something the standard library does in six lines, and each one had been the fastest choice on its Tuesday.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — a new dependency needs a written reason
+new=$(git diff --cached -U0 pubspec.yaml | grep '^+ ' \
+      | grep -vE '^\+\s*#' | awk -F: '{print $1}' | tr -d '+ ')
+
+for pkg in $new; do
+  grep -q "^| \`$pkg\`" docs/dependencies.md || {
+    echo "deps: '$pkg' added with no entry in docs/dependencies.md."
+    echo "One line: why it is here, and what it would take to remove."
+    exit 1
+  }
+done
+```
+
+One line of justification at the moment of adding. That is the entire intervention, and it would have caught Nikhil's package on day one, five months and four days earlier.
+
+| | |
+| --- | --- |
+| **Skills** | Dependency analysis · semantic versioning · transitive tree reading |
+| **Triggers on** | Any manifest change |
+| **Fails the build when** | A package is added with no written justification |
+
+## The Open Source License Compliance Agent
+
+This is the clearest example in the whole series of something that should be a hook rather than an agent, and I got it wrong first.
+
+My initial version asked an agent to review our dependency licenses. It worked, roughly. It was also slow, cost tokens on every run, and once produced a hedged answer about a license that is not ambiguous at all. Reading a resolved dependency tree and matching license identifiers against a deny list is deterministic work. **Agents for judgement, hooks for rules** — I said that in [Part 1](../ai-coding-agent-team-software-project) and then spent two weeks ignoring it.
+
+So the split is: the hook does the check on every push. The agent answers the questions a list cannot, and there are three of them worth its time.
+
+*Does this license fit how we ship?* The same package can be fine in a server you host and a problem in a binary you distribute through a store. The license did not change; the shipping did.
+
+*What does attribution actually require here?* A NOTICE file, a settings screen, both, neither.
+
+*What do we replace it with?* This is where an agent earns its keep — a list of alternatives under acceptable licenses, with the migration cost of each.
+
+**What I hand it:** the full resolved tree with [SPDX identifiers](https://spdx.org/licenses/), how we ship, and the client's policy.
+
+```markdown
+<!-- .ai/prompts/license-review.md -->
+Resolved dependency tree with SPDX identifiers: {tree}
+How we ship: {app store binary / self-hosted server / library}
+Policy: deny {list}. Attribution required for {list}.
+
+The deny-list check is already done by a hook. Do NOT repeat it.
+Answer only the questions a list cannot:
+
+1. Any license whose obligations change because of HOW we ship.
+   Explain the difference in one sentence.
+2. For every attribution-required package: exactly what we must publish,
+   and where it has to appear.
+3. For anything on the deny list: two replacement candidates each,
+   with the migration cost and what we lose.
+4. Licenses you are not confident about. Name them and stop —
+   that is the list we take to a lawyer.
+
+Never say a license is "generally acceptable". Either it fits our
+policy and shipping model, or it goes to a human.
+```
+
+Point 4 is a feature. An agent that flags four packages for a lawyer has done its job; an agent that reassures you about all forty has not.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-push — the deny list is deterministic, so it is a hook
+DENY='GPL-2.0|GPL-3.0|AGPL|SSPL|CC-BY-NC|BUSL'
+
+flutter pub deps --json > /tmp/deps.json
+violations=$(dart run license_checker --json 2>/dev/null \
+  | jq -r --arg d "$DENY" '.[] | select(.license | test($d)) |
+      "\(.name) [\(.license)] via \(.parent // "direct")"')
+
+if [ -n "$violations" ]; then
+  echo "license: packages under a denied license are in the resolved tree:"
+  echo "$violations" | sed 's/^/  /'
+  echo "Transitive counts. It ships in the binary either way."
+  exit 1
+fi
+```
+
+That last line is the one people miss. The license you accepted is the direct dependency's. What ships is the whole tree.
+
+| | |
+| --- | --- |
+| **Skills** | SPDX identifiers · copyleft obligations · attribution requirements · distribution models |
+| **Triggers on** | Every push, and any change to how the product is distributed |
+| **Fails the build when** | A denied license appears anywhere in the resolved tree |
+
+## The Copyright Compliance Agent
+
+Different question, and the one I get asked about most since assistants started writing code: is this code substantially somebody else's?
+
+Let me be straight about where I have actually seen this bite, because it is not where people expect. In eighteen years I have never had a copyright problem caused by generated code. I have had two caused by assets. A "free for commercial use" icon set that required attribution nobody had read. A font in a designer's handoff that was licensed for mockups, not for shipping in an app bundle.
+
+Code is the visible worry. Assets are where the money is, because a designer's zip file arrives with no manifest and nobody asks where each file came from.
+
+So this agent covers both, weighted toward the one that actually happens.
+
+**What I hand it:** the diff for generated code, and the asset manifest — every image, icon, font and sample data file, with wherever we think it came from.
+
+**What I get back:** an attribution file, flags on assets with no known provenance, and flags on any code block distinctive enough to be worth a second look.
+
+```markdown
+<!-- .ai/prompts/copyright.md -->
+Assets added: {file list, with stated source where known}
+Generated code in this change: {diff}
+
+For assets:
+1. Anything with no stated source. List it. Unknown provenance is
+   the finding — do not guess where a file came from.
+2. For each known source: the exact attribution required, and where
+   it must appear (about screen, NOTICE file, store listing).
+3. Fonts and icon sets: is the license valid for a SHIPPED app bundle,
+   or only for design files? These differ more often than people expect.
+
+For code:
+4. Any block distinctive enough that it likely came from one specific
+   source — unusual naming, an odd algorithm, a comment in another style.
+   Flag it for a human. Do not assert infringement; you cannot know.
+
+Produce ATTRIBUTIONS.md as your output.
+```
+
+Point 4 is deliberately weak, because an agent cannot know what it has not seen. Your assistant's own duplicate-detection filter is a better tool for that specific job, and it runs at generation time, which is the right moment.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — no asset enters the repo without provenance
+for f in $(git diff --cached --name-only --diff-filter=A \
+           | grep -iE '\.(png|jpg|svg|ttf|otf|woff2?)$'); do
+  grep -q "$(basename "$f")" ATTRIBUTIONS.md || {
+    echo "copyright: $f has no entry in ATTRIBUTIONS.md."
+    echo "Record where it came from and the license, now, while you know."
+    exit 1
+  }
+done
+```
+
+"Now, while you know" is the whole point. Six months later nobody remembers which zip a font arrived in.
+
+| | |
+| --- | --- |
+| **Skills** | Asset licensing · font and icon terms · attribution formats |
+| **Triggers on** | Any new asset, any large generated block |
+| **Fails the build when** | An asset is committed with no attribution entry |
+
+## The Privacy and Compliance Agent
+
+Two earlier agents in this series produce output that this one has to approve.
+
+In [Part 5](../ai-agents-devops-release-monitoring-analytics), the monitoring agent wanted a user identifier attached to every error report, because debugging is much easier with one. The analytics agent proposed events that carried a delivery address, because the product question was about delivery distance. Both were reasonable engineering answers. Neither is a decision an engineering agent gets to make alone.
+
+Then there is the failure we actually had. The Play Store data safety declaration was filled in honestly, in week six, describing what the app collected in week six. Analytics arrived in week eight. Nobody updated the form. The declaration was not a lie when it was written and was wrong by the time anyone read it.
+
+**A store declaration is a promise, and the app is the evidence.** Almost every inaccuracy I have seen is drift, not dishonesty — and drift is exactly what automation is good at catching.
+
+**What I hand it:** the analytics event spec, the error context spec, the third-party SDK list, and the jurisdictions we ship to.
+
+**What I get back:** a data inventory — what we collect, why, where it goes, how long it stays — the store declaration derived from that inventory, the consent requirements, and anything collected that no purpose justifies.
+
+```markdown
+<!-- .ai/prompts/privacy.md -->
+Analytics spec: analytics/events.yaml. Error context: {fields}
+Third-party SDKs: {list, with what each one sends home}
+Markets: {jurisdictions}
+
+Produce:
+1. A data inventory: field | why collected | where it goes |
+   retention | is it personal data in each market.
+2. The store data safety declaration derived FROM that inventory,
+   so the two cannot disagree.
+3. Anything collected with no purpose that justifies it. Deleting
+   a field is cheaper than defending it.
+4. Where consent is required before collection, and what happens
+   in the app when consent is refused. That path must exist.
+5. Third-party SDKs that collect independently of our code.
+
+Never approve a personal identifier in an error report or an
+analytics event. Propose a stable pseudonymous ID instead, and say
+what is lost by using one.
+```
+
+Point 4 is the one teams discover late. Deciding consent is required is easy. Having an app that still works when someone declines is a feature nobody scheduled.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — a personal field needs an inventory entry
+for f in $(git diff --cached -U0 analytics/events.yaml \
+           | grep '^+' | grep -oE 'personal:\s*true' -B2 \
+           | grep -oE '^\+\s+- name: [a-z_]+' | awk '{print $NF}'); do
+  grep -q "$f" privacy/data-inventory.md || {
+    echo "privacy: event field '$f' is marked personal but is not in"
+    echo "privacy/data-inventory.md, so the store declaration will drift."
+    exit 1
+  }
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Data inventory · store data safety forms · consent flows · SDK data behaviour |
+| **Triggers on** | A new event, a new SDK, a new market |
+| **Fails the build when** | Personal data is collected with no inventory entry |
+
+## What I got wrong with these four
+
+- **I used an agent where a deny list belonged.** Slower, costlier, and once hedged about a license that is not ambiguous.
+- **I scanned direct dependencies only.** The direct package was permissive. What it pulled in was not.
+- **I worried about generated code and ignored the assets folder.** Both problems I have actually had came from a designer's zip file.
+- **I treated the privacy declaration as a form to fill in once.** It was accurate on the day and wrong two weeks later, which is the same thing as wrong.
+
+## Key takeaways
+
+- License risk compounds with time. The same package costs two hours on day one and a week after five months.
+- The check is deterministic, so it belongs in a hook. Keep the agent for what a list cannot answer: shipping model, attribution, replacement.
+- Scan the resolved tree. The license you accepted is the direct one; what ships is everything underneath it.
+- Copyright trouble arrives in the assets folder far more often than in generated code.
+- Store declarations drift. Derive them from a data inventory so the promise and the evidence cannot disagree.
+
+Next in this series: **Part 8 — the Accessibility, Localization, Documentation and SEO agents**, starting with Sumathi opening our app with TalkBack a week before launch and finding half the buttons had no name at all.

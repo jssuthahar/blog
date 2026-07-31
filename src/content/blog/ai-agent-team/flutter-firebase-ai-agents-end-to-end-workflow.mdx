@@ -1,0 +1,147 @@
+---
+title: 'A Flutter and Firebase Feature Through All 30 AI Agents, End to End'
+seoTitle: 'One Feature, 30 AI Agents'
+description: 'The cancel-order feature rebuilt properly — every agent that touched it, what each handed the next, and the honest accounting of what the whole setup cost.'
+highlight: "Fourteen of the thirty agents touched one small feature, and the handoff was the point: the business analyst agent's open question became the architecture input, which became the test, which became the security check. The feature took a day longer to start and saved the four days we spent on the version we shipped without them."
+publishedAt: 2026-07-31
+category: mobile
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Flutter', 'Firebase', 'Riverpod', 'Workflow', 'AGENTS.md', 'Hooks', 'Architecture']
+series: 'ai-agent-team'
+seriesOrder: 10
+draft: true
+faq:
+  - q: 'Do all 30 AI agents run on every feature?'
+    a: "No. About fourteen touched one small feature end to end. The rest fire on their own triggers — a new dependency, a new market, a release, a palette change. An agent that runs on everything is one nobody reads the output of."
+  - q: 'How much slower is it to build a feature with an agent workflow?'
+    a: "Roughly a day of extra work at the front, on requirements and architecture. On our project that bought back the four days we later spent rewriting three features to remove one dependency, and the six weeks of release delay we paid for skipping it."
+  - q: 'What is the right order to introduce AI agents to a team?'
+    a: "Architecture, code review, testing, security — in that order, then stop for a month. Each one makes the next more useful, and four agents everybody uses beats fifteen nobody trusts."
+  - q: 'What is the single biggest mistake with AI coding agents?'
+    a: "Trusting a clean report without checking what the agent was given. Our security agent cleared Firestore rules that were world-readable in production, because it reviewed the file in the repository and production was four commits behind."
+  - q: 'Can this agent workflow work on a stack other than Flutter?'
+    a: "Yes. The roles, the handoffs and the hook triggers are stack-independent — only the checks change. On .NET the same architecture hook greps for a repository violation instead of a Firestore call in a widget."
+---
+
+Let us go back to the six words that started all this: "users can cancel an order."
+
+In [Part 2](../ai-agents-project-planning-business-analyst-architect) I described how those words reached production with a hole in the middle, and a customer in Kuala Lumpur got a full refund for food a restaurant had already started cooking. This part rebuilds that same feature the way it should have gone, with the agents from this series doing their jobs in order.
+
+I am using a small feature deliberately. Grand examples hide the seams, and the seams are the interesting part — what each agent hands to the next is what makes this a workflow rather than thirty separate tools.
+
+One honest thing first. **Fourteen of the thirty agents touched this feature.** The rest fire on their own triggers: a new dependency, a new market, a palette change, a release. An agent that runs on everything is an agent whose output nobody reads.
+
+## Day one: the question that changed the feature
+
+The business analyst agent got the six words, the roles, and our refund policy. It produced eleven states for an order, acceptance criteria, and four open questions. One was marked BLOCKING:
+
+> *Can a customer cancel after the restaurant accepts? If yes, who absorbs the cost?*
+
+Nobody on the team could answer it. That is the correct outcome — the agent found the hole and refused to fill it. We took it to the client, and the answer came back in about twenty minutes: cancellation is free until the restaurant accepts, and after that it costs the customer a fee that goes to the restaurant.
+
+That answer changed the shape of the feature. It needed a new order state, a fee calculation on the server, and a confirmation screen that tells the customer what cancelling will cost them. None of that was visible in the original six words, and the version we actually shipped had none of it.
+
+`docs/requirements/cancel_order.md` came out of that conversation with eight acceptance criteria, `AC-1` through `AC-8`. Everything downstream reads from that file.
+
+## Day one, afternoon: architecture and data
+
+Three agents ran on that requirements file, and they disagreed usefully.
+
+The **solution architect agent** had a short job, because the ADRs already existed. It confirmed the feature fits the current structure, and flagged one thing: the fee calculation cannot live in the app. A client-side fee is a client-side number, and [Part 3](../ai-agents-flutter-backend-api-database-firebase) is a whole section on why that ends badly.
+
+The **database agent** got the access patterns and came back with a change nobody had asked for. Order status was being used for both "what the customer sees" and "what the kitchen sees", and cancellation needed those to differ for a few seconds while the fee settled. It proposed splitting the field. That is the kind of finding that costs an hour on day one and a migration in month four.
+
+The **backend API agent** took the fee rule and produced the endpoint: server-side calculation, an explicit authorization policy, and the integration test proving another customer cannot cancel your order.
+
+| Agent | Read | Wrote |
+| --- | --- | --- |
+| Business Analyst | The six words, refund policy | `docs/requirements/cancel_order.md` |
+| Solution Architect | Requirements, existing ADRs | ADR-007, one paragraph |
+| Database | Requirements, access patterns | Schema change, index, read cost per view |
+| Backend API | AC-3 to AC-5, auth model | Endpoint, policy, integration test |
+
+## Day two: the code
+
+The **Flutter agent** got three inputs: the requirements file, ADR-002 and ADR-007, and the `features/orders/` folder as the pattern to copy.
+
+It produced `features/cancel_order/` with the three layers, a Riverpod provider, a confirmation screen, and a fake repository. The pre-commit hook checked the folder shape and the presence of a test before any of it was committed. The **UI review agent** ran on the new screen and found two things: no offline state, and the fee amount rendered in a text style not on the token scale.
+
+Offline mattered here more than usual. Cancelling while offline is not a queued action you can retry later — the window closes. So the screen needed to say so rather than spin.
+
+The **testing agent** then read `cancel_order.md`, not the code. Eight criteria, eight tests, named `AC-1` through `AC-8`. It also produced the list I have learned to read first: behaviour with no criterion behind it. There was one entry — the repository quietly allowed cancellation of an already-cancelled order. Not in the requirements, not a crash, just a gap nobody had thought about.
+
+The **code review agent** ran on the diff with `AGENTS.md` and the ADRs. Two findings, both citing rules. One was real: an error path with no handling.
+
+## Day two, afternoon: security and the second identity
+
+The **security agent** got the diff and the deployed rules, pulled fresh. This is the correction that came out of the six weeks in [Part 6](../ai-agents-security-cybersecurity-penetration-testing) — never the file in the repo.
+
+Its finding: the new `cancellation_fee` field was writable by the client. The rule allowed the customer to update their own order document, and the fee lived on that document — the exact case [field-level rules](https://firebase.google.com/docs/firestore/security/rules-conditions) exist for, and the exact case a document-level rule misses. Nothing in the app wrote it. Anyone with a proxy could have set it to zero.
+
+The **penetration testing agent** turned that into two permanent tests: user A cancels user B's order (denied), and user A writes their own `cancellation_fee` (denied). Those tests now run on every push forever, which is the difference between a finding and a fix.
+
+The **privacy agent** looked at the cancellation reason field the product team wanted to collect. Free text from a customer is unpredictable personal data — people type anything. It went into the data inventory with a retention period and a note that it never travels to analytics.
+
+## Day three: shipping
+
+The **localization agent** found exactly the mistake I described in [Part 8](../ai-agents-accessibility-localization-documentation-seo), in brand new code: a string built as `'Cancelling costs ' + fee + ' if the restaurant has accepted'`. Rewritten as one parameterised message with a translator description on the key.
+
+The **accessibility agent** found the confirmation dialog's close control had no accessible name, and produced the four-step manual script. Sumathi ran it in ten minutes with TalkBack on.
+
+The **DevOps agent** needed nothing new; the pipeline already existed. The **release agent** produced version, changelog and store notes from the merged pull requests plus the requirements file, which is why the note said "cancel an order before the restaurant accepts it, free of charge" instead of listing three file names.
+
+The **monitoring agent** added one alert: cancellations failing at a rate above baseline, because a broken cancel button looks like nothing at all from the outside. The **analytics agent** added `order_cancelled` to the spec with its funnel position, and the hook refused the code until the spec entry existed.
+
+## What did the whole thing actually cost?
+
+Here is the honest accounting, because I have read too many articles about AI workflows that never mention the bill.
+
+**Setting the agents up** took about three weeks of part-time work, spread over the project. Most of that was the first four. The last four — the meta agents from [Part 9](../ai-agents-prompt-skill-hook-agents-md-generators) — took two evenings and paid for themselves by deduplicating rules across twenty-six prompts.
+
+**This feature** took roughly a day longer at the front than the version we shipped without agents. That day bought: a business rule we did not know we needed, a schema change that would have been a migration, a writable fee field, an untranslatable string, and an unlabelled dialog control.
+
+**The version without agents** cost four days of rework, contributed to six weeks of release delay, and produced a refund nobody could explain to a restaurant.
+
+I am not going to claim a clean multiple from one feature on one project. What I will say is that every failure in this series was cheap on the day it was created and expensive by the time it was found, and the whole point of putting a check at the moment of creation is to pay the cheap price.
+
+| Phase | Agents involved | Artefact it produced |
+| --- | --- | --- |
+| Analysis | Business Analyst | Requirements, and the question that changed the feature |
+| Design | Architect, Database, API | ADR, schema change, endpoint contract |
+| Build | Flutter, UI Review | Feature folder, screen, fake repository |
+| Verify | Testing, Code Review | 8 named tests, 2 cited findings |
+| Defend | Security, Pen Test, Privacy | Rule fix, 2 permanent attack tests, data inventory entry |
+| Ship | l10n, Accessibility, Release, Monitoring, Analytics | Translations, labels, notes, alert, event |
+
+## The mistakes I would tell you to skip
+
+Across ten parts, the same four errors keep reappearing in different costumes.
+
+- **One giant agent.** Thirty responsibilities means no definition of done, a mixed answer to every question, and a diff so wide the reviewer only checks the part they know.
+- **Trusting a clean report without checking the input.** Our security agent was right about the file it was given and wrong about production. A confident answer on a stale artefact is the most dangerous output an agent can produce.
+- **Using an agent where a script belonged.** License scanning, secret detection, index checks. Deterministic work is faster, cheaper and unarguable as a hook. Agents for judgement, hooks for rules.
+- **Doing the thinking after the shipping.** Rules written after the code, declarations filled in before the analytics, crash reporting wired after launch. Every one of those is the same mistake, and none of them are technical.
+
+And one that only shows up later: **rules duplicated across prompts.** Five copies, one updated, four teaching your agents a convention you abandoned months ago.
+
+## Which AI agents should you build first?
+
+Not thirty. Build four, in this order, and use them for a month before adding a fifth.
+
+1. **Solution Architect** — everything downstream inherits its decisions.
+2. **Code Review** — fastest to show value; turns comments you type twenty times a month into a file.
+3. **Testing** — pointed at requirements, never at the implementation.
+4. **Security** — by now it has real structure to reason about, so its findings get specific.
+
+Then add whichever agent maps to the thing that hurt most last month. That is the honest selection rule. If you have never been bitten by a license, do not start there; if a dependency once cost you four days, you know exactly where to begin.
+
+The series in order: [the roster and the vocabulary](../ai-coding-agent-team-software-project) · [planning and architecture](../ai-agents-project-planning-business-analyst-architect) · [the four build agents](../ai-agents-flutter-backend-api-database-firebase) · [testing and review](../ai-agents-testing-code-review-performance-ui) · [DevOps and release](../ai-agents-devops-release-monitoring-analytics) · [security](../ai-agents-security-cybersecurity-penetration-testing) · [dependencies and compliance](../ai-agents-dependency-license-copyright-privacy) · [accessibility and reach](../ai-agents-accessibility-localization-documentation-seo) · [the meta agents](../ai-agents-prompt-skill-hook-agents-md-generators).
+
+## Key takeaways
+
+- The handoffs are the workflow. One agent's open question becomes the next agent's input, and that chain is what thirty separate tools cannot give you.
+- Fourteen agents on one feature, not thirty. The rest have their own triggers, and an agent that runs on everything gets ignored.
+- A day of extra thinking at the front bought back four days of rework and a business rule nobody knew was missing.
+- Every failure in this series was cheap on the day it was created. The check belongs at the moment of creation, not at the audit.
+- Start with four agents and let real pain pick the fifth. Fifteen agents nobody trusts is not a team, it is a folder.
+
+None of this is Flutter-specific. Swap Firestore rules for row-level security, `pubspec.yaml` for a `.csproj`, and the roles, handoffs and triggers stay exactly where they are. The stack decides what the hooks grep for. It does not change who is on the team.

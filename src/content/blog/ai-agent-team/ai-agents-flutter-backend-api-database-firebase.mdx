@@ -1,0 +1,286 @@
+---
+title: 'Flutter, API, Database and Firebase: The Four AI Build Agents'
+seoTitle: 'AI Build Agents for Flutter Apps'
+description: 'The four AI agents that write the code — Flutter, backend API, database and Firebase — and why splitting them apart is what makes their output reviewable.'
+highlight: "One coding agent writing Flutter, API, schema and security rules will produce all four, and only the Flutter part will be good. These four jobs have four different definitions of done: a widget is finished when it renders without touching Firestore, a query is finished when you know what it costs per screen view."
+publishedAt: 2026-07-31
+category: mobile
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Flutter', 'Riverpod', 'Firebase', 'Firestore', 'Minimal API', '.NET', 'Database Design']
+series: 'ai-agent-team'
+seriesOrder: 3
+draft: true
+faq:
+  - q: 'Why separate the Firebase agent from the database agent?'
+    a: "They answer different questions about the same system. The database agent owns the data shape and what each query costs per screen view. The Firebase agent owns the platform around it: security rules, auth, emulator tests, environment separation. A schema can be correct while the rules leave it world-readable."
+  - q: 'Should the Flutter agent be allowed to write Firestore queries?'
+    a: "No. Give it the repository interface and let it code against that. The moment a UI agent writes queries, query cost becomes invisible — it lands inside a widget where nobody reviews it for reads per rebuild."
+  - q: 'What is the definition of done for an AI backend API agent?'
+    a: "A working endpoint is not done. Done means the route has an explicit authorization decision, request validation, a documented error shape, the API contract updated, and one integration test that calls it the way a client will."
+  - q: 'How do you stop an AI agent from generating expensive Firestore queries?'
+    a: "Make cost an output it has to state. Require the agent to report reads per screen view and the composite index each query needs, then enforce it with a hook that fails when a where/orderBy pair has no matching entry in firestore.indexes.json."
+  - q: 'Is four build agents overkill for a small app?'
+    a: "For one developer on a Firebase-only app, two is enough — a Flutter agent and a Firebase agent that also owns the schema. Split out the database agent when query cost starts appearing on the bill, and the API agent when a real backend exists."
+---
+
+There was one good week on that project where everything felt fast. Screens appeared in an afternoon. Copilot was writing most of the code, the demo looked real, and nobody was blocked on anything.
+
+That week produced the three worst files in the repository.
+
+They were not badly written. Read individually, each one looked like something a competent developer would write. The problem was that one assistant had written a Flutter widget, a payment endpoint, a Firestore query and a security rule with the same idea of what "finished" means, and those four jobs do not share a definition of done.
+
+A widget is finished when it renders correctly and touches nothing external. An endpoint is finished when it has made an explicit decision about who may call it. A query is finished when you can say what it costs per screen view. A security rule is finished when a test proves it denies the thing it should deny. One agent holding all four in its head satisfies the first and treats the other three as details.
+
+So the build phase gets four agents. [Part 2](../ai-agents-project-planning-business-analyst-architect) produced the plan, the acceptance criteria and the architecture rules. These four turn that into code.
+
+## Why not one coding agent for the whole app?
+
+Because scope is what makes output reviewable. When Devisri opened a pull request from a single all-purpose agent, the diff contained a widget, a repository, an index change and a rules edit. She reviewed the widget properly — it was the part she knew. The rules edit went through on trust, and that is exactly the shape of failure I described in [Part 1](../ai-coding-agent-team-software-project).
+
+Four agents produce four narrow diffs with four different reviewers and four different definitions of done. That is the entire argument.
+
+| Agent | Owns | Done when |
+| --- | --- | --- |
+| **Flutter** | Widgets, state, navigation | It renders, state runs through Riverpod, nothing external is called directly |
+| **Backend API** | Contracts, validation, auth | Every route has an explicit authorization decision and an integration test |
+| **Database** | Shape, queries, indexes | Every access pattern has a stated read cost and an index |
+| **Firebase** | Rules, auth, emulator, environments | A test proves the rule denies what it should deny |
+
+## The Mobile Developer Agent (Flutter)
+
+The one-file screen is the thing this agent exists to prevent. A list view that opens a Firestore stream inside `build()`, holds state in `setState`, has no repository and no test. It works on the developer's phone. It falls apart on the first rebuild under load, and it cannot be tested without a live emulator.
+
+I have reviewed that exact shape more times than I can count. It is not a knowledge problem — Copilot knows Flutter well. It does not know *our* Flutter, and until we wrote it down, neither did any file in the repo.
+
+**What I hand it:** the requirements file from the business analyst agent, the architecture rules from the ADR, and one existing feature folder as the pattern to copy. That last input matters more than the first two. An agent shown a real example of your structure copies it far more reliably than an agent told about it in prose.
+
+**What I get back:** a feature folder in `lib/features/<name>/` with `data`, `domain` and `presentation`, Riverpod providers for state, widgets that consume providers and nothing else, and at least one widget test that runs without network access.
+
+```markdown
+<!-- .ai/prompts/flutter-feature.md -->
+Build the feature described in docs/requirements/{feature}.md.
+
+Pattern to follow: lib/features/orders/  — copy this structure exactly.
+
+Rules (from ADR-002, non-negotiable):
+- Firestore and Auth are called only inside features/{feature}/data/.
+  Presentation code talks to a repository interface, never to Firebase.
+- State goes through Riverpod providers. No setState in feature widgets.
+- Every widget that can show an error must render the error state.
+
+Deliver:
+1. The folder with data / domain / presentation.
+2. The repository interface, plus a fake implementation for tests.
+3. One widget test that runs with no network and no emulator.
+
+If the requirements file has an open question, stop and ask.
+Do not guess the behaviour.
+```
+
+The fake implementation in point 2 is the line that makes the testing agent's life possible in Part 4. Without it, every test needs a live Firestore and nobody writes tests.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — feature folders keep their shape
+for dir in $(git diff --cached --name-only --diff-filter=A \
+             | grep -oE '^lib/features/[a-z_]+' | sort -u); do
+  for layer in data domain presentation; do
+    [ -d "$dir/$layer" ] || { echo "flutter: $dir is missing $layer/"; exit 1; }
+  done
+  name=$(basename "$dir")
+  ls test/features/"$name"/*_test.dart >/dev/null 2>&1 \
+    || { echo "flutter: no test found for feature '$name'"; exit 1; }
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Feature-first Flutter · Riverpod · repository pattern · widget testing |
+| **Triggers on** | A requirements file with no blocking questions left |
+| **Fails the build when** | A feature folder is missing a layer, or has no test |
+
+## The Backend API Agent
+
+Payments went through a .NET service, not Firebase. The first version of the payment endpoint accepted the order total from the client.
+
+Nobody decided to trust the client. It happened because the assistant was asked to "add a payment endpoint" while holding a Flutter file in context, and from inside that context the total is simply a number you already have. The endpoint worked. The demo passed. Anyone with a proxy could have paid nine ringgit for a forty-ringgit order.
+
+An API agent with its own scope starts from a different question: who is allowed to call this, and what may I believe from them? That framing is the whole value. It is also why this agent should never share a session with the UI work.
+
+**What I hand it:** the acceptance criteria, the existing API contract, the auth model, and the error shape the app already handles.
+
+**What I get back:** the endpoint, request validation, an explicit authorization decision, the contract file updated, and one integration test that calls it the way the app will. If you want the layout underneath all this, [structuring a Minimal API project](../minimal-api-project-structure) and [securing it with JWT bearer auth](../secure-minimal-api-jwt-dotnet) are the versions I actually ship.
+
+```markdown
+<!-- .ai/prompts/backend-api.md -->
+Add the endpoint for: {acceptance criteria}
+
+Trust boundary — treat every client value as hostile:
+- Money, quantities and identity are re-derived on the server, never accepted.
+- State the authorization decision explicitly. There is no default.
+
+Deliver:
+1. The route, with validation for every field.
+2. The authorization policy, named, and why that one.
+3. The error shape, matching docs/api/errors.md.
+4. An integration test calling it as the mobile client does,
+   plus one test that proves an unauthorized caller is rejected.
+
+List anything you had to assume about the caller. Do not silently assume.
+```
+
+The hook here is the one I would keep if I could keep only one on the backend:
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — every route makes an explicit auth decision
+files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.cs$')
+for f in $files; do
+  routes=$(grep -nE 'Map(Get|Post|Put|Delete|Patch)\(' "$f" || true)
+  [ -z "$routes" ] && continue
+  while IFS= read -r line; do
+    n=${line%%:*}
+    block=$(sed -n "${n},$((n+12))p" "$f")
+    echo "$block" | grep -qE 'RequireAuthorization|AllowAnonymous' && continue
+    echo "api: $f:$n declares a route with no auth decision."
+    echo "Add .RequireAuthorization(...) or an explicit .AllowAnonymous()."
+    exit 1
+  done <<< "$routes"
+done
+```
+
+It has no opinion about which answer is right. It only refuses to let the question go unanswered, which is the difference between a rule and a preference.
+
+| | |
+| --- | --- |
+| **Skills** | Minimal API structure · JWT and policy auth · API contract design · integration testing |
+| **Triggers on** | A new endpoint, a change to an existing contract |
+| **Fails the build when** | A route has neither `RequireAuthorization` nor an explicit `AllowAnonymous` |
+
+## The Database Agent
+
+The restaurant dashboard had a card at the top showing today's order count. Simple card. It read every document in the `orders` collection and called `.length` on the result.
+
+On my machine with forty test orders, instant. In the pilot with one real restaurant, still fine. The [Firestore billing model](https://firebase.google.com/docs/firestore/pricing) charges per document read, and that card was on the screen a dashboard sits on all day, refreshing. We found it on the bill, not in review, because nothing about that line of code looks wrong.
+
+This is why the database agent is separate from the agent writing the screen. Ask a UI agent for an order count and you get `.length`. Ask a database agent and the first thing it says is that a count needs a counter, not a scan.
+
+Its job is the shape and the cost: access patterns, denormalisation, indexes, and what each screen costs per view. In a document database you cannot normalise your way out of a bad shape after the fact, so this work happens before the screens, not after.
+
+**What I hand it:** the entity model, and the list of queries the screens actually need — one line per screen. That query list is the real input. A schema designed without it is a guess.
+
+**What I get back:** the collection shape, the composite indexes each query needs, a stated read and write cost per access pattern, and a note on which fields are denormalised and what keeps them in sync.
+
+```markdown
+<!-- .ai/prompts/database.md -->
+Access patterns (one line per screen):
+{list}
+
+For EACH pattern produce:
+| Query | Index needed | Reads per view | Writes it causes |
+
+Then:
+1. The collection and document shape, with field types.
+2. Any denormalised field, and what updates it.
+3. Anything here that will not scale past {n} records, said plainly.
+4. Counts and aggregates: never a scan. Say where the counter lives
+   and who increments it.
+
+If an access pattern cannot be served without a scan, say so and
+propose the shape change instead of writing the scan.
+```
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-push — a where+orderBy pair needs a declared composite index
+grep -rnE '\.where\(' lib/ --include='*.dart' -A3 \
+  | grep -B1 '\.orderBy(' \
+  | grep -oE 'lib/[^:]+:[0-9]+' | sort -u \
+  | while read -r loc; do
+      file=${loc%%:*}
+      field=$(sed -n "${loc##*:}p" "$file" | grep -oE "'[a-zA-Z_]+'" | head -1 | tr -d "'")
+      if ! grep -q "\"$field\"" firestore.indexes.json 2>/dev/null; then
+        echo "db: $loc filters+sorts on '$field' with no composite index declared."
+        echo "Add it to firestore.indexes.json before this reaches production."
+        exit 1
+      fi
+    done
+```
+
+Firestore does tell you about a missing index — at runtime, in an error, with a link. That is a fine developer experience and a poor production one. The hook moves the discovery to the push.
+
+| | |
+| --- | --- |
+| **Skills** | Document data modelling · Firestore indexes and pricing · denormalisation trade-offs |
+| **Triggers on** | A new access pattern, a new screen that reads data |
+| **Fails the build when** | A filtered and sorted query has no declared composite index |
+
+## The Firebase Agent
+
+Now the one that would have saved us six weeks.
+
+Our security rules were written in week two by whoever was unblocked that afternoon. They allowed any signed-in user to read any document. The app behaved perfectly, because the app only ever asked for its own data. The rules were not protecting anything and nothing in the build ever noticed.
+
+The database agent could not have caught this. It was reasoning about shape and cost, and the shape was fine. This is a platform question, and platform questions need their own agent: rules, auth providers, emulator setup, environment separation, quotas, and cloud functions if you have them.
+
+**What I hand it:** the data model, the auth roles, and the honest sentence for each collection — who may read this, who may write it, and under what condition.
+
+**What I get back:** `firestore.rules`, and rules tests that run in the emulator. The tests are the deliverable. A rules file without tests is an opinion.
+
+```markdown
+<!-- .ai/prompts/firebase-platform.md -->
+Collections and their access statements:
+{collection: who may read / who may write / under what condition}
+
+Deliver:
+1. firestore.rules implementing exactly those statements.
+2. Emulator tests. For every rule, TWO tests:
+   one that proves the allowed case works,
+   one that proves a different signed-in user is denied.
+3. Any place the rules depend on a field a client can write — flag it.
+
+Never use `if request.auth != null` as an authorization rule.
+Signed in is not the same as allowed. If you cannot express a rule
+without it, say which field is missing from the document.
+```
+
+That closing instruction is the specific lesson from our six weeks. `request.auth != null` reads like security and means "anyone with an account".
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-push — rules changes must be proven, not reviewed by eye
+git diff --name-only origin/main...HEAD | grep -q '^firestore.rules$' || exit 0
+
+if grep -nE 'allow (read|write|read, write):\s*if true' firestore.rules; then
+  echo "firebase: an unconditional allow is present in firestore.rules."
+  exit 1
+fi
+
+echo "firebase: rules changed — running emulator rules tests"
+firebase emulators:exec --only firestore "npm run test:rules" || {
+  echo "firebase: rules tests failed. The rules do not do what you think."
+  exit 1
+}
+```
+
+| | |
+| --- | --- |
+| **Skills** | Firestore security rules · Firebase Auth · emulator suite · environment separation |
+| **Triggers on** | Any change to rules, auth config or a new collection |
+| **Fails the build when** | Rules contain an unconditional allow, or the emulator rules tests fail |
+
+## What I got wrong with these four
+
+- **I let the Flutter agent write queries.** It was faster for about two weeks. Then query cost lived inside widgets, where no reviewer looks for it, and the dashboard card happened.
+- **I gave the API agent a prompt without a trust boundary.** "Add a payment endpoint" is a request. "Add a payment endpoint, re-derive the total server-side" is a specification.
+- **I designed the schema before listing the queries.** Backwards. In Firestore the access patterns are the design; the entities are just what the patterns imply.
+- **I treated rules as configuration.** They are code with no test suite and no compiler, deployed straight to production, guarding everything. That combination should frighten you more than it frightened us.
+
+## Key takeaways
+
+- Four narrow diffs with four definitions of done are reviewable. One wide diff from one agent is reviewed only in the part the reviewer knows.
+- Show the Flutter agent an existing feature folder. A real example beats a described convention.
+- Make cost an output the database agent must state, then enforce indexes with a hook.
+- `request.auth != null` is not authorization. Signed in is not the same as allowed.
+- Rules tests are the deliverable, not the rules file. Untested rules are an opinion about security.
+
+Next in this series: **Part 4 — the UI/UX Review, Testing, Code Review and Performance agents**, including the review prompt that finally stopped me typing the same comment twenty times a month.

@@ -1,0 +1,278 @@
+---
+title: 'AI Agents for Accessibility, Localization, Documentation and SEO'
+seoTitle: 'AI Accessibility and SEO Agents'
+description: 'Four AI agents for the work that decides who can actually use your product — accessibility, localization, documentation and SEO — with prompts and hooks.'
+highlight: "Sumathi turned on TalkBack a week before launch and half our buttons announced themselves as 'button'. Nothing in code review could have caught it, because an IconButton with no semantic label looks exactly like one with a label to every reader except the one that matters."
+publishedAt: 2026-07-31
+category: web
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Accessibility', 'Localization', 'Documentation', 'SEO', 'AEO', 'Flutter', 'WCAG']
+series: 'ai-agent-team'
+seriesOrder: 8
+draft: true
+faq:
+  - q: 'Can an AI agent make an app accessible on its own?'
+    a: "It can fix the mechanical layer — missing labels, contrast ratios, tap target sizes, focus order — which is most of the findings by count. It cannot tell you whether a flow makes sense to somebody who cannot see the screen. That still needs a person and a screen reader."
+  - q: 'What is the difference between localization and translation?'
+    a: "Translation swaps words. Localization removes the assumptions your code makes about language: that word order is fixed, that a label fits in the same width, that plurals work like English, that dates and currency read one way. A string built by concatenation is untranslatable no matter how good the translator is."
+  - q: 'Which documentation is worth automating?'
+    a: "The parts that go stale: setup steps, environment variables, API contracts, configuration. Leave the reasoning to humans — an agent can regenerate how to run the project, but it cannot tell a new joiner why the team rejected the other architecture."
+  - q: 'What is the difference between SEO and AEO?'
+    a: "SEO gets a page ranked in search results. AEO — answer engine optimization — gets it quoted by AI assistants and AI overviews. They need different structures: ranking rewards depth and links, quoting rewards short self-contained answers with a clear question above them."
+  - q: 'Why measure page titles in pixels instead of characters?'
+    a: "Because search results truncate by width, not by count. A title of capital letters and wide characters is cut off well before a title of the same length in narrow ones. Character limits are a rough proxy that fails exactly on the titles people write to stand out."
+---
+
+A week before launch, Sumathi turned on TalkBack and opened the app.
+
+She got about four screens in before stopping. Everything I believed about our accessibility was wrong inside ninety seconds. Half the buttons announced themselves as "button". Not "place order", not "cancel", not "back". Just "button", over and over, because they were `IconButton` widgets with an icon and no semantic label. The delivery status text was a light grey the brand had approved for "secondary information", which measured under three to one against white. Two of the tap targets in the order row were smaller than a fingertip.
+
+Every one of those had passed code review, repeatedly, by people who care about this. An `IconButton` with no label looks exactly like an `IconButton` with a label to every reader except the one that matters.
+
+That is the thread through this whole part. [Part 7](../ai-agents-dependency-license-copyright-privacy) covered risks that arrive from outside. These four agents cover work that is invisible from inside the team: whether a person who cannot see your screen can use it, whether it works in the other language your users speak, whether a new developer can run it, and whether anyone can find it.
+
+## Why do accessibility and localization always get found last?
+
+Because the team cannot see the failure. Everyone testing the app has the screen reader off, the font at default size, and the device in the language the app was written in. Under those conditions the bugs do not exist.
+
+Compare that with a crash, which announces itself, or a slow screen, which annoys the person building it. Accessibility and localization defects are silent for everybody on the team and loud for the people who are not in the room. That asymmetry is why they surface a week before launch, and it is exactly the shape of problem a mechanical check is good at.
+
+## The Accessibility Agent
+
+Start with what this agent can honestly do, because the marketing around accessibility tooling oversells it badly.
+
+It can find missing semantic labels, contrast ratios below the threshold, tap targets under the minimum, unreachable focus order, images with no description, and text that breaks at large font scales. By count, that is most of the findings on most screens. Ours would have been caught months earlier.
+
+What it cannot do is tell you whether the *experience* works. Whether the order flow is followable when you cannot see the layout. Whether your error message means anything read aloud out of context. That is a person with a screen reader, and no agent replaces it — the same honest limit as the penetration testing agent in [Part 6](../ai-agents-security-cybersecurity-penetration-testing).
+
+**What I hand it:** the widget code, the design tokens with their colour values, and one line on what the screen is for.
+
+**What I get back:** findings with the fix as a diff, plus a short manual test script for the human pass — the four things to try with the screen reader on.
+
+```markdown
+<!-- .ai/prompts/accessibility.md -->
+Screen: {file}. Purpose: {one line}. Tokens: design/tokens.dart
+Target: WCAG 2.2 AA, Android and iOS.
+
+Check and report with the fix as a diff:
+1. Every interactive widget: does it announce a name that says what it
+   DOES? "button" is a failure. So is an icon name like "chevron".
+2. Contrast of every text and icon colour against its actual background,
+   with the computed ratio. Include disabled and placeholder states —
+   these are where brand palettes fail.
+3. Tap targets under 48dp, and targets closer together than 8dp.
+4. Focus and reading order. Does it match the visual order?
+5. Text at 200% font scale: what overflows or truncates?
+
+Then write a MANUAL test script: the four things a human must try with
+TalkBack and VoiceOver that you could not check. Be specific about
+what "correct" sounds like.
+```
+
+That final section is the part I would not give up. It turns "test with a screen reader" — which nobody does, because it is vague — into four concrete steps someone can run in ten minutes.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — an icon-only control must announce itself
+for f in $(git diff --cached --name-only --diff-filter=ACM | grep -E '\.dart$'); do
+  awk '/IconButton\(|GestureDetector\(|InkWell\(/{start=NR; buf=""}
+       start && NR<=start+8 {buf=buf $0}
+       start && NR==start+8 {
+         if (buf !~ /semanticLabel|Semantics\(|tooltip:/)
+           print FILENAME ":" start " interactive widget with no accessible name"
+         start=0 }' "$f"
+done | grep . && {
+  echo "a11y: add a semanticLabel, a tooltip, or wrap it in Semantics()."
+  exit 1
+}
+exit 0
+```
+
+Contrast belongs in a hook too, but it needs the token file rather than the widget, so we ran it as a separate check over `design/tokens.dart` whenever a colour changed. The [Flutter accessibility guide](https://docs.flutter.dev/ui/accessibility-and-internationalization/accessibility) covers the widget-level APIs properly.
+
+| | |
+| --- | --- |
+| **Skills** | WCAG 2.2 AA · Flutter semantics · contrast maths · screen reader behaviour |
+| **Triggers on** | Any new screen or interactive widget, any palette change |
+| **Fails the build when** | An interactive widget has no accessible name |
+
+## The Localization Agent
+
+Malaysia is a two-language problem at minimum, so we knew about this from day one and still got it wrong, in a way that is worth showing.
+
+The strings were extracted properly. Somebody had done the work. And then a status line was built like this:
+
+```dart
+Text('Order ' + orderId + ' is ' + status);
+```
+
+Three fragments, assembled in English word order, and no translator on earth can fix it. Malay does not put those pieces in that sequence. The extraction had produced a key for `'Order '` and a key for `' is '`, which are not phrases, they are debris.
+
+**Localization is not translation. It is the removal of assumptions your code makes about language** — that word order is fixed, that a label fits the same width, that plurals behave like English, that dates and currency read one way.
+
+The second thing we got wrong was translator context. A key called `order_label` with the value "Order" gives a translator no way to know whether that is a noun on a heading or a verb on a button. Malay uses different words. So do most languages, and this is where machine-translated apps get their peculiar tone.
+
+**What I hand it:** the screen code, the existing `.arb` files, and the target locales.
+
+**What I get back:** extracted keys with a description for each one, the concatenations and format assumptions flagged, and a width report for the labels most likely to overflow.
+
+```markdown
+<!-- .ai/prompts/localization.md -->
+Locales: {list}. Existing: lib/l10n/*.arb. Screen: {file}
+
+1. Extract every user-visible string. For each key, write a DESCRIPTION
+   for the translator: part of speech, where it appears, character limit
+   if the layout has one. A key with no description gets guessed at.
+2. Flag every string assembled by concatenation or interpolation across
+   sentence parts. Rewrite as a single parameterised message.
+3. Flag plural and gender handling. Use ICU plural syntax, never
+   `count == 1 ? 'item' : 'items'`.
+4. Flag every date, time, number and currency formatted by hand.
+5. Estimate which labels overflow at +35% length. German and Malay
+   both punish tight English layouts.
+
+Never translate. Produce keys, descriptions and findings only.
+```
+
+The final instruction matters more than it sounds. An agent that helpfully fills in translations produces text that reads as almost right to a native speaker, and almost right is worse than obviously missing, because nobody reports it.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — no hard-coded user-visible strings in widgets
+offenders=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E 'lib/features/.*/presentation/.*\.dart$' \
+  | xargs -r grep -nE "(Text|label|hintText|title):?\s*\(?'[A-Z][a-z ]{3,}" \
+  | grep -v 'AppLocalizations\|context\.l10n')
+
+if [ -n "$offenders" ]; then
+  echo "l10n: hard-coded user-visible string:"
+  echo "$offenders" | sed 's/^/  /'
+  exit 1
+fi
+```
+
+| | |
+| --- | --- |
+| **Skills** | ICU message format · ARB files · locale-aware formatting · layout under text growth |
+| **Triggers on** | Any new user-visible string, any new locale |
+| **Fails the build when** | A presentation widget contains a hard-coded string |
+
+## The Documentation Agent
+
+Our README said `flutter pub get`, then `flutter run`. That was the whole file.
+
+When a fourth developer joined in week six, getting them running took most of a week — not of work, of asking. Which Firebase project? Where does the config come from? Why does the iOS build need that one extra step? Every answer existed in somebody's head, and every question interrupted the person who had it.
+
+The trick with this agent is knowing which documentation to give it. **Automate the documentation that goes stale; keep the documentation that needs judgement.** Setup steps, environment variables, API contracts and configuration all drift the moment code changes, and an agent can regenerate them from the source of truth. Why the team rejected the other architecture is not derivable from the repository, and an agent writing it will produce something plausible and wrong.
+
+**What I hand it:** the repo, the workflow files, the config files and the scripts. Real sources, not prose.
+
+**What I get back:** a setup section derived from what the build actually requires, an environment variable table, an API reference from the contract, and an index of the ADRs with one line each.
+
+```markdown
+<!-- .ai/prompts/documentation.md -->
+Sources of truth: pubspec.yaml, .github/workflows/, lib/config/,
+firebase.json, scripts/. Read these, not the existing README.
+
+Produce:
+1. Setup: the exact steps to a running app on a clean machine, derived
+   from what the workflows actually do. Include what a person must
+   obtain from someone else (access, keys, project invitation).
+2. Environment variables: name, purpose, example, where to get the real one.
+   Never print a real value.
+3. Anything the workflows do that a developer cannot do locally, and why.
+4. An index of docs/adr/ — decision, one line, date.
+
+Do NOT write rationale, architecture explanations, or "why" sections.
+If a reason is not stated in the repo, leave a TODO with the question.
+```
+
+That last rule came from an early draft where an agent explained our state management choice with a paragraph of reasoning we had never had. Convincing, well written, entirely invented. A TODO with the right question is more useful than a confident answer nobody gave.
+
+There is a second audience here that did not exist five years ago. `AGENTS.md` is documentation for agents rather than people, and it obeys the same rule: state what is checkable, leave out what is not. I have written what belongs in it in [the AGENTS.md playbook](../agents-md-complete-playbook).
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — a new env var must be documented before it is used
+for v in $(git diff --cached -U0 -- '*.dart' | grep '^+' \
+           | grep -oE "String\.fromEnvironment\('[A-Z_]+'" \
+           | grep -oE "'[A-Z_]+'" | tr -d "'" | sort -u); do
+  grep -q "$v" .env.example || {
+    echo "docs: '$v' is read by the app but is not in .env.example."
+    echo "The next person to clone this repo will hit it on day one."
+    exit 1
+  }
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Reading config as source of truth · ADR indexing · onboarding paths |
+| **Triggers on** | A new env var, a workflow change, a new ADR |
+| **Fails the build when** | Code reads an environment variable that is undocumented |
+
+## The SEO and AEO Agent
+
+Every mobile product has a web surface. Ours was a marketing page and a help centre, and both were written by whoever had an afternoon.
+
+This is the one agent in this series I can show you working on a real site, because it runs on this one. Two scripts gate every article I publish here: one measures search-facing fields, the other measures whether a page can be quoted.
+
+Here is what the first one taught me. **Search results truncate by pixel width, not by character count.** A title in wide capitals gets cut off well before a title of the same length in narrow lowercase letters, and the brand suffix on every page consumes part of the budget before the words start. So the check measures rendered width and tells me how much room is left. Character limits are a proxy that fails precisely on the titles people write to stand out.
+
+The second script is about a newer problem. A reader who gets their answer from an AI overview never visits the page. What survives that interaction is whether the answer carried your name with it. That is answer engine optimization, and it rewards different structures than ranking does: a question as the heading, the answer in the first two sentences, self-contained blocks that still make sense lifted out of the page.
+
+**What I hand it:** the page, the target query, and what already ranks for it.
+
+**What I get back:** title and description inside the width budget, a FAQ block of real questions, internal links to related pages, and a note on which sections are not quotable in their current form.
+
+```markdown
+<!-- .ai/prompts/seo-aeo.md -->
+Page: {file}. Target query: {query}. Already ranking: {competitors}
+
+SEO:
+1. Title and description, measured by RENDERED WIDTH, not characters.
+   Include the site suffix in the measurement.
+2. The query in the title, the first 100 words, and one heading —
+   written the way a person writes, not stuffed.
+
+AEO:
+3. Headings phrased as the exact question someone types. Under each,
+   answer in the first two sentences, then explain.
+4. Three to six FAQ entries. Real queries only. Each answer must make
+   sense lifted out of the page with no surrounding context.
+5. At least one answer to the sceptical question: when NOT to do this,
+   what it costs. Competing pages skip it, so that is what gets quoted.
+6. Sections that are not quotable as written, and why.
+
+Do not add keywords to prose that reads worse for having them.
+```
+
+Point 5 is the one that changed my results most. Pages that answer only the enthusiastic question all say the same thing, so an answer engine has no reason to prefer any of them.
+
+```bash
+# package.json — the same two gates that run on this blog
+"check:seo": "node scripts/check-seo.mjs",   # title/description, in pixels
+"check:aeo": "node scripts/check-aeo.mjs"    # FAQ, headings, internal links
+```
+
+| | |
+| --- | --- |
+| **Skills** | Rendered-width measurement · answer engine structure · internal linking · schema |
+| **Triggers on** | Every page, before publish |
+| **Fails the build when** | A published page exceeds the width budget or has no FAQ block |
+
+## What I got wrong with these four
+
+- **I treated accessibility as a phase.** It was a week-thirteen audit instead of a commit-time check, so every finding was expensive by the time we saw it.
+- **I extracted strings without giving translators context.** Correct keys, no descriptions, and translations that were grammatically fine and tonally strange.
+- **I let an agent write the "why" sections of our docs.** It produced reasoning we never had, and it read well enough that nobody questioned it for a fortnight.
+- **I optimised pages for ranking and ignored quoting.** Then watched an AI overview answer the exact question my page answered, without naming where it came from.
+
+## Key takeaways
+
+- Accessibility and localization defects are silent for everyone on the team and loud for everyone who is not. That is why a mechanical check beats good intentions.
+- An accessibility agent handles most findings by count and none of the ones about whether the experience makes sense. Keep the human pass and make it a short script.
+- A string built by concatenation cannot be translated. Localization is about removing assumptions, not swapping words.
+- Automate the documentation that goes stale. Leave the reasoning to people, and accept a TODO over an invented explanation.
+- Search truncates by pixels. Answer engines quote self-contained blocks. Those are two different jobs on the same page.
+
+Next in this series: **Part 9 — the meta agents**, the four that build the other twenty-six: prompt engineering, skill builder, hooks generator and the AGENTS.md generator.

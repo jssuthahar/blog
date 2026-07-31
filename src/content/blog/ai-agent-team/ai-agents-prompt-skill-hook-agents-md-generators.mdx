@@ -1,0 +1,275 @@
+---
+title: 'The Meta Agents: Prompt, Skill, Hook and AGENTS.md Generators'
+seoTitle: 'AI Agents That Build AI Agents'
+description: 'The four AI agents that build the other twenty-six — prompt engineering, skill builder, hooks generator and AGENTS.md generator — and what they taught me.'
+highlight: "Looking back at twenty-six agent prompts, nearly every improvement that mattered was a refusal condition: do not report a finding you cannot prove, never invent a business rule, do not translate. Telling an agent what to withhold changed output quality far more than telling it what to produce."
+publishedAt: 2026-07-31
+category: copilot
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Prompt Engineering', 'Copilot Skills', 'SKILL.md', 'Hooks', 'AGENTS.md', 'Automation']
+series: 'ai-agent-team'
+seriesOrder: 9
+draft: true
+faq:
+  - q: 'What makes an AI agent prompt actually work?'
+    a: "A refusal condition. Telling an agent what not to output — do not report a finding without an exploit path, never invent a missing requirement — improves results more reliably than any amount of extra instruction about what to produce."
+  - q: 'How do you decide what belongs in a Copilot Skill?'
+    a: "Derive it from evidence, not intentions. Grep the review comments your team actually repeats and the bugs that recur. A skill written from what you think your standards are describes an aspiration; one written from repeated comments describes your codebase."
+  - q: 'Why do some AGENTS.md rules never get followed?'
+    a: "Because they are not checkable. A rule like 'keep concerns separated' cannot be verified by anything, so nothing enforces it and drift is invisible. If a rule cannot be turned into a script, the problem is usually the rule's vagueness, not the tooling."
+  - q: 'How fast does a pre-commit hook need to be?'
+    a: "Under about two seconds, and never flaky. Past that people start passing --no-verify, and a hook that gets bypassed is worse than no hook because it creates false confidence. Move slow checks to pre-push or CI."
+  - q: 'Should a rule live in a prompt or in AGENTS.md?'
+    a: "In AGENTS.md if more than one agent needs it. Once the same rule is pasted into three prompt files it will drift, and the version that gets updated is never the one the failing agent read."
+---
+
+By the time the project was in production, we had prompts for twenty-six agents. I sat down one evening to tidy them up and found four different house styles, three prompts that never said what shape the output should take, and one that reliably produced a long essay when I wanted a table.
+
+They had been written over four months by three people, each solving the problem in front of them. Nobody had done anything wrong. It was just that the prompts, skills and hooks had become a codebase of their own, and nobody had been maintaining it.
+
+That is what these last four agents are for. They are unglamorous, they feel indulgent until you have twenty-six of the others, and one of them changed how I write every prompt in this series.
+
+## What did four months of prompts actually teach me?
+
+Almost every improvement that mattered was a refusal condition.
+
+Look back through this series and the pattern is hard to miss. The security agent got useful when it was told not to report a finding it could not write an exploit path for. The business analyst agent got useful when it was forbidden from inventing a business rule. The localization agent got useful when it was told never to translate. The documentation agent stopped producing invented reasoning when it was told to leave a TODO instead.
+
+**Telling an agent what to withhold changed output quality more than telling it what to produce.** Instructions about what to generate get followed loosely. A hard boundary about what not to emit gets followed almost exactly, and it turns a plausible-looking output into one you can trust, because the agent's silence now carries information.
+
+I did not know that when I started. It came out of a prompt agent looking at all of them at once.
+
+## The Prompt Engineering Agent
+
+This one does not write prompts from scratch. It diagnoses prompts that are underperforming, which is a much easier job to do well.
+
+The input that makes it work is not the prompt. It is **the prompt plus a bad output plus what I actually wanted.** Give it only the prompt and you get generic advice about being more specific. Give it the essay I did not want next to the table I did, and the diagnosis becomes concrete.
+
+**What I hand it:** the prompt file, one disappointing output, a description of the output I expected, and how often it goes wrong.
+
+**What I get back:** a revised prompt, the single change most responsible for the fix, and a test case I can rerun.
+
+```markdown
+<!-- .ai/prompts/prompt-engineer.md -->
+Prompt under review: {file}
+An output I did not want: {paste}
+What I wanted instead: {describe}. Frequency: {always / sometimes}
+
+Diagnose in this order:
+1. Is the OUTPUT SHAPE specified? Table, diff, file, list, length.
+   Unspecified shape is the most common cause of a wrong-looking answer.
+2. Are there REFUSAL CONDITIONS? What must this agent decline to
+   produce, and what should it say instead? Add them explicitly.
+3. Is any input missing that the agent has to guess at?
+4. Is the scope wider than one job? Two jobs in one prompt means
+   both are done at 70%.
+
+Return: the revised prompt, ONE sentence on the change that mattered
+most, and a test case that distinguishes good output from bad.
+
+Do not rewrite the whole prompt when one constraint fixes it.
+Small diffs are reviewable; rewrites are not.
+```
+
+That last line is not politeness. A prompt agent that returns a complete rewrite every time gives you no way to learn which change worked, and you end up with prompts nobody understands.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — a prompt without boundaries is a wish
+for f in $(git diff --cached --name-only --diff-filter=ACM \
+           | grep -E '^\.ai/prompts/.*\.md$'); do
+  grep -qiE '^\s*(do not|never|if you cannot)' "$f" || {
+    echo "prompt: $f has no refusal condition."
+    echo "State what this agent must NOT output, and what it says instead."
+    exit 1
+  }
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Output shaping · refusal conditions · scope narrowing |
+| **Triggers on** | A prompt that disappoints twice |
+| **Fails the build when** | A prompt file states no boundary on its output |
+
+## The Skill Builder Agent
+
+A prompt is for one job. A skill is knowledge that many jobs load, and I have covered what a skill is and how it loads in [my longer article on Copilot Skills](../github-copilot-skills-deep-dive) — this section is only about producing one. If you want the format itself, [GitHub documents it](https://docs.github.com/en/copilot/tutorials/customization-library/custom-instructions).
+
+The thing I got wrong first was the source material. I wrote our Flutter skill from what I believed our standards were. It was a good document. It described a codebase we did not have, because I had written down the version of our conventions that lived in my head rather than the one in the repository.
+
+The version that worked came from evidence. **Grep your own review comments.** Every rule worth putting in a skill is something somebody has already said more than twice in a pull request, and that history is sitting in your repository right now.
+
+```bash
+gh pr list --state merged --limit 200 --json number \
+  | jq -r '.[].number' \
+  | xargs -I{} gh pr view {} --comments --json comments \
+  | jq -r '.comments[].body' > /tmp/review-comments.txt
+```
+
+Hand that file to the agent and the skill writes itself out of what your team has repeatedly asked for.
+
+**What I hand it:** the repeated review comments, two or three files that are exemplary, and two that are not.
+
+**What I get back:** a `SKILL.md` with rules, and for each rule a right-and-wrong pair drawn from the real code.
+
+```markdown
+<!-- .ai/prompts/skill-builder.md -->
+Evidence: review comments repeated 3+ times: {file}
+Good examples: {paths}. Code we would not repeat: {paths}
+
+Produce a SKILL.md where every rule is:
+- Stated as an instruction, not a principle.
+  "No Firestore call outside data/" — not "separate concerns".
+- Backed by a SHORT right/wrong pair from the real files above.
+- Traceable: which review comment or bug caused this rule to exist.
+
+Constraints:
+- Cut anything not supported by the evidence. An aspiration in a
+  skill file makes the whole file less trusted.
+- Keep it short enough to be loaded in full. If it is growing past
+  that, split by topic rather than trimming the examples —
+  the examples are what makes it work.
+```
+
+The traceability line pays off six months later when someone asks why a rule exists. A rule with a cause gets respected. A rule with no cause gets argued about in every review.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — skills rot when the code they cite moves
+for skill in $(git ls-files '.ai/skills/**/SKILL.md'); do
+  for path in $(grep -oE '(lib|src|test)/[a-zA-Z0-9_/]+\.(dart|cs)' "$skill" | sort -u); do
+    [ -e "$path" ] || {
+      echo "skill: $skill references $path, which no longer exists."
+      echo "A skill citing dead paths teaches the agent a codebase you deleted."
+      exit 1
+    }
+  done
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Evidence gathering from review history · rule writing · example selection |
+| **Triggers on** | The same review comment appearing a third time |
+| **Fails the build when** | A skill cites a file path that no longer exists |
+
+## The Hooks Generator Agent
+
+This agent translates a rule into a script. What surprised me is how often it comes back and says the rule cannot be translated — and that refusal turned out to be its most useful output.
+
+We had a rule that said "handle errors properly". Perfectly reasonable sentence. The agent asked what a script would look for and the answer was nothing, because the rule does not say anything checkable. Rewriting it as "no empty catch blocks; every caught exception is either reported or rethrown" produced a rule *and* the hook you saw in [Part 5](../ai-agents-devops-release-monitoring-analytics) in about a minute.
+
+**If a rule cannot become a hook, the rule is usually vague rather than the tooling being limited.** That reframing alone cleaned up a third of our AGENTS.md.
+
+There is an operational constraint here that people learn the hard way. A pre-commit hook has a budget of about two seconds. Past that, or if it is flaky, developers start passing `--no-verify`, and a bypassed hook is worse than no hook because it looks like protection. So the generator has to state its runtime and offer to move slow checks later in the pipeline. The mechanics of writing hooks are in [Copilot hooks for beginners](../github-copilot-hooks-for-beginners); what matters here is the budget.
+
+```markdown
+<!-- .ai/prompts/hooks-generator.md -->
+Rule: "{rule}". Repo layout: {tree}. Stage: pre-commit / pre-push / CI
+
+First, answer honestly: can a script check this rule?
+If not, say what makes it uncheckable and propose a checkable
+rewrite. Do NOT produce a hook that approximates a vague rule —
+a hook with false positives gets disabled within a week.
+
+If yes, produce:
+1. The script. Only staged/changed files, never the whole repo.
+2. A failure message that says what to DO, not what went wrong.
+3. Two fixtures: one that must fail, one that must pass.
+4. The measured runtime, and if it exceeds 2s at pre-commit,
+   say which later stage it belongs in instead.
+```
+
+Point 2 is a small thing that changes adoption. "Violation of rule 4" makes someone go looking. "Move the call into a repository under `features/<name>/data/`" makes them fix it and carry on.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-push — hooks that are slow or untested get bypassed
+for h in .githooks/*; do
+  [ -x "$h" ] || continue
+  [ -d "test/hooks/$(basename "$h")" ] || {
+    echo "hooks: $(basename "$h") has no pass/fail fixtures."; exit 1; }
+
+  start=$(date +%s%N)
+  "$h" >/dev/null 2>&1
+  ms=$(( ($(date +%s%N) - start) / 1000000 ))
+  [ "$ms" -lt 2000 ] || {
+    echo "hooks: $(basename "$h") took ${ms}ms. Move it to pre-push or CI."
+    exit 1; }
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Shell and CI scripting · staged-file filtering · fixture testing |
+| **Triggers on** | A new rule in AGENTS.md or an ADR |
+| **Fails the build when** | A hook has no fixtures or exceeds its time budget |
+
+## The AGENTS.md Generator Agent
+
+I have written the long version of what belongs in this file in [the AGENTS.md playbook](../agents-md-complete-playbook), so here I want to say the one thing this project taught me that the playbook does not.
+
+`/init` gives you a good draft of what a tool can see: dependencies, folder structure, patterns already consistent in the code. What it cannot see is policy, or which of two competing patterns you have decided to keep going forward. That much I knew.
+
+What I did not expect was the role this file ended up playing after twenty-six agents existed. **AGENTS.md became the deduplication layer.**
+
+When the prompt agent looked at all our prompts together, the same rule about Firebase living behind the data layer appeared in five of them, in five slightly different wordings. One had been updated when the rule changed. Four had not. So the agent whose prompt was stale kept producing code against a rule we had abandoned, and it looked exactly as confident as the others.
+
+Once a rule is needed by more than one agent, it belongs in one file that all of them read. Prompts hold the job. AGENTS.md holds the shared truth.
+
+```markdown
+<!-- .ai/prompts/agents-md-generator.md -->
+Inputs: repo tree, docs/adr/, .ai/prompts/*, existing AGENTS.md
+
+Produce:
+1. A duplication report FIRST: rules stated in more than one prompt,
+   with each wording, and which one is newest. This is the highest
+   value output — divergent copies are how agents go stale.
+2. AGENTS.md: project overview, architecture, folder rules, naming,
+   security rules, testing expectations, branch and release process.
+   Every rule stated so it could become a hook.
+3. Edits to each prompt: delete the duplicated rule, cite AGENTS.md.
+4. Rules present in the code but written down nowhere.
+
+Do not include: rationale (that is an ADR), business logic beyond
+boundaries, anything that changes weekly. Long files stop being read,
+and an unread AGENTS.md is worse than a short one.
+```
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — a rule in three prompts belongs in AGENTS.md
+dupes=$(cat .ai/prompts/*.md \
+  | grep -oiE '(never|do not|always) [a-z0-9 ._/-]{12,60}' \
+  | sort | uniq -c | awk '$1 > 2 {$1=""; print}')
+
+if [ -n "$dupes" ]; then
+  echo "agents-md: these rules are repeated across prompts:"
+  echo "$dupes" | sed 's/^/  /'
+  echo "Move them into AGENTS.md before the copies drift apart."
+  exit 1
+fi
+```
+
+| | |
+| --- | --- |
+| **Skills** | Rule extraction · duplication detection · ADR reading |
+| **Triggers on** | A new agent, a changed convention, any rule appearing twice |
+| **Fails the build when** | The same rule is stated in three or more prompts |
+
+## What I got wrong with these four
+
+- **I wrote our first skill from memory.** It described the codebase I thought we had. The review comments described the one we did have, and they were free.
+- **I let a prompt agent rewrite prompts wholesale.** Fast, and I learned nothing. Constrain it to the smallest change that fixes the problem.
+- **I built a pre-commit hook that took nine seconds.** Within a fortnight two people were using `--no-verify` by habit, which quietly disabled every other hook as well.
+- **I duplicated rules across prompts for months.** Five copies, one updated, four teaching agents a convention we had dropped.
+
+## Key takeaways
+
+- Refusal conditions do more for agent output than any amount of instruction about what to produce. Say what it must not emit.
+- Build skills from evidence. Your repeated review comments are a written record of your real standards, and you already have them.
+- A rule that cannot become a hook is usually a vague rule. Treat the refusal as feedback about the rule.
+- Keep pre-commit under two seconds. A bypassed hook is worse than no hook, because it looks like protection.
+- Once a rule is needed by two agents, move it to AGENTS.md. Copies drift, and the stale one never announces itself.
+
+Next, and last: **Part 10 — one Flutter and Firebase feature walked through every agent in this series**, from the kickoff sentence to the release, plus the mistakes I would tell you to skip.

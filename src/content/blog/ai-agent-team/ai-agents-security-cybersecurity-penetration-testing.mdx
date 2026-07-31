@@ -1,0 +1,224 @@
+---
+title: 'Security, Cybersecurity and Penetration Testing AI Agents'
+seoTitle: 'AI Agents for App Security'
+description: 'Three AI security agents that disagree with each other on purpose — code security, system cybersecurity and penetration testing — with prompts and hooks.'
+highlight: "Our Firestore rules let any signed-in user read any other user's orders, and they sat there for six weeks while a security agent reported the file as fine. It was reading the rules in the repo; production was running rules from four commits earlier. An agent's answer is only as true as the input you handed it."
+publishedAt: 2026-07-31
+category: copilot
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Security', 'Cybersecurity', 'Penetration Testing', 'Firebase', 'Firestore Rules', 'Threat Modelling', 'OWASP']
+series: 'ai-agent-team'
+seriesOrder: 6
+draft: true
+faq:
+  - q: 'What is the difference between a security agent and a cybersecurity agent?'
+    a: "A security agent reviews the code and rules you wrote — authorization logic, input handling, what a request is allowed to do. A cybersecurity agent reviews the system around that code: identity, secrets, CI, third parties, and how far an attacker gets once one credential leaks."
+  - q: 'Can an AI agent replace a penetration tester?'
+    a: "No. It covers the repetitive layer well — broken object-level authorization, missing checks, enumeration — which is most of what a first pen test finds. It will not chain three small weaknesses into an attack. Before you handle payments at scale, hire a human."
+  - q: 'Why did an AI security review miss open Firestore rules?'
+    a: "Because it reviewed the rules file in the repository, and production was running a version from four commits earlier. The finding was correct about the input it was given. Always pin a security agent to what is deployed, not what is committed."
+  - q: 'How do you stop a security agent from producing a list of generic risks?'
+    a: "Require an exploit path for every finding: the request an attacker sends, as which identity, and what comes back. A finding that names a category without a path is a reminder that the category exists, and it buries the findings that matter."
+  - q: 'What should the output of an AI penetration testing agent be?'
+    a: "Attack scripts that stay in CI, not a report. A report describes one afternoon. A suite that signs in as user A, asks for user B's data and fails the build when it succeeds keeps working every time someone edits the rules."
+---
+
+I found it on a Tuesday, three weeks before launch, doing a security review nobody had scheduled because nobody owned security.
+
+I opened `firestore.rules` for the first time since week two. It said, in effect, that any signed-in user could read any document in the orders collection. Not their orders. Any orders. Name, address, phone number, order history, for every customer in the pilot.
+
+The app had never done anything wrong with that permission, which is why nothing ever went bang. Our client only ever asked for its own data, so the rules never got exercised. A world-readable database and a correctly-behaving app look identical from inside the app.
+
+What makes this story worth telling is not the rule. It is that we had already reviewed it. Weeks earlier I had asked an agent to check our security rules and it came back clean, and it was right — about the file in the repository. Production was running rules deployed four commits earlier, from before someone tightened them locally and never deployed. The agent answered the question I asked, honestly, about the artefact I gave it.
+
+**An agent's answer is only as true as the input you hand it, and a confident report on the wrong input is worse than no report.**
+
+## Why three security agents instead of one?
+
+Because they ask different questions, need different inputs, and are supposed to contradict each other.
+
+| Agent | Question it asks | Input |
+| --- | --- | --- |
+| **Security** | Is this code and are these rules correct? | The diff, the deployed rules, the auth model |
+| **Cybersecurity** | If one credential leaks, how far does the attacker get? | Architecture, identity, secrets, CI, third parties |
+| **Penetration Testing** | Can I actually break what those two approved? | Running staging environment, two test accounts |
+
+Merge them and you get the generic security review everyone has read: a list of OWASP categories, no exploit paths, and a recommendation to follow secure coding practice. Three narrow agents produce three specific answers, and the disagreements between them are the useful part. Our rules review passed the first agent and would have died instantly against the third.
+
+## The Security Agent
+
+This agent reviews what you wrote. Code, rules, authorization logic, input handling, and the places where a client value is trusted that should not be.
+
+The rule that makes it useful is the same shape as the one that fixed code review in [Part 4](../ai-agents-testing-code-review-performance-ui). There, every finding had to cite a rule. Here, **every finding has to carry an exploit path**: the request an attacker sends, as which identity, and what comes back. No path, no finding.
+
+Without that constraint you get output like "consider validating user input" and "the app may be vulnerable to insecure data storage", which is true of every app ever written. With it, you get: *sign in as any user, call this collection with no document filter, receive every customer's phone number.* One of those gets fixed on Tuesday.
+
+**What I hand it:** the diff, the **deployed** rules pulled fresh rather than the file in the repo, the auth model, and a one-line classification of what data is sensitive.
+
+**What I get back:** findings ranked by exploitability, each with the path, the fix, and the test that proves the fix.
+
+```markdown
+<!-- .ai/prompts/security-review.md -->
+Scope: this diff, plus the rules as currently DEPLOYED (attached).
+Sensitive data: {classification}. Auth model: {roles and how they are proved}
+
+For every finding, give:
+1. The exploit path. Concretely: who signs in, what request they send,
+   what they get back that they should not.
+2. Severity, justified by what the attacker gains — not by category name.
+3. The fix, as a diff.
+4. The test that fails before the fix and passes after.
+
+If you cannot write step 1, do not report the finding.
+
+Specific to Firebase:
+- `request.auth != null` is authentication, not authorization. Treat every
+  such rule as a finding unless a second condition constrains the document.
+- Check every rule against a second signed-in user, not only against
+  an anonymous one.
+```
+
+The last two lines are the whole six weeks, compressed. I have written a longer version of how far this kind of review can be trusted in [building a Copilot security agent for legacy systems](../github-copilot-security-agent-legacy-systems), and the conclusion there holds here: the agent is a first pass, and the deterministic scanners stay the gate.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — new Android permissions need a written justification
+new=$(git diff --cached -U0 -- android/app/src/main/AndroidManifest.xml \
+      | grep '^+' | grep -oE 'android\.permission\.[A-Z_]+' | sort -u)
+
+for p in $new; do
+  grep -q "$p" docs/security/permissions.md || {
+    echo "security: new permission $p has no entry in docs/security/permissions.md"
+    echo "Write why it is needed and what it exposes, then commit again."
+    exit 1
+  }
+done
+```
+
+Permissions creep the way dependencies do. One library wants location, another wants contacts, and eighteen months later the store listing asks for things nobody on the team can explain.
+
+| | |
+| --- | --- |
+| **Skills** | Firestore rules · [OWASP Mobile Top 10](https://owasp.org/www-project-mobile-top-10/) · auth models · secure input handling |
+| **Triggers on** | Every diff that touches rules, auth or data access |
+| **Fails the build when** | A permission appears with no written justification |
+
+## The Cybersecurity Agent
+
+Different job. This one does not read your widget code. It asks what happens when something outside the code goes wrong.
+
+Here is the contrast that convinced me the two roles are separate. Early on, someone noticed our Firebase API key sitting in the client bundle and raised it as an incident. It is not one — that key identifies the project, and [Firebase is designed on the assumption it is public](https://firebase.google.com/docs/projects/api-keys), which is exactly why security rules carry the weight instead. We spent an afternoon on it.
+
+Meanwhile a service account JSON with broad project rights had been echoed into a CI log during a debugging session, and the log was readable by anyone who could see the repository. Nobody raised that, because it was not visible in an app anyone could download.
+
+That is the pattern. Teams fear the credential they can see and miss the one that can do damage. A cybersecurity agent's job is to rank credentials by blast radius rather than by visibility.
+
+**What I hand it:** the architecture, the identity model, every credential and where it lives, the CI configuration, and the third parties with access.
+
+**What I get back:** a threat model organised by blast radius, a rotation plan, and the honest answer to what an attacker gets from each credential.
+
+```markdown
+<!-- .ai/prompts/cybersecurity.md -->
+Architecture: {system}. Identity: {who authenticates, how, and to what}
+Credentials: {every key, token and service account, and where it lives}
+CI: {workflows, who can trigger them}. Third parties: {vendors and scope}
+
+Produce:
+1. Every credential ranked by BLAST RADIUS — what an attacker does with it —
+   not by how exposed it is. Say plainly which ones are public by design.
+2. For the top three: the rotation procedure, and what breaks during rotation.
+3. CI attack surface. Who can run a workflow, what secrets it sees, and
+   whether a fork's pull request can reach any of them.
+4. Third-party access nobody has reviewed in six months.
+5. What an attacker gets from a stolen device with the app installed.
+
+Do not report the presence of a public-by-design key as a vulnerability.
+Say why it is safe and move on.
+```
+
+The CI question in point 3 is the one that finds real problems in small teams, and the classic is a workflow triggered by `pull_request_target` that checks out the pull request's own code. That combination hands repository secrets to anyone who can open a pull request from a fork.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — the CI pattern that leaks secrets to forks
+for f in $(git diff --cached --name-only --diff-filter=ACM \
+           | grep -E '^\.github/workflows/.*\.ya?ml$'); do
+  grep -q 'pull_request_target' "$f" || continue
+  grep -qE 'ref:\s*\$\{\{\s*github\.event\.pull_request\.head' "$f" && {
+    echo "cybersecurity: $f runs pull_request_target and checks out fork code."
+    echo "That workflow can hand repository secrets to any fork. Split it."
+    exit 1
+  }
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Threat modelling · secret rotation · CI attack surface · identity and blast radius |
+| **Triggers on** | A new credential, a new vendor, any CI change |
+| **Fails the build when** | A workflow exposes secrets to untrusted code |
+
+## The Penetration Testing Agent
+
+The third agent's job is to disbelieve the first two. It runs against your own staging environment, with your own test accounts, on a system you own — and everything below assumes exactly that.
+
+The version of this that would have saved our six weeks is embarrassingly small. Sign in as user A. Ask for user B's order document. Assert that it fails. Twelve lines.
+
+That test did not exist because writing it felt like paranoia. We had read the rules. Reading is not testing, and it turns out I cannot reliably read an authorization rule and know what it does, which is the same reason I do not trust myself to read a regular expression and know what it matches.
+
+**What I hand it:** the deployed rules, the API contract, and two test identities in staging that own different data.
+
+**What I get back:** attack scripts, and this is the part that matters — **the output is a test suite, not a report.** A pen test report describes one afternoon in March. A suite that runs on every push keeps working after the next person edits the rules.
+
+```markdown
+<!-- .ai/prompts/pentest.md -->
+Target: our own staging project. Accounts: userA and userB, different data.
+Scope: Firestore rules and the API contract attached. Staging only.
+
+Write executable tests, one per attack, that FAIL if the attack succeeds:
+1. Object-level authorization. As userA, read/write every document type
+   owned by userB. One test per collection. This is the boring one
+   and it is where real findings live.
+2. Field-level. Can userA change a field only the server should set —
+   order status, price, role?
+3. Enumeration. Can userA discover that a document exists without
+   reading it? Do error messages differ for missing versus forbidden?
+4. Client-trust. Every value the client sends: what happens if it lies?
+
+Output runnable tests against the emulator, not prose.
+End with what you could NOT test and needs a human.
+```
+
+The honest limit belongs here, said plainly. An agent doing this will find broken object-level authorization, missing checks and enumeration — which is most of what a first pen test finds anywhere. It will not chain three small weaknesses into one real attack, and it has no instinct for the odd thing that makes a human tester stop and dig. Before real money moves at real volume, you bring in a person.
+
+```bash
+#!/usr/bin/env bash
+# CI on every push — the attack suite runs against the emulator
+firebase emulators:exec --only firestore,auth "npm run test:attacks" || {
+  echo "pentest: an attack succeeded. Someone edited the rules and"
+  echo "opened access. See the failing test for the exact request."
+  exit 1
+}
+```
+
+| | |
+| --- | --- |
+| **Skills** | Firebase emulator suite · authorization testing · enumeration and IDOR patterns |
+| **Triggers on** | Every push, every rules change, before every release |
+| **Fails the build when** | Any attack in the suite succeeds |
+
+## What I got wrong with these three
+
+- **I gave the security agent the repository instead of production.** Everything downstream of that was correct and useless. Now the rules get pulled from the deployed project before any review.
+- **I accepted findings without exploit paths.** For a while our security output was a list of categories that made everyone feel diligent and changed nothing.
+- **I ranked credentials by how visible they were.** The public key got the afternoon. The service account in the CI log got nothing.
+- **I thought reading the rules counted as testing them.** It does not, for the same reason reading a regular expression does not.
+
+## Key takeaways
+
+- A world-readable database and a correctly-behaving app look identical from inside the app. Only a second identity reveals the difference.
+- Pin security review to what is deployed. A clean report on a stale artefact is the most dangerous output an agent can give you.
+- Require an exploit path for every finding. Categories without paths bury the findings that matter.
+- Rank credentials by blast radius, not by visibility. The scary-looking key is often public by design; the quiet one in the CI log is not.
+- A penetration testing agent should produce tests that live in CI, not a report that ages.
+
+Next in this series: **Part 7 — the Dependency, Open Source License, Copyright and Privacy agents**, including the package Nikhil found in `pubspec.yaml` that cost us four days and very nearly the launch.

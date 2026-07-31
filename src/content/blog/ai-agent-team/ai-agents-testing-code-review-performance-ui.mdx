@@ -1,0 +1,269 @@
+---
+title: 'AI Agents for Testing, Code Review, Performance and UI Review'
+seoTitle: 'AI Agents for Testing and Review'
+description: 'The four AI agents that check the work — UI review, testing, code review and performance — with the prompts and hooks that make their findings trustworthy.'
+highlight: "We had 200 passing tests and still shipped the bug, because the tests were written from the code instead of from the requirements. A testing agent pointed at your implementation writes an expensive description of what the code already does. Point it at the acceptance criteria and it starts finding what the code forgot."
+publishedAt: 2026-07-31
+category: engineering
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Code Review', 'Testing', 'Flutter', 'Performance', 'UI Review', 'Riverpod']
+series: 'ai-agent-team'
+seriesOrder: 4
+draft: true
+faq:
+  - q: 'Should an AI testing agent read the code it is testing?'
+    a: "Only after it has written the tests from the requirements. An agent that reads the implementation first writes tests that assert what the code does, which passes forever and catches nothing. Give it the acceptance criteria, then let it read the code to wire the test up."
+  - q: 'Can an AI code review agent replace a human reviewer?'
+    a: "No. It reliably catches rule violations — a call in the wrong layer, a missing error state, an untested branch. It cannot tell you the feature solves the wrong problem, or that this abstraction will hurt in six months. Give it the mechanical layer so humans have attention left for the rest."
+  - q: 'Why does an AI performance agent give generic advice?'
+    a: "Because it was given no numbers. Without a profile or a baseline it can only recite general Flutter advice. Hand it frame timings, a build size or a trace and it starts ranking real findings by measured cost."
+  - q: 'What should a UI review agent check that a designer would not?'
+    a: "The states nobody designs: loading, empty, error and offline. Designers produce the happy path in a mockup, and the empty state gets discovered in production as a blank white screen that looks like a crash."
+  - q: 'How do you stop an AI review agent from producing noise?'
+    a: "Require every finding to cite the rule it violates, from AGENTS.md or an ADR, and drop anything it cannot cite. Uncited findings are style opinions, and a review full of style opinions gets ignored along with the real findings."
+---
+
+Two hundred tests. All green. The cancel-order bug shipped anyway.
+
+I remember checking the test run twice, because it did not seem possible. We had unit tests, widget tests, a coverage number somebody was proud of. And the refund still went out for an order the restaurant had already started cooking.
+
+The reason took an hour to find and about two years to fully accept. Every one of those tests had been written by reading the code. They asserted, in careful detail, what the implementation already did. Nobody had written a test from the requirement, because the requirement was six words long and had a hole in the middle of it.
+
+That is the theme of this part. [Part 3](../ai-agents-flutter-backend-api-database-firebase) built the code. These four agents check it, and each one is only as good as what you point it at.
+
+## Why do AI-written tests pass while bugs still ship?
+
+Because a test written from the implementation cannot disagree with the implementation. It is a description, not a check.
+
+This is the single most common failure I see when people first put an agent on testing. The results look excellent. Coverage goes up, the suite is thorough, everything is green, and the suite has no opinion about correctness at all. It will keep passing while the behaviour is wrong, and it will keep passing after someone changes the behaviour, as long as they change the tests to match.
+
+The fix is an input change, not a prompt trick. Point the agent at `docs/requirements/<feature>.md` from [Part 2](../ai-agents-project-planning-business-analyst-architect) and let it read the code afterwards, only to wire the test up.
+
+## The UI/UX Review Agent
+
+Eleven screens. Four different loading spinners. Three empty states that looked nothing like each other, and one screen with no empty state at all — a brand new user opened the orders tab and got a blank white page. Support logged it as a crash. It was not a crash. It was a list with nothing in it, rendering exactly as written.
+
+Nobody designed that screen badly. Nobody designed it at all, because empty states do not appear in mockups. Designers hand you the happy path with realistic-looking data in it, and the four states that make an app feel finished get invented by whoever writes the widget on the day.
+
+That is this agent's job. Not taste — states and consistency.
+
+**What I hand it:** the screen's widget code, the design token file, and a screenshot if there is one. The token file is what turns "this spacing looks off" into "this uses 14, the scale has 12 and 16".
+
+**What I get back:** a findings list with severity, a state matrix showing which of loading, empty, error and offline each screen handles, and a note on every hard-coded value that should be a token.
+
+```markdown
+<!-- .ai/prompts/ui-review.md -->
+Review this screen against design/tokens.dart.
+
+For the screen, fill in a state matrix — loading, empty, error, offline —
+and say what the user sees in each. If a state is unhandled, say what
+they see today. "Blank screen" is a finding, not a gap in your knowledge.
+
+Then list:
+1. Values not drawn from the token scale (spacing, colour, radius, type).
+2. Anything inconsistent with the pattern in features/orders/presentation/.
+3. Text that will overflow at 200% font scale or in a long translation.
+
+Rank findings: broken > inconsistent > preference.
+Report nothing in the preference band unless asked.
+```
+
+The overflow check in point 3 earns its place on a Malaysian project. English and Malay do not share a length, and a row that fits in one language wraps badly in the other. Localization gets its own agent in Part 8, but catching it during UI review is cheaper.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — every screen handles its four states
+for f in $(git diff --cached --name-only --diff-filter=ACM \
+           | grep -E 'lib/features/.*_screen\.dart$'); do
+  for state in AppLoading AppEmpty AppError; do
+    grep -q "$state" "$f" || {
+      echo "ui: $f does not render $state."
+      echo "A screen with no empty state ships as a blank page."
+      exit 1
+    }
+  done
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Your design tokens · Flutter layout · state matrix review |
+| **Triggers on** | A new screen, a change to a shared widget |
+| **Fails the build when** | A screen file does not reference the shared loading, empty and error widgets |
+
+## The Testing Agent
+
+So: acceptance criteria in, tests out. The ordering of inputs is the whole design of this agent.
+
+There is a second ordering that matters, and I learned it on legacy work rather than on this project. When code already exists and you do not trust it, you do not write tests that assert the correct behaviour — you write tests that capture the current behaviour first, so you can tell whether your change altered anything. That is a different technique with a different purpose, and I have written it up separately in [characterization tests for legacy code](../safely-change-legacy-code-github-copilot-characterization-tests). For new code, requirements first.
+
+**What I hand it:** the requirements file with its Given/When/Then criteria, the fake repository the Flutter agent produced, and the criterion IDs.
+
+**What I get back:** tests named after the criterion they prove, one behaviour per test, plus an explicit list of criteria it could not test and why. That last list is the part I read first.
+
+```markdown
+<!-- .ai/prompts/testing.md -->
+Source of truth: docs/requirements/{feature}.md. Read it first.
+Do NOT read the implementation until every criterion has a test name.
+
+For each acceptance criterion:
+- One test, named `AC-{id}: {behaviour}`.
+- Use the fake repository. No network, no emulator.
+- Include the edge cases from the requirements table, not just the
+  happy path.
+
+Then, separately:
+1. Criteria you could not test, and what is missing (a seam, a fake, a hook).
+2. Behaviour the code has that NO criterion covers. This list is the
+   interesting one — it is either an undocumented requirement or a bug.
+
+Never change production code to make a test pass. Report the obstacle.
+```
+
+Point 2 in that second section is where this agent pays for itself. Behaviour with no requirement behind it is either something the business forgot to tell you or something the code does by accident. On the cancel feature, that list would have had one entry, and it was the refund.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-push — every acceptance criterion has a test that names it
+fail=0
+for doc in docs/requirements/*.md; do
+  feature=$(basename "$doc" .md)
+  for id in $(grep -oE '^AC-[0-9]+' "$doc" | sort -u); do
+    grep -rq "$id" test/ || {
+      echo "testing: $id in $feature has no test naming it."; fail=1; }
+  done
+done
+exit $fail
+```
+
+Coverage percentage tells you which lines ran. This tells you which promises are checked. They are not the same measurement, and only one of them would have caught our refund.
+
+| | |
+| --- | --- |
+| **Skills** | Flutter widget and unit testing · fakes over mocks · characterization testing for legacy code |
+| **Triggers on** | A merged requirements file, any behaviour change |
+| **Fails the build when** | An acceptance criterion has no test referencing its ID |
+
+## The Code Review Agent
+
+I counted once. In a month I typed some version of "this should sit behind the repository" eleven times, "pull this string into the constants file" nine times, and "what happens when this future throws?" more than twenty. Same comments, same rules, different pull requests, every month for years.
+
+That is the work this agent takes. Not review — the mechanical layer of review, so the humans still have attention left when they reach the part that needs judgement.
+
+I want to be plain about the limit, because I have written a whole article about it in [what Copilot code review can and cannot automate](../github-copilot-automate-code-review-limits). An agent will not tell you the feature solves the wrong problem. It will not tell you this abstraction is going to hurt in six months, or that the person who wrote this was rushed and the real fix is a conversation. Those are the reviews that matter most, and they are still yours.
+
+**What I hand it:** the diff, `AGENTS.md`, and the ADRs. Rules only. No general style guide.
+
+**What I get back:** findings, each one citing the rule it breaks. Anything it cannot cite gets dropped before I see it.
+
+```markdown
+<!-- .ai/prompts/code-review.md -->
+Review this diff against AGENTS.md and docs/adr/.
+
+Every finding MUST cite the rule it violates, by file and section.
+If you cannot cite a rule, do not report it. Style preferences are noise,
+and a review full of noise gets skimmed past the real findings.
+
+Report in this order:
+1. Violations of a recorded rule — with the rule quoted.
+2. Error paths with no handling, and futures with no catch.
+3. Behaviour changed with no test touched.
+
+Do NOT comment on formatting. The formatter owns that.
+Do NOT suggest a rewrite of code that follows the rules and works.
+
+End with: what a human reviewer should look at that you could not judge.
+```
+
+That last line changed how the team used it. The agent handed the human a short list of things it knew it was not qualified to assess, and the review conversation started there instead of at line one.
+
+```bash
+#!/usr/bin/env bash
+# .github/workflows step — rule violations block, everything else comments
+findings=$(ai-review --diff origin/main...HEAD --rules AGENTS.md --json)
+
+blocking=$(echo "$findings" | jq '[.[] | select(.cites != null)] | length')
+echo "$findings" | jq -r '.[] | "\(.file):\(.line) \(.message) [\(.cites // "uncited")]"'
+
+if [ "$blocking" -gt 0 ]; then
+  echo "review: $blocking rule violation(s). See AGENTS.md."
+  exit 1
+fi
+```
+
+| | |
+| --- | --- |
+| **Skills** | Your AGENTS.md rules · ADR set · language idioms |
+| **Triggers on** | Every pull request |
+| **Fails the build when** | A finding cites a recorded rule the diff breaks |
+
+## The Performance Optimization Agent
+
+Around week seven the app got slower. Not suddenly — nobody could point at a build and say it started there. The order list had begun to stutter while scrolling, and the answer we kept giving ourselves was that it was fine on the newer test devices.
+
+The first time I asked an agent about it, I got a page of correct, useless advice. Use `const` constructors. Avoid rebuilding large subtrees. Consider `ListView.builder`. All true, none of it aimed at our problem, because I had given it no numbers and it did the only thing it could.
+
+Then I ran the profiler and handed over the actual frame timings and a widget rebuild count. The answer changed completely: one provider held the entire order list, every status update rewrote the whole list object, and every visible row rebuilt on every update. Sixty rows rebuilding for one row's change.
+
+**What I hand it:** a measurement. Frame timings from DevTools, a rebuild profile, a build size breakdown, a cold start trace. Something with numbers in it.
+
+**What I get back:** findings ranked by measured cost, each with one specific change and what to re-measure afterwards.
+
+```markdown
+<!-- .ai/prompts/performance.md -->
+Baseline: {frame timings / rebuild counts / size report / trace}
+Target device: {device}. Symptom: {what a user notices}
+
+Rank findings by measured cost, highest first. For each:
+- The number that proves it is a problem.
+- One change, scoped to the smallest possible diff.
+- What to re-measure, and what number means it worked.
+
+If the measurement does not support a finding, say the measurement
+is insufficient and name the profile you need. Do not fall back
+to general advice — I can read the docs myself.
+```
+
+That last instruction is the one that makes this agent useful instead of a search engine. The [Flutter performance documentation](https://docs.flutter.dev/perf) already exists and is good. What I need is a ranking against my numbers.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-push — release build size may not drift silently
+BASE=perf/baseline-size.json
+flutter build apk --release --analyze-size --target-platform android-arm64 \
+  --split-debug-info=build/symbols > /dev/null
+
+current=$(jq '[.children[].value] | add' build/apk-code-size-analysis.json)
+baseline=$(jq '.total' "$BASE")
+growth=$(( (current - baseline) * 100 / baseline ))
+
+if [ "$growth" -gt 5 ]; then
+  echo "perf: release size grew ${growth}% over baseline ($baseline -> $current)."
+  echo "Either justify it and update $BASE, or find what you added."
+  exit 1
+fi
+```
+
+Size is not the only thing worth gating, but it is the one that regresses quietly and is trivial to measure. Frame timing gates need a real device in CI, which most teams do not have on day one.
+
+| | |
+| --- | --- |
+| **Skills** | Flutter DevTools · Riverpod rebuild scope · build size analysis |
+| **Triggers on** | A reported symptom, a release build, a new dependency |
+| **Fails the build when** | Release size grows more than 5% over the recorded baseline |
+
+## What I got wrong with these four
+
+- **I let the testing agent read the implementation first.** Two hundred green tests describing the code. It felt like progress for weeks.
+- **I let the review agent report style opinions.** Within a fortnight people were skimming its comments, which meant they skimmed the real findings too. Requiring a citation fixed it in one prompt change.
+- **I asked the performance agent for advice instead of a ranking.** No numbers in, no numbers out.
+- **I treated UI review as taste.** It is not. It is a state matrix and a token scale, both of which a script can check, and both of which we discovered in production instead.
+
+## Key takeaways
+
+- A test written from the implementation cannot disagree with the implementation. Requirements first, code second.
+- Ask the testing agent for behaviour that no criterion covers. That list is either a missing requirement or a bug.
+- Make every review finding cite a rule. Uncited findings are noise, and noise hides the real ones.
+- A performance agent with no measurement produces documentation. Hand it numbers and it produces a ranking.
+- Loading, empty, error and offline are the four states nobody designs and every user eventually sees.
+
+Next in this series: **Part 5 — the DevOps, Release Management, Monitoring and Analytics agents**, and the release notes problem that only exists because we had never actually released anything.

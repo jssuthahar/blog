@@ -1,0 +1,144 @@
+---
+title: 'The AI Coding Agent Team Every Software Project Needs'
+seoTitle: 'The AI Coding Agent Team'
+description: 'One AI coding agent is not a team. The 30 agent roles a real software project needs, what each one owns, and the four worth building first.'
+highlight: "An AI coding agent is one developer, not a team. On our Flutter and Firebase project the code was finished in nine weeks and the release still took five more, because nobody had automated the twenty-odd jobs that sit around the code — security rules, licenses, release notes, accessibility, analytics. Start with four agents, not thirty."
+publishedAt: 2026-07-31
+category: copilot
+tags: ['GitHub Copilot', 'AI Coding Agents', 'Copilot Skills', 'AGENTS.md', 'Hooks', 'Flutter', 'Firebase', 'Riverpod', 'Architecture']
+series: 'ai-agent-team'
+seriesOrder: 1
+draft: true
+faq:
+  - q: 'What is the difference between an AI agent and a Copilot Skill?'
+    a: "A Skill is knowledge — a file describing how your team writes Flutter, loaded when it is relevant. An agent is a role: a scope of work, the skills it loads, and a definition of done. One agent can use several skills, and the same skill can be shared by several agents."
+  - q: 'Do I need 30 AI agents on a small project?'
+    a: "No. Two people building a side project need about four: architecture, code review, testing and security. The other roles are still real work, but you do them by hand until the pain of doing them by hand is worse than the cost of writing the agent."
+  - q: 'Can one AI agent do all of these jobs?'
+    a: "It can attempt them, and that is the trap. An agent with thirty responsibilities has no clear definition of done, so it returns a mixed answer covering everything shallowly. Narrow scope is what makes agent output reviewable."
+  - q: 'Where do AI agent files live in a repository?'
+    a: "Put the shared context in AGENTS.md at the repo root and tool-specific instructions where the tool reads them, such as .github/copilot-instructions.md. Prompts, skills and agent definitions can live under a .ai/ folder, but check what your tool actually loads."
+  - q: 'When should you not use an AI agent for a task?'
+    a: "When the check can be a script. License scanning, secret detection and dependency audits are deterministic — a hook that exits non-zero is faster, cheaper and cannot hallucinate. Use agents for judgement, and hooks for rules."
+---
+
+The build was green. Every test passed. GitHub Copilot had written a good share of the code in that repo, and honestly, none of it was bad.
+
+We still could not ship.
+
+This was a food delivery app — Flutter on the front, Firebase behind it, a small team split between Kuala Lumpur and Coimbatore. Feature-complete in nine weeks, which everyone was pleased about. Getting it into production took five more. That gap is what this series is about, because an AI coding agent is one developer on your team, not the team itself. A software project needs roughly thirty jobs done well, and only a handful of them involve typing code.
+
+## What actually held up the release
+
+Here is what those five weeks were spent on. Not one item is a coding problem.
+
+Our Firestore security rules had been written in week two by whoever was unblocked that afternoon, and never looked at again. Any authenticated user could read any other user's order history. Copilot did not flag it, because nobody asked Copilot about it, and the app worked perfectly with those rules in place.
+
+Nikhil found a package in `pubspec.yaml` under a license our legal team would not accept in a shipped mobile app. It had been added months earlier to solve a two-hour problem. Pulling it out took four days.
+
+There were no release notes, because there had been no releases. Nobody had wired up crash reporting. The analytics events product had asked for in the kickoff document existed in exactly two screens out of eleven. And a week before launch, Sumathi opened the app with TalkBack on and found half our buttons had no labels at all.
+
+Every one of these is normal. I have watched versions of this list appear on projects since long before AI wrote any of our code. What changed is the ratio. When the coding half moves three times faster and the other half moves at the same speed as always, the other half becomes the whole problem.
+
+That is the honest case for an AI engineering team. Not that agents write better code — that when code stops being the bottleneck, you have to point the same automation at everything else.
+
+## What is an AI agent, and how is it different from a prompt?
+
+An AI agent is a role with a narrow scope, its own knowledge, and a clear definition of done. That is the whole idea. Everything else in this series is the machinery that makes a role repeatable.
+
+New to this? These six words get used interchangeably and they are not the same thing. Here is how I separate them, with the Flutter project as the example.
+
+| Thing | What it is | Where it lives | On our project |
+| --- | --- | --- | --- |
+| **Prompt** | One instruction you type, once | `.ai/prompts/` if you save it | "Review this widget against our Riverpod rules" |
+| **Skill** | Reusable knowledge the agent loads when relevant | A `SKILL.md` file | How *we* write Flutter: feature-first folders, Riverpod, Firebase behind a repository |
+| **Agent** | A role: a scope, its skills, a definition of done | An agent definition file | The Testing agent, which only writes and runs tests |
+| **Hook** | A script that fires automatically and can block you | `.githooks/`, CI | Refuse the push if `firestore.rules` changed without a review |
+| **AGENTS.md** | Repo-wide context every agent reads first | Repo root | Folder rules, naming, branch strategy |
+| **Custom instructions** | Always-on preferences for the assistant | `.github/copilot-instructions.md` | "Never call Firestore inside `build()`" |
+| **MCP** | A protocol that lets an agent call outside tools and data | Server config | Query the real Firestore schema instead of guessing it |
+
+The distinction that matters most is the last row but one. **A prompt is something you remember to do. A hook is something that happens whether you remember or not.** Our license problem was not a knowledge gap. Nikhil knew about licenses. It was a "nobody checked on the Tuesday it got added" problem, and only a hook fixes that class of failure.
+
+Model Context Protocol, if it is new to you, is worth one plain sentence: it is a standard way for an AI tool to reach live systems — your database, your issue tracker, your cloud — instead of working purely from the text you paste in. It matters here because several agents later in this series are far more useful when they can see real data rather than a guess about it.
+
+I have written the long versions of three of these already. [Custom instructions](../github-copilot-custom-instructions) covers the always-on layer, my [longer article on Copilot Skills](../github-copilot-skills-deep-dive) covers skills properly, and [the AGENTS.md playbook](../agents-md-complete-playbook) covers what belongs in that file. I will not repeat them here.
+
+## The thirty roles, grouped by when you need them
+
+This is the map for the series. Each part takes three or four of these and gives every agent its story, its inputs and outputs, a real prompt, a working hook, and the failure it would have caught on our project.
+
+| Phase | Agents | Part |
+| --- | --- | --- |
+| **Plan** | Project Planning · Business Analyst · Solution Architect | 2 |
+| **Build** | Mobile Developer (Flutter) · Backend API · Database · Firebase | 3 |
+| **Verify** | UI/UX Review · Testing · Code Review · Performance Optimization | 4 |
+| **Ship** | DevOps · Release Management · Monitoring & Observability · Analytics | 5 |
+| **Defend** | Security · Cybersecurity · Penetration Testing | 6 |
+| **Supply chain** | Dependency Management · Open Source License Compliance · Copyright Compliance · Privacy & Compliance | 7 |
+| **Reach** | Accessibility · Localization · Documentation · SEO/AEO | 8 |
+| **Meta** | Prompt Engineering · Skill Builder · Hooks Generator · AGENTS.md Generator | 9 |
+
+Three groupings usually raise an eyebrow, so let me answer them now.
+
+**Security, Cybersecurity and Penetration Testing are three agents, not one.** The Security agent reviews your code and your rules. The Cybersecurity agent thinks about the system around the code — identity, secrets, network, blast radius. The Penetration Testing agent tries to break what the other two approved. They have different inputs and they disagree with each other, which is the point.
+
+**Copyright is separate from licenses.** A license agent asks whether you may ship a dependency. A copyright agent asks whether the code your assistant just generated is substantially somebody else's. Different question, different evidence, and after eighteen years in this industry I can tell you the second one gets asked properly only after it has gone wrong once.
+
+**The last four are agents that build agents.** They feel indulgent until you have twenty-six of the others and no consistent way to write the twenty-seventh.
+
+## Where do these files actually go?
+
+Here is the layout we settled on. I will show the tidy version first, then be honest about it.
+
+```
+.
+├─ AGENTS.md                    # repo-wide context, read by every agent
+├─ .ai/
+│  ├─ agents/                   # one file per role: scope, skills, done criteria
+│  ├─ skills/                   # reusable knowledge (SKILL.md files)
+│  ├─ prompts/                  # saved prompts, reviewed like code
+│  └─ hooks/                    # the scripts that block
+├─ .github/
+│  ├─ copilot-instructions.md   # always-on preferences for Copilot
+│  └─ workflows/                # where most hooks really run
+├─ docs/
+└─ scripts/
+```
+
+Now the honest part, because I have seen people copy a tree like this and wonder why nothing happens. **A folder is organisation, not wiring.** Copilot reads `AGENTS.md` and `.github/copilot-instructions.md` because those paths are conventions the tool supports. It does not scan `.ai/` looking for work. Your hooks fire because `core.hooksPath` points at them or because a workflow calls them, not because they sit in a folder named hooks.
+
+So treat `.ai/` as the human-readable home for assets you version and review, and wire each one up deliberately. Check the [GitHub Copilot documentation](https://docs.github.com/en/copilot/customizing-copilot) for what your version loads today, because these paths have moved more than once.
+
+## Which four agents should you build first?
+
+If you have never written one, build these four in this order: **Solution Architect, Code Review, Testing, Security.** Two weeks part-time, not a quarter.
+
+The reasoning is about what each one prevents.
+
+1. **Solution Architect first**, because every other agent inherits the structure it decides. Getting this after you have 40 screens means retrofitting.
+2. **Code Review second.** It is the fastest to show value, and it turns review comments you type twenty times a month into a file.
+3. **Testing third.** Once review is enforcing structure, tests become writeable, because the code is finally testable.
+4. **Security fourth.** By now the agent has real structure to reason about, so its findings are specific rather than a printout of OWASP.
+
+Then stop and use them for a month before adding a fifth. On our project the temptation was to define fifteen agents in one enthusiastic weekend. We did that, and eleven of them were never invoked again, because nobody could remember which agent did what. Four agents everyone uses beat fifteen nobody trusts.
+
+## Mistakes I made, so you can skip them
+
+- **One giant agent.** Our first attempt was a single "senior engineer" agent with everything in it. It gave a mixed answer to every question and had no definition of done, so its output was never actually finished.
+- **Prompts living in chat history.** The good review prompt existed. It existed in Devisri's chat window, on her laptop. That is not a process.
+- **Using an agent where a script belonged.** We had an agent scanning licenses. A hook does it faster, cheaper, and cannot be talked out of a finding. Agents for judgement, hooks for rules.
+- **No AGENTS.md.** Every agent rediscovered the folder conventions, slightly differently, every session.
+- **Trusting a clean agent report.** The Security agent said the Firestore rules were fine. It was reasoning about the rules file we gave it, and the deployed rules were four commits older. The agent was right and we were still wrong.
+
+That last one is the lesson I would keep if I could keep only one. An agent's answer is only as true as the inputs you handed it, and a confident report on stale inputs is more dangerous than no report at all.
+
+## Key takeaways
+
+- An AI coding agent is one developer, not a team. When coding speeds up and nothing else does, everything else becomes the bottleneck.
+- Prompts are things you remember to run. Hooks are things that run anyway. Most production failures are the second kind of problem.
+- Narrow scope is what makes an agent's output reviewable. Thirty responsibilities in one agent means no definition of done.
+- Start with four agents — architecture, code review, testing, security — and let real pain justify the fifth.
+- Check what your tool actually loads. A tidy folder tree wires up nothing on its own.
+
+Next in this series: **Part 2 — the Planning, Business Analyst and Solution Architect agents**, and the kickoff document that quietly caused three of the five delays above. If you want to build a real Flutter skill before then, [the Riverpod and Firebase walkthrough](../build-flutter-github-copilot-skill-riverpod-firebase) is the hands-on version, and [Copilot hooks for beginners](../github-copilot-hooks-for-beginners) covers writing your first blocking hook in about ten minutes.

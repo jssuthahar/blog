@@ -1,0 +1,226 @@
+---
+title: 'AI Agents for Project Planning, Business Analysis and Solution Architecture'
+seoTitle: 'AI Planning and Architect Agents'
+description: 'The three AI agents that run before anyone writes code — planning, business analyst and solution architect — with real prompts and blocking hooks.'
+highlight: "Three of the five weeks we lost on that Flutter project were decided before anyone opened an editor: a four-bullet kickoff, a requirement with no edge cases, and an architecture decision nobody wrote down. These are the cheapest three agents you will build, because a bad plan costs an afternoon and a bad architecture costs a rewrite in month four."
+publishedAt: 2026-07-31
+category: architecture
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Solution Architecture', 'Business Analysis', 'Project Planning', 'Flutter', 'Firebase', 'ADR', 'AGENTS.md']
+series: 'ai-agent-team'
+seriesOrder: 2
+draft: true
+faq:
+  - q: 'Can an AI agent write project requirements on its own?'
+    a: "No, and an agent that claims it can is the one to distrust. A business analyst agent is useful because it lists the edge cases and the open questions a requirement leaves unanswered. Answering them needs someone who knows the business."
+  - q: 'What is the difference between a planning agent and a business analyst agent?'
+    a: "A planning agent works on sequence — what must be finished before what, and where the schedule breaks. A business analyst agent works on meaning — what a feature actually does at its edges. One produces an order of work, the other produces acceptance criteria."
+  - q: 'Where should an AI solution architect agent write its decisions?'
+    a: "Into two places: an ADR file recording the decision and the rejected option, and the rules section of AGENTS.md so every later agent inherits it. A decision that exists only in a chat window gets contradicted within a month."
+  - q: 'How do you stop an architect agent from inventing a design nobody asked for?'
+    a: "Give it constraints as input — team size, deadline, existing stack, offline needs — and require two options with trade-offs rather than one recommendation. An agent asked for the best design invents ambition. An agent asked to choose under constraints reasons about cost."
+  - q: 'Are planning agents worth it on a two-person project?'
+    a: "The architect agent is. The planning agent usually is not, because with two people the sequencing conversation takes ten minutes in person. Build the architect agent first on a small team and add planning when a third or fourth person joins."
+---
+
+The kickoff document for our food delivery app was four bullet points long. Login. Orders. Payments. Notifications.
+
+Everyone in that room had built apps before. Nobody thought four bullets was a problem, because we all had the same picture in our heads. Nine weeks later it turned out we did not.
+
+In [Part 1](../ai-coding-agent-team-software-project) I listed the five things that turned a nine-week build into a fourteen-week release. Three of them were decided in that kickoff, before anyone opened an editor. The Firestore schema was designed twice because payments needed a shape orders had not anticipated, and in a document database [the shape is the design](https://firebase.google.com/docs/firestore/data-model) — you do not get to normalise your way out of it later. "Users can cancel an order" reached production as a support ticket, because nobody had said what happens when the restaurant has already started cooking. And the question of where Firebase calls were allowed to live was answered separately by three developers, in three different files, over one week.
+
+These are planning failures, analysis failures and architecture failures. They are the cheapest problems in software to fix and the most expensive ones to leave. So they get the first three agents.
+
+## Why build planning agents before coding agents?
+
+Because the failure is cheap here and expensive later. A bad plan costs you an afternoon of rework. A bad architecture costs you a rewrite in month four, and by then thirty screens depend on it.
+
+There is a second reason, specific to working with AI. Every coding agent you build afterwards inherits these three decisions. The Flutter agent needs to know where Firebase calls are allowed. The testing agent needs acceptance criteria to test against. Skip these three and every later agent is guessing, confidently, in slightly different directions.
+
+## The Project Planning Agent
+
+The morning after we agreed the four bullets, Suresh asked a question that should have stopped the meeting: "which of these can we start at the same time?" Nobody had an answer, so we started all four at once. Payments needed an order document with a payment state on it. Orders had already been built with a schema that had no room for one. That rework was four days, and it was fully predictable from the four bullets if anyone had drawn the arrows between them.
+
+That is the whole job of this agent. Not estimating — I have watched estimation go badly for eighteen years and an AI agent does not fix it. Its job is **sequence and dependency**: what blocks what, what can genuinely run in parallel, and which item is the one that will hurt if it slips.
+
+**What I hand it:** the kickoff notes as they actually exist, however rough, plus the real constraints. Team size, who knows what, the deadline, and anything already built. On our project that was three developers, one of whom had never used Firebase, and a demo date that was not moving.
+
+**What I get back:** a delivery plan as an ordered list of deliverables with the dependency stated for each one, a short list of items that must be decided before the work starts, and a risk list where every risk names the thing it delays. I keep it in `docs/delivery-plan.md`, in the repo, reviewed like code.
+
+```markdown
+<!-- .ai/prompts/project-planning.md -->
+You are the project planning agent for a Flutter + Firebase mobile app.
+
+Input: the kickoff notes below, plus these constraints:
+- Team: {n} developers, skill gaps: {gaps}
+- Fixed date: {date}. Already built: {existing}
+
+Produce:
+1. Deliverables in dependency order. For each: what must exist first, and why.
+2. What can safely run in parallel — and say plainly what would make that unsafe.
+3. Decisions needed before coding starts (data shape, auth model, offline behaviour).
+4. Risks. Each one names the deliverable it delays and an early warning sign.
+
+Rules:
+- Do not estimate in days. Sequence only.
+- If the notes do not say something you need, list it as an open question.
+  Do not assume it.
+```
+
+That last rule earns its place. Without it the agent quietly invents a requirement and the plan looks complete, which is worse than a plan with four honest gaps in it.
+
+The hook keeps the plan from going stale. A plan that describes work nobody is doing any more is how teams learn to ignore the plan.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — a new feature folder must appear in the delivery plan
+PLAN="docs/delivery-plan.md"
+new_features=$(git diff --cached --name-only --diff-filter=A \
+  | grep -oE '^lib/features/[a-z_]+' | sort -u)
+
+for f in $new_features; do
+  name=$(basename "$f")
+  if ! grep -qi "$name" "$PLAN"; then
+    echo "planning: lib/features/$name has no entry in $PLAN."
+    echo "Either add it to the plan or explain why it is unplanned work."
+    exit 1
+  fi
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Delivery planning · your stack's dependency shapes (a Firestore schema blocks more than a screen does) |
+| **Triggers on** | Kickoff, scope change, any new feature folder |
+| **Fails the build when** | Feature work appears that no plan entry covers |
+
+## The Business Analyst Agent
+
+"Users can cancel an order." Six words. Everyone nodded.
+
+Four months later a customer in Kuala Lumpur cancelled an order the restaurant had already started cooking, got a full refund automatically, and the restaurant called our client to ask who was paying for the food. That was not a bug. Every line of code did exactly what it was written to do. The requirement had a hole in it, and the hole reached production because six words look finished.
+
+A business analyst agent is the cheapest hole-finder I have used. You give it a requirement in the words the business used, and it gives you back the edges: what happens at the boundaries, what states the thing can be in, and which questions it cannot answer without a human.
+
+The part that makes it valuable is the last one. **An agent that answers every question has invented most of the answers.** I judge this agent by the quality of its open questions, not its acceptance criteria.
+
+**What I hand it:** the requirement as written, the user roles involved, and any existing rules it must not contradict — refund policy, payment provider limits, whatever exists.
+
+**What I get back:** acceptance criteria in Given/When/Then form, an explicit state list, an edge case table, and a list of open questions marked as blocking or non-blocking. That file lands in `docs/requirements/<feature>.md` and later becomes the input to the testing agent in Part 4.
+
+```markdown
+<!-- .ai/prompts/business-analyst.md -->
+Requirement (verbatim from the business): "{requirement}"
+Roles: {roles}. Existing rules you must not contradict: {policies}
+
+Produce:
+1. Acceptance criteria, Given/When/Then. One behaviour per criterion.
+2. Every state this entity can be in, and which transitions are legal.
+3. Edge cases as a table: situation | expected behaviour | confidence.
+4. Open questions, each marked BLOCKING or NON-BLOCKING.
+
+Rules:
+- Never invent a business rule to close a gap. Raise it as a question.
+- For anything involving money or timing, assume it is underspecified.
+```
+
+Run against those six words, the version of this I use came back with eleven states for an order and the question we should have asked in the kickoff: *"Can a customer cancel after the restaurant accepts? If yes, who absorbs the cost?"* That question was worth the whole exercise.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-push — feature code needs a requirements file with no BLOCKING gaps
+changed=$(git diff --name-only origin/main...HEAD \
+  | grep -oE '^lib/features/[a-z_]+' | sort -u)
+
+for f in $changed; do
+  name=$(basename "$f")
+  doc="docs/requirements/$name.md"
+  [ -f "$doc" ] || { echo "analysis: $doc missing for feature '$name'"; exit 1; }
+  if grep -q "BLOCKING" "$doc"; then
+    echo "analysis: $doc still has BLOCKING open questions:"
+    grep -n "BLOCKING" "$doc"
+    exit 1
+  fi
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Requirements analysis · your domain's rules (payments, refunds, delivery windows) |
+| **Triggers on** | A new requirement, a change to an existing one |
+| **Fails the build when** | Feature code is pushed with no requirements file, or with unresolved blocking questions |
+
+## The Solution Architect Agent
+
+Here is the pattern I have seen on every project since long before AI wrote any of our code, only faster now. Devisri put a Firestore call inside a widget's `build()` method. Nikhil put one in a service class. I had put one behind a repository two weeks earlier and never told anyone that was the rule, because it was obvious to me.
+
+Three reasonable engineers, three answers, no argument — because nobody knew there was a disagreement. That is what an undocumented architecture decision looks like from the inside. It does not feel like chaos. It feels like everyone quietly getting on with it.
+
+The architect agent's real output is not a diagram. **It is a written decision plus the rule that enforces it.** A diagram nobody reads changes no code.
+
+**What I hand it:** the constraints, honestly stated. Three developers, one new to Firebase. Offline browsing needed, offline ordering not. Firebase already chosen, not up for debate. A demo in nine weeks.
+
+**What I get back:** two viable options with the trade-off named, a recommendation, and the condition that would flip it. Then two artefacts: an ADR in `docs/adr/` recording the decision and the option rejected, and a set of rules to paste into [AGENTS.md](../agents-md-complete-playbook) so every later agent inherits the decision instead of re-deciding it.
+
+```markdown
+<!-- .ai/prompts/solution-architect.md -->
+Constraints:
+- Team: {size}, experience: {experience}
+- Stack (fixed): {stack}. Offline: {offline}. Deadline: {deadline}
+- Non-negotiables: {constraints}
+
+Produce:
+1. TWO viable architectures. For each: structure, state management,
+   where external calls live, and the cost of being wrong about it.
+2. A recommendation, and the single condition that would flip it.
+3. An ADR: context, decision, rejected option, consequences.
+4. Rules for AGENTS.md — written as things an agent can check,
+   not as principles. "No Firestore call outside data/" beats
+   "keep concerns separated".
+
+Rules:
+- Optimise for this team on this deadline, not for an ideal team.
+- If a constraint makes an option impossible, say so and drop it.
+```
+
+Point 4 is where most architecture documents fail. "Separation of concerns" cannot be checked by anything. "No Firestore call outside `data/`" can be checked by six lines of shell, which is exactly what we wrote after that week:
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit — ADR-002: Firebase stays behind the data layer
+offenders=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '^lib/features/.*\.dart$' \
+  | grep -vE '/data/' \
+  | xargs -r grep -lE 'FirebaseFirestore\.instance|FirebaseAuth\.instance')
+
+if [ -n "$offenders" ]; then
+  echo "architecture: Firebase called outside the data layer (ADR-002):"
+  echo "$offenders" | sed 's/^/  /'
+  echo "Move the call into a repository under features/<name>/data/."
+  exit 1
+fi
+```
+
+Six lines, and the argument stopped being an argument. Nobody has to remember the rule or notice the violation in review. If you want the reasoning behind blocking hooks rather than advisory ones, [Copilot hooks for beginners](../github-copilot-hooks-for-beginners) covers the mechanics, and the [Flutter skill walkthrough](../build-flutter-github-copilot-skill-riverpod-firebase) turns these same rules into knowledge Copilot loads while it writes.
+
+| | |
+| --- | --- |
+| **Skills** | Your stack's architecture (feature-first Flutter, Riverpod, repository pattern) · ADR writing |
+| **Triggers on** | Project start, a new external dependency, any decision that will be repeated |
+| **Fails the build when** | Code violates a recorded ADR that has a mechanical rule |
+
+## What I got wrong with these three
+
+- **I let the architect agent design for the team I wished I had.** Asked for the best architecture, it produced a clean-architecture layout that would have been correct for eight developers. We had three, one still learning Firebase. Constraints in the prompt fixed it.
+- **I accepted acceptance criteria with no open questions.** A confident, complete-looking output from a six-word requirement should have worried me immediately. It meant the agent had filled the gaps itself.
+- **I wrote ADRs and never turned them into rules.** For about a month we had well-argued decision records and code that ignored them. The ADR is the reasoning; the hook is the enforcement. You need both.
+- **I ran planning once.** A plan written in week one and never revisited described a project that no longer existed by week five. Re-run it at every scope change; it takes ten minutes.
+
+## Key takeaways
+
+- These three agents run before any code exists, and every later agent inherits their output.
+- Judge a business analyst agent by its open questions. Complete answers to an incomplete requirement mean it invented the missing parts.
+- A planning agent should sequence, not estimate. Dependencies are where the rework hides.
+- An architecture decision is finished when it exists as an ADR *and* as a rule a script can check.
+- Give the architect agent your real constraints. Without them it designs for a team you do not have.
+
+Next in this series: **Part 3 — the Flutter, Backend API, Database and Firebase agents**, where these decisions turn into code, and where I explain why the Firebase agent is separate from the database agent even though both talk to Firestore.

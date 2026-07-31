@@ -5,7 +5,7 @@ description: 'The four AI agents that write the code — Flutter, backend API, d
 highlight: "One coding agent writing Flutter, API, schema and security rules will produce all four, and only the Flutter part will be good. These four jobs have four different definitions of done: a widget is finished when it renders without touching Firestore, a query is finished when you know what it costs per screen view."
 publishedAt: 2026-07-31
 category: mobile
-tags: ['AI Coding Agents', 'GitHub Copilot', 'Flutter', 'Riverpod', 'Firebase', 'Firestore', 'Minimal API', '.NET', 'Database Design']
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Flutter', 'BLoC', 'Firebase', 'Firestore', 'Minimal API', '.NET', 'Database Design']
 series: 'ai-agent-team'
 seriesOrder: 3
 draft: true
@@ -22,6 +22,8 @@ faq:
     a: "For one developer on a Firebase-only app, two is enough — a Flutter agent and a Firebase agent that also owns the schema. Split out the database agent when query cost starts appearing on the bill, and the API agent when a real backend exists."
 ---
 
+import Callout from '../../../components/mdx/Callout.astro';
+
 There was one good week on that project where everything felt fast. Screens appeared in an afternoon. Copilot was writing most of the code, the demo looked real, and nobody was blocked on anything.
 
 That week produced the three worst files in the repository.
@@ -29,6 +31,16 @@ That week produced the three worst files in the repository.
 They were not badly written. Read individually, each one looked like something a competent developer would write. The problem was that one assistant had written a Flutter widget, a payment endpoint, a Firestore query and a security rule with the same idea of what "finished" means, and those four jobs do not share a definition of done.
 
 A widget is finished when it renders correctly and touches nothing external. An endpoint is finished when it has made an explicit decision about who may call it. A query is finished when you can say what it costs per screen view. A security rule is finished when a test proves it denies the thing it should deny. One agent holding all four in its head satisfies the first and treats the other three as details.
+
+<Callout type="tip" title="Run the Flutter side while you read">
+The Flutter structure the mobile agent is held to below is the one in **MSDevBuild Eats**, my food delivery app: pure-Dart `lib/domain`, `lib/data`, BLoC in `lib/features/<feature>/bloc`. It is public, and it runs with no API keys.
+
+- **Source code** — [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web** — [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`)
+- **Android build** — [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
+
+Open `lib/features/orders/` next to the prompt below and the "pattern to follow" line stops being abstract.
+</Callout>
 
 So the build phase gets four agents. [Part 2](../ai-agents-project-planning-business-analyst-architect) produced the plan, the acceptance criteria and the architecture rules. These four turn that into code.
 
@@ -40,7 +52,7 @@ Four agents produce four narrow diffs with four different reviewers and four dif
 
 | Agent | Owns | Done when |
 | --- | --- | --- |
-| **Flutter** | Widgets, state, navigation | It renders, state runs through Riverpod, nothing external is called directly |
+| **Flutter** | Widgets, state, navigation | It renders, state runs through a Bloc or Cubit, nothing external is called directly |
 | **Backend API** | Contracts, validation, auth | Every route has an explicit authorization decision and an integration test |
 | **Database** | Shape, queries, indexes | Every access pattern has a stated read cost and an index |
 | **Firebase** | Rules, auth, emulator, environments | A test proves the rule denies what it should deny |
@@ -53,7 +65,7 @@ I have reviewed that exact shape more times than I can count. It is not a knowle
 
 **What I hand it:** the requirements file from the business analyst agent, the architecture rules from the ADR, and one existing feature folder as the pattern to copy. That last input matters more than the first two. An agent shown a real example of your structure copies it far more reliably than an agent told about it in prose.
 
-**What I get back:** a feature folder in `lib/features/<name>/` with `data`, `domain` and `presentation`, Riverpod providers for state, widgets that consume providers and nothing else, and at least one widget test that runs without network access.
+**What I get back:** a feature folder in `lib/features/<name>/` with `bloc` and `presentation`, its entity and repository contract in the shared `lib/domain/`, widgets that read the bloc and nothing else, and at least one test that runs without network access.
 
 ```markdown
 <!-- .ai/prompts/flutter-feature.md -->
@@ -62,15 +74,17 @@ Build the feature described in docs/requirements/{feature}.md.
 Pattern to follow: lib/features/orders/  — copy this structure exactly.
 
 Rules (from ADR-002, non-negotiable):
-- Firestore and Auth are called only inside features/{feature}/data/.
-  Presentation code talks to a repository interface, never to Firebase.
-- State goes through Riverpod providers. No setState in feature widgets.
+- Firestore and Auth are called only inside lib/data/. Presentation code
+  talks to a use case, never to Firebase and never to a repository impl.
+- State goes through a Bloc or Cubit. No setState in feature widgets.
+- Repositories and use cases return Result<T>. They never throw upward.
 - Every widget that can show an error must render the error state.
 
 Deliver:
-1. The folder with data / domain / presentation.
+1. The entity and repository contract in lib/domain, the implementation
+   in lib/data, the bloc and screen in lib/features/{feature}.
 2. The repository interface, plus a fake implementation for tests.
-3. One widget test that runs with no network and no emulator.
+3. One bloc_test that runs with no network and no emulator.
 
 If the requirements file has an open question, stop and ask.
 Do not guess the behaviour.
@@ -83,18 +97,22 @@ The fake implementation in point 2 is the line that makes the testing agent's li
 # .githooks/pre-commit — feature folders keep their shape
 for dir in $(git diff --cached --name-only --diff-filter=A \
              | grep -oE '^lib/features/[a-z_]+' | sort -u); do
-  for layer in data domain presentation; do
+  for layer in bloc presentation; do
     [ -d "$dir/$layer" ] || { echo "flutter: $dir is missing $layer/"; exit 1; }
   done
   name=$(basename "$dir")
-  ls test/features/"$name"/*_test.dart >/dev/null 2>&1 \
-    || { echo "flutter: no test found for feature '$name'"; exit 1; }
+  ls test/bloc/"$name"*_test.dart >/dev/null 2>&1 \
+    || { echo "flutter: no bloc test found for feature '$name'"; exit 1; }
 done
+
+# the dependency rule, enforced rather than trusted
+grep -rn "package:flutter/" lib/domain/ \
+  && { echo "flutter: lib/domain must stay pure Dart"; exit 1; }
 ```
 
 | | |
 | --- | --- |
-| **Skills** | Feature-first Flutter · Riverpod · repository pattern · widget testing |
+| **Skills** | Layered Flutter · BLoC · repository pattern · bloc testing |
 | **Triggers on** | A requirements file with no blocking questions left |
 | **Fails the build when** | A feature folder is missing a layer, or has no test |
 

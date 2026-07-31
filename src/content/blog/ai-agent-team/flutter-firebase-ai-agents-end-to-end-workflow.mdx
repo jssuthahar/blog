@@ -5,7 +5,7 @@ description: 'The cancel-order feature rebuilt properly — every agent that tou
 highlight: "Fourteen of the thirty agents touched one small feature, and the handoff was the point: the business analyst agent's open question became the architecture input, which became the test, which became the security check. The feature took a day longer to start and saved the four days we spent on the version we shipped without them."
 publishedAt: 2026-07-31
 category: mobile
-tags: ['AI Coding Agents', 'GitHub Copilot', 'Flutter', 'Firebase', 'Riverpod', 'Workflow', 'AGENTS.md', 'Hooks', 'Architecture']
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Flutter', 'Firebase', 'BLoC', 'Workflow', 'AGENTS.md', 'Hooks', 'Architecture']
 series: 'ai-agent-team'
 seriesOrder: 10
 draft: true
@@ -22,11 +22,23 @@ faq:
     a: "Yes. The roles, the handoffs and the hook triggers are stack-independent — only the checks change. On .NET the same architecture hook greps for a repository violation instead of a Firestore call in a widget."
 ---
 
+import Callout from '../../../components/mdx/Callout.astro';
+
 Let us go back to the six words that started all this: "users can cancel an order."
 
 In [Part 2](../ai-agents-project-planning-business-analyst-architect) I described how those words reached production with a hole in the middle, and a customer in Kuala Lumpur got a full refund for food a restaurant had already started cooking. This part rebuilds that same feature the way it should have gone, with the agents from this series doing their jobs in order.
 
 I am using a small feature deliberately. Grand examples hide the seams, and the seams are the interesting part — what each agent hands to the next is what makes this a workflow rather than thirty separate tools.
+
+<Callout type="tip" title="The repo behind the folder names">
+Every path in this walkthrough matches **MSDevBuild Eats**, my public Flutter food delivery app — so `features/orders/`, `lib/domain/` and the rest are folders you can actually open.
+
+- **Source code** — [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web** — [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`)
+- **Android build** — [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
+
+Place an order in the live app first. Cancelling one is the exact feature this article builds.
+</Callout>
 
 One honest thing first. **Fourteen of the thirty agents touched this feature.** The rest fire on their own triggers: a new dependency, a new market, a palette change, a release. An agent that runs on everything is an agent whose output nobody reads.
 
@@ -63,7 +75,7 @@ The **backend API agent** took the fee rule and produced the endpoint: server-si
 
 The **Flutter agent** got three inputs: the requirements file, ADR-002 and ADR-007, and the `features/orders/` folder as the pattern to copy.
 
-It produced `features/cancel_order/` with the three layers, a Riverpod provider, a confirmation screen, and a fake repository. The pre-commit hook checked the folder shape and the presence of a test before any of it was committed. The **UI review agent** ran on the new screen and found two things: no offline state, and the fee amount rendered in a text style not on the token scale.
+It produced `features/cancel_order/` with the three layers, a Cubit, a confirmation screen, and a fake repository. The pre-commit hook checked the folder shape and the presence of a test before any of it was committed. The **UI review agent** ran on the new screen and found two things: no offline state, and the fee amount rendered in a text style not on the token scale.
 
 Offline mattered here more than usual. Cancelling while offline is not a queued action you can retry later — the window closes. So the screen needed to say so rather than spin.
 

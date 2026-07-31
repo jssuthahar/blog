@@ -14,7 +14,7 @@ draft: false
 
 faq:
   - q: 'What are GitHub Copilot Skills?'
-    a: 'GitHub Copilot Skills are reusable capability files — usually a SKILL.md with YAML frontmatter — that teach Copilot how to perform a specific job the way your team does it. Copilot reads the short description of every available Skill, then loads the full Skill only when a task matches it. That keeps knowledge reusable without filling the context window on every request.'
+    a: 'GitHub Copilot Skills are reusable capability files — usually a SKILL.md with YAML frontmatter — that teach Copilot how to do a specific job the way your team does it. Copilot reads each Skill''s short description, then loads the full Skill only when a task matches, so knowledge stays reusable without filling the context window.'
   - q: 'How are Copilot Skills different from prompts?'
     a: 'A prompt is a one-time message you type and forget. A Skill is a saved, named, versioned unit of knowledge that Copilot activates automatically when the work matches its description. You write a Skill once and every developer on the team benefits, instead of re-typing the same instructions each session.'
   - q: 'Can Copilot Skills be used in enterprise projects?'
@@ -217,34 +217,39 @@ Why this works in production: the handler has one job, dependencies are injected
 
 ### A Flutter mobile Skill
 
-Different stack, same idea. This Skill encodes our feature-first structure and state management method.
+Different stack, same idea. This one is taken from my [food delivery app](https://github.com/jssuthahar/food-delivery-app), so the folder names and rules below are real rather than illustrative.
 
 ```markdown
 ---
-name: flutter-feature-riverpod
+name: flutter-feature
 description: >
   Use when building a screen or feature in the Flutter app.
-  Enforces feature-first folders, Riverpod state, a repository layer,
-  Firebase access only through repositories, and widget tests.
-  Trigger: "new screen", "add feature", "provider", "state".
+  Enforces the layered structure, BLoC/Cubit state, a repository layer,
+  Firebase access only through repositories, and bloc tests.
+  Trigger: "new screen", "add feature", "cubit", "bloc", "state".
 ---
 
 # How we build a Flutter feature
 
 ## Rules
-- Feature-first: lib/features/{feature}/{data,domain,presentation}.
+- Layers: lib/domain (pure Dart), lib/data, lib/features/{feature}.
+- Nothing in lib/features imports from lib/data.
 - UI never calls Firebase directly. Always go through a repository.
-- State lives in a Riverpod Notifier, not inside the widget.
-- Every notifier has a widget test covering loading, data, and error states.
+- Repositories and use cases return Result<T>. They never throw upward.
+- State lives in a Bloc or Cubit, not inside the widget.
+- Every bloc has a bloc_test covering loading, data, and failure.
 
 ## Workflow
-1. Model in domain/. Repository interface in domain/, impl in data/.
-2. Notifier + provider in presentation/state/.
-3. Widget consumes the provider with ConsumerWidget.
-4. Widget test with ProviderScope overrides for the repository.
+1. Entity + repository interface in lib/domain. Impl in lib/data.
+2. Use case in lib/domain/usecases — the bloc asks for one thing.
+3. Cubit/Bloc + state class in lib/features/{feature}/bloc.
+4. Screen uses BlocProvider + BlocBuilder. No logic in build().
+5. bloc_test with a mocked use case. No emulator.
 ```
 
-The performance rule I always add here: keep `build` methods cheap and push work into the notifier. I have debugged enough janky Flutter screens to know that most "Flutter is slow" complaints are really "we rebuilt an expensive widget tree on every state change" complaints.
+The performance rule I always add here: keep `build` methods cheap and push work into the bloc. I have debugged enough janky Flutter screens to know that most "Flutter is slow" complaints are really "we rebuilt an expensive widget tree on every state change" complaints. With BLoC, `buildWhen` is the lever Copilot never reaches for on its own.
+
+You can see all of this running before you read another line of it — the [live web build](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`) and an [Android build](https://appdistribution.firebase.dev/i/00432c5aa60de58b) come from the same codebase. [Part 3 of this series](../build-flutter-github-copilot-skill-riverpod-firebase) builds that Flutter Skill line by line.
 
 ### An Azure cloud Skill
 

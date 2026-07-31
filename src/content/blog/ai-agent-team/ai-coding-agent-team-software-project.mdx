@@ -5,7 +5,7 @@ description: 'One AI coding agent is not a team. The 30 agent roles a real softw
 highlight: "An AI coding agent is one developer, not a team. On our Flutter and Firebase project the code was finished in nine weeks and the release still took five more, because nobody had automated the twenty-odd jobs that sit around the code — security rules, licenses, release notes, accessibility, analytics. Start with four agents, not thirty."
 publishedAt: 2026-07-31
 category: copilot
-tags: ['GitHub Copilot', 'AI Coding Agents', 'Copilot Skills', 'AGENTS.md', 'Hooks', 'Flutter', 'Firebase', 'Riverpod', 'Architecture']
+tags: ['GitHub Copilot', 'AI Coding Agents', 'Copilot Skills', 'AGENTS.md', 'Hooks', 'Flutter', 'Firebase', 'BLoC', 'Architecture']
 series: 'ai-agent-team'
 seriesOrder: 1
 draft: true
@@ -22,11 +22,23 @@ faq:
     a: "When the check can be a script. License scanning, secret detection and dependency audits are deterministic — a hook that exits non-zero is faster, cheaper and cannot hallucinate. Use agents for judgement, and hooks for rules."
 ---
 
+import Callout from '../../../components/mdx/Callout.astro';
+
 The build was green. Every test passed. GitHub Copilot had written a good share of the code in that repo, and honestly, none of it was bad.
 
 We still could not ship.
 
 This was a food delivery app — Flutter on the front, Firebase behind it, a small team split between Kuala Lumpur and Coimbatore. Feature-complete in nine weeks, which everyone was pleased about. Getting it into production took five more. That gap is what this series is about, because an AI coding agent is one developer on your team, not the team itself. A software project needs roughly thirty jobs done well, and only a handful of them involve typing code.
+
+<Callout type="tip" title="The code shapes in this series are public">
+I cannot open that client repo, so everything structural in this series — the layering, the BLoC rules, the repository boundary the agents are held to — matches **MSDevBuild Eats**, a Flutter food delivery app I built and can share. Clone it and the folder names in every prompt below are real.
+
+- **Source code** — [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web** — [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`)
+- **Android build** — [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
+
+It runs with no API keys and no Firebase project, so you can point an agent at it this afternoon.
+</Callout>
 
 ## What actually held up the release
 
@@ -50,8 +62,8 @@ New to this? These six words get used interchangeably and they are not the same 
 
 | Thing | What it is | Where it lives | On our project |
 | --- | --- | --- | --- |
-| **Prompt** | One instruction you type, once | `.ai/prompts/` if you save it | "Review this widget against our Riverpod rules" |
-| **Skill** | Reusable knowledge the agent loads when relevant | A `SKILL.md` file | How *we* write Flutter: feature-first folders, Riverpod, Firebase behind a repository |
+| **Prompt** | One instruction you type, once | `.ai/prompts/` if you save it | "Review this widget against our BLoC rules" |
+| **Skill** | Reusable knowledge the agent loads when relevant | A `SKILL.md` file | How *we* write Flutter: a pure-Dart domain layer, BLoC, Firebase behind a repository |
 | **Agent** | A role: a scope, its skills, a definition of done | An agent definition file | The Testing agent, which only writes and runs tests |
 | **Hook** | A script that fires automatically and can block you | `.githooks/`, CI | Refuse the push if `firestore.rules` changed without a review |
 | **AGENTS.md** | Repo-wide context every agent reads first | Repo root | Folder rules, naming, branch strategy |
@@ -141,4 +153,4 @@ That last one is the lesson I would keep if I could keep only one. An agent's an
 - Start with four agents — architecture, code review, testing, security — and let real pain justify the fifth.
 - Check what your tool actually loads. A tidy folder tree wires up nothing on its own.
 
-Next in this series: **Part 2 — the Planning, Business Analyst and Solution Architect agents**, and the kickoff document that quietly caused three of the five delays above. If you want to build a real Flutter skill before then, [the Riverpod and Firebase walkthrough](../build-flutter-github-copilot-skill-riverpod-firebase) is the hands-on version, and [Copilot hooks for beginners](../github-copilot-hooks-for-beginners) covers writing your first blocking hook in about ten minutes.
+Next in this series: **Part 2 — the Planning, Business Analyst and Solution Architect agents**, and the kickoff document that quietly caused three of the five delays above. If you want to build a real Flutter skill before then, [the BLoC and Firebase walkthrough](../build-flutter-github-copilot-skill-riverpod-firebase) is the hands-on version, and [Copilot hooks for beginners](../github-copilot-hooks-for-beginners) covers writing your first blocking hook in about ten minutes.

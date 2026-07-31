@@ -22,11 +22,24 @@ faq:
     a: "In AGENTS.md if more than one agent needs it. Once the same rule is pasted into three prompt files it will drift, and the version that gets updated is never the one the failing agent read."
 ---
 
+import Callout from '../../../components/mdx/Callout.astro';
+
 By the time the project was in production, we had prompts for twenty-six agents. I sat down one evening to tidy them up and found four different house styles, three prompts that never said what shape the output should take, and one that reliably produced a long essay when I wanted a table.
 
 They had been written over four months by three people, each solving the problem in front of them. Nobody had done anything wrong. It was just that the prompts, skills and hooks had become a codebase of their own, and nobody had been maintaining it.
 
 That is what these last four agents are for. They are unglamorous, they feel indulgent until you have twenty-six of the others, and one of them changed how I write every prompt in this series.
+
+<Callout type="tip" title="The meta agents, on a real prompt library">
+These four only make sense against a library big enough to have drifted. Mine is in the [food delivery app](https://github.com/jssuthahar/food-delivery-app) — fifteen prompts in [`.ai/prompts/`](https://github.com/jssuthahar/food-delivery-app/tree/main/.ai/prompts), which is exactly the size where duplication starts.
+
+- [`.ai/prompts/prompt-engineer.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/prompt-engineer.md) — diagnoses output shape, refusal conditions, missing inputs, scope creep
+- [`.ai/prompts/skill-builder.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/skill-builder.md) — and its rule against repeating what `AGENTS.md` already says
+- [`.ai/prompts/hooks-generator.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/hooks-generator.md) — including why `flutter analyze` is a pre-push check, not a pre-commit one
+- [`.ai/prompts/agents-md-generator.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/agents-md-generator.md) — the duplication report first, the file second
+
+The self-referential ones are the fun part: `pre-commit` fails any prompt with no refusal condition, and fails the commit when the same rule shows up in three prompts. Both are live in [`.githooks/pre-commit`](https://github.com/jssuthahar/food-delivery-app/blob/main/.githooks/pre-commit) and both currently pass.
+</Callout>
 
 ## What did four months of prompts actually teach me?
 

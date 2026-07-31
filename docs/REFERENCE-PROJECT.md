@@ -35,7 +35,25 @@ Verify against the repo before citing any of this; it changes.
 - Tests: `flutter_test` + `bloc_test` + `mocktail` under `test/`
 - Three roles in one app: customer ordering flow, restaurant partner dashboard, delivery rider dashboard
 - Repo docs worth linking: [`docs/ARCHITECTURE.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/docs/ARCHITECTURE.md), `docs/SETUP.md`, `docs/DEPLOYMENT.md`
-- Committed instructions file: [`.github/copilot-instructions.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/copilot-instructions.md)
+- Committed instructions files: [`.github/copilot-instructions.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/copilot-instructions.md) and [`AGENTS.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/AGENTS.md)
+
+### The agent roster
+
+`.ai/prompts/` holds fifteen real agent prompt files, each grounded in this app —
+the roster and install steps are in [`.ai/README.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/README.md).
+Paired deterministic checks live in `.githooks/pre-commit` and `.githooks/pre-push`.
+
+| Agent | Article |
+| --- | --- |
+| `dependencies`, `license-review`, `copyright`, `privacy` | dependency & compliance agents |
+| `security-review`, `cybersecurity`, `pentest` | security agents |
+| `devops`, `release`, `monitoring`, `analytics` | DevOps & release agents |
+| `prompt-engineer`, `skill-builder`, `hooks-generator`, `agents-md-generator` | meta agents |
+
+Supporting files the hooks check against are filled in, not templates:
+`docs/dependencies.md`, `ATTRIBUTIONS.md`, `docs/security/permissions.md`,
+`privacy/data-inventory.md`, `analytics/events.yaml`, `CHANGELOG.md`.
+Cite these rather than inventing agent examples.
 
 ## How to use it in an article
 

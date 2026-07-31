@@ -200,11 +200,11 @@ if [ -n "$offenders" ]; then
 fi
 ```
 
-Six lines, and the argument stopped being an argument. Nobody has to remember the rule or notice the violation in review. If you want the reasoning behind blocking hooks rather than advisory ones, [Copilot hooks for beginners](../github-copilot-hooks-for-beginners) covers the mechanics, and the [Flutter skill walkthrough](../build-flutter-github-copilot-skill-riverpod-firebase) turns these same rules into knowledge Copilot loads while it writes.
+Six lines, and the argument stopped being an argument. Nobody has to remember the rule or notice the violation in review. If you want the reasoning behind blocking hooks rather than advisory ones, [Copilot hooks for beginners](../github-copilot-hooks-for-beginners) covers the mechanics, and the [Flutter skill walkthrough](../build-flutter-github-copilot-skill-riverpod-firebase) turns these same rules into knowledge Copilot loads while it writes. The architecture those ADRs describe is committed in my [food delivery app](https://github.com/jssuthahar/food-delivery-app) if you would rather read it than take my word for it.
 
 | | |
 | --- | --- |
-| **Skills** | Your stack's architecture (feature-first Flutter, Riverpod, repository pattern) · ADR writing |
+| **Skills** | Your stack's architecture (layered Flutter, BLoC, repository pattern) · ADR writing |
 | **Triggers on** | Project start, a new external dependency, any decision that will be repeated |
 | **Fails the build when** | Code violates a recorded ADR that has a mechanical rule |
 

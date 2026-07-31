@@ -22,6 +22,8 @@ faq:
     a: "The first time nobody can explain why a package is in the manifest. Before that, the manifest is short enough to read. After that, the cost of removing something grows every week nobody looks at it."
 ---
 
+import Callout from '../../../components/mdx/Callout.astro';
+
 Nikhil found it eleven days before launch, doing something unrelated. A package in `pubspec.yaml`, under a license our client's legal team would not accept in a shipped mobile app.
 
 It had been added five months earlier to solve a problem that would have taken about two hours to solve by hand. Nobody had reviewed it, because adding a dependency does not feel like a decision. It feels like typing a line.
@@ -29,6 +31,17 @@ It had been added five months earlier to solve a problem that would have taken a
 Removing it took four days, and here is the part worth remembering: the license was not what cost four days. By then that package had spread into three features, and pulling it out meant rewriting all three under launch pressure. **License risk compounds with time, not with size.** The day it arrives, a wrong dependency costs two hours. Five months later it costs a week and everyone's nerves.
 
 [Part 6](../ai-agents-security-cybersecurity-penetration-testing) covered the attacker outside your system. This part covers the four risks that arrive quietly through the front door, in things you chose to install.
+
+<Callout type="tip" title="The four agents, committed and runnable">
+All four are in my [food delivery app](https://github.com/jssuthahar/food-delivery-app), written against that codebase rather than a generic one — real package names, real assets, real markets.
+
+- [`.ai/prompts/dependencies.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/dependencies.md) — classifies all 20 packages by removal cost, and treats the six `firebase_*` packages as one decision
+- [`.ai/prompts/license-review.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/license-review.md) — the APK and the web bundle ship differently; that is the part a deny-list misses
+- [`.ai/prompts/copyright.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/copyright.md) — the real risk there is a hotlinked seed-data image, not a file in `assets/`
+- [`.ai/prompts/privacy.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/privacy.md) — separates what applies to the offline demo backend from what applies to Firebase
+
+The paired hooks are in [`.githooks/pre-commit`](https://github.com/jssuthahar/food-delivery-app/blob/main/.githooks/pre-commit), and the files they check against — [`docs/dependencies.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/docs/dependencies.md), [`ATTRIBUTIONS.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/ATTRIBUTIONS.md), [`privacy/data-inventory.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/privacy/data-inventory.md) — are filled in, not templates.
+</Callout>
 
 One honest note before the agents: I am an architect, not a lawyer, and neither is your AI agent. Everything below is about catching problems early enough to ask a real lawyer a cheap question instead of an expensive one.
 

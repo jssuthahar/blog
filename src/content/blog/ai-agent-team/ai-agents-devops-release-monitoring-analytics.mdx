@@ -22,11 +22,24 @@ faq:
     a: "Not at first. On a small team the DevOps agent can own versioning and the changelog. Split release management out when you have staged rollouts, more than one store, or anyone outside the team asking what changed."
 ---
 
+import Callout from '../../../components/mdx/Callout.astro';
+
 Three weeks before launch, Nikhil sent a build to the client for review. It installed, it worked, and it was writing to the production Firebase project from his laptop.
 
 Nothing in our process could have caught that, because we did not have a process. We had a person who knew how to make a build, a signing key in a shared drive folder, and a `google-services.json` that had been copied into the repo months earlier by someone solving a different problem. The code was finished. The software was nowhere near shipped.
 
 That gap is what this part is about. [Part 4](../ai-agents-testing-code-review-performance-ui) checked the work. These four agents get it out of the building and then tell you what happens to it once it is out there.
+
+<Callout type="tip" title="Four agents against two real pipelines">
+My [food delivery app](https://github.com/jssuthahar/food-delivery-app) ships two ways from one commit — [GitHub Pages](https://jssuthahar.github.io/food-delivery-app/) for web and [App Distribution](https://appdistribution.firebase.dev/i/00432c5aa60de58b) for Android — so these four are written against workflows that exist rather than ones I wish existed.
+
+- [`.ai/prompts/devops.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/devops.md) — starts from the two workflows already in the repo, and asks honestly whether it needs flavours yet
+- [`.ai/prompts/release.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/release.md) — the `shared_preferences` shape is the one thing a rollback cannot undo
+- [`.ai/prompts/monitoring.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/monitoring.md) — nothing is wired up, so "what we cannot answer today" is most of the output
+- [`.ai/prompts/analytics.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/analytics.md) — the funnel is derived from `OrderStatus.trackingStages` so the two cannot drift apart
+
+The analytics spec it produced is committed as [`analytics/events.yaml`](https://github.com/jssuthahar/food-delivery-app/blob/main/analytics/events.yaml), with a forbidden-parameter list at the bottom and an honest note that no SDK is wired up yet.
+</Callout>
 
 ## Why is "code complete" not the same as "shipped"?
 

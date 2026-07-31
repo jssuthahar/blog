@@ -24,6 +24,8 @@ faq:
     a: 'Give them a shared source of truth. Put your standards in repository instructions and Skills that every agent reads, keep each agent''s charter narrow so their responsibilities do not overlap, and make the seams deterministic — tests and CI decide who is right, not the agents. When two agents disagree, a human resolves it at the handoff gate. Shared context plus non-overlapping roles plus a human tiebreaker removes most contradictions.'
 ---
 
+import Callout from '../../../components/mdx/Callout.astro';
+
 A team I worked with watched a demo where someone typed one sentence — "add rate limiting to the orders API" — and five agents lit up, one after another, planning, coding, testing, reviewing, and opening a pull request while the presenter sipped coffee. It looked like the future. So they went back and wired up their own five-agent "autonomous dev team" on a fifteen-year-old billing system. By the second week they had confident chaos. The developer agent edited a file the architecture agent had just flagged as frozen. The tester agent wrote tests against behaviour the developer agent had already changed. A config change shipped to a branch because the workflow "completed" and nobody, human or agent, was actually accountable for the decision. Everything ran. Nothing was owned.
 
 Here is the lesson that took them a month to accept, and that I want to save you: the fix was not more autonomy. It was better orchestration design. The seductive demo hides the fact that the hard part of a multi-agent system is not making agents do work, it is deciding who does what, in what order, with which tools, and where a human puts their name on the outcome.
@@ -31,6 +33,18 @@ Here is the lesson that took them a month to accept, and that I want to save you
 So this finale is the honest one. This is the piece where I tell you what a **GitHub Copilot multi-agent** setup genuinely buys you, what Copilot really orchestrates today versus what is an architectural pattern you assemble and drive yourself, and how to design a **Copilot orchestrator** that a real legacy team can run without pretending a robot took the wheel.
 
 This is Part 5, the finale of the legacy-modernization thread in my Copilot series, and the capstone of the whole arc. It assumes you have followed along. Part 1 gave the [blueprint for Copilot agents on legacy applications](../github-copilot-agents-for-legacy-applications). Then we drilled into each role: [understanding a legacy codebase with a discovery agent](../github-copilot-understand-legacy-codebase-discovery) in Part 2, [changing legacy code safely with characterization tests](../safely-change-legacy-code-github-copilot-characterization-tests) in Part 3, and [building a security agent that helps without lying to you](../github-copilot-security-agent-legacy-systems) in Part 4. This part is the drill-down on the orchestration design itself: how the orchestrator, the role agents, and the reusable prompts fit together as a repeatable pattern.
+
+<Callout type="tip" title="A working version of this org chart">
+The five role agents below are committed in my [food delivery app](https://github.com/jssuthahar/food-delivery-app), so you can read the real frontmatter rather than a snippet — least-privilege `tools`, `send: false` on every handoff, and a **Must NOT do** line in each charter.
+
+- [`.github/agents/orchestrator.agent.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/agents/orchestrator.agent.md) — routes and sequences; can edit nothing
+- [`.github/agents/architecture.agent.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/agents/architecture.agent.md) — which layer, and what else reads it
+- [`.github/agents/feature.agent.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/agents/feature.agent.md) — the only agent allowed to edit `lib/`
+- [`.github/agents/tester.agent.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/agents/tester.agent.md) — cannot edit `lib/`, cannot approve its own change
+- [`.github/agents/security.agent.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/agents/security.agent.md) — read-only, and forbidden from re-reporting two things that are deliberate
+
+The role map is in [`.github/agents/README.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/agents/README.md), the drive script in [`.github/prompts/orchestrate-feature.prompt.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/prompts/orchestrate-feature.prompt.md), and the deterministic gate in [`.github/hooks/`](https://github.com/jssuthahar/food-delivery-app/tree/main/.github/hooks) — a `preToolUse` guard that denies a tool call when `lib/domain` has picked up a Flutter import. It runs the same script as the git hook rather than a second copy of the rule, because two copies drift.
+</Callout>
 
 > One caveat up front, and I mean it more here than anywhere in the series. Copilot's agent, handoff, Skills, and hook features move between preview and general availability, and exact paths, frontmatter keys, and platform support change month to month. Everything below matches current GitHub docs at the time of writing. Custom agent handoffs, in particular, are an IDE-side feature today and are not supported for the Copilot cloud agent on GitHub.com. Features evolve — confirm against the current GitHub documentation before you rely on any specific behaviour.
 

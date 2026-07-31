@@ -24,6 +24,8 @@ faq:
     a: 'Give the review Skill a strict output format — blocking issues, suggestions, and questions for the author, in that order — and tell it to report at most a few high-value items instead of every nitpick. Scope it to the diff, tie it to your real standards, and let it run before a human opens the PR so people arrive to discuss design, not formatting.'
 ---
 
+import Callout from '../../../components/mdx/Callout.astro';
+
 Two years ago I approved a pull request I still think about. The AI reviewer we had wired in gave it a clean pass. No blocking comments, a couple of tidy naming suggestions, a green tick. The code was genuinely well written — clear names, small methods, tests present. So I skimmed, agreed, and merged.
 
 Three days later Sumathi found the bug in production. The code was correct. It just solved the wrong problem: it computed the refund on the pre-discount order total, when the business rule was to refund what the customer actually paid. Every line passed review. The whole thing was wrong.
@@ -31,6 +33,17 @@ Three days later Sumathi found the bug in production. The code was correct. It j
 That day gave me the sentence this article is built on. **AI can review whether your code is written well. It cannot review whether your code is the right code.** So can GitHub Copilot automate code review 100%? No. You can automate most of the review tax. You cannot automate the judgment. The gap between those two is where good engineering lives.
 
 This is Part 5 of my Copilot Skills series. If Skills are new to you, start with the [Copilot Skills explainer](../github-copilot-skills-deep-dive) — it covers what a Skill is and why it loads on demand. Here we point Skills at a harder target: PR review itself, honestly, with the limits made explicit.
+
+<Callout type="tip" title="Both lanes, in one repo">
+The advisory layer and the deterministic gate are both committed in my [food delivery app](https://github.com/jssuthahar/food-delivery-app), so you can see the split rather than take my word for it.
+
+- **Advisory** — [`.github/skills/pr-review-mechanical/SKILL.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/skills/pr-review-mechanical/SKILL.md), the review Skill: ten rules, a capped output format, and a "do not flag" list for the two things in that repo which are deliberate
+- **Its partner** — [`.github/skills/flutter-feature/SKILL.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/skills/flutter-feature/SKILL.md), the Skill that *writes* features to the same rules, so writing and reviewing cannot disagree
+- **Enforceable** — [`.github/workflows/pr-checks.yml`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/workflows/pr-checks.yml): `flutter analyze`, `flutter test`, and a grep that fails the build if `lib/domain` picks up a Flutter import
+- **Local** — [`.githooks/pre-commit`](https://github.com/jssuthahar/food-delivery-app/blob/main/.githooks/pre-commit), the same checks before you push
+
+The third job in that workflow is the honest one. The layering rule is exactly the kind of thing an advisory reviewer waves through on a busy Friday, so it is a grep that exits non-zero rather than a sentence in a Skill.
+</Callout>
 
 ## Code review is really two jobs, not one
 

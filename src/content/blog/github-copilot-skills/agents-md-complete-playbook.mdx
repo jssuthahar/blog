@@ -1,5 +1,6 @@
 ---
 title: 'The Complete AGENTS.md Playbook: Build AI Coding Agents That Work Like Your Best Engineer'
+seoTitle: 'The Complete AGENTS.md Playbook'
 description: 'Everything that belongs in an AGENTS.md file — architecture, security, testing, AI rules — plus what to leave out, common mistakes and a reusable template.'
 highlight: "A good AGENTS.md isn't a longer file, it's a more specific one. The difference between an agent that writes code like a stranger and one that writes code like it's been on your team for a year comes down to about a dozen sections, each answering one narrow question instead of vaguely covering everything."
 publishedAt: 2026-07-27
@@ -13,13 +14,13 @@ featured: true
 draft: false
 faq:
   - q: 'Can GitHub Copilot generate AGENTS.md automatically?'
-    a: "Yes. Type /init in Copilot Chat and it does a genuinely good job on the parts it can see — your dependencies, your folder structure, patterns that are already consistent in the code. What it can't see is your security policy, which of two competing patterns you actually want going forward, or any rule that only exists in a decision someone made in a meeting. So generate the draft, then fill in what only a human on the team knows."
+    a: "Yes. Type /init in Copilot Chat and it does a good job on what it can see — dependencies, folder structure, patterns already consistent in the code. What it cannot see is your security policy, which of two competing patterns you want going forward, or a rule that lives only in someone's memory. Generate, then edit by hand."
   - q: 'Should I write AGENTS.md by hand or let Copilot generate it?'
-    a: "Do both, in that order — let Copilot generate first, then correct it by hand. Starting from a blank file wastes the time Copilot would save you on the boring inferable parts. But shipping Copilot's draft as-is is risky, because it describes what your code happens to look like today, not what you've decided it should look like. The draft is a first pass. The human edit is what makes it correct."
+    a: "Do both, in that order — generate first, then correct by hand. A blank file wastes the time Copilot would save you on the inferable parts. But shipping its draft as-is is risky, because it describes what your code looks like today, not what you decided it should look like. The human edit is what makes it correct."
   - q: 'How often should AGENTS.md be updated?'
     a: "The same week a convention changes — not in some later cleanup sprint. A file that describes patterns the team abandoned months ago is worse than no file at all, because it actively steers new code toward decisions that are no longer correct."
   - q: 'Should AGENTS.md include business logic?'
-    a: "Rarely, and only as a boundary, not an explanation. 'Never charge a card before an order is confirmed' belongs in the file because it's a rule the agent must not break. The reasoning behind your pricing strategy or a multi-quarter roadmap doesn't — that belongs in a product doc, and putting it here just makes the file harder to maintain and easier to leak."
+    a: "Rarely, and only as a boundary, not an explanation. 'Never charge a card before an order is confirmed' belongs in the file because it's a rule the agent must not break. The reasoning behind your pricing strategy or a roadmap doesn't — that belongs in a product doc, and putting it here makes the file harder to maintain."
 ---
 
 Most AGENTS.md guides stop at "here's what the file looks like." That's the easy 20%.
@@ -66,18 +67,21 @@ Here are the sections worth having, roughly in the order they matter. Not every 
 Two or three lines: what it is, the core stack, target platforms. This exists purely to stop the agent from guessing the basics.
 
 ```markdown
-Flutter Food Delivery app. Flutter 3.x, Dart 3.x. Android and iOS.
-Firebase backend, REST APIs for payment and logistics providers.
+MSDevBuild Eats — a Flutter food delivery app. Flutter 3.x, Dart 3.x.
+Web, Android, iOS and tablet from one codebase. Seeded in-memory demo
+backend by default; Firebase is the optional second implementation.
 ```
+
+That one is lifted from my [food delivery app](https://github.com/jssuthahar/food-delivery-app), which I'll keep using for the rest of the examples in this post so you can check every rule against real code.
 
 ### Architecture rules
 
 Name the architecture out loud — Clean Architecture, MVVM, Feature-First, whatever's actually in use. Say it in a way that leaves no room for a "reasonable" alternative.
 
 ```markdown
-Feature-First Clean Architecture. Each feature owns its own data,
-domain, and presentation layers. Do not introduce a different
-architectural pattern for new features, even a well-known one.
+Clean Architecture, three layers, dependencies point inward only.
+lib/domain is pure Dart and imports no Flutter. Do not introduce a
+different architectural pattern for new features, even a well-known one.
 ```
 
 ### Folder structure
@@ -86,11 +90,14 @@ Show it. Don't describe it in prose. A literal tree is faster for both humans an
 
 ```text
 lib/
-├── core/            # shared services, network, theme
-├── features/        # one folder per feature, self-contained
+├── app/             # composition root: DI graph, router, app-wide cubits
+├── core/            # shared services, errors, Result, theme, widgets
+├── domain/          # pure Dart: entities, repository contracts, use cases
+├── data/            # models, data sources, repository implementations
+├── features/        # one folder per feature: bloc/ + presentation/
 │   ├── cart/
 │   ├── orders/
-│   └── payment/
+│   └── checkout/
 └── main.dart
 ```
 
@@ -208,7 +215,7 @@ If you remember nothing else, remember these. They're the habits that separate a
 
 Yes — partly. And "partly" is the whole answer, so it's worth being precise about the line.
 
-Type `/init` in Copilot Chat and it scans the repo and drafts a file from what it finds. It's genuinely good at the inferable parts: your dependencies, an existing consistent folder structure, a pattern that's already used uniformly across the code.
+Type `/init` in Copilot Chat and it scans the repo and drafts a file from what it finds. It's genuinely good at the inferable parts: your dependencies, an existing consistent folder structure, a pattern that's already used uniformly across the code. (Same trick works for [Copilot's own custom instructions file](../github-copilot-custom-instructions), which is the smaller, Copilot-specific cousin of this one.)
 
 What it can't know:
 
@@ -320,29 +327,37 @@ Do not use: [explicitly ruled-out alternatives]
 
 ## A worked example: Flutter food delivery
 
-To make this concrete, here's how a chunk of that template might get filled in for a food delivery app. It's illustrative, not a real production file, but realistic enough to show the shape:
+To make this concrete, here's a chunk of the `AGENTS.md` from my [food delivery app](https://github.com/jssuthahar/food-delivery-app). Not an illustration — this is the committed file, and you can open the code behind every rule in it:
 
 ```markdown
 ## Architecture
-Feature-First Clean Architecture. features/cart, features/orders,
-features/payment each own their data/domain/presentation layers.
+Clean Architecture, three layers, dependencies point inward only.
+lib/domain (pure Dart — no package:flutter import), lib/data,
+lib/features/<feature>. Nothing in lib/features imports from lib/data.
+
+## State management
+BLoC / Cubit. Not Riverpod, not Provider, not setState.
+Blocs are NOT registered in get_it — they resolve their use cases from
+it and are created by BlocProvider at the screen that owns them.
 
 ## Error Handling
-Result<T, Error> from repositories. Never throw across a repository
-boundary. UI layer shows user-facing messages via the shared
-ErrorPresenter — never a raw exception message.
-
-## Security Guidelines
-- Payment tokens are never logged, in any environment
-- No card data is stored client-side, ever — tokenization only
+Result<T> from every repository and use case. Never throw across a
+repository boundary. Data sources throw AppException; repositories
+translate to a Failure through mapErrorToFailure, in exactly one place.
 
 ## Business Rules (Hard Constraints)
-- Never mark an order "confirmed" without a successful payment gateway response
-- Refunds only go through RefundService — no direct database writes
-- Delivery address changes are blocked once an order enters "preparing" status
+- Order totals are recomputed from the Cart entity when the order is
+  created. Never trust a total posted from the checkout screen.
+- PlaceOrder creates the order AND clears the cart.
+- OrderStatus owns its own state machine. The partner's advance button,
+  the customer timeline and the rider job card read that one definition.
+- Adding a dish from a second restaurant emits a pendingConflict state.
+  Never silently replace the basket.
 ```
 
-Notice how specific these are. None of them say "write secure code." Every line is something an agent can actually check itself against.
+Notice how specific these are. None of them say "write secure code." Every line is something an agent can actually check itself against — and several of them, like the `get_it` rule, are things no agent could ever infer by reading the code.
+
+That last one is worth pausing on. `get_it` is in the dependency list and blocs are in every feature folder, so the obvious conclusion is to register the blocs too. It's wrong, and an agent finds that out only if you write it down. If you want to see whether the rules held, the app is running as a [live web build](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`) and an [Android build](https://appdistribution.firebase.dev/i/00432c5aa60de58b) from the same codebase.
 
 ## Do's and don'ts, condensed
 
@@ -374,3 +389,4 @@ Notice how specific these are. None of them say "write secure code." Every line 
 - Never put secrets, real customer data, or long strategic reasoning in the file. Keep it to rules and boundaries.
 - Copilot's `/init` drafts the inferable parts well, but only a human can pick which existing pattern is right and write down the business rules that live nowhere else — so generate first, then edit by hand against the checklist.
 - Treat it as living, reviewed code — update it in the same PR that changes the pattern it describes, not later.
+- Once the file is right, the next layer up is [Copilot Skills](../github-copilot-skills-deep-dive) — task-specific knowledge that loads only when the work matches, instead of on every request.

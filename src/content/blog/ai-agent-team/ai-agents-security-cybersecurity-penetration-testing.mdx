@@ -22,6 +22,8 @@ faq:
     a: "Attack scripts that stay in CI, not a report. A report describes one afternoon. A suite that signs in as user A, asks for user B's data and fails the build when it succeeds keeps working every time someone edits the rules."
 ---
 
+import Callout from '../../../components/mdx/Callout.astro';
+
 I found it on a Tuesday, three weeks before launch, doing a security review nobody had scheduled because nobody owned security.
 
 I opened `firestore.rules` for the first time since week two. It said, in effect, that any signed-in user could read any document in the orders collection. Not their orders. Any orders. Name, address, phone number, order history, for every customer in the pilot.
@@ -29,6 +31,16 @@ I opened `firestore.rules` for the first time since week two. It said, in effect
 The app had never done anything wrong with that permission, which is why nothing ever went bang. Our client only ever asked for its own data, so the rules never got exercised. A world-readable database and a correctly-behaving app look identical from inside the app.
 
 What makes this story worth telling is not the rule. It is that we had already reviewed it. Weeks earlier I had asked an agent to check our security rules and it came back clean, and it was right — about the file in the repository. Production was running rules deployed four commits earlier, from before someone tightened them locally and never deployed. The agent answered the question I asked, honestly, about the artefact I gave it.
+
+<Callout type="tip" title="Three security agents against real rules">
+The version of these agents I actually run is in my [food delivery app](https://github.com/jssuthahar/food-delivery-app), pointed at [`firebase/firestore.rules`](https://github.com/jssuthahar/food-delivery-app/blob/main/firebase/firestore.rules) — a three-role model where a partner or rider reaching a customer document is the realistic bug.
+
+- [`.ai/prompts/security-review.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/security-review.md) — exploit path first, and the instruction to test against a second signed-in user rather than an anonymous one
+- [`.ai/prompts/cybersecurity.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/cybersecurity.md) — credentials ranked by blast radius; the App Distribution service account outranks everything
+- [`.ai/prompts/pentest.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/pentest.md) — executable emulator tests, staging only, weighted toward cross-role access
+
+Each one carries a "do not report this" clause, because that is what stopped the noise: the catalogue is world-readable by design, and the missing Firebase API key is deliberate. An agent that flags both every week gets ignored by the third week.
+</Callout>
 
 **An agent's answer is only as true as the input you hand it, and a confident report on the wrong input is worse than no report.**
 

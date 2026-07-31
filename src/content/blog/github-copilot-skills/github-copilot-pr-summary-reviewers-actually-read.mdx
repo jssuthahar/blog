@@ -24,11 +24,22 @@ faq:
     a: 'Both, in that order. Let the AI draft the summary of changes so you are not staring at a blank box. Then the author owns the intent — the why, the risk, the rollback, the ticket link, and the one line telling the reviewer where to focus. AI drafts, human supplies intent. The author is still accountable for what the description claims.'
 ---
 
+import Callout from '../../../components/mdx/Callout.astro';
+
 A one-line pull request cost my team most of an afternoon. The description said "fixes stuff" — that was it. The diff touched eleven files across the Orders service, and buried in the middle of a routine refactor was a database migration that changed a column type. Nikhil was the reviewer. He spent forty minutes reverse-engineering the intent from the diff, missed the migration on the first pass, and only caught it because he happened to expand a file he almost skipped. A risky change had hidden itself inside a boring one, and the description did nothing to stop it.
 
 That afternoon is why I care about pull request descriptions more than most people think is reasonable. A PR description is one of the highest-impact, most-skipped artifacts in software delivery. And the good news is that GitHub Copilot can now draft one for you. The bad news is that a Copilot PR summary, left on default, would have described that exact pull request as "refactored order calculation and updated schema". Technically true, completely useless to Nikhil. This article is about closing that gap: how to get a **GitHub Copilot PR summary** that a reviewer actually reads, instead of one more block of text everyone scrolls past.
 
 This is Part 6 of my Copilot series. If Skills and custom instructions are new to you, start with the [Copilot Skills explainer](../github-copilot-skills-deep-dive) for the foundation. And read this alongside [Part 5 on the limits of AI code review](../github-copilot-automate-code-review-limits) — a good summary and a good review are two halves of the same handoff.
+
+<Callout type="tip" title="The template and the instructions, committed">
+Both files below are live in my [food delivery app](https://github.com/jssuthahar/food-delivery-app), filled in for that codebase rather than left generic — which is what makes the "Risk & rollback" section useful instead of decorative.
+
+- [`.github/pull_request_template.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/pull_request_template.md) — six sections, and the risk prompt names the three things in this app a rollback genuinely cannot undo
+- [`.github/copilot-instructions.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/copilot-instructions.md) — the "PR summary guidance" section at the bottom is the instruction block from further down this article
+
+The risk section is the one worth stealing. Generic templates ask "is this risky?", which everyone answers "no". This one asks about a `shared_preferences` key changing shape, because the old build reads the new data and reinstalling does not fix it.
+</Callout>
 
 ## Who is a PR description actually for?
 

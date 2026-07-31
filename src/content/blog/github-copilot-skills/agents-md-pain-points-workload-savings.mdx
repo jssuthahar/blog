@@ -1,5 +1,6 @@
 ---
 title: 'AGENTS.md in 2026: The One File Every AI-Assisted Developer Actually Needs'
+seoTitle: 'AGENTS.md: The One File You Need'
 description: 'AI agents write more code each month than teams can review by hand. AGENTS.md is the one file that keeps it consistent — solo, team or enterprise.'
 highlight: 'This problem is not about your framework, your team size, or your tool. It shows up any time an AI agent writes code without shared context. A solo dev sees it as messy inconsistency in their own project. A team sees it as three "correct" versions of the same feature.'
 faq:
@@ -106,6 +107,8 @@ unit test per new function in /src/api or /src/store.
 
 Swap the details and the same shape works for a Django backend, a Spring Boot service, a Flutter app, an Angular frontend — anything, solo or shared. The sections stay the same: stack, architecture, the one approved pattern for state and data, error handling, testing, and what's off-limits.
 
+If you want to see the Flutter version of exactly this file, the [`AGENTS.md` in my food delivery app](https://github.com/jssuthahar/food-delivery-app/blob/main/AGENTS.md) is committed and readable — same six sections, filled in for a Clean Architecture Flutter app with BLoC. The [app itself runs in the browser](https://jssuthahar.github.io/food-delivery-app/) if you want to see what the rules produced before you read them.
+
 ## How do you actually create the file?
 
 The simplest version costs nothing. Create a file named `AGENTS.md` at the root of your repo. Plain text. No special tools. That's the whole setup. Any tool that reads it will pick it up from that spot automatically.
@@ -161,3 +164,4 @@ If you want an honest range instead of a fake exact number: **expect 20–40% le
 - It's genuinely open and tool-agnostic — read natively by Codex, Cursor, Copilot, Windsurf, Aider, and more — with one exception: Claude Code needs a symlink or import to read the same file.
 - It stops *new* drift. It doesn't fix code that's already inconsistent — budget separate time for that.
 - Workload savings are real but hard to measure precisely. Expect the biggest win in code review time, with rework and ramp-up improving more slowly.
+- Next: [the complete playbook](/blog/agents-md-complete-playbook) goes section by section through what belongs in the file, and [Copilot custom instructions](/blog/github-copilot-custom-instructions) covers the smaller Copilot-only version of the same idea.

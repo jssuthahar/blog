@@ -1,16 +1,18 @@
 ---
 /**
- * Navigation for the installed app.
+ * Primary navigation on phones — installed or not.
  *
- * A burger menu is a browser pattern: it hides every destination behind a tap
- * and looks wrong in a window with no address bar. Installed, the site gets a
- * fixed icon tab bar instead — five destinations always visible, plus a "More"
- * sheet of icon tiles for the rest. The burger is hidden in that mode, and
- * nothing here renders in a normal browser tab.
+ * A burger hides every destination behind a tap. The floating bar puts four of
+ * them permanently in thumb reach with a "More" sheet of icon tiles behind the
+ * fifth, so it replaces the burger outright at phone widths rather than sitting
+ * alongside it. Two navigation systems on one screen is the worse outcome.
  *
- * Visibility is CSS-only via `display-mode: standalone`, with
- * `html[data-standalone]` covering iOS, which reports the mode through a
- * non-standard flag instead (set in BaseHead before first paint).
+ * It floats rather than spanning the bottom edge: detached from the edge it
+ * reads as a control layered over the page, and the strip of page visible
+ * underneath tells the reader there is more to scroll.
+ *
+ * Visibility is CSS-only at `max-width: 767px`. The one thing that still varies
+ * by mode is where Home points — see the two Home tabs below.
  */
 
 interface Item {
@@ -42,15 +44,25 @@ const ICONS: Record<string, string> = {
 };
 
 // Five tabs is the practical ceiling before targets get too narrow to hit.
-// The four destinations a reader uses on a phone: the feed, finding something,
+// The four destinations a reader uses on a phone: home, finding something,
 // what they saved, and who wrote it. Browsing by blog/series/article listing is
 // a lean-back activity that belongs in the sheet.
 const TABS: Item[] = [
-  // '/' is here too, so an older install launching at the root still lights up.
-  { label: 'Home', href: '/app/', icon: 'home', also: ['/'] },
   { label: 'Search', href: '/search/', icon: 'search' },
   { label: 'Library', href: '/history/', icon: 'library' },
   { label: 'Profile', href: '/about/', icon: 'about' },
+];
+
+/**
+ * Home means two different pages depending on how the site was opened, and a
+ * static build cannot know which. So both are rendered and CSS shows one:
+ * `/app/` is the installed app's start_url and the reading feed, while `/` is
+ * the site's actual home — sending a browser visitor to a noindex app shell
+ * because they tapped Home would be wrong.
+ */
+const HOME: (Item & { mode: 'browser' | 'app' })[] = [
+  { label: 'Home', href: '/', icon: 'home', mode: 'browser' },
+  { label: 'Home', href: '/app/', icon: 'home', also: ['/'], mode: 'app' },
 ];
 
 const MORE: Item[] = [
@@ -74,21 +86,47 @@ const isActive = (item: Item) => matches(item.href) || (item.also ?? []).some(ma
 const moreActive = MORE.some(isActive);
 ---
 
-<nav class="app-tabs" aria-label="App">
+<nav class="app-tabs" aria-label="Primary">
+  {
+    HOME.map((item) => (
+      <a
+        href={item.href}
+        class={`app-tab app-tab--${item.mode}`}
+        aria-current={isActive(item) ? 'page' : undefined}
+      >
+        <span class="app-tab__mark">
+          <svg
+            class="app-tab__icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            set:html={ICONS[item.icon]}
+          />
+        </span>
+        <span class="app-tab__label">{item.label}</span>
+      </a>
+    ))
+  }
   {
     TABS.map((item) => (
       <a href={item.href} class="app-tab" aria-current={isActive(item) ? 'page' : undefined}>
-        <svg
-          class="app-tab__icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.7"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-          set:html={ICONS[item.icon]}
-        />
+        <span class="app-tab__mark">
+          <svg
+            class="app-tab__icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            set:html={ICONS[item.icon]}
+          />
+        </span>
         <span class="app-tab__label">{item.label}</span>
       </a>
     ))
@@ -102,17 +140,19 @@ const moreActive = MORE.some(isActive);
     aria-controls="app-more"
     aria-current={moreActive ? 'page' : undefined}
   >
-    <svg
-      class="app-tab__icon"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.7"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-      set:html={ICONS.more}
-    />
+    <span class="app-tab__mark">
+      <svg
+        class="app-tab__icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+        set:html={ICONS.more}
+      />
+    </span>
     <span class="app-tab__label">More</span>
   </button>
 </nav>
@@ -147,7 +187,9 @@ const moreActive = MORE.some(isActive);
 </div>
 
 <style>
-  /* Hidden in a browser tab — the header nav and burger stay in charge there. */
+  /* Desktop keeps the header nav; a bar pinned across a wide viewport reads as
+     a broken page rather than an app. Shown at phone widths in the media query
+     at the bottom of this block. */
   .app-tabs,
   .app-sheet {
     display: none;
@@ -156,48 +198,97 @@ const moreActive = MORE.some(isActive);
   .app-tabs {
     position: fixed;
     z-index: 55;
-    inset: auto 0 0;
+    /* Detached on all four sides — the floating part. The bottom offset stacks
+       on top of the safe-area inset so the bar clears the iOS home indicator
+       instead of sitting under it. */
+    left: 0.7rem;
+    right: 0.7rem;
+    bottom: calc(0.7rem + env(safe-area-inset-bottom));
     grid-auto-flow: column;
     grid-auto-columns: 1fr;
     align-items: stretch;
+    /* Opaque, not blurred. A backdrop-filter over scrolling content is
+       recomputed every frame and janks on Chrome — the same reason
+       Header.astro stays solid. */
     background: var(--bg);
-    border-top: 1px solid var(--border);
-    padding-bottom: env(safe-area-inset-bottom);
+    border: 1px solid var(--border);
+    border-radius: 1.15rem;
+    box-shadow:
+      0 12px 28px -10px rgb(0 0 0 / 0.3),
+      0 3px 10px -4px rgb(0 0 0 / 0.14);
+    /* Keeps the pressed state inside the rounded corners. */
+    overflow: hidden;
+  }
+  /* The shadow that reads as "lifted" on white disappears on a dark page, so
+     depth is carried by a brighter rim there instead. */
+  :global([data-theme='dark']) .app-tabs {
+    border-color: color-mix(in oklch, var(--border) 70%, var(--text) 30%);
+    box-shadow: 0 14px 34px -12px rgb(0 0 0 / 0.75);
   }
 
   .app-tab {
     display: grid;
     justify-items: center;
     align-content: center;
-    gap: 0.2rem;
-    /* Comfortably over the 44px touch target minimum, indicator included. */
+    gap: 0.12rem;
+    /* Comfortably over the 44px touch target minimum. */
     min-height: 3.4rem;
-    padding: 0.45rem 0.25rem 0.5rem;
+    padding: 0.4rem 0.2rem;
     border: 0;
-    border-top: 2px solid transparent;
     background: transparent;
     color: var(--text-muted);
     font: inherit;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
+  /* The pill behind the icon. A rounded bar has no top edge to rule, so the
+     current tab is still marked twice — colour plus a shape that appears — and
+     reads for anyone who cannot separate the accent from the muted grey. */
+  .app-tab__mark {
+    display: grid;
+    place-items: center;
+    width: 2.35rem;
+    height: 1.7rem;
+    border-radius: 9999px;
+    background: transparent;
+  }
   .app-tab__icon {
-    width: 1.45rem;
-    height: 1.45rem;
+    width: 1.4rem;
+    height: 1.4rem;
   }
   .app-tab__label {
     font-size: 0.66rem;
     font-weight: 600;
     letter-spacing: 0.01em;
   }
-  /* The current tab is marked twice — colour and a top rule — so it still
-     reads for anyone who cannot separate the accent from the muted grey. */
   .app-tab[aria-current='page'] {
     color: var(--accent);
-    border-top-color: var(--accent);
+  }
+  .app-tab[aria-current='page'] .app-tab__mark {
+    background: var(--accent-soft);
   }
   .app-tab:active {
     background: var(--bg-subtle);
+  }
+
+  /* Only one Home tab is ever shown; see the HOME comment above. Browser is the
+     default so the app variant is the one that has to be switched on. */
+  .app-tab--app {
+    display: none;
+  }
+  @media (display-mode: standalone), (display-mode: minimal-ui), (display-mode: fullscreen) {
+    .app-tab--app {
+      display: grid;
+    }
+    .app-tab--browser {
+      display: none;
+    }
+  }
+  :global(html[data-standalone]) .app-tab--app {
+    display: grid;
+  }
+  :global(html[data-standalone]) .app-tab--browser {
+    display: none;
   }
 
   .app-sheet {
@@ -219,8 +310,9 @@ const moreActive = MORE.some(isActive);
     border-top: 1px solid var(--border);
     border-radius: 1.1rem 1.1rem 0 0;
     padding: 0.6rem 1rem 1rem;
-    /* Clears the tab bar it opens above. */
-    padding-bottom: calc(4.4rem + env(safe-area-inset-bottom));
+    /* Clears the bar it opens above, so the last row of tiles is never sitting
+       behind it. Derived from the same token rather than a second guess. */
+    padding-bottom: calc(0.6rem + var(--app-nav-h));
     box-shadow: 0 -18px 50px -20px rgb(0 0 0 / 0.5);
   }
   .app-sheet__grip {
@@ -269,14 +361,10 @@ const moreActive = MORE.some(isActive);
     background: var(--bg-subtle);
   }
 
-  /* Installed and phone-sized: the tab bar replaces the burger. Written twice
-     because a media query and an attribute selector cannot share one rule —
-     the media query covers Android and desktop, the attribute covers iOS. */
-  /* minimal-ui and fullscreen are listed too: the manifest allows them as
-     fallbacks, and any of the three means "launched as an app". */
-  @media (display-mode: standalone) and (max-width: 767px),
-    (display-mode: minimal-ui) and (max-width: 767px),
-    (display-mode: fullscreen) and (max-width: 767px) {
+  /* Every phone-width page, installed or not. One rule now: the bar is the
+     phone's primary navigation rather than app-mode chrome, so it no longer
+     needs to ask how the page was opened. */
+  @media (max-width: 767px) {
     .app-tabs {
       display: grid;
     }
@@ -284,71 +372,38 @@ const moreActive = MORE.some(isActive);
       display: block;
     }
   }
-  @media (max-width: 767px) {
-    :global(html[data-standalone]) .app-tabs {
-      display: grid;
-    }
-    :global(html[data-standalone]) .app-sheet:not([hidden]) {
-      display: block;
-    }
-  }
 
-  /* The /app route is app chrome by definition, so it gets the tab bar in an
-     ordinary tab too — but only at phone widths. On a desktop window the header
-     nav is right there, and a bar pinned across the bottom of a wide viewport
-     reads as a broken page rather than an app. */
-  @media (max-width: 767px) {
-    :global(html[data-app-shell]) .app-tabs {
-      display: grid;
-    }
-    :global(html[data-app-shell]) .app-sheet:not([hidden]) {
-      display: block;
+  @media (prefers-reduced-motion: no-preference) {
+    .app-tab__mark {
+      transition: background-color 0.16s ease;
     }
   }
 </style>
 
 <style is:global>
   /*
-   * Height the tab bar occupies, and the single source of truth for getting out
-   * of its way. Zero in a browser tab, which makes every rule below inert there
-   * — so each bottom-fixed element is adjusted once rather than once per mode.
+   * Total vertical space the floating bar claims, and the single source of
+   * truth for getting out of its way: the bar itself (3.4rem), its gap from the
+   * bottom edge (0.7rem), the same gap again above it so content does not stop
+   * flush against it, and the safe-area inset.
+   *
+   * Zero above phone widths, which makes every rule below inert on desktop — so
+   * each bottom-fixed element is adjusted once rather than once per mode.
    */
   :root {
     --app-nav-h: 0px;
   }
 
-  /* In app mode the burger and its drop-down are dead weight. Declared twice
-     because a media query and an attribute selector cannot share one rule: the
-     query covers Android and desktop, the attribute covers iOS. */
-  @media (display-mode: standalone) and (max-width: 767px),
-    (display-mode: minimal-ui) and (max-width: 767px),
-    (display-mode: fullscreen) and (max-width: 767px) {
+  @media (max-width: 767px) {
     :root {
-      --app-nav-h: calc(3.6rem + env(safe-area-inset-bottom));
+      --app-nav-h: calc(4.8rem + env(safe-area-inset-bottom));
     }
+
+    /* The bar carries every destination the burger did — four tabs plus the
+       More sheet — so keeping the burger would leave two navigation systems
+       competing on one screen. */
     #menu-toggle,
     #mobile-nav {
-      display: none !important;
-    }
-  }
-  @media (max-width: 767px) {
-    html[data-standalone] {
-      --app-nav-h: calc(3.6rem + env(safe-area-inset-bottom));
-    }
-    html[data-standalone] #menu-toggle,
-    html[data-standalone] #mobile-nav {
-      display: none !important;
-    }
-  }
-
-  /* App-shell pages reserve the same space — only where the bar actually shows,
-     or a desktop window would carry 3.6rem of empty padding at the bottom. */
-  @media (max-width: 767px) {
-    html[data-app-shell] {
-      --app-nav-h: calc(3.6rem + env(safe-area-inset-bottom));
-    }
-    html[data-app-shell] #menu-toggle,
-    html[data-app-shell] #mobile-nav {
       display: none !important;
     }
   }

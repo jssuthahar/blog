@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Newsletter from '../components/Newsletter.astro';
 import { getAllTags } from '../lib/posts';
 
 const tags = await getAllTags();
@@ -23,4 +24,8 @@ const tags = await getAllTags();
       </li>
     ))}
   </ul>
+
+  <div class="mt-16">
+    <Newsletter source="tags" compact />
+  </div>
 </BaseLayout>

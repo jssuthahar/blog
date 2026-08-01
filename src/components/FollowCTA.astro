@@ -17,6 +17,14 @@ const {
   class: className = '',
 } = Astro.props;
 
+/**
+ * The footer renders one of these on every page, so any page placing a second
+ * one had two elements sharing `id="follow-heading"` — which silently points
+ * both `aria-labelledby` references at whichever came first. Deriving the id
+ * from the heading keeps them distinct without a caller having to pass one.
+ */
+const headingId = `follow-heading-${heading.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+
 const ICONS: Record<string, string> = {
   linkedin:
     'M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9h4v12H3V9Zm7 0h3.8v1.7h.05c.53-1 1.83-2.05 3.75-2.05C21.6 8.65 22 11.1 22 14.3V21h-4v-6c0-1.4-.03-3.2-2-3.2s-2.3 1.5-2.3 3.1V21h-4V9Z',
@@ -37,9 +45,9 @@ const ICONS: Record<string, string> = {
 {variant === 'panel' ? (
   <section
     class:list={['rounded-lg border border-default p-6', className]}
-    aria-labelledby="follow-heading"
+    aria-labelledby={headingId}
   >
-    <h2 id="follow-heading" class="text-lg font-semibold tracking-tight">{heading}</h2>
+    <h2 id={headingId} class="text-lg font-semibold tracking-tight">{heading}</h2>
     <p class="mt-1.5 text-sm text-muted">
       New articles, sample code, and video walkthroughs as they land.
     </p>

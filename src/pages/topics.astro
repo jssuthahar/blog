@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Newsletter from '../components/Newsletter.astro';
 import { SITE, AUTHOR } from '../config';
 import { TOPIC_GROUPS, TAGS } from '../lib/taxonomy';
 import { slugifyCategory } from '../lib/articles';
@@ -86,4 +87,8 @@ const schema = [
       ))}
     </ul>
   </section>
+
+  <div class="mt-16">
+    <Newsletter source="topics" compact />
+  </div>
 </BaseLayout>

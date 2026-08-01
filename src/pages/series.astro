@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Newsletter from '../components/Newsletter.astro';
 import SeriesQuickNav from '../components/SeriesQuickNav.astro';
 import { getSeriesIndex, formatDate, postUrl } from '../lib/posts';
 
@@ -45,5 +46,11 @@ const series = await getSeriesIndex();
         </ol>
       </section>
     ))}
+  </div>
+
+  <!-- Someone browsing series wants the next part when it lands, which is
+       exactly what the list delivers. -->
+  <div class="mt-16">
+    <Newsletter source="series" />
   </div>
 </BaseLayout>

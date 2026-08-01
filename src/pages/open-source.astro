@@ -4,6 +4,7 @@ import RepoCard from '../components/RepoCard.astro';
 import FeaturedProjectCard from '../components/FeaturedProjectCard.astro';
 import AdUnit from '../components/AdUnit.astro';
 import { SITE, AUTHOR, ADSENSE_SLOT_DISPLAY } from '../config';
+import Newsletter from '../components/Newsletter.astro';
 import { allRepos, repoIndex } from '../lib/repos';
 import { featuredProjects } from '../lib/featured-projects';
 
@@ -108,6 +109,10 @@ const schema = [
       </ul>
     </section>
   )}
+
+  <div class="mt-14">
+    <Newsletter source="open-source" />
+  </div>
 
   <!-- One display ad at the foot of the projects list. -->
   <AdUnit slot={ADSENSE_SLOT_DISPLAY} format="display" class="!max-w-none" />

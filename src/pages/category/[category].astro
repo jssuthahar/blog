@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import Newsletter from '../../components/Newsletter.astro';
 import PostCard from '../../components/PostCard.astro';
 import { CATEGORIES, getPublishedPosts, postCategories, type CategoryId } from '../../lib/posts';
 
@@ -33,4 +34,10 @@ const { label, description } = CATEGORIES[category as CategoryId];
   ) : (
     <p class="mt-10 text-muted">No posts in this category yet.</p>
   )}
+
+  <!-- Category pages are a common search landing point: the reader arrived
+       already interested in one subject, which is the easiest case to ask in. -->
+  <div class="mt-16">
+    <Newsletter source="category" compact />
+  </div>
 </BaseLayout>

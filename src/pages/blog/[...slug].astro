@@ -14,6 +14,7 @@ import PostCard from '../../components/PostCard.astro';
 import NextRead from '../../components/NextRead.astro';
 import PostNav from '../../components/PostNav.astro';
 import Newsletter from '../../components/Newsletter.astro';
+import SubscribePopup from '../../components/SubscribePopup.astro';
 import Comments from '../../components/Comments.astro';
 import ViewCounter from '../../components/ViewCounter.astro';
 import ReadingTracker from '../../components/ReadingTracker.astro';
@@ -286,6 +287,10 @@ if (data.faq.length > 0) {
         <div class="mx-auto mt-14 max-w-[68ch]">
           <Comments />
         </div>
+
+        <!-- Depth-triggered, and only here: an article is the one page where
+             how far someone scrolled actually says how interested they are. -->
+        <SubscribePopup trigger="read" source="article-popup" />
       </div>
 
       <!-- Sticky rail: hidden below lg, where the TOC would crowd the text. -->

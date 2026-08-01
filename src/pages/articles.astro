@@ -4,6 +4,7 @@ import FollowCTA from '../components/FollowCTA.astro';
 import AdUnit from '../components/AdUnit.astro';
 import HeroCarousel, { type Slide } from '../components/HeroCarousel.astro';
 import { SITE, AUTHOR, ADSENSE_SLOT_DISPLAY } from '../config';
+import Newsletter from '../components/Newsletter.astro';
 import { allArticles, normaliseCategory, slugifyCategory, capturePayload } from '../lib/articles';
 import {
   CATEGORIES,
@@ -291,6 +292,13 @@ const schema = [
     <p id="articles-empty" hidden class="mt-10 rounded-lg border border-default bg-subtle p-6 text-muted">
       No articles match that search. Try a different term or category.
     </p>
+
+    <!-- The library is the deepest archive on the site and the page most
+         reached from search, yet it never asked for an address. Above the ad:
+         the ask should not be the thing after the advert. -->
+    <div class="mt-14">
+      <Newsletter source="articles" />
+    </div>
 
     <!-- One display ad below the library, clear of the filter list. -->
     <div class="mt-12">

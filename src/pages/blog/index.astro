@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import Newsletter from '../../components/Newsletter.astro';
 import PostCard from '../../components/PostCard.astro';
 import TestimonialCard from '../../components/TestimonialCard.astro';
 import TestimonialForm from '../../components/TestimonialForm.astro';
@@ -53,8 +54,14 @@ const schema: Record<string, unknown>[] = [];
     {posts.map((post) => <PostCard post={post} />)}
   </div>
 
+  <!-- Straight after the post grid, while the titles are still on screen —
+       ahead of both the ad and the testimonials, which are not asks. -->
+  <div class="mt-16">
+    <Newsletter source="blog-index" />
+  </div>
+
   <!-- One display ad below the post grid, before the testimonials section. -->
-  <AdUnit slot={ADSENSE_SLOT_DISPLAY} format="display" class="!max-w-none" />
+  <AdUnit slot={ADSENSE_SLOT_DISPLAY} format="display" class="!max-w-none mt-16" />
 
   {testimonials.length > 0 && (
     <section class="mt-20" aria-labelledby="testimonials-heading">

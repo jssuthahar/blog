@@ -9,6 +9,26 @@ import { FIREBASE, NEWSLETTER } from '../config';
  * semantics without any of it being reimplemented (and subtly wrong).
  */
 
+interface Props {
+  /**
+   * What earns the interruption.
+   *
+   * `dwell` — a landing page, where there is not enough content for scroll
+   * depth to mean anything: a timer, with a shallow scroll as the early out.
+   *
+   * `read`  — an article, where depth is the whole signal. Someone two thirds
+   * through a long technical post has demonstrated exactly the interest being
+   * asked about, so there is no timer at all: sitting on a page for 12 seconds
+   * is not the same as reading it, and a timed interruption mid-paragraph
+   * costs more goodwill than it wins addresses.
+   */
+  trigger?: 'dwell' | 'read';
+  /** Recorded against the subscriber so the two can be compared. */
+  source?: string;
+}
+
+const { trigger = 'dwell', source = 'home-popup' } = Astro.props;
+
 const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
 ---
 
@@ -17,6 +37,8 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
     id="subscribe-popup"
     class="subscribe-dialog rounded-xl border border-default p-0"
     aria-labelledby="subscribe-title"
+    data-trigger={trigger}
+    data-source={source}
   >
     <form method="dialog" class="absolute right-2 top-2">
       <button
@@ -147,7 +169,7 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
       status.style.color = 'var(--text-muted)';
 
       try {
-        const result = await subscribe(input.value, 'home-popup');
+        const result = await subscribe(input.value, dialog.dataset.source || 'home-popup');
 
         // `subscribe` sets the subscribed flag; SEEN keeps the popup closed
         // even if that key is later cleared.
@@ -170,8 +192,11 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
       }
     });
 
-    // Trigger: whichever comes first — a short dwell, or scrolling far enough
-    // to show intent. Never on a first paint, which reads as an ambush.
+    // Never on first paint, which reads as an ambush. Beyond that the trigger
+    // depends on what kind of page this is — see the Props comment above.
+    const reading = dialog.dataset.trigger === 'read';
+    const DEPTH = reading ? 0.65 : 0.35;
+
     function open() {
       if (seen() || dialog.open) return;
       dialog.showModal();
@@ -181,11 +206,13 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
     function onScroll() {
       const progress =
         window.scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight);
-      if (progress > 0.35) open();
+      if (progress > DEPTH) open();
     }
 
     if (!seen()) {
-      setTimeout(open, 12000);
+      // A timer is a proxy for interest, and a poor one. It is only used where
+      // the page is too short for depth to be a proxy at all.
+      if (!reading) setTimeout(open, 12000);
       window.addEventListener('scroll', onScroll, { passive: true });
     }
   }

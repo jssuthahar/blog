@@ -7,7 +7,18 @@ import { getPublishedPosts, postUrl, formatDate } from '../lib/posts';
 import { allArticles, primaryCategory } from '../lib/articles';
 import { repoIndex } from '../lib/repos';
 import { getUpcomingEvents, getPastEvents } from '../lib/speaking';
-import { contributionPillars, publishingSpan, recentActivity } from '../lib/evidence';
+import {
+  getUpcomingEvents as getUpcomingHosted,
+  getPastEvents as getPastHosted,
+  eventUrl,
+  EVENT_FORMAT_LABELS,
+} from '../lib/eventhub';
+import {
+  contributionPillars,
+  publishingSpan,
+  recentActivity,
+  mvpActivityBreakdown,
+} from '../lib/evidence';
 
 const KIND_LABELS = {
   talk: 'Session',
@@ -30,6 +41,11 @@ const pillars = contributionPillars();
 const recent = recentActivity();
 const upcoming = await getUpcomingEvents();
 const past = await getPastEvents();
+
+// Sessions hosted here are real delivered sessions, but they live in their own
+// collection because they take sign-ups. They belong in the record all the same.
+const upcomingHosted = await getUpcomingHosted();
+const pastHosted = await getPastHosted();
 
 // One merged, dated record. Reviewers want links and dates, not adjectives.
 type Item = {
@@ -61,6 +77,15 @@ const items: Item[] = [
     external: Boolean(e.data.url),
     meta: e.data.audience,
   })),
+  ...[...upcomingHosted, ...pastHosted].map((e) => ({
+    title: e.data.title,
+    kind: 'talk' as const,
+    date: e.data.startDate,
+    venue: e.data.venue ?? e.data.location,
+    url: eventUrl(e),
+    external: false,
+    meta: EVENT_FORMAT_LABELS[e.data.format],
+  })),
   ...posts.map((p) => ({
     title: p.data.title,
     kind: 'article' as const,
@@ -81,6 +106,30 @@ const items: Item[] = [
 ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
 const recentCount = items.filter((i) => i.date >= recent.since).length;
+
+// Split by source rather than summed. The two libraries are different bodies of
+// work on different domains, and a merged figure hides which one is still moving.
+const recentPosts = posts.filter((p) => p.data.publishedAt >= recent.since).length;
+const sessionsDelivered = [...past, ...pastHosted].filter(
+  (e) => ('startDate' in e.data ? e.data.startDate : e.data.date) >= recent.since,
+).length;
+const sessionsScheduled = upcoming.length + upcomingHosted.length;
+
+const stats = [
+  { label: 'Contributions logged', value: recentCount },
+  { label: `Articles — ${new URL(SITE.url).hostname}`, value: recentPosts },
+  { label: `Articles — ${MAIN_SITE.label}`, value: recent.articles.length },
+  { label: 'Repositories updated', value: recent.repos.length },
+  { label: 'Sessions delivered', value: sessionsDelivered },
+  // A scheduled-sessions row with nothing in it is noise, not evidence.
+  ...(sessionsScheduled > 0 ? [{ label: 'Sessions scheduled', value: sessionsScheduled }] : []),
+];
+
+const activity = mvpActivityBreakdown(items, {
+  // Repositories are contribution evidence in their own right, but they are not
+  // dated events, so they never enter the merged log above.
+  oss: { recent: recent.repos.length, total: repoIndex.count },
+});
 
 const byYear = items.reduce<Map<number, Item[]>>((acc, item) => {
   const year = item.date.getFullYear();
@@ -155,12 +204,7 @@ const schema = [
         </p>
 
         <dl class="mt-5 space-y-3">
-          {[
-            { label: 'Contributions logged', value: recentCount },
-            { label: 'Articles published', value: recent.articles.length },
-            { label: 'Repositories updated', value: recent.repos.length },
-            { label: 'Sessions scheduled', value: upcoming.length },
-          ].map(({ label, value }) => (
+          {stats.map(({ label, value }) => (
             <div class="flex items-baseline justify-between gap-4 border-b border-default pb-2">
               <dt class="text-sm text-muted">{label}</dt>
               <dd class="text-xl font-bold tabular-nums">{value}</dd>
@@ -190,6 +234,40 @@ const schema = [
         )}
       </section>
     </div>
+
+    <!--
+      The same record, grouped the way an MVP nomination form asks for it: one
+      row per contribution type, trailing 12 months first.
+    -->
+    <section class="mt-12 rounded-lg border border-default" aria-labelledby="activity">
+      <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-default px-6 py-3">
+        <h2 id="activity" class="text-sm font-semibold tracking-wider uppercase text-muted">
+          Activity by contribution type
+        </h2>
+        <p class="text-xs text-muted">Trailing 12 months · all time</p>
+      </div>
+
+      <ul class="grid gap-px bg-[var(--border)] md:grid-cols-2">
+        {activity.map(({ label, detail, href, recent: last12, total }) => (
+          <li class="bg-[var(--bg)]">
+            <a
+              href={href}
+              rel={href.startsWith('http') ? 'noopener' : undefined}
+              class="group flex items-baseline justify-between gap-4 px-6 py-4 transition-colors hover:bg-subtle"
+            >
+              <span class="min-w-0">
+                <span class="block text-sm font-medium group-hover:text-accent">{label}</span>
+                <span class="mt-0.5 block text-xs leading-snug text-muted">{detail}</span>
+              </span>
+              <span class="flex shrink-0 items-baseline gap-1 tabular-nums">
+                <span class="text-xl font-bold text-accent">{last12}</span>
+                <span class="text-sm text-muted">/ {total}</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
 
     <!-- Recognition already earned: context for the record above. -->
     <section class="mt-12 rounded-lg border border-default" aria-labelledby="recognition">

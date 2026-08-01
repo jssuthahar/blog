@@ -5,74 +5,237 @@ import FollowCTA from './FollowCTA.astro';
 
 const year = new Date().getFullYear();
 
-// Follow targets come from SOCIAL so the verbs stay consistent with the CTA.
-const elsewhere = [
-  ...SOCIAL.map(({ cta, href }) => ({ label: cta, href })),
-  { label: 'Install the app', href: '/install/' },
-  { label: 'Help your friends share this', href: '/share/' },
+/**
+ * The footer is the one internal-linking surface that appears on all 117 pages,
+ * so it is grouped by what a link is *for* rather than kept as one list. Three
+ * jobs, three columns: read the work, verify the work, follow the author.
+ *
+ * Anchor text is descriptive on purpose — "Contribution record" tells a crawler
+ * and an answer engine what sits behind the link; "Contributions" does not.
+ */
+const read = [
+  { label: 'Blog posts', href: '/blog/', hint: 'Long-form technical writing' },
+  { label: 'Article series', href: '/series/', hint: 'Multi-part guides in order' },
+  { label: `Article library — ${MAIN_SITE.label}`, href: '/articles/', hint: '500+ articles since 2007' },
+  { label: 'Topics', href: '/topics/', hint: 'Every subject covered' },
+  { label: 'Tags', href: '/tags/' },
+  { label: 'Search the site', href: '/search/' },
+];
+
+// Everything a reviewer, recruiter, or answer engine would check before citing
+// the work. Contribution record leads because it is the dated proof.
+const evidence = [
+  { label: 'Contribution record', href: '/contributions/', hint: 'Dated, linkable public record' },
+  { label: 'Open-source projects', href: '/open-source/', hint: 'Repositories and samples' },
+  { label: 'Events', href: '/events/', hint: 'Sessions hosted here' },
+  { label: 'Speaking', href: '/speaking/', hint: 'Conference and community sessions' },
   { label: 'Testimonials', href: '/testimonials/' },
-  { label: 'Contact', href: '/contact/' },
+  { label: `About ${AUTHOR.name}`, href: '/about/', hint: AUTHOR.jobTitle },
+];
+
+/**
+ * `rel="me"` belongs on profile URLs only — it is an identity claim that ties
+ * these accounts to one person, which is what consolidates the author entity.
+ * Putting it on an internal page link says nothing and dilutes the signal.
+ */
+const profiles = [
+  ...SOCIAL.map(({ cta, href }) => ({ label: cta, href })),
   { label: `Main site — ${MAIN_SITE.label}`, href: MAIN_SITE.url },
   { label: 'Full profile — suthahar.msdevbuild.com', href: 'https://suthahar.msdevbuild.com' },
-  { label: 'RSS', href: '/rss.xml' },
+];
+
+const utility = [
+  { label: 'Install the app', href: '/install/' },
+  { label: 'Share this blog', href: '/share/' },
+  { label: 'Reading history', href: '/history/' },
+  { label: 'Contact', href: '/contact/' },
+  { label: 'Privacy', href: '/privacy/' },
+];
+
+/**
+ * Machine-readable endpoints, named rather than buried in <head>.
+ *
+ * A visible row costs almost nothing and gives an AI crawler that renders the
+ * page — increasingly the common case — a direct path to the structured
+ * inventory instead of leaving it to guess at URLs.
+ */
+const machineReadable = [
+  { label: 'sitemap.xml', href: '/sitemap-index.xml', hint: 'Full page inventory' },
+  { label: 'llms.txt', href: '/llms.txt', hint: 'Site summary for language models' },
+  { label: 'rss.xml', href: '/rss.xml', hint: 'Full-text feed' },
+  { label: 'robots.txt', href: '/robots.txt', hint: 'Crawl policy' },
 ];
 ---
 
-<footer class="mt-24 border-t border-default bg-subtle">
+<footer class="site-footer mt-24 border-t border-default bg-subtle">
   <!-- Site-wide follow ask: present on every page without each page adding it. -->
-  <div class="mx-auto max-w-6xl border-b border-default px-4 py-10 sm:px-6">
+  <div class="site-footer-full mx-auto max-w-6xl border-b border-default px-4 py-10 sm:px-6">
     <FollowCTA />
   </div>
 
-  <div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[2fr_1fr_1fr]">
-    <div>
-      <p class="font-semibold tracking-tight">
-        <span class="text-accent">MS</span>DEVBUILD
-        <span class="font-normal text-muted">/ blog</span>
-      </p>
-      <p class="mt-0.5 text-sm font-medium">{SITE.alternateName}</p>
-      <p class="mt-0.5 text-sm text-muted">{SITE.byline} Jegatheesan</p>
-      <p class="mt-3 max-w-sm text-sm leading-relaxed text-muted">{SITE.description}</p>
-      <p class="mt-3 text-sm text-muted">
-        The main site lives at <a href={MAIN_SITE.url} class="hover:text-accent">{MAIN_SITE.label}</a>.
-      </p>
+  <div class="site-footer-full mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="grid gap-x-8 gap-y-10 py-10 sm:grid-cols-2 sm:py-14 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+      <div class="sm:col-span-2 lg:col-span-1">
+        <p class="font-semibold tracking-tight">
+          <span class="text-accent">MS</span>DEVBUILD
+          <span class="font-normal text-muted">/ blog</span>
+        </p>
+        <p class="mt-0.5 text-sm font-medium">{SITE.alternateName}</p>
+        <p class="mt-0.5 text-sm text-muted">{SITE.byline} Jegatheesan</p>
+        <p class="mt-3 max-w-sm text-sm leading-relaxed text-muted">{SITE.description}</p>
+        <p class="mt-3 text-sm text-muted">
+          The main site lives at <a href={MAIN_SITE.url} class="hover:text-accent">{MAIN_SITE.label}</a>.
+        </p>
+
+        <nav aria-labelledby="footer-topics" class="mt-6">
+          <h2 id="footer-topics" class="text-xs font-semibold tracking-wider uppercase text-muted">
+            <a href="/topics/" class="hover:text-accent">Browse by topic</a>
+          </h2>
+          <ul class="mt-2.5 flex flex-wrap gap-1.5">
+            {TOPIC_GROUPS.map((g) => (
+              <li>
+                <a
+                  href={`/category/${g.slug}/`}
+                  class="inline-block rounded-full border border-default px-2.5 py-1 text-xs transition-colors hover:bg-[var(--bg)] hover:text-accent"
+                >
+                  <span aria-hidden="true">{g.emoji}</span> {g.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+
+      <nav aria-labelledby="footer-read">
+        <h2 id="footer-read" class="text-xs font-semibold tracking-wider uppercase text-muted">
+          Read
+        </h2>
+        <ul class="mt-3 space-y-2.5 text-sm">
+          {read.map(({ label, href, hint }) => (
+            <li>
+              <a href={href} class="group block hover:text-accent">
+                {label}
+                {/* The hint stays in the markup for crawlers but is folded away on
+                    phones, where two lines per link turns the footer into a page. */}
+                {hint && <span class="mt-0.5 hidden text-xs text-muted group-hover:text-accent sm:block">{hint}</span>}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <nav aria-labelledby="footer-evidence">
+        <h2 id="footer-evidence" class="text-xs font-semibold tracking-wider uppercase text-muted">
+          Evidence &amp; record
+        </h2>
+        <ul class="mt-3 space-y-2.5 text-sm">
+          {evidence.map(({ label, href, hint }) => (
+            <li>
+              <a href={href} class="group block hover:text-accent">
+                {label}
+                {/* The hint stays in the markup for crawlers but is folded away on
+                    phones, where two lines per link turns the footer into a page. */}
+                {hint && <span class="mt-0.5 hidden text-xs text-muted group-hover:text-accent sm:block">{hint}</span>}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <div>
+        <nav aria-labelledby="footer-follow">
+          <h2 id="footer-follow" class="text-xs font-semibold tracking-wider uppercase text-muted">
+            Follow &amp; profiles
+          </h2>
+          <ul class="mt-3 space-y-2 text-sm text-muted">
+            {profiles.map(({ label, href }) => (
+              <li><a href={href} class="hover:text-accent" rel="me noopener">{label}</a></li>
+            ))}
+          </ul>
+        </nav>
+
+        <nav aria-labelledby="footer-utility" class="mt-6">
+          <h2 id="footer-utility" class="text-xs font-semibold tracking-wider uppercase text-muted">
+            This site
+          </h2>
+          <ul class="mt-3 space-y-2 text-sm text-muted">
+            {utility.map(({ label, href }) => (
+              <li><a href={href} class="hover:text-accent">{label}</a></li>
+            ))}
+          </ul>
+        </nav>
+      </div>
     </div>
 
-    <nav aria-labelledby="footer-topics">
-      <h2 id="footer-topics" class="text-sm font-semibold">
-        <a href="/topics/" class="hover:text-accent">Topics</a>
+    <!-- Structured endpoints, kept as their own band so they read as a set. -->
+    <nav
+      class="flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-default py-5"
+      aria-labelledby="footer-machine"
+    >
+      <h2 id="footer-machine" class="text-xs font-semibold tracking-wider uppercase text-muted">
+        For crawlers &amp; answer engines
       </h2>
-      <ul class="mt-3 space-y-2 text-sm text-muted">
-        {TOPIC_GROUPS.map((g) => (
-          <li>
-            <a href={`/category/${g.slug}/`} class="hover:text-accent">
-              <span aria-hidden="true">{g.emoji}</span> {g.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
-
-    <nav aria-labelledby="footer-elsewhere">
-      <h2 id="footer-elsewhere" class="text-sm font-semibold">Elsewhere</h2>
-      <ul class="mt-3 space-y-2 text-sm text-muted">
-        {elsewhere.map(({ label, href }) => (
-          <li><a href={href} class="hover:text-accent" rel="me noopener">{label}</a></li>
-        ))}
-      </ul>
+      {machineReadable.map(({ label, href, hint }) => (
+        <a href={href} class="group text-sm hover:text-accent">
+          <span class="font-mono text-xs">{label}</span>
+          <span class="ml-1.5 hidden text-xs text-muted group-hover:text-accent sm:inline">{hint}</span>
+        </a>
+      ))}
     </nav>
   </div>
 
+  <!--
+    The one band that survives in app mode, so attribution and the privacy path
+    are never lost. Kept deliberately short: in the installed app this is the
+    entire footer.
+  -->
   <div class="border-t border-default">
-    <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <div class="mx-auto flex max-w-6xl flex-col gap-x-6 gap-y-2 px-4 py-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <p>&copy; {year} {AUTHOR.name}. All rights reserved.</p>
-      <p class="flex gap-4">
-        <a href="/history/" class="hover:text-accent">Reading history</a>
+      <p class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
         <a href="/privacy/" class="hover:text-accent">Privacy</a>
-        <a href="/llms.txt" class="hover:text-accent">llms.txt</a>
-        <a href="/rss.xml" class="hover:text-accent">RSS</a>
-        <a href="/sitemap-index.xml" class="hover:text-accent">Sitemap</a>
+        <a href="/contact/" class="hover:text-accent">Contact</a>
+        <span class="site-footer-full">{AUTHOR.jobTitle} · {AUTHOR.location}</span>
       </p>
     </div>
   </div>
 </footer>
+
+<style is:global>
+  /*
+   * A feed opened from the home screen must not end in a sitemap.
+   *
+   * On app-shell pages at phone widths the tab bar is the navigation, so the
+   * marketing footer below it is dead scroll between the last card and the
+   * bar — and "For crawlers & answer engines" reads as a bug inside an app.
+   * Only the attribution band survives.
+   *
+   * The selectors mirror AppTabBar.astro exactly: same 767px breakpoint, and
+   * the same split between `data-app-shell` (the /app route in a normal tab),
+   * `display-mode` (Android and desktop installs) and `data-standalone` (iOS,
+   * which does not report display-mode reliably).
+   */
+  @media (max-width: 767px) {
+    html[data-app-shell] .site-footer-full,
+    html[data-standalone] .site-footer-full {
+      display: none;
+    }
+    /* 6rem of air made sense above a full footer; above a single line it reads
+       as the feed having failed to load something. */
+    html[data-app-shell] .site-footer,
+    html[data-standalone] .site-footer {
+      margin-top: 2.5rem;
+    }
+  }
+
+  @media (display-mode: standalone) and (max-width: 767px),
+    (display-mode: minimal-ui) and (max-width: 767px),
+    (display-mode: fullscreen) and (max-width: 767px) {
+    .site-footer-full {
+      display: none;
+    }
+    .site-footer {
+      margin-top: 2.5rem;
+    }
+  }
+</style>

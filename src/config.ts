@@ -466,5 +466,5 @@ export const ADSENSE_SLOT_MULTIPLEX = '4098254574';
  * Until both are filled the feed falls back to the responsive DISPLAY unit,
  * which is a valid placement — just not the native one.
  */
-export const ADSENSE_SLOT_IN_FEED = '';
-export const ADSENSE_LAYOUT_KEY_IN_FEED = '';
+export const ADSENSE_SLOT_IN_FEED = '6814226876';
+export const ADSENSE_LAYOUT_KEY_IN_FEED = '-6r+di+5g-2m-8y';

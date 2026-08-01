@@ -17,7 +17,8 @@
     "check:seo:dist": "npm run build && node scripts/check-seo.mjs --dist",
     "check:aeo": "node scripts/check-aeo.mjs",
     "check:theme": "node scripts/check-theme.mjs",
-    "check:all": "npm run check:humanizer && npm run check:seo && npm run check:aeo",
+    "check:covers": "node scripts/check-covers.mjs",
+    "check:all": "npm run check:humanizer && npm run check:seo && npm run check:aeo && npm run check:covers",
     "seed:testimonials": "node scripts/seed-testimonials.mjs",
     "push:keys": "node scripts/push-keys.mjs",
     "push:send": "node --env-file=.env scripts/send-push.mjs"

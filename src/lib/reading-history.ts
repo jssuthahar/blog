@@ -386,9 +386,36 @@ export function getStats(): ReadingStats {
 const escapeHtml = (s: string): string =>
   s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 
-/** A deterministic gradient for cards whose post has no cover image. */
+/** A deterministic gradient, shown behind a thumbnail that is missing or fails. */
 export function gradientFor(hue: number): string {
   return `linear-gradient(135deg, oklch(0.62 0.17 ${hue}), oklch(0.42 0.15 ${hue + 45}))`;
+}
+
+/**
+ * The thumbnail for a history card: the post's own cover when it has one,
+ * otherwise its share card — the same fallback CoverArt uses on the blog index,
+ * so an article looks like itself wherever the reader meets it.
+ *
+ * Resolved at render time rather than stored, because entries saved before this
+ * existed carry `cover: ''` and would otherwise stay gradients forever.
+ *
+ * Off-site articles keep whatever image their feed supplied; we have no card to
+ * draw for a post that isn't ours, so those fall back to the gradient.
+ */
+export function thumbFor(entry: HistoryEntry): string {
+  if (entry.cover) return entry.cover;
+  return entry.external ? '' : `/og/w800/${entry.slug}.webp`;
+}
+
+/**
+ * Drop a thumbnail that 404s — a slug renamed since the reader last visited —
+ * so the gradient underneath shows instead of a broken-image glyph. Attached as
+ * a listener rather than an inline onerror so the markup stays CSP-friendly.
+ */
+function hideOnError(root: HTMLElement): void {
+  root.querySelectorAll('img').forEach((img) => {
+    img.addEventListener('error', () => img.remove(), { once: true });
+  });
 }
 
 /** "just now" / "3 hours ago" / "on 12 Mar" — compact and locale-friendly. */
@@ -436,9 +463,10 @@ export function createCard(entry: HistoryEntry, opts: CardOptions = {}): HTMLEle
   card.className =
     'group relative flex flex-col overflow-hidden rounded-xl border border-default transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl';
 
-  const thumb = entry.cover
-    ? `<img src="${escapeHtml(entry.cover)}" alt="${escapeHtml(entry.coverAlt)}" loading="lazy" decoding="async" class="size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />`
-    : `<div class="flex size-full items-end p-3" style="background:${gradientFor(entry.hue)}">
+  const src = thumbFor(entry);
+  const thumb = src
+    ? `<img src="${escapeHtml(src)}" alt="${entry.cover ? escapeHtml(entry.coverAlt) : ''}" loading="lazy" decoding="async" class="size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />`
+    : `<div class="flex size-full items-end p-3">
          <span class="text-sm font-semibold tracking-tight text-white/85">${escapeHtml(entry.categoryLabel)}</span>
        </div>`;
 
@@ -468,7 +496,7 @@ export function createCard(entry: HistoryEntry, opts: CardOptions = {}): HTMLEle
       : '';
 
   card.innerHTML = `
-    <div class="relative aspect-[16/10] overflow-hidden">
+    <div class="relative aspect-[1200/630] overflow-hidden" style="background:${gradientFor(entry.hue)}">
       ${thumb}
       ${badge}
     </div>
@@ -527,6 +555,7 @@ export function createCard(entry: HistoryEntry, opts: CardOptions = {}): HTMLEle
   }
 
   if (controls.childElementCount > 0) card.appendChild(controls);
+  hideOnError(card);
   return card;
 }
 
@@ -545,12 +574,13 @@ export function createResumeCard(entry: HistoryEntry): HTMLElement {
   el.className =
     'group relative flex flex-col gap-4 overflow-hidden rounded-xl border border-default bg-subtle p-4 sm:flex-row sm:items-center sm:p-5';
 
-  const thumb = entry.cover
-    ? `<img src="${escapeHtml(entry.cover)}" alt="${escapeHtml(entry.coverAlt)}" loading="lazy" class="size-full object-cover" />`
-    : `<div class="size-full" style="background:${gradientFor(entry.hue)}"></div>`;
+  const src = thumbFor(entry);
+  const thumb = src
+    ? `<img src="${escapeHtml(src)}" alt="${entry.cover ? escapeHtml(entry.coverAlt) : ''}" loading="lazy" class="size-full object-cover" />`
+    : '';
 
   el.innerHTML = `
-    <div class="aspect-[16/10] w-full shrink-0 overflow-hidden rounded-lg border border-default sm:aspect-square sm:w-28">${thumb}</div>
+    <div class="aspect-[1200/630] w-full shrink-0 overflow-hidden rounded-lg border border-default sm:w-44" style="background:${gradientFor(entry.hue)}">${thumb}</div>
     <div class="min-w-0 flex-1">
       <p class="eyebrow">Resume where you left off</p>
       <h3 class="mt-1 line-clamp-2 text-lg font-semibold tracking-tight">
@@ -564,6 +594,7 @@ export function createResumeCard(entry: HistoryEntry): HTMLElement {
       </div>
     </div>
     <a href="${escapeHtml(entry.url)}#resume" class="btn btn-accent shrink-0 self-start sm:self-center">Continue reading</a>`;
+  hideOnError(el);
   return el;
 }
 

@@ -32,8 +32,8 @@ const { slides, label = 'Featured highlights' } = Astro.props;
     aria-roledescription="carousel"
     aria-label={label}
   >
-    <!-- Tall enough for the 16:9 media plus a three-line title and the CTA;
-         slides are absolutely positioned, so the container must reserve it. -->
+    <!-- Tall enough for the media plus a three-line title and the CTA; slides
+         are absolutely positioned, so the container must reserve it. -->
     <div class="relative" style="min-height: 400px;">
       {slides.map((slide, index) => (
         <article
@@ -44,11 +44,22 @@ const { slides, label = 'Featured highlights' } = Astro.props;
           aria-label={`${index + 1} of ${slides.length}: ${slide.title}`}
           aria-hidden={index === 0 ? 'false' : 'true'}
         >
-          {slide.image ? (
-            <div class="aspect-[16/9] shrink-0 overflow-hidden bg-subtle">
-              <!-- Cover art is content, not decoration: it is usually a title
-                   card or diagram, so it carries the item's own name and is
-                   indexable in image search. -->
+          <!-- Cover art is content, not decoration: it is usually a title
+               card or diagram, so it carries the item's own name and is
+               indexable in image search.
+
+               An item with no artwork gets no media block at all. It used to
+               get a flat navy panel filling the top half of the banner, which
+               is a large block of colour saying nothing; the slide now simply
+               becomes a text slide and lets the title take the room. The
+               container height is fixed either way, so nothing shifts as the
+               carousel rotates. -->
+          {slide.image && (
+            <!-- 1200×630 is the share card's native ratio, and most slides are
+                 share cards: at 16/9 the container cropped a band off the top
+                 and bottom of the title. Blogger artwork loses ~3% at the
+                 sides instead, which costs it nothing. -->
+            <div class="aspect-[1200/630] shrink-0 overflow-hidden border-b border-default bg-subtle">
               <img
                 src={slide.image}
                 alt={slide.title}
@@ -58,16 +69,9 @@ const { slides, label = 'Featured highlights' } = Astro.props;
                 class="size-full object-cover"
               />
             </div>
-          ) : (
-            <div
-              class="aspect-[16/9] shrink-0"
-              style="background: linear-gradient(135deg, var(--navy), var(--navy-soft));"
-              aria-hidden="true"
-            >
-            </div>
           )}
 
-          <div class="flex flex-1 flex-col p-5">
+          <div class:list={['flex flex-1 flex-col p-5', !slide.image && 'justify-center']}>
             <div class="flex flex-wrap items-center gap-2 text-xs">
               <span
                 class="rounded-full px-2 py-0.5 font-semibold"
@@ -87,9 +91,14 @@ const { slides, label = 'Featured highlights' } = Astro.props;
             <a
               href={slide.href}
               rel={slide.external ? 'noopener' : undefined}
-              class="group mt-2 flex flex-1 flex-col"
+              class:list={['group mt-2 flex flex-col', slide.image && 'flex-1']}
             >
-              <p class="line-clamp-3 leading-snug font-semibold tracking-tight group-hover:text-accent">
+              <p
+                class:list={[
+                  'line-clamp-3 leading-snug font-semibold tracking-tight group-hover:text-accent',
+                  !slide.image && 'text-2xl',
+                ]}
+              >
                 {slide.title}
               </p>
               <span class="mt-3 text-sm font-semibold text-accent group-hover:underline">

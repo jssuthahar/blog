@@ -69,10 +69,13 @@ const articleSlides: Slide[] = articles.slice(0, 3).map((a) => ({
   cta: 'Read the article',
 }));
 
+// Every post already has a share card drawn for it, so the banner shows that
+// rather than an empty panel — the same title card people meet in a feed.
 const blogSlides: Slide[] = posts.slice(0, 3).map((p) => ({
   kind: 'From the blog',
   title: p.data.title,
   href: postUrl(p),
+  image: `/og/w1200/${p.id}.webp`,
   meta: CATEGORIES[p.data.category].label,
   cta: 'Read the post',
 }));

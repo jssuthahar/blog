@@ -2,23 +2,37 @@ import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 import { SITE } from '../../config';
 import { CATEGORIES, readingTime } from '../../lib/posts';
-import { renderOGCard, type OGCardOptions } from '../../lib/og-card';
+import { renderOGCard, type OGCardOptions, type OGOutput } from '../../lib/og-card';
 
 /**
- * Every published post gets its own share image, plus a site-wide "default"
- * used by the home page and any page that doesn't set its own image. Generated
- * at build time into /og/<id>.png — no runtime cost, no external service.
+ * Every post gets its own share image, plus a site-wide "default" used by the
+ * home page and any page that doesn't set its own image. Generated at build
+ * time — no runtime cost, no external service.
+ *
+ *   /og/<id>.png         1200×630 PNG — the social share card.
+ *   /og/w800/<id>.webp   the same drawing, downsampled: the post's thumbnail
+ *   /og/w1200/<id>.webp  on cards across the site, for posts with no cover.
+ *
+ * Drafts get cards in `astro dev` only — they show on the dev blog index, and
+ * proofing a post against a broken thumbnail is no way to check a design. They
+ * are left out of production builds, where nothing links to them and 21 unused
+ * share cards would be ~4MB of dead weight in the deploy.
  *
  * The card itself is drawn in lib/og-card.ts.
  */
-const posts = await getCollection('blog', ({ data }) => !data.draft);
+const posts = await getCollection('blog', ({ data }) => import.meta.env.DEV || !data.draft);
+const publishedCount = posts.filter((p) => !p.data.draft).length;
+
+/** Widths the site's thumbnails ask for — one per srcset candidate. */
+const THUMB_WIDTHS = [800, 1200] as const;
+type ThumbWidth = (typeof THUMB_WIDTHS)[number];
 
 const cards: Record<string, OGCardOptions> = {
   default: {
     title: 'Cloud, AI, Mobile & Web — built and explained',
     description: SITE.description,
     eyebrow: 'Developer platform',
-    meta: `${posts.length} hands-on articles`,
+    meta: `${publishedCount} hands-on articles`,
   },
   ...Object.fromEntries(
     posts.map((post) => {
@@ -41,18 +55,31 @@ const cards: Record<string, OGCardOptions> = {
 };
 
 export function getStaticPaths() {
-  return Object.keys(cards).map((id) => ({ params: { route: `${id}.png` } }));
+  const ids = Object.keys(cards);
+  return [
+    ...ids.map((id) => ({ params: { route: `${id}.png` } })),
+    ...THUMB_WIDTHS.flatMap((w) => ids.map((id) => ({ params: { route: `w${w}/${id}.webp` } }))),
+  ];
 }
 
 export const GET: APIRoute = async ({ params }) => {
-  const id = (params.route ?? '').replace(/\.png$/, '');
-  const card = cards[id];
+  const route = params.route ?? '';
+  const thumb = route.match(/^w(\d+)\/(.+)\.webp$/);
+
+  const card = cards[thumb ? thumb[2] : route.replace(/\.png$/, '')];
   if (!card) return new Response('Not found', { status: 404 });
 
-  const png = await renderOGCard(card);
-  return new Response(new Uint8Array(png), {
+  const width = Number(thumb?.[1]);
+  if (thumb && !THUMB_WIDTHS.includes(width as ThumbWidth)) {
+    return new Response('Not found', { status: 404 });
+  }
+
+  const output: OGOutput = thumb ? { width, format: 'webp', quality: 82 } : {};
+  const image = await renderOGCard(card, output);
+
+  return new Response(new Uint8Array(image), {
     headers: {
-      'Content-Type': 'image/png',
+      'Content-Type': thumb ? 'image/webp' : 'image/png',
       'Cache-Control': 'public, max-age=31536000, immutable',
     },
   });

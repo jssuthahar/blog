@@ -14,7 +14,8 @@ const category = CATEGORIES[data.category];
 ---
 
 <article class="group relative flex flex-col overflow-hidden rounded-xl border border-default transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl">
-  <div class="aspect-[16/10] overflow-hidden">
+  <!-- The share-card ratio, so a post's own OG art fills the panel with no crop. -->
+  <div class="aspect-[1200/630] overflow-hidden bg-subtle">
     <CoverArt post={post} eager={eager} class="transition-transform duration-500 group-hover:scale-[1.04]" />
   </div>
 

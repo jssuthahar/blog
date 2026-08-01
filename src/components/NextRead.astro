@@ -20,7 +20,9 @@ const minutes = next ? readingTime(next.post.body ?? '') : 0;
         class="group flex flex-col overflow-hidden rounded-xl border border-default transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--accent)] hover:shadow-lg sm:flex-row"
         data-next-read={next.kind}
       >
-        <div class="h-32 shrink-0 overflow-hidden sm:h-auto sm:w-44">
+        <!-- Fixed share-card ratio rather than stretching to the row height,
+             so the title drawn on the card is never cropped away. -->
+        <div class="aspect-[1200/630] shrink-0 overflow-hidden bg-subtle sm:w-56 sm:self-center">
           <CoverArt
             post={next.post}
             class="transition-transform duration-500 group-hover:scale-[1.04]"

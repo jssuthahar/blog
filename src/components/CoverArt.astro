@@ -1,10 +1,10 @@
 ---
 import { Image } from 'astro:assets';
-import { CATEGORIES, coverArt, type Post } from '../lib/posts';
+import { type Post } from '../lib/posts';
 
 interface Props {
   post: Post;
-  /** Larger monogram and blur for hero-sized panels. */
+  /** Hero-sized panel — loads the larger source first. */
   large?: boolean;
   class?: string;
   eager?: boolean;
@@ -12,8 +12,24 @@ interface Props {
 
 const { post, large = false, class: className = '', eager = false } = Astro.props;
 const { data } = post;
-const art = coverArt(post.id, data.category);
-const label = CATEGORIES[data.category].label;
+
+/**
+ * Posts without a cover image fall back to their own share card — the same
+ * drawing that represents the post on LinkedIn and in search, downsampled to
+ * WebP by /og/w<width>/<id>.webp.
+ *
+ * This replaced a slug-seeded gradient. The gradient was free and never
+ * repeated, but a grid of them told the reader nothing: identical shapes in
+ * different colours, with the category as the only word on the panel. The
+ * share card carries the title, the category chip in its own hue, and the
+ * MSDEVBUILD wordmark, so a card in a grid looks like the thing people will
+ * later see in their feed. It costs nothing extra to produce — the card is
+ * already rendered for the meta tag.
+ *
+ * Kept at the card's native 1200×630 ratio wherever it is used, so the
+ * container crops nothing off the title.
+ */
+const thumb = (w: number) => `/og/w${w}/${post.id}.webp`;
 ---
 
 {data.cover ? (
@@ -26,32 +42,17 @@ const label = CATEGORIES[data.category].label;
     class:list={['size-full object-cover', className]}
   />
 ) : (
-  <div
-    class:list={['relative size-full overflow-hidden', className]}
-    style={`background: linear-gradient(${art.angle}deg, ${art.from}, ${art.to});`}
+  <img
+    src={thumb(large ? 1200 : 800)}
+    srcset={`${thumb(800)} 800w, ${thumb(1200)} 1200w`}
+    sizes={large ? '(max-width: 768px) 100vw, 50vw' : '(max-width: 640px) 100vw, 33vw'}
+    width={large ? 1200 : 800}
+    height={large ? 630 : 420}
+    loading={eager ? 'eager' : 'lazy'}
+    decoding="async"
+    fetchpriority={eager ? 'high' : undefined}
+    alt=""
     aria-hidden="true"
-  >
-    <!-- Soft shapes, seeded from the slug, so no two posts look alike. -->
-    <svg class="absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-      {art.blobs.map((b) => (
-        <circle cx={b.x} cy={b.y} r={b.r} fill="#fff" opacity="0.09" />
-      ))}
-    </svg>
-
-    <!-- Fine diagonal hatching adds texture without reading as noise. -->
-    <div
-      class="absolute inset-0 opacity-[0.14]"
-      style="background-image: repeating-linear-gradient(45deg, #fff 0 1px, transparent 1px 9px);"
-    >
-    </div>
-
-    <span
-      class:list={[
-        'absolute left-0 bottom-0 p-4 font-semibold tracking-tight text-white/85',
-        large ? 'text-2xl' : 'text-sm',
-      ]}
-    >
-      {label}
-    </span>
-  </div>
+    class:list={['size-full object-cover', className]}
+  />
 )}

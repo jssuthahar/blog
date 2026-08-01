@@ -55,6 +55,22 @@ export interface OGCardOptions {
 }
 
 /**
+ * How the finished card is encoded.
+ *
+ * The share image has to stay a 1200px PNG — that is what LinkedIn, X, and
+ * WhatsApp expect. The same drawing doubles as the thumbnail on cards across
+ * the site, and there a 200KB PNG per card is indefensible when a dozen of
+ * them sit on one page, so those get a downsampled WebP instead.
+ */
+export interface OGOutput {
+  /** Output width in px; height follows the 1200×630 ratio. */
+  width?: number;
+  format?: 'png' | 'webp';
+  /** WebP quality, 0–100. Ignored for PNG, which is always lossless. */
+  quality?: number;
+}
+
+/**
  * OKLCH → sRGB. The site defines every accent as `oklch(L C H)`, and the
  * category hues in taxonomy.ts are hue angles only — converting here means the
  * card and the page agree on the colour instead of maintaining a second
@@ -118,14 +134,20 @@ async function getAvatar() {
 
 /* ----------------------------------------------------------------- render -- */
 
-export async function renderOGCard(options: OGCardOptions): Promise<Buffer> {
+export async function renderOGCard(
+  options: OGCardOptions,
+  output: OGOutput = {},
+): Promise<Buffer> {
   const { title, description = '', eyebrow, hue = 252, meta } = options;
+  const { width = WIDTH, format = 'png', quality = 82 } = output;
 
   const hash = createHash('sha1')
-    .update(JSON.stringify([DESIGN_VERSION, title, description, eyebrow, hue, meta]))
+    .update(
+      JSON.stringify([DESIGN_VERSION, title, description, eyebrow, hue, meta, width, format, quality]),
+    )
     .digest('hex')
     .slice(0, 16);
-  const cacheFile = path.join(CACHE_DIR, `${hash}.png`);
+  const cacheFile = path.join(CACHE_DIR, `${hash}.${format}`);
   const cached = await fs.readFile(cacheFile).catch(() => undefined);
   if (cached) return cached;
 
@@ -367,12 +389,44 @@ export async function renderOGCard(options: OGCardOptions): Promise<Buffer> {
     canvas.drawParagraph(metaPara, LEFT, 550);
   }
 
-  const bytes = surface.makeImageSnapshot().encodeToBytes(CanvasKit.ImageFormat.PNG, 100);
+  const snapshot = surface.makeImageSnapshot();
+
+  /* The card is always drawn at 1200×630 — every coordinate above is absolute —
+     so smaller variants are a downsample of that one drawing rather than a
+     second layout to keep in sync. Linear filtering is enough for a 1.5–2×
+     reduction of flat vector art. */
+  let bytes: Uint8Array | null;
+  if (width === WIDTH && format === 'png') {
+    bytes = snapshot.encodeToBytes(CanvasKit.ImageFormat.PNG, 100);
+  } else {
+    const height = Math.round((width / WIDTH) * HEIGHT);
+    const small = CanvasKit.MakeSurface(width, height)!;
+    const paint = new CanvasKit.Paint();
+    paint.setAntiAlias(true);
+    small
+      .getCanvas()
+      .drawImageRectOptions(
+        snapshot,
+        CanvasKit.XYWHRect(0, 0, WIDTH, HEIGHT),
+        CanvasKit.XYWHRect(0, 0, width, height),
+        CanvasKit.FilterMode.Linear,
+        CanvasKit.MipmapMode.None,
+        paint,
+      );
+    bytes = small
+      .makeImageSnapshot()
+      .encodeToBytes(
+        format === 'webp' ? CanvasKit.ImageFormat.WEBP : CanvasKit.ImageFormat.PNG,
+        quality,
+      );
+    small.dispose();
+  }
+
   surface.dispose();
-  const png = Buffer.from(bytes ?? new Uint8Array());
+  const image = Buffer.from(bytes ?? new Uint8Array());
 
   await fs.mkdir(CACHE_DIR, { recursive: true }).catch(() => {});
-  await fs.writeFile(cacheFile, png).catch(() => {});
+  await fs.writeFile(cacheFile, image).catch(() => {});
 
-  return png;
+  return image;
 }

@@ -1,0 +1,222 @@
+---
+title: 'Testing, Monitoring and Running an Azure AI Foundry Agent in Production'
+seoTitle: 'Azure AI Foundry Agent in Production'
+description: 'Tests that are not flaky, tracing that answers what the agent did, and the token costs that only show up once real traffic arrives.'
+highlight: "Assert on the tool call, not on the prose. Model output varies between runs, so a test that checks wording is a flaky test. Check that the right tool was called with the right arguments using a recording executor, and you get a fast suite that catches real regressions."
+publishedAt: 2026-08-01
+category: devops
+categories: ['azure', 'ai']
+tags: ['Azure AI Foundry', 'Application Insights', 'Testing', 'Observability', 'Cost Management', 'AI Agents', 'ASP.NET Core']
+series: 'azure-ai-foundry-agents'
+seriesOrder: 10
+draft: true
+faq:
+  - q: 'How do you write tests for an AI agent that are not flaky?'
+    a: 'Assert on the tool call rather than the wording. Use a recording executor that captures tool names and arguments, then check the agent chose the right tool with the right values. Model phrasing varies between runs; tool selection is stable enough to test.'
+  - q: 'How do you see what an AI agent actually did?'
+    a: 'Connect an Application Insights resource to the Foundry project and enable tracing. You get every model call, every tool invocation, the arguments and the timings, which turns a vague user report into a trace you can open.'
+  - q: 'What drives token cost in an agent, the prompt or the tool output?'
+    a: 'Tool output, usually by a wide margin. A user message is around 30 tokens while a search result with eight full entity objects can be 1,800. Trimming the tool response to the fields the answer needs cut the cost of the most common turn roughly in half.'
+  - q: 'Should every agent request use the same model?'
+    a: 'No. Route by path. A small model handles tool selection well, and only the paths that need deeper reasoning — analytics summaries in this app — justify a larger one. Upgrading everything to fix one path is how agent bills get out of hand.'
+  - q: 'How do you stop an agent endpoint being expensive to abuse?'
+    a: 'Rate limit per user, cap the input length, and cap the number of tool rounds per turn. Twenty turns per user per hour was well above real usage here and puts a ceiling on what an abusive script can spend.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+
+The previous parts of this series built the agent. This one is about the two months after it shipped, which is where I learned most of what I would now do differently.
+
+[Part 8](../flutter-ai-agent-chat-client-azure-foundry) got the Flutter client talking to it. Everything below assumes that is running.
+
+## How do you test an agent without a flaky suite?
+
+Three layers, cheapest first.
+
+### The Foundry playground
+
+Open the agent in the portal and chat with it. It will not execute your function tools, because there is no application listening, so what you are testing is routing intent and tone. That is still the fastest way to discover that two tool descriptions overlap.
+
+### The API, with curl
+
+This is the first test where the whole loop runs.
+
+```bash
+curl -X POST https://localhost:7043/api/assistant/ask \
+  -H "Authorization: Bearer $CUSTOMER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Find spicy food under RM20"}'
+```
+
+Keep a small script with one call per role, using three tokens. Running it after a tool description change takes thirty seconds and catches the obvious breakage.
+
+### Integration tests that assert on the tool call
+
+Model output varies between runs, so asserting on exact wording gives you a suite nobody trusts by the third sprint. Assert on what is stable: which tool was called, with which arguments.
+
+```csharp
+public sealed class RecordingToolExecutor : IToolExecutor
+{
+    public List<(string Name, JsonElement Args)> Calls { get; } = [];
+
+    public Task<string> ExecuteAsync(
+        string toolName, BinaryData arguments, CallerContext caller, CancellationToken ct)
+    {
+        using var doc = JsonDocument.Parse(arguments);
+        Calls.Add((toolName, doc.RootElement.Clone()));
+        return Task.FromResult(Fixtures.For(toolName));
+    }
+}
+
+[Fact]
+public async Task Spicy_price_request_calls_search_menu_with_a_price_ceiling()
+{
+    var recorder = new RecordingToolExecutor();
+    var service = BuildService(recorder);
+
+    await service.AskAsync("Find spicy food under RM20", null, Customer, default);
+
+    var call = Assert.Single(recorder.Calls);
+    Assert.Equal("search_menu", call.Name);
+    Assert.True(call.Args.GetProperty("spicy").GetBoolean());
+    Assert.Equal(20, call.Args.GetProperty("maxPriceMyr").GetDecimal());
+}
+```
+
+These still call a real model, so they are slower and cost a little. Keep them to a dozen or so covering the routing decisions you care about, and run them in CI on a schedule rather than on every commit.
+
+The tests that run on every commit are the ones with no model in them at all: the executor tests from [Part 6](../azure-ai-foundry-agent-security-jwt-roles) that check role access and ownership. Those are the ones protecting the property that would actually make headlines.
+
+<Callout type="tip" title="Write down the prompts that broke it">
+Every time a real user found a phrasing that routed wrong, it went into a list with the expected tool. That list became the routing test suite, and it is better than anything I invented up front, because I do not think like a hungry customer at 8pm.
+</Callout>
+
+## What does observability look like?
+
+**Tracing is the feature you will use daily.** Connect an Application Insights resource to the Foundry project and enable [agent tracing](https://learn.microsoft.com/en-us/azure/foundry/agents/overview). You get every model call, every tool invocation, the arguments and the timing, which turns "the agent said something odd" from an unfalsifiable report into a trace you can open. I tried to run without it for two weeks and would not do that again.
+
+**Log your side too, and log the right thing.**
+
+```csharp
+using var activity = ActivitySource.StartActivity("agent.turn");
+activity?.SetTag("agent.role", caller.Role);
+
+var sw = Stopwatch.StartNew();
+string output = await executor.ExecuteAsync(call.FunctionName, call.FunctionArguments, caller, ct);
+
+logger.LogInformation(
+    "Agent tool {Tool} role={Role} user={UserId} ms={Elapsed} rounds={Rounds}",
+    call.FunctionName, caller.Role, caller.UserId, sw.ElapsedMilliseconds, rounds);
+```
+
+Tool name, role, user ID, duration, round count. Not the message text, which is customer data that accumulates fast.
+
+The four numbers worth putting on a dashboard from day one:
+
+| Metric | Why it matters |
+| --- | --- |
+| Tool calls per turn | Creeping upward means descriptions are getting muddier |
+| Turns that hit `MaxToolRounds` | Every one is a bug in a tool description |
+| P95 turn latency | The number your client timeout has to respect |
+| Tokens per turn by tool | Where the money actually goes |
+
+## Where does the money go?
+
+Not where I expected.
+
+**Tool output dominates.** A customer types 30 tokens. A `search_menu` result with eight full `FoodItem` objects is around 1,800. Trimming that response to six fields per dish cut the cost of the most common turn by roughly half, and cost me an afternoon. Measure before optimising the prompt, because the prompt is usually not where the money is.
+
+**Every tool call is a second model invocation.** One turn with one tool call is at least two calls. Two tools means three. This is why the round cap from [Part 5](../azure-ai-foundry-function-tools-aspnet-core) matters as a budget control and not only as a safety net.
+
+**Cache the boring answers.** "Where is my delivery" with exactly one active order does not need a model at all:
+
+```csharp
+if (LooksLikeTracking(request.Message))
+{
+    var active = await orders.GetActiveOrdersAsync(caller.UserId, ct);
+    if (active.Count == 1)
+        return Ok(AgentReply.Direct(TrackingSentence(active[0])));
+}
+```
+
+That is fifteen lines of string matching that removed a meaningful share of turns and made those answers instant. It feels like cheating. It is not: the fastest agent call is the one you did not make.
+
+**Route models by path.** `gpt-4.1-mini` handles routing across nine tools well. The one place it struggled was multi-step reasoning on the partner analytics question, so that path uses a larger model and nothing else does. Splitting by path rather than upgrading everything kept the bill flat.
+
+**Rate limit per user.** An agent endpoint is a paid endpoint. Twenty turns per user per hour is well above anything a real customer has done and puts a ceiling on what an abusive script can spend.
+
+**Start a new conversation sometimes.** Context grows with every turn and you pay for it each time. The "new chat" button from [Part 8](../flutter-ai-agent-chat-client-azure-foundry) is a cost control.
+
+## What breaks under load?
+
+**Runs expire after ten minutes.** A tool waiting on a slow downstream call can lose the entire turn. Anything slow returns a status immediately and gets polled separately.
+
+**Transient failures are normal.** Add retry with backoff on the Foundry call for 429 and 503, and make sure the retry does not re-execute tools that already ran.
+
+**Model deployments have quota.** A burst of traffic gets 429s from the deployment, not from your API, and the error surfaces in a place you were not watching. Alert on it.
+
+**Degrade to the app you already have.** If Foundry is unavailable, the assistant screen shows an error and a link to normal search. The ordering flow does not depend on the agent, and it never should.
+
+## How the repository is organised
+
+Keeping the agent code together rather than sprinkling it through the API made reviews sane.
+
+```text
+MSDevBuildEats.Api/
+├─ Agents/
+│  ├─ EatsTools.cs                 # tool schemas, one static per tool
+│  ├─ AgentProvisioner.cs          # creates/updates the agent version at startup
+│  ├─ AgentConversationService.cs  # the run loop
+│  ├─ ToolCatalog.cs               # tool name -> allowed roles
+│  ├─ ToolExecutor.cs              # dispatch, validation, identity injection
+│  └─ Instructions/
+│     ├─ eats-customer.md
+│     ├─ eats-partner.md
+│     └─ eats-rider.md
+├─ Controllers/AssistantController.cs
+└─ appsettings.json
+
+MSDevBuildEats.Api.Tests/
+├─ ToolExecutorTests.cs            # no model, runs on every commit
+└─ RoutingTests.cs                 # real model, runs nightly
+
+food-delivery-app/lib/
+├─ domain/repositories/assistant_repository.dart
+├─ data/repositories/assistant_repository_impl.dart
+└─ features/assistant/{bloc,presentation}/
+```
+
+Three documentation habits that paid off: the tool table lives in the API README, the required Entra role assignment is written in the setup docs rather than in somebody's memory, and each tool schema carries a comment saying why it exists. In six months a description reads like arbitrary wording, and the reason is gone unless you wrote it down.
+
+## Lessons learned
+
+**Tool descriptions are the product.** I spent far longer tuning nine descriptions than writing the C# behind them. Nearly every routing failure was a description that did not say when the tool did not apply.
+
+**Refusals beat capabilities.** The instruction lines that improved quality most were the ones telling the model what not to do.
+
+**Start with read-only.** The first release shipped four search and status tools and nothing that wrote. Two weeks of real traffic taught us more about routing than any amount of staging, and nothing could go wrong that a page refresh did not fix.
+
+**Nine tools is near the practical ceiling** for one agent at this model size. Past that, routing accuracy fell and splitting into a customer agent and an operations agent worked better than adding a tenth.
+
+**The agent found missing features rather than replacing existing ones.** Rider prioritisation and per-item menu performance did not exist in the app. They existed in the data, and the agent was the cheapest way to surface them.
+
+**What I would do differently:** build the tracing and the recording test harness in week one rather than week three, and cap the tool rounds before the first staging deploy rather than after reading the bill.
+
+## What comes after this
+
+At this point the feature is live, watched and affordable, which is where most agent projects should stop.
+
+Two problems arrive later, and both are about scale rather than correctness. When a second application wants the same tools, declaring the schemas again in another agent is how they drift apart, and [Part 11 replaces that with MCP](../mcp-model-context-protocol-azure-ai-foundry-agents). When the tool list grows past what one agent can route accurately, [Part 12 splits it into specialists with handoff orchestration](../multi-agent-handoff-orchestration-azure-ai-foundry).
+
+If you want the retrieval side of the same problem, grounding a model in documents it was never trained on, [building a RAG pipeline in .NET](../azure-openai-rag-dotnet) is the companion piece. Retrieval reads; an agent acts, and acting is what changes the security model.
+
+## Key takeaways
+
+- Assert on the tool call, not on the prose. Use a recording executor and keep the model-free tests on every commit.
+- Turn on Foundry tracing into Application Insights before you need it, not after a confusing user report.
+- Log tool name, role, duration and round count. Never log message content.
+- Tool output size drives token cost more than user messages do.
+- Short-circuit the most common question with plain code. The fastest agent call is the one you did not make.
+- Route models by path instead of upgrading the whole agent for one hard case.
+- Rate limit the endpoint, cap the input, cap the rounds. All three are cost controls.
+- Make sure the app still works with the agent switched off.

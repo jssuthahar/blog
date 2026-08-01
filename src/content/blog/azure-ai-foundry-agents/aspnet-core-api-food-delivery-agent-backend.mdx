@@ -1,0 +1,282 @@
+---
+title: 'Building the ASP.NET Core Backend API for a Food Delivery AI Agent'
+seoTitle: 'ASP.NET Core API for an AI Agent'
+description: 'The service layer an agent calls: endpoints, DTOs trimmed for token cost, and a data source you can run today without Firestore.'
+highlight: "Build the API before the agent, and test it with curl before a model ever sees it. Every tool in the next parts is a thin wrapper over one method here, so a bug at this layer looks like an AI problem later — which is the most expensive kind of bug to chase."
+publishedAt: 2026-08-02
+category: web
+categories: ['azure', 'ai']
+tags: ['ASP.NET Core', 'Minimal APIs', 'C#', 'Firestore', 'AI Agents', 'REST API']
+series: 'azure-ai-foundry-agents'
+seriesOrder: 3
+draft: true
+faq:
+  - q: 'Does an AI agent need its own backend API?'
+    a: 'It needs something to call. If your app talks straight to a database from the client, as many Flutter and Firebase apps do, there is no server-side place to put tool code, authorization or logging. That server is the missing piece, not the agent.'
+  - q: 'Should agent tools call the database directly?'
+    a: 'No. Put a service layer in between and have both the app endpoints and the agent tools call it. One implementation of a business rule, tested once, used by both callers. A tool with its own query is a second copy that drifts.'
+  - q: 'How small should an API response for an AI agent be?'
+    a: 'Small enough to answer the question and no larger. Eight results with six fields each is a reasonable shape. Every extra field costs tokens on every call and gives the model another value to misquote.'
+  - q: 'Can I build this without setting up Firestore?'
+    a: 'Yes. Put the data access behind an interface with a seeded in-memory implementation, exactly as the reference Flutter app does with its demo backend. You can run the whole series and swap in Firestore later without touching the endpoints or the tools.'
+  - q: 'What is the difference between the app endpoints and the agent tools?'
+    a: 'Shape, not substance. App endpoints return full objects for rendering a screen. Agent tools return a trimmed projection for a model to read. Both call the same service method, so the business logic never forks.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+
+[Part 2](../azure-ai-foundry-ai-agent-food-delivery-app) drew an architecture with an ASP.NET Core API sitting between the Flutter app and Foundry, and called it the trust boundary. Then I went looking for that API in the reference project and it does not exist.
+
+That is not sloppiness in the sample app, it is the normal state of a Flutter and Firebase project. `AppConfig.backend` picks between a seeded in-memory demo source and Firestore, and the app talks to whichever one directly. There is no server in the middle because nothing needed one.
+
+An agent needs one. So this part builds it, before any Foundry code, because every tool in the next parts is a thin wrapper over a method written here.
+
+<Callout type="tip" title="What we are wrapping">
+The domain comes from **MSDevBuild Eats**: [source](https://github.com/jssuthahar/food-delivery-app) · [live web](https://jssuthahar.github.io/food-delivery-app/) · [Android build](https://appdistribution.firebase.dev/i/00432c5aa60de58b). Open `lib/domain/entities/` alongside this and the C# records below will look familiar, because they are the same model.
+</Callout>
+
+## What does the API actually need to expose?
+
+Not everything. Work backwards from the nine tools in [Part 5](../azure-ai-foundry-function-tools-aspnet-core) and you get a short list.
+
+| Service method | Backs which tool | Returns |
+| --- | --- | --- |
+| `SearchDishesAsync` | `search_menu` | Dishes matching text, price ceiling, spice, diet |
+| `SearchRestaurantsAsync` | `search_restaurant` | Restaurants matching text, cuisine, rating |
+| `GetProfileAsync` | `get_user_profile` | Name, default address, recent orders |
+| `AddToCartAsync` | `add_to_cart` | Updated cart total |
+| `PlaceOrderAsync` | `create_order` | Order ID and status |
+| `GetOrderStatusAsync` | `track_delivery` | Status, stage, ETA |
+| `GetMenuPerformanceAsync` | `get_menu_performance` | Per-item orders and revenue |
+| `GetPendingOrdersAsync` | `get_pending_orders` | Orders awaiting confirmation |
+| `GetRiderQueueAsync` | `get_rider_queue` | Assigned orders with distances |
+
+Nine methods. Note what they are not: they are not CRUD over your tables. Each one answers a question a human asked, which is why they map cleanly onto tools later.
+
+## How should the project be laid out?
+
+```text
+MSDevBuildEats.Api/
+├─ Program.cs
+├─ Endpoints/
+│  ├─ CatalogEndpoints.cs
+│  ├─ OrderEndpoints.cs
+│  └─ PartnerEndpoints.cs
+├─ Services/
+│  ├─ ICatalogService.cs      # the nine methods live behind these
+│  ├─ IOrderService.cs
+│  └─ IPartnerService.cs
+├─ Data/
+│  ├─ IEatsDataSource.cs      # swap point: demo or Firestore
+│  ├─ DemoDataSource.cs       # seeded, runs with zero configuration
+│  └─ FirestoreDataSource.cs
+├─ Contracts/                 # DTOs, including the trimmed agent projections
+└─ Agents/                    # empty for now; Parts 4 and 5 fill it
+```
+
+The `IEatsDataSource` seam mirrors the Flutter app's own `AppConfig.backend` switch, and for the same reason: you can run the entire series with no Firestore project, no service account and no billing. If the sample app can do that, so can the API.
+
+The endpoint grouping and the reasons behind it are covered in [structuring a Minimal API project](../minimal-api-project-structure), so I will not repeat that here. Microsoft's own reference for route groups and the rest of the surface is the [Minimal APIs overview](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/overview).
+
+## The domain, in C#
+
+Records mirroring the Dart entities. Only the fields the API actually uses:
+
+```csharp
+public sealed record Dish(
+    string Id,
+    string RestaurantId,
+    string RestaurantName,
+    string Name,
+    string Description,
+    decimal PriceMyr,
+    decimal? DiscountPriceMyr,
+    bool IsVegetarian,
+    bool IsSpicy,
+    int SpiceLevel,
+    IReadOnlyList<string> Allergens,
+    int PrepMinutes,
+    bool IsAvailable)
+{
+    // Mirrors FoodItem.effectivePrice in the Flutter app. Keep these in sync,
+    // or the agent will quote a price the checkout screen disagrees with.
+    public decimal EffectivePrice =>
+        DiscountPriceMyr is { } d && d < PriceMyr ? d : PriceMyr;
+}
+
+public enum OrderStatus
+{
+    Placed, Confirmed, Preparing, ReadyForPickup, OutForDelivery, Delivered, Cancelled
+}
+```
+
+That comment is not decorative. The single worst bug in the first version of this system was the API using `PriceMyr` while the app used `effectivePrice`, so the agent quoted RM18.50 for a dish that cost RM14.90 at checkout. Nobody noticed for a week because both numbers looked plausible.
+
+## The service layer
+
+The nine methods. This is what tools call, and what the app's own endpoints call:
+
+```csharp
+public interface ICatalogService
+{
+    Task<IReadOnlyList<Dish>> SearchDishesAsync(
+        string query,
+        decimal? maxPriceMyr = null,
+        bool spicy = false,
+        bool vegetarian = false,
+        int take = 8,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<Restaurant>> SearchRestaurantsAsync(
+        string query, string? cuisine = null, double? minRating = null,
+        bool openNow = false, int take = 8, CancellationToken ct = default);
+}
+```
+
+An implementation over the demo source, deliberately boring:
+
+```csharp
+public sealed class CatalogService(IEatsDataSource data) : ICatalogService
+{
+    public async Task<IReadOnlyList<Dish>> SearchDishesAsync(
+        string query, decimal? maxPriceMyr, bool spicy, bool vegetarian,
+        int take, CancellationToken ct)
+    {
+        var dishes = await data.GetDishesAsync(ct);
+        var terms = query.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        return dishes
+            .Where(d => d.IsAvailable)
+            .Where(d => !spicy || d.IsSpicy)
+            .Where(d => !vegetarian || d.IsVegetarian)
+            .Where(d => maxPriceMyr is null || d.EffectivePrice <= maxPriceMyr)
+            .Where(d => terms.Length == 0 || terms.Any(t =>
+                d.Name.Contains(t, StringComparison.OrdinalIgnoreCase) ||
+                d.Description.Contains(t, StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(d => d.IsPopular)
+            .ThenBy(d => d.EffectivePrice)
+            .Take(Math.Clamp(take, 1, 20))
+            .ToList();
+    }
+}
+```
+
+This is the method that finally answers "spicy food under RM20", the question that started the series in [Part 2](../azure-ai-foundry-ai-agent-food-delivery-app). No model involved. The intelligence needed was a `where` clause the app never had.
+
+Which is the point worth pausing on: **the agent is not what makes this possible, it is what makes it reachable from a sentence.** If you find yourself unable to write the service method, an agent will not rescue you.
+
+## DTOs: two shapes, one source
+
+The app wants a full object to render a card. The model wants six fields it can read cheaply.
+
+```csharp
+// For the mobile app: everything the dish card renders.
+public sealed record DishResponse(
+    string Id, string Name, string RestaurantName, string Description,
+    decimal Price, decimal? WasPrice, int SpiceLevel, bool IsVegetarian,
+    IReadOnlyList<string> Allergens, int PrepMinutes, string? ImageUrl);
+
+// For the agent: only what an answer needs.
+public sealed record DishSummary(
+    string Id, string Name, string RestaurantName,
+    decimal Price, int SpiceLevel, int PrepMinutes);
+
+public static class DishMapping
+{
+    public static DishSummary ToSummary(this Dish d) =>
+        new(d.Id, d.Name, d.RestaurantName, d.EffectivePrice, d.SpiceLevel, d.PrepMinutes);
+}
+```
+
+Two projections over one service call. [Part 10 has the measurement](../azure-ai-foundry-agent-testing-production-monitoring), but the short version is that returning `DishResponse` to the model instead of `DishSummary` roughly doubled the cost of the most common turn and improved no answer.
+
+## The endpoints
+
+```csharp
+public static class CatalogEndpoints
+{
+    public static void MapCatalog(this IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/api/catalog").RequireAuthorization();
+
+        group.MapGet("/dishes", async (
+            string? q, decimal? maxPrice, bool? spicy, bool? vegetarian,
+            ICatalogService catalog, CancellationToken ct) =>
+        {
+            var dishes = await catalog.SearchDishesAsync(
+                q ?? string.Empty, maxPrice, spicy ?? false, vegetarian ?? false, take: 20, ct);
+
+            return Results.Ok(dishes.Select(d => d.ToResponse()));
+        });
+    }
+}
+```
+
+```csharp
+// Program.cs
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSingleton<IEatsDataSource, DemoDataSource>();
+builder.Services.AddScoped<ICatalogService, CatalogService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IPartnerService, PartnerService>();
+builder.Services.AddAuthentication().AddJwtBearer();   // configured in Part 7
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
+app.MapCatalog();
+app.MapOrders();
+app.MapPartner();
+app.Run();
+```
+
+<Callout type="note" title="Swapping in Firestore later">
+`FirestoreDataSource` implements the same interface using the `Google.Cloud.Firestore` package: create a `FirestoreDb`, query a collection, convert snapshots to your records. Nothing above changes, because the endpoints and services only know `IEatsDataSource`. Do this when you have real data, not while you are learning the agent layer.
+</Callout>
+
+## Test it before any model sees it
+
+This is the discipline that saves the most time later. Every one of these must work with curl first:
+
+```bash
+# The question that started the series
+curl "https://localhost:7043/api/catalog/dishes?q=&spicy=true&maxPrice=20" \
+  -H "Authorization: Bearer $TOKEN" | jq '.[] | {name, price, spiceLevel}'
+```
+
+```json
+[
+  { "name": "Spicy Chicken Rice",        "price": 12.00, "spiceLevel": 1 },
+  { "name": "Sambal Prawn Fried Rice",   "price": 16.90, "spiceLevel": 2 },
+  { "name": "Ayam Penyet",               "price": 18.50, "spiceLevel": 3 }
+]
+```
+
+And a unit test per service method, with the demo source as the fixture:
+
+```csharp
+[Fact]
+public async Task Spicy_under_20_excludes_mild_and_expensive_dishes()
+{
+    var service = new CatalogService(new DemoDataSource());
+
+    var results = await service.SearchDishesAsync("", maxPriceMyr: 20m, spicy: true);
+
+    Assert.NotEmpty(results);
+    Assert.All(results, d => Assert.True(d.IsSpicy));
+    Assert.All(results, d => Assert.True(d.EffectivePrice <= 20m));
+}
+```
+
+When something goes wrong three parts from now, the first question is always "is it the agent or the API". A green test at this layer answers it in seconds instead of an afternoon.
+
+[Part 4 sets up the Foundry project](../azure-ai-foundry-project-setup-first-agent) and creates the agent that will eventually call all of this.
+
+## Key takeaways
+
+- A Flutter and Firebase app usually has no server. The agent needs one, and that is the real first task.
+- Work backwards from the tools you want. Nine question-shaped service methods beat a generic CRUD API.
+- Put data access behind an interface with a seeded in-memory implementation so the series runs with zero setup.
+- Keep price and status logic identical to the mobile app, or the agent will quote numbers checkout disagrees with.
+- Project two DTO shapes from one service call: full for the app, trimmed for the model.
+- Make every endpoint work with curl, and every service method pass a test, before a model is involved.

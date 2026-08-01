@@ -1,0 +1,268 @@
+---
+title: 'Firebase Auth in ASP.NET Core and Deploying to Azure with Managed Identity'
+seoTitle: 'Firebase Auth + Azure Managed Identity'
+description: 'Validating Firebase ID tokens in .NET, mapping custom claims to roles, and deploying the agent API with no secrets anywhere.'
+highlight: "Firebase ID tokens validate against issuer https://securetoken.google.com/PROJECT_ID with the audience set to the project ID itself. Roles come from custom claims you set with the Admin SDK, never from a field the client sends. Then deploy with a system-assigned managed identity so no key exists to leak."
+publishedAt: 2026-08-02
+category: azure
+categories: ['web', 'devops']
+tags: ['Firebase Authentication', 'JWT', 'ASP.NET Core', 'Microsoft Entra ID', 'Azure App Service', 'GitHub Actions']
+series: 'azure-ai-foundry-agents'
+seriesOrder: 7
+draft: true
+faq:
+  - q: 'How do you validate a Firebase ID token in ASP.NET Core?'
+    a: 'Configure JWT bearer with Authority and ValidIssuer set to https://securetoken.google.com/YOUR_PROJECT_ID and ValidAudience set to the project ID itself. The handler fetches Google''s rotating signing keys from the discovery document, so you never store a key.'
+  - q: 'Where do user roles come from with Firebase Authentication?'
+    a: 'Custom claims set server-side with the Firebase Admin SDK, which are then embedded in the ID token. Never take a role from a request body or a client-settable profile field. The user refreshes their token to pick up a claim change.'
+  - q: 'Why use managed identity instead of an API key for Foundry?'
+    a: 'There is no key to leak, rotate or accidentally commit. The App Service gets an Entra identity, you assign it the Foundry User role on the project, and DefaultAzureCredential picks it up with no configuration in the app.'
+  - q: 'Why does my API return 401 with a valid Firebase token?'
+    a: 'Almost always the audience. Firebase sets aud to the bare project ID, not a URL, and the issuer is the securetoken URL. A mismatch in either produces a 401 with no useful detail. Enable token validation logging to see the actual failure.'
+  - q: 'Should the deployment pipeline hold any secrets?'
+    a: 'No. Use federated credentials so GitHub Actions authenticates to Azure through OpenID Connect, and use managed identity so the running app authenticates to Foundry. The only configuration values are non-secret: endpoint, model deployment, agent name.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+
+[Part 6](../azure-ai-foundry-agent-security-jwt-roles) said the user's identity arrives as a Firebase ID token, your API validates it, and the role comes from claims. One sentence, and behind it a day I would rather you did not repeat.
+
+This part is that day: the exact token configuration, where roles come from, and how to deploy the whole thing to Azure without a single secret.
+
+## How do you validate a Firebase ID token in ASP.NET Core?
+
+Firebase issues standard OIDC-signed JWTs, so the built-in handler works. The values are unusual enough to trip everyone once.
+
+```bash
+dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+```
+
+```csharp
+var firebaseProjectId = builder.Configuration["Firebase:ProjectId"]!;
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = $"https://securetoken.google.com/{firebaseProjectId}";
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer   = true,
+            ValidIssuer      = $"https://securetoken.google.com/{firebaseProjectId}",
+
+            // Firebase sets `aud` to the bare project ID, not a URL.
+            ValidateAudience = true,
+            ValidAudience    = firebaseProjectId,
+
+            ValidateLifetime = true,
+            ClockSkew        = TimeSpan.FromSeconds(30)
+        };
+    });
+```
+
+<Callout type="warning" title="The audience is the project ID, not a URL">
+This is the single most common failure. The issuer is `https://securetoken.google.com/my-project`, and the audience is just `my-project`. Set the audience to the issuer URL, which looks reasonable, and every request returns a bare 401 with nothing in the body explaining why.
+</Callout>
+
+Note what is absent: any key, secret or service account file. The handler reads Google's discovery document and fetches the rotating public signing keys itself. Google documents the claim set it issues under [verifying ID tokens](https://firebase.google.com/docs/auth/admin/verify-id-tokens), and it is worth reading once so the `aud` and `iss` values below are not a surprise. `ClockSkew` defaults to five minutes, which means an expired token keeps working for five minutes; thirty seconds is a better default for a mobile client.
+
+When it does fail, make it tell you:
+
+```csharp
+options.Events = new JwtBearerEvents
+{
+    OnAuthenticationFailed = context =>
+    {
+        logger.LogWarning("Token rejected: {Reason}", context.Exception.Message);
+        return Task.CompletedTask;
+    }
+};
+```
+
+Turn that on while wiring it up. The exception message names the actual mismatch, which the 401 does not.
+
+## Where do the roles come from?
+
+Not from the request. Not from a Firestore profile document the client can write. From **custom claims**, which are set server-side with the Firebase Admin SDK and then baked into the ID token itself.
+
+The app's `UserRole` enum has three values, and partner accounts also carry a `managedRestaurantId`. Setting them, once, from an admin tool:
+
+```javascript
+// Firebase Admin SDK, run from a trusted context only
+await admin.auth().setCustomUserClaims(uid, {
+  role: 'restaurantPartner',
+  managedRestaurantId: 'r-0042'
+});
+```
+
+The user refreshes their ID token and the claims are in it. In ASP.NET Core they are ordinary claims, which is exactly what `CallerContext.FromClaims` from [Part 6](../azure-ai-foundry-agent-security-jwt-roles) was reading:
+
+```csharp
+public static CallerContext FromClaims(ClaimsPrincipal user) => new(
+    UserId:       user.FindFirstValue("user_id") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
+                  ?? throw new UnauthorizedAccessException(),
+    Role:         user.FindFirstValue("role") ?? "customer",
+    RestaurantId: user.FindFirstValue("managedRestaurantId"));
+```
+
+Firebase puts the subject in both `sub` and `user_id`, and the JWT handler maps `sub` to `ClaimTypes.NameIdentifier`, so checking both is cheap insurance.
+
+Two properties make this the right place for roles. The claim is inside a signed token, so a client cannot forge it. And it costs no database read per request, which matters when every agent turn is already several seconds.
+
+The trade-off: a role change does not take effect until the token refreshes, up to an hour. For a food delivery app, where a customer does not become a restaurant partner mid-session, that is fine. If it is not fine for you, check a revocation list on sensitive operations rather than abandoning claims.
+
+## Getting a real token to test with
+
+You cannot test any of this without a token. The quickest route, no app build required:
+
+```bash
+curl -X POST \
+  "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$FIREBASE_WEB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"customer@msdevbuild.com","password":"demo1234","returnSecureToken":true}' \
+  | jq -r .idToken
+```
+
+Save it as `$TOKEN` and every curl in this series works. Decode it at any JWT viewer to confirm `aud`, `iss` and your custom claims are actually present, which answers "is it the token or the API" before you start debugging the API.
+
+## Deploying with no secrets
+
+The API needs to reach Foundry. It must not hold a key to do it.
+
+**1. Create the App Service and turn on a managed identity.**
+
+```bash
+az webapp create \
+  --resource-group rg-msdevbuild-eats \
+  --plan asp-eats \
+  --name eats-agent-api \
+  --runtime "DOTNETCORE:8.0"
+
+az webapp identity assign \
+  --resource-group rg-msdevbuild-eats \
+  --name eats-agent-api
+```
+
+That prints a `principalId`. Keep it.
+
+**2. Give that identity access to the Foundry project.** This is the step [Part 4](../azure-ai-foundry-project-setup-first-agent) promised and did not show:
+
+```bash
+az role assignment create \
+  --assignee <principalId> \
+  --role "Foundry User" \
+  --scope /subscriptions/<sub-id>/resourceGroups/rg-msdevbuild-eats/providers/Microsoft.CognitiveServices/accounts/msdevbuild-ai
+```
+
+If the role name is rejected, your tenant may still show the pre-2026 name **Azure AI User**. Same permissions, older label.
+
+**3. Set the non-secret configuration.**
+
+```bash
+az webapp config appsettings set \
+  --resource-group rg-msdevbuild-eats \
+  --name eats-agent-api \
+  --settings \
+    Foundry__ProjectEndpoint="https://msdevbuild-ai.services.ai.azure.com/api/projects/eats" \
+    Foundry__ModelDeployment="gpt-4.1-mini" \
+    Foundry__AgentName="eats-assistant" \
+    Firebase__ProjectId="msdevbuild-eats"
+```
+
+Every one of those is safe in a config store, a screenshot or a support ticket. That is the point.
+
+**4. Prefer the specific credential in production.**
+
+```csharp
+TokenCredential credential = builder.Environment.IsDevelopment()
+    ? new DefaultAzureCredential()          // your az login
+    : new ManagedIdentityCredential();      // App Service identity, no probing
+
+builder.Services.AddSingleton(new AIProjectClient(
+    endpoint: new Uri(builder.Configuration["Foundry:ProjectEndpoint"]!),
+    tokenProvider: credential));
+```
+
+`DefaultAzureCredential` works in both places, but it tries a chain of sources in order, and each miss costs latency on the first call. Naming the credential you expect also makes a misconfiguration fail loudly instead of silently falling through to something else.
+
+## The pipeline
+
+GitHub Actions, authenticating to Azure with OpenID Connect so no publish profile or password is stored:
+
+```yaml
+name: Deploy agent API
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/MSDevBuildEats.Api/**']
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - run: dotnet test src/MSDevBuildEats.Api.Tests --configuration Release
+      - run: dotnet publish src/MSDevBuildEats.Api -c Release -o ./publish
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: eats-agent-api
+          package: ./publish
+```
+
+Those three `secrets` values are identifiers, not credentials: the federated trust is configured on the Azure side against this repository and branch. Nothing in the repository can be replayed from somewhere else.
+
+The `dotnet test` step runs the executor tests from [Part 6](../azure-ai-foundry-agent-security-jwt-roles), which need no model and take seconds. Role enforcement is the property most worth blocking a deploy on.
+
+## Smoke test after deploy
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://eats-agent-api.azurewebsites.net/health
+curl -s -o /dev/null -w "%{http_code}\n" https://eats-agent-api.azurewebsites.net/api/assistant/ask   # expect 401
+
+curl -X POST https://eats-agent-api.azurewebsites.net/api/assistant/ask \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"message":"Find spicy food under RM20"}'
+```
+
+Three checks in order: the app is up, the endpoint rejects anonymous callers, and a real token gets a real answer. The middle one is the one people skip and it is the one that catches a misconfigured `RequireAuthorization`.
+
+## When it returns 401 anyway
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| 401 on every request | Audience set to the issuer URL | Audience is the bare project ID |
+| 401 only after an hour | Token expired, client not refreshing | Refresh the ID token before each call |
+| 401 in production, fine locally | `Firebase__ProjectId` app setting missing | Double underscore, not colon, in app settings |
+| Authenticated but role is always customer | Custom claims never set, or token not refreshed | Set claims with the Admin SDK, force a refresh |
+| Foundry call fails with 403 | Managed identity has no role on the project | Assign Foundry User to the principal ID |
+
+Every row is one I hit. The last two took the longest, because both produce a system that works and quietly does the wrong thing.
+
+[Part 8 connects the Flutter app](../flutter-ai-agent-chat-client-azure-foundry) to the API you just deployed.
+
+## Key takeaways
+
+- Firebase issuer is `https://securetoken.google.com/PROJECT_ID`; the audience is the bare project ID.
+- No key or service account is needed to validate tokens. The handler fetches Google's rotating public keys.
+- Set `ClockSkew` to 30 seconds. The five-minute default keeps expired tokens alive.
+- Roles live in custom claims set by the Admin SDK, never in anything the client can write.
+- Log `OnAuthenticationFailed` while wiring up. The 401 tells you nothing; the exception names the mismatch.
+- Assign **Foundry User** to the App Service managed identity, and use `ManagedIdentityCredential` in production.
+- Authenticate the pipeline with OpenID Connect. Neither the repo nor the app config should hold a secret.

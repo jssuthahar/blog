@@ -1,0 +1,234 @@
+---
+title: 'What Is MCP? Connecting Azure AI Foundry Agents to Model Context Protocol Servers'
+seoTitle: 'MCP with Azure AI Foundry Agents'
+description: 'Consuming remote MCP servers from a Foundry agent, publishing your own tools through a Toolbox, and the approval policy that keeps it safe.'
+highlight: "A function tool belongs to one agent. An MCP server is a tool layer that any agent or client can plug into. The switch is worth making when a second consumer appears, and the approval policy is the control that matters: keep it on always for any server you did not write."
+publishedAt: 2026-08-01
+category: azure
+categories: ['ai', 'architecture']
+tags: ['MCP', 'Model Context Protocol', 'Azure AI Foundry', 'AI Agents', 'C#', 'Security']
+series: 'azure-ai-foundry-agents'
+seriesOrder: 11
+draft: true
+faq:
+  - q: 'What is MCP, the Model Context Protocol?'
+    a: 'An open protocol for describing a set of tools so any agent or client can discover and call them. Instead of declaring the same function schemas inside every agent that needs them, you run one server and point clients at it.'
+  - q: 'When should you use MCP instead of function tools?'
+    a: 'When a second consumer appears. One app with one agent is simpler with plain function tools. The moment an internal assistant, a partner bot or a developer tool wants the same operations, MCP stops you maintaining the same schemas in three places.'
+  - q: 'How do you add an MCP server to an Azure AI Foundry agent in C#?'
+    a: 'Use ResponseTool.CreateMcpTool with a unique server label, the server URI, an McpToolFilter of allowed tools and an approval policy, then add it to the Tools collection on the agent definition. Credentials go through the authorizationToken and headers parameters, or the connector-id overload.'
+  - q: 'What is require_approval in the MCP tool?'
+    a: 'It controls whether your code must approve each call before it runs. The default is always. You can set never, or supply per-tool lists so read operations run freely while writes need approval. Keep always for any server you do not control.'
+  - q: 'Is it safe to connect an agent to a third-party MCP server?'
+    a: 'Treat it as untrusted code you invited into your reasoning loop. Narrow the tool list with allowed tools, keep approval on, and remember that everything the server returns lands in the model context and is therefore an injection surface.'
+  - q: 'What is a Toolbox in Microsoft Foundry?'
+    a: 'A curated set of tools defined once, versioned, and exposed on a single MCP-compatible endpoint. Any MCP-capable agent or client can consume it, and promoting a new version is how a tool change takes effect.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+
+By the time the food delivery assistant had been live for a month, three other things wanted the same nine tools.
+
+The internal operations team wanted a support console that could look up an order. A developer wanted `search_menu` available inside their editor while debugging. And there was a plan, never delivered, for a partner-facing bot that answered restaurant questions. Each one would have meant declaring the same schemas again, in another agent definition, drifting from the first the moment somebody renamed a field.
+
+That is the problem MCP solves.
+
+## What is MCP, and how is it different from a function tool?
+
+The Model Context Protocol is an open standard for describing a set of tools so that any agent or client can discover and call them. The difference from a function tool is ownership.
+
+A **function tool** is declared inside one agent definition. It belongs to that agent. Another agent wanting the same capability declares it again.
+
+An **MCP server** is a separate thing that speaks a protocol. It advertises the tools it has, takes calls, returns results. Any MCP-capable client can use it: a Foundry agent, GitHub Copilot, another framework's agent, an internal script.
+
+```text
+Function tools                     MCP
+
+agent A ── search_menu             agent A ──┐
+agent B ── search_menu             agent B ──┼── MCP server ── search_menu
+agent C ── search_menu             Copilot ──┘
+(three schemas, three drifts)      (one schema)
+```
+
+Foundry works in both directions. It can **consume** remote MCP servers as tools, and a **Toolbox** can **publish** your tools on an MCP endpoint for others to consume. The reference for the settings below is the [MCP tool documentation](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/model-context-protocol).
+
+## Consuming a remote MCP server
+
+<Callout type="warning" title="This part needs the prerelease packages">
+The MCP approval and Toolbox types are not in the stable 2.0.x packages that [Part 4](../azure-ai-foundry-project-setup-first-agent) pins. Everything below needs `--version 2.1.0-beta.4` on `Azure.AI.Projects`, `Azure.AI.Projects.Agents` and `Azure.AI.Extensions.OpenAI`. That is worth knowing before you promise this to anyone: it is preview surface and the shape can still change.
+</Callout>
+
+The C# is short. A label, a URI, an allow-list and an approval policy.
+
+```csharp
+using Azure.AI.Projects;
+using Azure.AI.Projects.Agents;
+using Azure.AI.Extensions.OpenAI;
+using Azure.Identity;
+using OpenAI.Responses;
+
+AIProjectClient projectClient = new(
+    endpoint: new Uri(config["Foundry:ProjectEndpoint"]!),
+    tokenProvider: new DefaultAzureCredential());
+
+var logisticsTool = ResponseTool.CreateMcpTool(
+    serverLabel: "logistics",
+    serverUri: new Uri("https://mcp.partner-logistics.example/mcp"),
+    allowedTools: new McpToolFilter { ToolNames = { "get_pickup_window" } },
+    toolCallApprovalPolicy: new McpToolCallApprovalPolicy(
+        GlobalMcpToolCallApprovalPolicy.AlwaysRequireApproval));
+
+var definition = new DeclarativeAgentDefinition(model: config["Foundry:ModelDeployment"])
+{
+    Instructions = await File.ReadAllTextAsync("Agents/Instructions/eats-rider.md"),
+    Tools = { logisticsTool }
+};
+
+ProjectsAgentVersion agentVersion = await projectClient.AgentAdministrationClient
+    .CreateAgentVersionAsync(agentName: "eats-rider", options: new(definition));
+```
+
+`serverLabel` must be unique within the agent, and it is what you check against when an approval arrives, so choose something you will recognise in a log line.
+
+Two details that cost me time. There is no `ProjectConnectionId` property on the tool, despite what some samples show; credentials go through the `authorizationToken` and `headers` parameters, or through the overload that takes an `McpToolConnectorId` instead of a URI. And `allowedTools` takes an `McpToolFilter`, not a list of strings.
+
+### The approval loop
+
+With approval required, the model does not simply call the server. It asks you first, and your code decides. This is the same shape as the function-call loop from [Part 5](../azure-ai-foundry-function-tools-aspnet-core), with a different item type.
+
+```csharp
+var responses = projectClient.ProjectOpenAIClient
+    .GetProjectResponsesClientForAgent(agentVersion.Name);
+
+var inputItems = new List<ResponseItem>
+{
+    ResponseItem.CreateUserMessageItem("What is the pickup window for order EAT-4471?")
+};
+
+string? previousResponseId = null;
+ResponseResult response;
+string[] allowedRemoteTools = ["get_pickup_window"];
+
+do
+{
+    response = await responses.CreateResponseAsync(
+        previousResponseId: previousResponseId,
+        inputItems: inputItems,
+        cancellationToken: ct);
+
+    previousResponseId = response.Id;
+    inputItems.Clear();
+
+    foreach (ResponseItem item in response.OutputItems)
+    {
+        if (item is McpToolCallApprovalRequestItem request)
+        {
+            bool approved = request.ServerLabel == "logistics"
+                            && allowedRemoteTools.Contains(request.ToolName);
+
+            logger.LogInformation(
+                "MCP approval {Server}.{Tool} approved={Approved}",
+                request.ServerLabel, request.ToolName, approved);
+
+            inputItems.Add(ResponseItem.CreateMcpApprovalResponseItem(
+                approvalRequestId: request.Id, approved: approved));
+        }
+    }
+}
+while (inputItems.Count > 0);
+
+Console.WriteLine(response.GetOutputText());
+```
+
+This is deliberately the same `previousResponseId` plus `inputItems` loop as the function-tool version in [Part 5](../azure-ai-foundry-function-tools-aspnet-core), rather than the `CreateResponseOptions` form some samples use. That type's constructor requires a model name, which you do not have when the response client is already bound to an agent, so the loop above is both shorter and the one that compiles.
+
+Note the `else`-free shape: anything that is not a label and tool I explicitly expected gets denied by default. An allow-list beats a deny-list here, because a remote server can add tools without telling you.
+
+### Approval policies
+
+The `require_approval` setting has more range than the two obvious options:
+
+| Setting | Behaviour | Use for |
+| --- | --- | --- |
+| `always` (default) | Every call needs your approval | Any server you did not write |
+| `never` | Calls run without asking | A server you own, on your network |
+| `{"never": [tools]}` | Named tools skip approval | Read operations you have reviewed |
+| `{"always": [tools]}` | Only named tools need approval | Mostly-safe server with a few write tools |
+
+The pattern that worked for us: read tools on `never`, everything that writes on `always`. That keeps the common path fast and puts a human decision in front of anything with consequences.
+
+You can also narrow what the agent sees at all, with the tool's allowed-tools list. If a server exposes forty tools and you need three, take three. Fewer tools means better routing and less surface.
+
+## Publishing your own tools
+
+The other direction, and the place I had the wrong idea for a while.
+
+A **Toolbox** is a curated set of tools defined once, versioned, and exposed on a single MCP-compatible endpoint that any MCP client can consume. My assumption was that I could drop the nine function tools from [Part 5](../azure-ai-foundry-function-tools-aspnet-core) into a toolbox and be finished. You cannot.
+
+<Callout type="warning" title="A toolbox cannot hold client-side function tools">
+The tool types a toolbox accepts are all server-executable: `MCPToolboxTool`, `FileSearchToolboxTool`, `OpenApiToolboxTool`, `CodeInterpreterToolboxTool`, `WebSearchToolboxTool` and friends. There is no function-tool variant, and that is not an oversight. A toolbox is called by consumers you do not control, so something reachable has to execute the tool. A function tool is executed by *your* process, which a remote consumer has no way to invoke.
+</Callout>
+
+So publishing your own operations is a two-step job. Host an MCP server that can execute them — Azure Functions has an MCP webhook endpoint at `/runtime/webhooks/mcp`, which is the least amount of new infrastructure I found — and then register that server, optionally inside a toolbox so consumers get one endpoint and explicit versioning:
+
+```csharp
+AgentToolboxes toolboxes = projectClient.AgentAdministrationClient.GetAgentToolboxes();
+
+ToolboxVersion toolbox = toolboxes.CreateVersion(
+    name: "eats-tools",
+    tools: [new MCPToolboxTool("eats")
+    {
+        ServerUri = new Uri("https://eats-mcp.azurewebsites.net/runtime/webhooks/mcp")
+    }],
+    description: "Read-only catalogue and order tools for MSDevBuild Eats");
+
+// The toolbox is now reachable at an MCP endpoint:
+// {projectEndpoint}/toolboxes/{name}/versions/{version}/mcp?api-version=v1
+```
+
+The method is `CreateVersion`, not `CreateToolboxVersion`, and the constructor takes only the server label with the URI set as a property.
+
+The practical consequence is worth sitting with: **your tool logic now runs somewhere a remote caller can reach**, which is a different security position from a function tool executing inside your authenticated API. The identity rule needs re-establishing on that server rather than inherited, and the next section is about exactly that.
+
+Two properties still make the toolbox worth the extra concept.
+
+**Versioning is explicit.** Create a version, test it, promote it to default when ready. A tool description change does not silently alter behaviour for every consumer the moment you save.
+
+**Consumers are decoupled from your framework.** The support console does not need to be a Foundry agent. It needs to speak MCP.
+
+<Callout type="tip" title="Adding a catalogue MCP server without code">
+Some servers are one-click. In the Foundry portal, **Add Tools** → **Catalog** lists entries such as the Azure DevOps MCP Server. You connect your organisation, choose which of its tools to expose, and validate it in the playground before any code changes. Worth checking the catalogue before you write a connection by hand.
+</Callout>
+
+## What does MCP change about security?
+
+Everything from [Part 6](../azure-ai-foundry-agent-security-jwt-roles) still applies, and two new things arrive.
+
+**A third-party MCP server is untrusted code you invited into your reasoning loop.** It sees the arguments the model sends and it decides what comes back. Everything it returns lands in the model's context, which makes it an injection surface exactly like a restaurant-written menu description, except this one you did not even store. Narrow the allowed tools, keep approval on for writes, and log every approval decision.
+
+**Identity gets harder, not easier.** The rule that no tool parameter may carry a user ID is easy to enforce on tools you wrote. A remote server may well have a `userId` parameter, because it was written for someone else's threat model. When that happens you have three options: do not use that tool, wrap it in a function tool of your own that supplies the identity from claims, or use OAuth on-behalf-of so the server receives the caller's identity properly rather than a string the model chose.
+
+The wrapping option is the one I have reached for most. It costs a small shim and keeps the invariant intact.
+
+Foundry supports several authentication styles for MCP connections: key-based, Microsoft Entra using the agent's or project's managed identity, OAuth identity passthrough, and unauthenticated where appropriate. Store the credentials in a project connection and reference it by ID, so nothing lands in configuration files.
+
+## When should you not use MCP?
+
+For a single application with a single agent, plain function tools are simpler and I would not move. MCP adds a server to run, a version to promote and a protocol between you and your own code, and it buys you nothing until there is a second consumer.
+
+The trigger to switch is the second consumer, not the tenth tool. When somebody asks "can the support console do that too", that is the day.
+
+[Part 12 takes the other route to the same scaling problem](../multi-agent-handoff-orchestration-azure-ai-foundry): not sharing tools between agents, but splitting one agent into several.
+
+## Key takeaways
+
+- MCP describes tools once so any agent or client can call them; a function tool belongs to one agent definition.
+- Foundry consumes remote MCP servers, and a Toolbox groups them behind one versioned endpoint.
+- A toolbox holds only server-executable tools. To publish your own operations you must host an MCP server; a client-side function tool cannot go in one.
+- `ResponseTool.CreateMcpTool` needs a unique label, a URI, an `McpToolFilter` and an approval policy. There is no `ProjectConnectionId` property.
+- The MCP and Toolbox APIs are prerelease. Pin `2.1.0-beta.4` and expect the shape to move.
+- Handle `McpToolCallApprovalRequestItem` with an allow-list and deny anything unexpected by default.
+- Read tools on `never`, write tools on `always` is a good default approval split.
+- A third-party MCP server is untrusted code in your reasoning loop, and its output is an injection surface.
+- If a remote tool wants a user ID, wrap it in a function tool of your own that supplies identity from claims.
+- Switch to MCP when a second consumer appears, not before.

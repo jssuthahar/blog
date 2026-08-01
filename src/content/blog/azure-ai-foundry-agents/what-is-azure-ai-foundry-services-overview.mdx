@@ -1,0 +1,151 @@
+---
+title: 'What Is Azure AI Foundry? The Services, and When You Actually Need Them'
+seoTitle: 'What Is Azure AI Foundry?'
+description: 'A plain tour of Microsoft Foundry for developers: the resource, projects, models, agents, tools, and when Azure OpenAI on its own is enough.'
+highlight: "Foundry is one Azure resource that gives you a model catalogue, a managed agent runtime, a shared tool layer and the tracing around all of it, behind a single project endpoint. If you only need chat completions or embeddings, Azure OpenAI on its own is still the right answer and costs you less to reason about."
+publishedAt: 2026-08-01
+category: azure
+categories: ['ai']
+tags: ['Azure AI Foundry', 'Microsoft Foundry', 'AI Agents', 'Azure OpenAI', 'MCP', 'Architecture']
+series: 'azure-ai-foundry-agents'
+seriesOrder: 1
+draft: true
+faq:
+  - q: 'What is Azure AI Foundry?'
+    a: 'It is Microsoft''s platform for building and running AI applications on Azure, renamed Microsoft Foundry during 2026. One Azure resource gives you a model catalogue, a managed agent runtime, a shared tool layer, evaluation and tracing, all reachable through a single project endpoint.'
+  - q: 'What is the difference between Azure AI Foundry and Azure OpenAI?'
+    a: 'Azure OpenAI is a model endpoint. Foundry is the platform around models: agents, tools, memory, evaluation, tracing and publishing, plus models from vendors other than OpenAI. If all you need is chat completions or embeddings, an Azure OpenAI resource is simpler and enough.'
+  - q: 'What is the difference between a prompt agent and a hosted agent?'
+    a: 'A prompt agent is defined by configuration — model, instructions, tools — and Foundry runs it, with no compute of yours involved. A hosted agent is your own code in a container that Foundry runs with a managed endpoint, identity and scaling. Start with a prompt agent.'
+  - q: 'Do I need Foundry to build an AI agent?'
+    a: 'No. You can run the tool-calling loop yourself against any model endpoint. Foundry gives you the agent as a versioned resource, a playground non-developers can test in, conversation state you did not write, and tracing into Application Insights. That is the part you would otherwise build twice.'
+  - q: 'What is Foundry classic?'
+    a: 'The previous portal and the 1.x SDKs, kept alive under separate documentation. Anything using PersistentAgentsClient with threads and runs is classic. New work should use the 2.x packages and the Responses API.'
+  - q: 'Which SDK should a .NET developer use with Foundry?'
+    a: 'Azure.AI.Projects with Azure.AI.Projects.Agents and Azure.AI.Extensions.OpenAI for agents and Foundry features. Add Microsoft Agent Framework when you need multi-agent orchestration or want to run your own agent code. Use the plain OpenAI SDK when you only want models and lowest latency.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+
+The first serious conversation I had about this platform went badly, because three of us in the room meant three different things by "Foundry". One meant the portal. One meant the model endpoint. One meant the agent runtime. All three were partly right, which is the worst kind of confusion.
+
+This part is the map. What Foundry is, which services live inside it, what each one is for, and when you should not use it at all. No code. The rest of the series builds a real feature on top, and this is the vocabulary it assumes.
+
+<Callout type="note" title="The name changed">
+Azure AI Foundry was renamed **Microsoft Foundry** during 2026, and the agent runtime is **Foundry Agent Service**. The older portal and 1.x SDKs are now documented separately as **Foundry classic**. Titles in this series say "Azure AI Foundry" because that is what people still search for, but the content follows the current platform.
+</Callout>
+
+## What is Azure AI Foundry, in one paragraph?
+
+Foundry is one Azure resource that gives you a catalogue of models, a managed runtime for agents, a shared set of tools those agents can call, and the identity, tracing and evaluation around all of it. You create a **resource**, then one or more **projects** inside it, and a project has a single endpoint that every SDK call hangs off:
+
+```text
+https://<resource-name>.services.ai.azure.com/api/projects/<project-name>
+```
+
+That endpoint is the practical answer to "where is Foundry". Models, agents, conversations, tools and traces are all reachable through it, with Microsoft Entra ID deciding who may do what.
+
+The mental model that helped me most: **Azure OpenAI is an endpoint, Foundry is a platform.** If you want a model to answer a prompt, you want an endpoint. If you want something that reasons, calls your systems, remembers a conversation, gets versioned, gets traced and gets evaluated, you want the platform.
+
+## What services are inside it?
+
+| Service | What it gives you | When you reach for it |
+| --- | --- | --- |
+| **Model catalogue** | Models from OpenAI, Meta, DeepSeek, Anthropic and others, deployed into your project | Always. Everything else needs a model |
+| **Responses API** | One endpoint for model calls plus platform tools, on the project endpoint | Whenever you call a model or an agent |
+| **Agent Runtime** | Runs agents, manages conversations and tool calls, scales them | You want an agent without hosting one |
+| **Tools** | File search, code interpreter, web search, memory, MCP servers, and your own functions | The moment the model needs data or actions |
+| **Toolbox** | A curated tool set defined once, versioned, exposed on one MCP endpoint | More than one agent needs the same tools |
+| **Knowledge** | Vector stores and file search over your documents, plus connectors to enterprise sources | Answers must come from your content |
+| **Observability** | Tracing, metrics, evaluation, Application Insights integration | Before production, not after |
+| **Identity and security** | Entra identity per agent, RBAC, content filters, virtual network isolation | Anything touching real customer data |
+| **Publishing** | Versioned agents, stable endpoints, distribution to Teams and Microsoft 365 Copilot | The agent has users outside your app |
+
+Microsoft's own summary of the runtime is the [Agent Service overview](https://learn.microsoft.com/en-us/azure/foundry/agents/overview), and the endpoint and package matrix lives in the [SDK overview](https://learn.microsoft.com/en-us/azure/foundry/how-to/develop/sdk-overview). Both are worth a skim before you commit to an approach, because this platform moves.
+
+Three of these deserve more than a table row.
+
+**Tools** are the reason agents are interesting. Some run on Microsoft's side (file search, code interpreter, web search). Some are yours: a **function tool** is a schema describing a method in your API, and when the model wants it called, your code runs it. [Part 5 builds nine of them.](../azure-ai-foundry-function-tools-aspnet-core)
+
+**Memory** comes in more than one flavour. Session memory is the conversation you are in. User memory carries preferences across sessions. Procedural memory, newer, lets an agent improve at a repeated workflow. Most applications start and end with session memory, and that is fine.
+
+**Observability** is the one people skip and regret. An agent makes decisions you did not write, so "what did it do" is a question you will ask weekly. Tracing answers it. [Part 10 covers the setup.](../azure-ai-foundry-agent-testing-production-monitoring)
+
+## What kinds of agent can you build?
+
+Three paths, and picking the wrong one costs weeks.
+
+**Prompt agents** are defined entirely by configuration: a model, instructions, and a list of tools. Foundry runs them. There is no container, no compute of yours, nothing to patch or scale. You author one in the portal or, better, define it in code so it lives in version control.
+
+**Hosted agents** are your own agent code, written with Microsoft Agent Framework, LangGraph, the OpenAI Agents SDK or anything else, packaged as a container or a zip. Foundry runs it with a managed endpoint, autoscaling, its own Entra identity and tracing. Under the hood your code still calls the Responses API for inference.
+
+**Your own process, calling the Responses API.** Keep your agent code where it already lives and use Foundry only for models and platform tools. Nothing is hosted for you.
+
+| | Prompt agent | Hosted agent | Your own process |
+| --- | --- | --- | --- |
+| Runtime code to maintain | None | Yours | Yours |
+| Compute to manage | None | Foundry-managed container | Yours |
+| Custom orchestration | Limited | Full | Full |
+| Cost model | Inference + tools | Inference + tools + container | Inference + tools + your hosting |
+| Good first choice | **Yes** | When you need custom logic | When you already have an app |
+
+<Callout type="tip" title="Start with a prompt agent">
+This series uses a prompt agent, with the tool code running in an ASP.NET Core API that already exists. That combination gives you Foundry's runtime and versioning without adding a container to operate, and your tools stay inside the service that already knows how to authenticate a caller.
+</Callout>
+
+## Where do MCP and multi-agent fit?
+
+Two terms that get thrown around, worth placing on the map now.
+
+**MCP**, the Model Context Protocol, is a standard way to describe a set of tools so that any agent or client can use them. A function tool belongs to one agent definition. An MCP server is a tool layer that many agents, and other clients entirely, can plug into. Foundry can consume remote MCP servers, and a Toolbox can publish your tools as one. [Part 11 covers it in full.](../mcp-model-context-protocol-azure-ai-foundry-agents)
+
+**Multi-agent** means several specialised agents instead of one that does everything. Once an agent has more than roughly nine tools, routing accuracy drops, and splitting by domain works better than adding a tenth tool. Foundry (new) has no "connected agents" feature; the orchestration patterns live in Microsoft Agent Framework instead, and handoff is the one that matches a support-style conversation. [Part 12 builds it.](../multi-agent-handoff-orchestration-azure-ai-foundry)
+
+Neither is a starting point. Both are answers to a problem you can only have once a single agent is working.
+
+## Which SDK does a .NET developer use?
+
+| SDK | Use it for | Package |
+| --- | --- | --- |
+| **Foundry SDK** | Agents, tools, project features | `Azure.AI.Projects`, `Azure.AI.Projects.Agents`, `Azure.AI.Extensions.OpenAI` |
+| **Agent Framework** | Multi-agent orchestration, your own agent code | `Microsoft.Agents.AI`, `Microsoft.Agents.AI.Workflows` |
+| **OpenAI SDK** | Plain model calls, embeddings, lowest latency | `OpenAI` |
+| **Anthropic SDK** | Claude models deployed in Foundry | Anthropic's own SDK |
+
+<Callout type="warning" title="Watch which generation a sample belongs to">
+There are two generations in circulation. Anything using `PersistentAgentsClient`, threads and runs, or `Azure.AI.Agents.Persistent`, is **Foundry classic**. The current path is `Azure.AI.Projects` 2.x with agent versions, conversations and responses. Blog posts and Stack Overflow answers from the classic era look almost right and will not compile against the new packages. Check the class names before you copy.
+</Callout>
+
+## When should you not use Foundry?
+
+This is the section I wish more platform overviews had.
+
+**If you only need chat completions or embeddings**, use an Azure OpenAI resource directly. Fewer concepts, one endpoint, lower latency. A summariser or a classifier does not need an agent runtime.
+
+**If your "agent" has one tool and no conversation**, write the tool-calling loop yourself. It is about forty lines. You are not gaining much from the platform.
+
+**If you cannot put an API between your client and the model**, stop and fix that first. Everything in this series depends on a server you control sitting in the middle, because that is where identity and authorization live.
+
+**If your data cannot leave a specific boundary**, check regional availability and the networking options before you design around Foundry. Private networking and bring-your-own resources exist, but they change the setup meaningfully and are worth confirming early.
+
+For a purely retrieval-shaped problem, answering questions from documents with no actions taken, a plain RAG pipeline is often the better tool and I have written that one up separately: [building a RAG pipeline in .NET with Azure OpenAI](../azure-openai-rag-dotnet).
+
+## What does it cost, roughly?
+
+Not a price list, a shape, because the shape is what surprises people.
+
+You pay for **inference** per token, and an agent turn is usually two or three model calls rather than one, because a tool call means going back to the model with the result. You pay for **tools** that run on Microsoft's side, such as file search over a vector store. A hosted agent adds **container compute**. Prompt agents add nothing for the runtime itself.
+
+The practical consequence: token cost in an agent is dominated by what your tools return, not by what the user typed. [Part 10 has the numbers from this app](../azure-ai-foundry-agent-testing-production-monitoring), and trimming one tool response halved the cost of the most common turn.
+
+[Part 2 starts the real work](../azure-ai-foundry-ai-agent-food-delivery-app): the business problem in a running food delivery app, and the architecture that put an agent in front of it.
+
+## Key takeaways
+
+- Foundry is one Azure resource with projects inside it, and everything hangs off a single project endpoint.
+- Azure OpenAI is an endpoint; Foundry is the platform around models. Use the endpoint when that is all you need.
+- Prompt agents are configuration Foundry runs. Hosted agents are your container Foundry runs. Start with a prompt agent.
+- Tools are what make an agent more than a chatbot, and function tools run in your own API.
+- MCP is a shared tool layer; multi-agent is what you do when one agent has too many tools. Neither is a starting point.
+- Anything using `PersistentAgentsClient`, threads and runs is Foundry classic. Check class names before copying a sample.
+- Turn on tracing before production. An agent makes decisions you did not write.

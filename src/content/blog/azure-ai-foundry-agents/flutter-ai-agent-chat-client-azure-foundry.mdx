@@ -1,0 +1,292 @@
+---
+title: 'Building the Flutter Chat Client for an Azure AI Foundry Agent'
+seoTitle: 'Flutter Client for an AI Agent'
+description: 'The Dart side of an AI agent: repository, Cubit, timeouts that match real agent latency, and a confirmation step before anything writes.'
+highlight: "An agent turn with two tool calls takes four to nine seconds, and the tail is far longer than a normal API call. Design the UI around that number instead of fighting it: name the step you are on rather than showing a spinner, and never let the model place an order without a real button press."
+publishedAt: 2026-08-01
+category: mobile
+categories: ['ai', 'azure']
+tags: ['Flutter', 'Dart', 'BLoC', 'Azure AI Foundry', 'AI Agents', 'Mobile Architecture']
+series: 'azure-ai-foundry-agents'
+seriesOrder: 8
+draft: true
+faq:
+  - q: 'How long does an AI agent request take?'
+    a: 'In this app, a turn with two tool calls typically lands between four and nine seconds, and the tail is much longer than a normal REST call. A 45 second client timeout is realistic rather than generous, and the UI has to be designed for that wait.'
+  - q: 'How do you keep conversation context between turns in a Flutter client?'
+    a: 'Hold the conversation ID returned by the API and send it with the next message. The turn history lives server-side in Foundry, so the client only needs that one string, not the transcript.'
+  - q: 'Should the AI agent be allowed to place an order by itself?'
+    a: 'No. Have the agent propose the order and render the proposal as a card with a real button. The write tool runs from that button press, so a human confirms every action that costs money. The model asks, the person confirms, the API acts.'
+  - q: 'How do you test a Flutter feature that calls an AI agent?'
+    a: 'Test the Cubit against a fake repository with bloc_test and mocktail, the same way every other feature in the app is tested. The agent lives behind the repository interface, so no test needs a model, a network call or an API key.'
+  - q: 'What happens to the app if the agent is unavailable?'
+    a: 'It should degrade to the app you already have. Show an error with a link to normal search, and make sure the ordering flow never depends on the assistant being up.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+
+[Part 6](../azure-ai-foundry-agent-security-jwt-roles) finished the server side. This part is the Dart, and it is deliberately unremarkable Dart: the agent lives behind a repository interface like everything else, so nothing in the widget tree knows an AI model exists.
+
+<Callout type="tip" title="The app this plugs into">
+**MSDevBuild Eats** is a Flutter food delivery app with three role experiences in one codebase, clean architecture, BLoC, and `Result<T>` across the repository boundary. It runs with no API keys.
+
+- **Source code** — [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web** — [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`)
+- **Android build** — [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
+
+Open `lib/features/search/` beside this article and the conventions below stop being abstract.
+</Callout>
+
+## What has to be added to the app?
+
+The app currently talks to a seeded demo backend or Firestore, selected by `AppConfig.backend`. It has no HTTP client for a custom API, so this is genuinely new code. It follows the repository's existing conventions rather than inventing new ones.
+
+```yaml
+dependencies:
+  http: ^1.2.2   # the only addition
+```
+
+One package. If your app already has `dio`, use that instead; nothing here depends on the client.
+
+## The domain contract
+
+A contract in `lib/domain/repositories/assistant_repository.dart`, pure Dart, no Flutter import:
+
+```dart
+class AssistantReply {
+  const AssistantReply({required this.text, required this.conversationId});
+
+  final String text;
+  final String conversationId;
+}
+
+abstract interface class AssistantRepository {
+  Future<Result<AssistantReply>> ask(String message, {String? conversationId});
+}
+```
+
+`Result<T>` is the app's existing sealed type, `Success` or `FailureResult`, chosen so failure handling is part of the signature and the presentation layer cannot forget an error path. The assistant gets no special treatment.
+
+## The implementation
+
+In `lib/data/repositories/assistant_repository_impl.dart`. `guard` is the app's existing helper that converts any thrown `AppException` into a `Failure`, so exception-to-failure mapping stays in exactly one place:
+
+```dart
+class AssistantRepositoryImpl implements AssistantRepository {
+  AssistantRepositoryImpl({required http.Client client, required AuthTokenProvider tokens})
+      : _client = client,
+        _tokens = tokens;
+
+  final http.Client _client;
+  final AuthTokenProvider _tokens;
+
+  @override
+  Future<Result<AssistantReply>> ask(String message, {String? conversationId}) {
+    return guard(() async {
+      final String token = await _tokens.idToken();
+
+      final http.Response response = await _client
+          .post(
+            Uri.parse('${AppConfig.instance.apiBaseUrl}/api/assistant/ask'),
+            headers: <String, String>{
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(<String, dynamic>{
+              'message': message,
+              'conversationId': conversationId,
+            }),
+          )
+          .timeout(const Duration(seconds: 45));
+
+      if (response.statusCode == 401) {
+        throw AuthException('Your session expired. Please sign in again.');
+      }
+      if (response.statusCode != 200) {
+        throw ServerException('Assistant unavailable (${response.statusCode})');
+      }
+
+      final Map<String, dynamic> json =
+          jsonDecode(response.body) as Map<String, dynamic>;
+
+      return AssistantReply(
+        text: json['reply'] as String,
+        conversationId: json['conversationId'] as String,
+      );
+    });
+  }
+}
+```
+
+That 45 second timeout is not generous, it is realistic. An agent turn with two tool calls routinely takes four to nine seconds, and the tail is much longer than a normal API call because a slow tool adds a full model round trip behind it. Set the timeout from measured latency, not from the three seconds you use elsewhere.
+
+`apiBaseUrl` is a new field on `AppConfig`, which is already the app's single place for this kind of setting.
+
+## The Cubit
+
+The conversation ID is the only state that has to survive between turns. The transcript lives server-side in Foundry, so the client holds one string.
+
+```dart
+class AssistantCubit extends Cubit<AssistantState> {
+  AssistantCubit(this._repository) : super(const AssistantState());
+
+  final AssistantRepository _repository;
+  String? _conversationId;
+
+  Future<void> send(String message) async {
+    emit(state.copyWith(
+      messages: <ChatMessage>[...state.messages, ChatMessage.user(message)],
+      status: AssistantStatus.thinking,
+    ));
+
+    final Result<AssistantReply> result =
+        await _repository.ask(message, conversationId: _conversationId);
+
+    result.fold(
+      (Failure failure) => emit(state.copyWith(
+        status: AssistantStatus.failure,
+        errorMessage: failure.message,
+      )),
+      (AssistantReply reply) {
+        _conversationId = reply.conversationId;
+        emit(state.copyWith(
+          messages: <ChatMessage>[...state.messages, ChatMessage.agent(reply.text)],
+          status: AssistantStatus.idle,
+        ));
+      },
+    );
+  }
+
+  void startNewConversation() {
+    _conversationId = null;
+    emit(const AssistantState());
+  }
+}
+```
+
+`startNewConversation` exists because conversations accumulate context and context costs tokens. A "new chat" affordance is a cost control disguised as a UI feature.
+
+Register the repository in `lib/app/di/service_locator.dart` alongside the others and add the route in `lib/app/router/`. Blocs stay out of `get_it` in this project by convention, so the Cubit is created at the screen.
+
+## Two UI decisions that mattered more than the code
+
+### Name the step, do not spin
+
+Five seconds of an undifferentiated spinner feels broken. Five seconds of "checking the menu" does not, and it is the same five seconds.
+
+```dart
+Widget _thinkingIndicator(AssistantState state) {
+  return Row(
+    children: <Widget>[
+      const SizedBox(
+        width: 14, height: 14,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+      const SizedBox(width: 10),
+      Text(state.hint ?? 'Thinking…', style: Theme.of(context).textTheme.bodySmall),
+    ],
+  );
+}
+```
+
+The server sets the hint from the tool it is about to run, returned on a streaming channel or simply inferred client-side from the message text. Even a rough guess beats a bare spinner.
+
+### Confirm anything that writes
+
+When the agent proposes an order, the app does not let the model place it. It renders the proposal as a card with a real button, and `create_order` runs from that button press.
+
+```dart
+if (message.proposal != null)
+  OrderProposalCard(
+    proposal: message.proposal!,
+    onConfirm: () => context.read<CheckoutCubit>().placeOrder(message.proposal!),
+  ),
+```
+
+The model asks, the human confirms, the API acts. This is not only a safety property; it is also the difference between an assistant people trust with money and one they use twice.
+
+## What it looks like once it is connected
+
+Edited from real staging transcripts, one per role.
+
+**Customer, searching**
+
+> **User:** Find spicy food under RM20
+>
+> **Agent:** Three spicy dishes under RM20: Sambal Prawn Fried Rice at Warung Selera, RM16.90, two chillies. Ayam Penyet at Penyet House, RM18.50, three chillies. Spicy Chicken Rice at Chick Inn, RM12.00, one chilli. Want me to add any of these to your cart?
+
+**Customer, re-ordering**
+
+> **User:** Order my usual dinner
+>
+> **Agent:** Your usual is Nasi Lemak Ayam Berempah with teh ais from Warung Selera, RM21.40 including delivery to Jalan Ampang. Shall I place it?
+
+**Restaurant partner**
+
+> **User:** Which menu items are performing well?
+>
+> **Agent:** Over the last 7 days, Ayam Penyet led with 84 orders and RM1,554 revenue, up 22 percent on the week before. Nasi Goreng Kampung is second at 61 orders. Three items had no orders at all: Soto Ayam, Lontong and Mee Rebus.
+
+**Delivery rider**
+
+> **User:** Which delivery should I complete first?
+>
+> **Agent:** Start with order EAT-4471 from Penyet House. It has been ready for pickup for 11 minutes and the drop is 1.2 km away. Then EAT-4478, which is still being prepared for another 6 minutes.
+
+The rider answer is the one that changed my mind about the value of all this. `getOrdersForRider()` returns a list sorted by newest first. Nobody had built prioritisation, and nobody was going to. The agent produced one from fields that already existed, because a prompt plus a tool returning status and distance is a smaller thing to build than a screen.
+
+## Testing the Flutter side
+
+No test here needs a model, a network call or an API key, because the agent is behind an interface. This is the same `bloc_test` and `mocktail` setup the rest of the app uses.
+
+```dart
+class _FakeAssistantRepository extends Mock implements AssistantRepository {}
+
+blocTest<AssistantCubit, AssistantState>(
+  'emits thinking then the agent reply, and keeps the conversation id',
+  build: () {
+    when(() => repository.ask(any(), conversationId: any(named: 'conversationId')))
+        .thenAnswer((_) async => const Result<AssistantReply>.success(
+              AssistantReply(text: 'Three spicy dishes…', conversationId: 'conv_1'),
+            ));
+    return AssistantCubit(repository);
+  },
+  act: (AssistantCubit cubit) => cubit.send('Find spicy food under RM20'),
+  expect: () => <Matcher>[
+    isA<AssistantState>().having((AssistantState s) => s.status, 'status', AssistantStatus.thinking),
+    isA<AssistantState>()
+        .having((AssistantState s) => s.status, 'status', AssistantStatus.idle)
+        .having((AssistantState s) => s.messages.last.text, 'reply', contains('spicy')),
+  ],
+);
+
+blocTest<AssistantCubit, AssistantState>(
+  'surfaces a failure message instead of throwing',
+  build: () {
+    when(() => repository.ask(any(), conversationId: any(named: 'conversationId')))
+        .thenAnswer((_) async => const Result<AssistantReply>.failure(
+              ServerFailure('Assistant unavailable'),
+            ));
+    return AssistantCubit(repository);
+  },
+  act: (AssistantCubit cubit) => cubit.send('hello'),
+  expect: () => <Matcher>[
+    isA<AssistantState>().having((AssistantState s) => s.status, 'status', AssistantStatus.thinking),
+    isA<AssistantState>().having((AssistantState s) => s.status, 'status', AssistantStatus.failure),
+  ],
+);
+```
+
+The second test is the one that matters on a phone. Networks fail, tokens expire, and Foundry has outages like everything else. The assistant screen shows an error with a link to normal search, and the ordering flow never depends on the agent being up. Degrade to the app you already have.
+
+[Part 10 covers what happens once real traffic arrives](../azure-ai-foundry-agent-testing-production-monitoring): tracing, token cost, and the failures that only appear at volume.
+
+## Key takeaways
+
+- Put the agent behind a repository interface. The widget tree should not know a model exists.
+- Set the client timeout from measured agent latency. 45 seconds is realistic; 3 seconds is not.
+- The client only needs the conversation ID. Turn history lives server-side.
+- Offer a "new chat" action. Long conversations cost tokens on every turn.
+- Name the step instead of showing a bare spinner. Same wait, different feeling.
+- Render write actions as a proposal with a real button. The model asks, the human confirms.
+- Test the Cubit against a fake repository, so no test needs a model or a key.

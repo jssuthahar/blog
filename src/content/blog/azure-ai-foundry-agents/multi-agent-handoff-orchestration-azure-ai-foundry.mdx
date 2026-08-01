@@ -1,0 +1,209 @@
+---
+title: 'Multi-Agent Handoff Orchestration for Azure AI Foundry Agents'
+seoTitle: 'Multi-Agent Handoff in .NET'
+description: 'Splitting one overloaded agent into three specialists with Microsoft Agent Framework, plus the approval gate for anything that writes.'
+highlight: "Split agents by domain when routing accuracy starts falling, which happened here at around nine tools. Route by role in code before the workflow starts — a rider must never be handed to the partner agent because a model decided the question sounded operational."
+publishedAt: 2026-08-01
+category: architecture
+categories: ['azure', 'ai']
+tags: ['Multi-Agent', 'Microsoft Agent Framework', 'Azure AI Foundry', 'AI Agents', 'C#', 'Orchestration']
+series: 'azure-ai-foundry-agents'
+seriesOrder: 12
+draft: true
+faq:
+  - q: 'When should you split one AI agent into several?'
+    a: 'When routing accuracy starts falling. In this app that happened at around nine tools on a small model: the agent began choosing plausible-but-wrong tools for questions that spanned domains. Splitting by domain fixed it where adding a tenth tool would not have.'
+  - q: 'What happened to connected agents in Azure AI Foundry?'
+    a: 'Foundry (new) does not have connected agents. The orchestration patterns moved into Microsoft Agent Framework, which offers sequential, concurrent, handoff, group chat and magentic topologies. Group chat is the closest replacement for collaborative connected-agent behaviour.'
+  - q: 'What is the difference between handoff and agent-as-tools?'
+    a: 'In handoff, control transfers completely and the receiving agent owns the task with full conversation context. With agent-as-tools, a primary agent delegates a subtask, gets a result back, and keeps overall responsibility throughout.'
+  - q: 'How do you require human approval for an agent tool in .NET?'
+    a: 'Wrap the function with ApprovalRequiredAIFunction. The workflow pauses and emits a RequestInfoEvent carrying ToolApprovalRequestContent, and you answer it with SendResponseAsync once a person has decided.'
+  - q: 'Does multi-agent orchestration cost more?'
+    a: 'Yes. A handoff is itself a tool call, so a routed conversation spends more model calls than a single agent answering directly. It buys accuracy, not efficiency, and is worth measuring per turn before and after.'
+  - q: 'Do agents in a handoff workflow share conversation state?'
+    a: 'They do not share a session instance. Participants broadcast their responses and the user input to the others so everyone has the latest context. Tool calls, including the handoff calls themselves, are not broadcast.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+
+The agent from the earlier parts had nine tools and answered for three different kinds of user. It worked, mostly. Then a restaurant partner asked "how many orders are waiting" and it called `track_delivery`.
+
+That was the first real sign of the ceiling. Both tools deal with orders. Both descriptions were fine in isolation. The model was choosing between two plausible options in a list that had grown past the point where the descriptions could keep them apart, and no amount of description tuning fixed it for long.
+
+The answer was not a tenth tool. It was three agents.
+
+## When is one agent no longer enough?
+
+The signal is routing accuracy falling as the tool list grows, and it arrives earlier than you expect. On a small model, in this app, the practical ceiling was around nine tools, and it degraded fastest where two tools sat in the same domain but served different roles.
+
+Three secondary signals, all of which showed up here:
+
+- **Instructions that contradict themselves.** One prompt telling the agent to be concise for riders and thorough for partner analytics is one prompt doing two jobs.
+- **Tool descriptions growing defensive.** When a description is mostly "do not use this for…", the list is too crowded.
+- **Different models wanted for different questions.** Partner analytics needed more reasoning than dish search. One agent means one model.
+
+## Which orchestration pattern fits?
+
+Microsoft Agent Framework offers several topologies, and choosing the wrong one produces a system that is harder to debug than the problem it solved.
+
+| Pattern | Control flow | Fits |
+| --- | --- | --- |
+| **Single agent, many tools** | One agent decides everything | Under about nine tools in one domain |
+| **Agent-as-tools** | Primary delegates a subtask, gets a result, keeps ownership | A specialist computation inside a larger answer |
+| **Handoff** | Control transfers entirely to the receiving agent | Conversations that change subject, support-style routing |
+| **Group chat** | Several agents contribute, control passes by context | Collaboration, escalation, expert review |
+| **Sequential / concurrent** | Fixed pipeline or parallel fan-out | Deterministic workflows, not conversations |
+
+Handoff is what a food delivery assistant needs. A conversation starts as "where is my order" and becomes "actually, cancel it and find me something else", and the receiving agent needs the whole conversation, not a summary of a subtask. The full topology reference is in the [Agent Framework handoff documentation](https://learn.microsoft.com/en-us/agent-framework/workflows/orchestrations/handoff).
+
+<Callout type="warning" title="Connected agents are gone">
+If you find tutorials describing **connected agents** in Foundry, they are describing the classic platform. Foundry (new) does not have that feature; orchestration lives in Agent Framework instead. Group chat is the closest replacement for the collaborative behaviour connected agents provided.
+</Callout>
+
+## Building handoff in C#
+
+Two packages beyond what [Part 5](../azure-ai-foundry-function-tools-aspnet-core) already uses:
+
+```bash
+dotnet add package Microsoft.Agents.AI
+dotnet add package Microsoft.Agents.AI.Workflows
+```
+
+Build a chat client from the Foundry project, then the specialists:
+
+```csharp
+using Azure.AI.Projects;
+using Azure.Identity;
+using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Workflows;
+using Microsoft.Extensions.AI;
+
+var client = new AIProjectClient(new Uri(projectEndpoint), new DefaultAzureCredential())
+    .GetProjectOpenAIClient()
+    .GetProjectResponsesClient()
+    .AsIChatClient(deploymentName);
+
+ChatClientAgent triage = new(client,
+    "You route the user to the right specialist. Decide from the question alone. " +
+    "Do not answer food, order or delivery questions yourself. ALWAYS hand off.",
+    "triage",
+    "Routes a customer message to a specialist agent");
+
+ChatClientAgent ordering = new(client,
+    "You help customers find dishes and build an order. Prices are Malaysian Ringgit.",
+    "ordering",
+    "Menu search, cart and order placement",
+    [AIFunctionFactory.Create(SearchMenu),
+     AIFunctionFactory.Create(SearchRestaurant),
+     new ApprovalRequiredAIFunction(AIFunctionFactory.Create(CreateOrder))]);
+
+ChatClientAgent delivery = new(client,
+    "You answer questions about orders already placed: status, timing and the rider.",
+    "delivery",
+    "Order tracking and delivery status",
+    [AIFunctionFactory.Create(TrackDelivery)]);
+```
+
+`AIFunctionFactory.Create` turns a plain C# method into a tool. Describe the parameters with attributes and the schema is generated for you:
+
+```csharp
+[Description("Finds dishes across all restaurants by name, cuisine, spice or price ceiling.")]
+static async Task<string> SearchMenu(
+    [Description("Free text, e.g. 'nasi lemak'")] string query,
+    [Description("Price ceiling in Malaysian Ringgit")] decimal? maxPriceMyr = null,
+    bool spicy = false)
+{
+    // Same catalogue call the single-agent version used.
+}
+```
+
+Then declare who may hand off to whom:
+
+```csharp
+var workflow = AgentWorkflowBuilder.CreateHandoffBuilderWith(triage)
+    .WithHandoffs(triage, [ordering, delivery])
+    .WithHandoffs([ordering, delivery], triage)
+    .Build();
+```
+
+Triage routes to either specialist, and either specialist can return to triage when the subject changes. Notice what is missing: `ordering` cannot hand directly to `delivery`. Everything goes back through triage, which gives one place to log and one place to reason about.
+
+## Running a turn
+
+```csharp
+List<ChatMessage> messages = [new(ChatRole.User, userMessage)];
+
+await using StreamingRun run = await InProcessExecution.RunStreamingAsync(workflow, messages);
+await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
+
+List<ChatMessage> newMessages = [];
+
+await foreach (WorkflowEvent evt in run.WatchStreamAsync())
+{
+    if (evt is RequestInfoEvent info &&
+        info.Request.TryGetDataAs(out ToolApprovalRequestContent? approval))
+    {
+        var call = (FunctionCallContent)approval.ToolCall;
+        bool approved = await confirmations.AwaitUserDecisionAsync(caller.UserId, call, ct);
+        await run.SendResponseAsync(info.Request.CreateResponse(approval.CreateResponse(approved)));
+    }
+    else if (evt is AgentResponseUpdateEvent update)
+    {
+        await stream.WriteAsync(update.Update.Text, ct);
+    }
+    else if (evt is WorkflowOutputEvent output)
+    {
+        newMessages = output.As<List<ChatMessage>>()!;
+        break;
+    }
+}
+```
+
+The `RequestInfoEvent` branch is the interesting one. Because `CreateOrder` was wrapped in `ApprovalRequiredAIFunction`, the workflow pauses when the model tries to call it and asks. That is the same human-in-the-loop guarantee the Flutter confirmation card gave us in [Part 8](../flutter-ai-agent-chat-client-azure-foundry), now enforced by the orchestration layer rather than by UI convention. Belt and braces, and I would keep both.
+
+Handoff is interactive by design. When an agent responds without handing off, control returns to you for the next user message. There is an autonomous mode, with a turn limit and an optional termination condition, that keeps an agent working without user input. I did not use it in a consumer app. An agent that keeps going while nobody is watching is a fine idea for a batch workflow and a poor one when it can spend a customer's money.
+
+## The rule that survives from the single-agent design
+
+Identity still never comes from the model, and multi-agent makes this easier to get wrong.
+
+**Route by role in code before the workflow starts.** A delivery rider must never be handed to the partner agent because a model decided their question sounded operational. The role comes from the JWT, exactly as in [Part 6](../azure-ai-foundry-agent-security-jwt-roles), and it selects which workflow runs:
+
+```csharp
+var workflow = caller.Role switch
+{
+    "customer"          => customerWorkflow,   // triage, ordering, delivery
+    "restaurantPartner" => partnerWorkflow,    // partner analytics only
+    "deliveryPartner"   => riderWorkflow,      // rider queue only
+    _ => throw new UnauthorizedAccessException()
+};
+```
+
+Three workflows, sharing tool implementations, with the role boundary enforced before any model sees the message. A handoff can move a customer between customer-facing agents and nothing else.
+
+**Tool-level checks stay.** Every function still validates the caller's role inside the executor, because a workflow misconfiguration should not become a data leak.
+
+## What handoff costs
+
+More model calls. A handoff is itself a tool call, so a routed conversation spends a triage turn plus the specialist's turn where the single agent spent one. In our measurements, moving to three agents added roughly a third to the tokens on a typical customer conversation and removed the wrong-tool answers.
+
+That trade was worth it for us. Measure it for yourself before assuming it is worth it for you, because the failure mode of multi-agent is a system that costs more and is harder to trace for accuracy you did not actually need.
+
+One more thing that surprised me: agents in a handoff workflow do not share a session instance. Participants broadcast their responses and the user's messages to each other so everyone has current context. Tool calls, including the handoff calls themselves, are not broadcast. That is why a specialist knows what the customer said but not which internal tool triage used to route them, which is the right default and worth knowing before you debug a context question.
+
+## Where this series ends
+
+Nine parts, one working feature, built in the order I actually built it: [what Foundry is](../what-is-azure-ai-foundry-services-overview), [the business problem](../azure-ai-foundry-ai-agent-food-delivery-app), [the project and the agent](../azure-ai-foundry-project-setup-first-agent), [function tools and the run loop](../azure-ai-foundry-function-tools-aspnet-core), [identity and prompt injection](../azure-ai-foundry-agent-security-jwt-roles), [the Flutter client](../flutter-ai-agent-chat-client-azure-foundry), [testing and production](../azure-ai-foundry-agent-testing-production-monitoring), [MCP](../mcp-model-context-protocol-azure-ai-foundry-agents), and this.
+
+If you take one thing from all of it, take the identity rule. Everything else here is engineering taste that will date as the platform changes. That one is the property that keeps an agent safe to put in front of real customers, and it has survived every rewrite of this system so far.
+
+## Key takeaways
+
+- Split agents when routing accuracy falls, which showed up around nine tools on a small model.
+- Handoff transfers ownership with full context; agent-as-tools delegates a subtask and keeps ownership.
+- Foundry (new) has no connected agents. Orchestration lives in Microsoft Agent Framework.
+- Route everything back through triage rather than allowing specialist-to-specialist handoffs. One place to log, one place to reason.
+- Wrap write tools in `ApprovalRequiredAIFunction` and answer the `RequestInfoEvent` with a real human decision.
+- Choose the workflow by role in code before the model sees the message. A handoff must never cross a role boundary.
+- Handoff costs more tokens than a single agent. It buys accuracy, not efficiency.

@@ -1,0 +1,272 @@
+---
+title: 'Streaming AI Agent Responses from ASP.NET Core to Flutter'
+seoTitle: 'Streaming Agent Responses to Flutter'
+description: 'Server-sent events end to end: the streaming run loop with tool calls, an SSE endpoint, and a Flutter client that renders tokens as they arrive.'
+highlight: "Streaming does not make an agent faster, it makes the wait legible. Time to first token drops from about six seconds to under one, and the tool-call pause becomes a status line instead of a frozen spinner. The run loop is the same; you handle deltas and resume after each tool round."
+publishedAt: 2026-08-02
+category: mobile
+categories: ['web', 'ai']
+tags: ['Flutter', 'ASP.NET Core', 'Server-Sent Events', 'Streaming', 'Azure AI Foundry', 'Dart']
+series: 'azure-ai-foundry-agents'
+seriesOrder: 9
+draft: true
+faq:
+  - q: 'Does streaming make an AI agent faster?'
+    a: 'No, total time is unchanged. It changes time to first token from several seconds to under one, so the user sees progress immediately instead of a spinner. Perceived latency is the thing you are fixing.'
+  - q: 'How do you stream an Azure AI Foundry agent response in C#?'
+    a: 'Call CreateResponseStreamingAsync with the same previousResponseId and inputItems arguments as the blocking call, then iterate the updates. Text arrives as StreamingResponseOutputTextDeltaUpdate and finished items as StreamingResponseOutputItemDoneUpdate.'
+  - q: 'How do tool calls work when the response is streaming?'
+    a: 'The same way, one round later. A completed function call arrives as an output-item-done update; you run the tool, then start a new stream with the function output and the previous response ID. Text from both rounds is streamed to the client as one answer.'
+  - q: 'Should I use SSE or WebSockets for an AI chat endpoint?'
+    a: 'Server-sent events. The traffic is one-directional, SSE is plain HTTP so it passes proxies and needs no extra infrastructure, and the client reconnects on its own. WebSockets earn their complexity only if the client also streams up.'
+  - q: 'How do you consume server-sent events in Flutter?'
+    a: 'Send the request with http.Client().send() to get a StreamedResponse, then transform the byte stream through utf8.decoder and LineSplitter and handle each data: line. No extra package is required.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+
+The Flutter client in [Part 8](../flutter-ai-agent-chat-client-azure-foundry) works, and the first time I handed it to someone who had not built it, they tapped send, waited about four seconds, and tapped send again.
+
+Nothing was broken. The agent was calling `search_menu` and would have answered a moment later. But a spinner communicates "working" and says nothing about whether working is going well, and four seconds is long enough to doubt it.
+
+Streaming fixes that, and it costs one afternoon.
+
+## What does streaming actually change?
+
+Not the total time. A turn with one tool call still takes the same five or six seconds end to end. What changes is when the user sees the first character.
+
+| | Blocking | Streaming |
+| --- | --- | --- |
+| Time to first token | 4–9s | under 1s |
+| Total time | 4–9s | 4–9s |
+| What the user sees while waiting | Spinner | Text, then a status line during the tool call |
+| Perceived as | Slow or broken | Working |
+
+The second row is why this is a UX change rather than a performance one. Be honest about that when someone asks you to "make the agent faster": this makes it feel faster, and the fix for actually faster is in [Part 10](../azure-ai-foundry-agent-testing-production-monitoring).
+
+## The streaming run loop
+
+The blocking loop from [Part 5](../azure-ai-foundry-function-tools-aspnet-core) becomes a streaming one with the same shape. Same `previousResponseId`, same `inputItems`, same tool rounds. What changes is that you consume updates instead of waiting for a result.
+
+```csharp
+public async IAsyncEnumerable<AgentChunk> AskStreamingAsync(
+    string userMessage,
+    string? previousResponseId,
+    CallerContext caller,
+    [EnumeratorCancellation] CancellationToken ct = default)
+{
+    var responses = projectClient.ProjectOpenAIClient
+        .GetProjectResponsesClientForAgent(cfg["Foundry:AgentName"]);
+
+    var inputItems = new List<ResponseItem> { ResponseItem.CreateUserMessageItem(userMessage) };
+    var rounds = 0;
+
+    do
+    {
+        var pending = new List<ResponseItem>();
+
+        await foreach (StreamingResponseUpdate update in responses.CreateResponseStreamingAsync(
+            previousResponseId: previousResponseId,
+            inputItems: inputItems,
+            cancellationToken: ct))
+        {
+            switch (update)
+            {
+                case StreamingResponseOutputTextDeltaUpdate delta:
+                    yield return AgentChunk.Text(delta.Delta);
+                    break;
+
+                case StreamingResponseOutputItemDoneUpdate done
+                    when done.Item is FunctionCallResponseItem call:
+
+                    // Tell the user what is happening during the pause.
+                    yield return AgentChunk.Status(StatusFor(call.FunctionName));
+
+                    string output = await executor.ExecuteAsync(
+                        call.FunctionName, call.FunctionArguments, caller, ct);
+
+                    pending.Add(done.Item);
+                    pending.Add(ResponseItem.CreateFunctionCallOutputItem(call.CallId, output));
+                    break;
+
+                case StreamingResponseCompletedUpdate completed:
+                    previousResponseId = completed.Response.Id;
+                    break;
+            }
+        }
+
+        inputItems = pending;
+    }
+    while (inputItems.Count > 0 && ++rounds < MaxToolRounds);
+
+    yield return AgentChunk.Done(previousResponseId!);
+}
+
+static string StatusFor(string tool) => tool switch
+{
+    "search_menu"        => "Checking the menu…",
+    "search_restaurant"  => "Looking at restaurants…",
+    "track_delivery"     => "Checking your order…",
+    "get_pending_orders" => "Loading today's orders…",
+    _                    => "Working on it…"
+};
+```
+
+Three things worth noticing.
+
+**The tool call arrives as a completed item, not a delta.** `StreamingResponseFunctionCallArgumentsDeltaUpdate` exists and streams the arguments as they are generated, but you cannot run a function on half its arguments. Wait for `StreamingResponseOutputItemDoneUpdate`, which hands you the assembled `FunctionCallResponseItem`.
+
+**`StatusFor` is the payoff.** That mapping is why the pause reads as progress. It is fifteen lines and it did more for how the feature feels than anything else in this article.
+
+**The round cap survives.** All the reasoning from [Part 5](../azure-ai-foundry-function-tools-aspnet-core) applies unchanged: a loop here is a paid loop, and streaming makes it less visible because text keeps appearing.
+
+## The SSE endpoint
+
+Server-sent events, not WebSockets. The traffic only goes one way, SSE is plain HTTP so proxies and App Service handle it without special configuration, and browsers and Dart clients both reconnect on their own. The wire format is tiny and worth knowing from [the SSE specification on MDN](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events): lines prefixed `data:`, separated by a blank line.
+
+```csharp
+[Authorize]
+[HttpPost("/api/assistant/stream")]
+public async Task Stream([FromBody] AskRequest request, CancellationToken ct)
+{
+    if (request.Message.Length > 1000)
+    {
+        Response.StatusCode = StatusCodes.Status400BadRequest;
+        return;
+    }
+
+    Response.ContentType = "text/event-stream";
+    Response.Headers.CacheControl = "no-cache";
+    Response.Headers["X-Accel-Buffering"] = "no";   // stop intermediary buffering
+
+    var caller = CallerContext.FromClaims(User);
+
+    await foreach (AgentChunk chunk in agent.AskStreamingAsync(
+        request.Message, request.ConversationId, caller, ct))
+    {
+        await Response.WriteAsync($"data: {JsonSerializer.Serialize(chunk)}\n\n", ct);
+        await Response.Body.FlushAsync(ct);
+    }
+}
+```
+
+<Callout type="warning" title="Flush, or nothing streams">
+Without `FlushAsync` after each write, the response buffers and arrives in one lump, which is a blocking endpoint wearing a costume. The `X-Accel-Buffering: no` header matters for the same reason at the proxy layer. If your local testing streams and production does not, this header is the first thing to check.
+</Callout>
+
+The chunk shape is deliberately small, because every frame crosses a mobile network:
+
+```csharp
+public sealed record AgentChunk(string Type, string? Text = null, string? ConversationId = null)
+{
+    public static AgentChunk Text(string t)          => new("text", t);
+    public static AgentChunk Status(string t)        => new("status", t);
+    public static AgentChunk Done(string convId)     => new("done", ConversationId: convId);
+}
+```
+
+Keep the blocking `/api/assistant/ask` endpoint too. It is what your integration tests use, and it is a working fallback when a network eats the stream.
+
+## Consuming SSE in Flutter
+
+No new package. `http` can already do this, because `Client.send` returns a `StreamedResponse`.
+
+```dart
+@override
+Stream<AssistantChunk> askStream(String message, {String? conversationId}) async* {
+  final String token = await _tokens.idToken();
+
+  final http.Request request = http.Request(
+    'POST',
+    Uri.parse('${AppConfig.instance.apiBaseUrl}/api/assistant/stream'),
+  )
+    ..headers.addAll(<String, String>{
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+      'Accept': 'text/event-stream',
+    })
+    ..body = jsonEncode(<String, dynamic>{
+      'message': message,
+      'conversationId': conversationId,
+    });
+
+  final http.StreamedResponse response = await _client.send(request);
+
+  if (response.statusCode != 200) {
+    throw ServerException('Assistant unavailable (${response.statusCode})');
+  }
+
+  await for (final String line in response.stream
+      .transform(utf8.decoder)
+      .transform(const LineSplitter())) {
+    if (!line.startsWith('data: ')) continue;
+
+    final Map<String, dynamic> json =
+        jsonDecode(line.substring(6)) as Map<String, dynamic>;
+
+    yield AssistantChunk.fromJson(json);
+  }
+}
+```
+
+`LineSplitter` is doing real work there. A chunk boundary can land mid-line, and splitting on `\n` yourself gets you a half-parsed JSON object roughly once every twenty messages, on a slow connection, in a way that never reproduces on the simulator.
+
+The Cubit appends deltas to the last message instead of waiting for a whole one:
+
+```dart
+Future<void> send(String message) async {
+  emit(state.copyWith(
+    messages: <ChatMessage>[...state.messages, ChatMessage.user(message), ChatMessage.agent('')],
+    status: AssistantStatus.streaming,
+  ));
+
+  _subscription = _repository
+      .askStream(message, conversationId: _conversationId)
+      .listen(
+        (AssistantChunk chunk) {
+          switch (chunk.type) {
+            case 'text':
+              emit(state.appendToLastAgentMessage(chunk.text!));
+            case 'status':
+              emit(state.copyWith(hint: chunk.text));
+            case 'done':
+              _conversationId = chunk.conversationId;
+              emit(state.copyWith(status: AssistantStatus.idle, clearHint: true));
+          }
+        },
+        onError: (Object error) => emit(state.copyWith(
+          status: AssistantStatus.failure,
+          errorMessage: 'The assistant stopped responding.',
+        )),
+      );
+}
+
+@override
+Future<void> close() {
+  _subscription?.cancel();
+  return super.close();
+}
+```
+
+That `close` override is not boilerplate. Without it, leaving the chat screen mid-answer keeps the HTTP stream open and the Cubit emitting into a closed state, which throws in debug and leaks a connection in release.
+
+## What to watch once it ships
+
+**Cancellation actually reaches the server.** When the user leaves the screen, the Dart subscription cancels, the socket closes, and `CancellationToken` fires in ASP.NET Core. Confirm it: an abandoned turn that keeps running is a turn you keep paying for.
+
+**Streaming hides slow tools.** Text is appearing, so nobody complains, and a tool that has quietly degraded to three seconds goes unnoticed. Keep the per-tool duration logging from [Part 10](../azure-ai-foundry-agent-testing-production-monitoring) and alert on it, because the UI has stopped telling you.
+
+**Test on a real network.** Simulator streaming is flawless and tells you nothing. A train tunnel is the actual test case, and it is why the blocking endpoint stays as a fallback.
+
+[Part 10 covers testing and production](../azure-ai-foundry-agent-testing-production-monitoring), including why these streaming paths are tested through the blocking endpoint rather than against a live model.
+
+## Key takeaways
+
+- Streaming does not reduce total time. It cuts time to first token to under a second, which is the part users judge.
+- `CreateResponseStreamingAsync` takes the same arguments as the blocking call. The tool loop is unchanged.
+- Handle the completed function call from `StreamingResponseOutputItemDoneUpdate`, not the argument deltas.
+- Emit a status chunk before running a tool. Naming the step is what turns a pause into progress.
+- Flush after every SSE write and set `X-Accel-Buffering: no`, or the response arrives in one lump.
+- Use `LineSplitter` in Dart. Chunk boundaries land mid-line on real networks.
+- Cancel the subscription in `close()`, and verify cancellation reaches the server.
+- Keep the blocking endpoint for tests and as a fallback.

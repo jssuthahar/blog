@@ -1,0 +1,198 @@
+---
+title: 'From Search Box to AI Agent: Azure AI Foundry for a Food Delivery App'
+seoTitle: 'AI Agents Explained with Azure AI Foundry'
+description: 'The business case for an AI agent on an app that already exists, what an agent really is, and the architecture that keeps it inside its lane.'
+highlight: "An agent is a model that has been given a set of functions it is allowed to ask you to run. It does not run your code and it cannot reach your database. Once you see it that way, the design question stops being 'how smart is the model' and becomes 'which functions am I willing to expose, and to whom'."
+publishedAt: 2026-08-01
+category: ai
+categories: ['azure', 'mobile']
+tags: ['Azure AI Foundry', 'AI Agents', 'Architecture', 'Flutter', 'ASP.NET Core']
+series: 'azure-ai-foundry-agents'
+seriesOrder: 2
+draft: true
+faq:
+  - q: 'What is the difference between an AI agent and a chatbot?'
+    a: 'A chatbot turns text into more text. An agent is given tools, and between the question and the answer it decides which of those tools to call, with what arguments, and in what order. The reasoning is the same model; the difference is that a tool call reaches your API and changes or reads real data.'
+  - q: 'What are the parts of an AI agent?'
+    a: 'Five: the model that reasons, the instructions that constrain it, the tools it may request, the conversation that carries turn history, and your code that actually runs when a tool is called. They fail separately, so it pays to name them separately.'
+  - q: 'Should a mobile app call Azure AI Foundry directly?'
+    a: 'No. That ships a credential which can reach your agent to every device on the internet, and it assembles tool results on a machine you do not control. Put an API between them. Token validation, role checks and logging all belong on the server.'
+  - q: 'Do I need an AI agent, or would better filters do?'
+    a: 'Filters win when the query space is small and stable. An agent wins when users ask in sentences that combine constraints your UI has no room for, or when the data to answer already exists and only the path from language to that data is missing.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+
+A customer opened our food delivery app and typed "spicy food under RM20" into the search box.
+
+The app returned four dishes. Two were not spicy. One was RM34. The fourth was a chicken rice place whose restaurant description happened to contain the word "spicy". Nothing was broken. The search worked exactly as designed, and the design was the problem.
+
+This series puts Azure AI Foundry agents on top of an application that already exists, with all of its roles, endpoints and awkward history intact. No greenfield, no toy chatbot. The app is MSDevBuild Eats, a Flutter food delivery platform with three role experiences shipped from one codebase: customer ordering, restaurant partner dashboard, delivery rider queue.
+
+[Part 1 mapped the platform](../what-is-azure-ai-foundry-services-overview): what Foundry is, which services live inside it, and when you do not need it. This part is the other half of the groundwork, and the last one with no code to copy. It covers why the feature was worth building, what an agent actually is underneath, and the architecture the rest of the series fills in. Skip it and the later parts will read like configuration.
+
+<Callout type="tip" title="Follow along in a real app, not a snippet">
+Every Dart file path and class name in this series is from this repository. It runs with no API keys and no Firebase project, so you can clone it and be at the same screen I am in about ninety seconds.
+
+- **Source code** — [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web** — [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`)
+- **Android build** — [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
+
+Sign in as `partner@msdevbuild.com` and `rider@msdevbuild.com` (same password) to see the other two dashboards.
+</Callout>
+
+<Callout type="note" title="On the name">
+Microsoft renamed Azure AI Foundry to **Microsoft Foundry** during 2026, and the agent runtime is now **Foundry Agent Service**. The old portal and the 1.x SDKs are labelled *Foundry classic* in the docs. This series uses the current API. I have kept "Azure AI Foundry" in the titles because that is still what most people type into a search box.
+</Callout>
+
+## Why does a search box fail the customer who knows what they want?
+
+Open `lib/domain/repositories/catalog_repository.dart` in the app and the shape of the failure is in the contract:
+
+```dart
+/// Free-text search across restaurant names, cuisines and dish names.
+Future<Result<SearchResults>> search(String query);
+
+Future<Result<List<Restaurant>>> getRestaurants([RestaurantFilter filter]);
+```
+
+Search is a string match. Filtering is a separate object, `RestaurantFilter`, offering `categoryId`, `sort`, `freeDeliveryOnly`, `openNowOnly`, `minRating` and `maxPriceLevel`. Now look at what a dish already knows about itself, in `lib/domain/entities/food_item.dart`:
+
+```dart
+final double priceMyr;
+final double? discountPriceMyr;
+final bool isVegetarian;
+final bool isSpicy;
+
+/// 0-3 chillies.
+final int spiceLevel;
+final List<String> allergens;
+final int prepMinutes;
+```
+
+The data to answer "spicy food under RM20" has been sitting in the entity the whole time. `isSpicy` is a boolean on every dish. `effectivePrice` already accounts for discounts. What is missing is a path from a sentence a human said to those two fields. Even the closest filter cannot express it: `maxPriceLevel` is a 1-to-3 price tier, not ringgit.
+
+The traditional fix is a product backlog. Add a spice toggle. Add a price slider. Ship it, and next month somebody asks for "vegetarian, no peanuts, ready in 20 minutes, near my office". That is four more controls on a screen that is already full, and it is the fifth request in a queue that never empties, because natural language has more combinations than a filter panel has room for.
+
+## Which problems justified the build?
+
+The same shape of gap sits on all three dashboards, and seeing it three times is what turned this from an experiment into a project.
+
+| Role | What they ask | What the app offers today |
+| --- | --- | --- |
+| Customer | "Find spicy food under RM20" | String search, no spice or ringgit filter |
+| Customer | "Order my usual dinner" | Order history list, manual re-add to cart |
+| Customer | "Where is my delivery?" | A tracking screen, if they can find the order |
+| Restaurant partner | "Which menu items are performing well?" | `PartnerStats` has seven days of total revenue, nothing per item |
+| Restaurant partner | "Show today's pending orders" | `pendingOrders` as a count, then a list to scroll |
+| Delivery rider | "Which delivery should I complete first?" | `getOrdersForRider()` returns a list sorted by newest first |
+
+Five features, three dashboards, three different teams and three different sprints. Or one agent with access to the APIs that already exist.
+
+The rider row is the one that settled the argument. Nobody had built delivery prioritisation and nobody was going to; it sat below the line every quarter. But the data to rank a queue is already in the `Order` entity: `timeline` holds an audit trail of `OrderEvent`, `deliveryAddress` carries latitude and longitude, and `etaMinutes` is right there. The feature was not missing because it was hard. It was missing because it needed a screen, and a prompt is cheaper than a screen.
+
+## What is an AI agent, and what is it not?
+
+An agent is a model that has been given a set of functions it is allowed to ask you to run.
+
+That is the whole idea, and everything else is plumbing around it. The model does not run your code. It cannot reach your database. What it can do, when it decides the user's request needs data it does not have, is stop generating text and instead emit a structured request: *call `search_menu` with `{"spicy": true, "maxPriceMyr": 20}`*. Your server sees that request, runs the actual method, hands back the result, and the model continues from there.
+
+Five parts make up an agent in Foundry, and it helps to name them separately because they fail separately.
+
+**The model.** A deployment from the Foundry catalogue. This is the reasoning. Swapping it changes cost, latency and how reliably tools get picked, and nothing else in your code.
+
+**The instructions.** The system prompt attached to the agent definition. This is where business rules live: currency is Malaysian Ringgit, never invent a dish, never quote a delivery time you did not get from a tool.
+
+**The tools.** JSON schemas describing functions the model may request. Name, description, parameters. The description is not documentation, it is the routing logic, because the description is how the model decides which tool a sentence belongs to.
+
+**The memory.** A conversation, which is a server-side object holding turn history. "And what about vegetarian ones?" only works because the previous turn is still attached.
+
+**The action.** Your code, running in your API, under your identity rules. This is the only part that touches real data, and it is the only part I fully trust.
+
+What an agent is not: a chatbot with a system prompt. A chatbot converts text to text. The moment a tool call reaches `create_order`, money moves and a restaurant starts cooking, and the engineering standard has to change accordingly.
+
+## How does the agent decide to call your API?
+
+Here is the loop, in order, for one customer sentence.
+
+```text
+1. User says: "Find spicy food under RM20"
+2. Your API sends that text to Foundry, referencing the agent by name
+3. Model reads instructions + tool schemas, decides it needs data
+4. Foundry returns a function_call item:
+       name      = "search_menu"
+       call_id   = "call_9fA2..."
+       arguments = {"spicy": true, "maxPriceMyr": 20}
+5. Your API validates the arguments, checks the caller's role,
+   calls the real endpoint, gets 6 dishes back
+6. Your API sends a function_call_output item with that JSON,
+   referencing the previous response
+7. Model turns the JSON into a sentence and returns final text
+```
+
+Steps 4 through 6 are a second round trip. That is what people miss when estimating cost and latency: one user turn with one tool call is at least two model invocations, not one.
+
+Two properties of this loop matter more than the rest.
+
+**The model only ever sees what your tool returns.** If your tool returns a dish without its internal cost price, the model cannot leak the cost price. Data minimisation at the tool boundary is real security, not decoration.
+
+**The model chooses the arguments, and arguments are user-influenced input.** That `maxPriceMyr` value arrived, indirectly, from a stranger typing into a text box. Validate it exactly as you would validate a query string.
+
+## What does the architecture look like end to end?
+
+```text
+   Flutter app (customer / partner / rider)
+              |
+              |  HTTPS + Firebase ID token
+              v
+   ASP.NET Core Web API   <-- the trust boundary lives here
+              |
+              |  Entra ID (managed identity), no keys
+              v
+   Foundry Agent Service      model + instructions + tool schemas
+              |
+              |  function_call: name + arguments
+              v
+   Tool executor (C#)     <-- role check, argument validation
+              |
+              v
+   Business APIs / repositories
+              |
+              v
+   Firestore / SQL
+```
+
+The component that earns its place is the ASP.NET Core layer in the middle, and it is worth being explicit about why, because the obvious shortcut is to let the Flutter app talk to Foundry directly.
+
+Do not do that. Calling Foundry from the mobile client means shipping a credential that can reach your agent to every device on the internet, and it means tool results get assembled on a machine you do not control. Every meaningful control in this design lives in that API layer: it validates the user's token, decides which tools that user's role may even see, injects the user's identity into tool calls so the model never handles identity, and produces the logs you will want when somebody asks what the agent did last Tuesday.
+
+The other components, briefly. **Flutter** owns presentation and holds the auth token. **Foundry Agent Service** owns the model, the agent definition as a versioned resource, and conversation state. **The tool executor** is a small dispatch layer in your API mapping a tool name to a C# method. **Business APIs** are the endpoints you already shipped, unchanged. **The database** never learns that any of this happened.
+
+If you have built a retrieval pipeline before, the grounding instinct carries over from [building a RAG pipeline in .NET](../azure-openai-rag-dotnet). The difference is that retrieval reads while an agent acts, and acting is what changes the security model.
+
+## What the rest of this series builds
+
+Each part is a working piece, in the order I actually built them.
+
+| Part | What you end up with |
+| --- | --- |
+| 3 | The ASP.NET Core API the agent will call, testable with curl |
+| 4 | A Foundry project, a deployed model, and an agent you can talk to in the playground |
+| 5 | Nine function tools and the run loop, in ASP.NET Core |
+| 6 | JWT identity, role-scoped tools, and prompt injection defences |
+| 7 | Firebase token validation, and the API deployed to Azure with no secrets |
+| 8 | The Flutter chat client, with confirmation for anything that writes |
+| 9 | Streaming responses, so the wait reads as progress |
+| 10 | Tracing, tests, token cost control, and what breaks under load |
+| 11 | The same tools exposed over MCP, reusable by any agent or client |
+| 12 | Three specialist agents with handoff routing between them |
+
+[Part 3 builds the backend API](../aspnet-core-api-food-delivery-agent-backend) first, because the reference app has no server and every tool in this series is a thin wrapper over one method in it.
+
+## Key takeaways
+
+- An agent is a model plus tool schemas plus instructions. Your API still does all the work.
+- Reach for an agent when users ask in sentences that combine constraints your UI cannot hold, not when a filter would do.
+- The best agent features are usually the ones already answerable from data you have, that never justified a screen.
+- One user turn with one tool call costs at least two model invocations. Plan latency and budget around that.
+- Never let a mobile client call Foundry directly. The API in the middle is where identity, authorization and logging live.

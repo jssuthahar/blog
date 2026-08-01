@@ -265,12 +265,22 @@ if (data.faq.length > 0) {
 
         <NextRead next={next} prev={prev} class="mx-auto mt-10 max-w-[68ch]" />
 
+        <!--
+          Email first, socials second.
+
+          Someone who has just finished the article is the highest-intent reader
+          this page will ever have, and there is only one such moment. It used to
+          go to FollowCTA — six one-tap social buttons directly above the email
+          form — so the easiest action absorbed the attention the hardest one
+          needed. A follow is worth less than an address: the platform owns the
+          former and decides who sees it.
+        -->
         <div class="mx-auto mt-14 max-w-[68ch]">
-          <FollowCTA heading="Found this useful?" />
+          <Newsletter compact source="post-end" />
         </div>
 
         <div class="mx-auto mt-8 max-w-[68ch]">
-          <Newsletter compact />
+          <FollowCTA heading="Prefer a feed?" />
         </div>
 
         <div class="mx-auto mt-14 max-w-[68ch]">

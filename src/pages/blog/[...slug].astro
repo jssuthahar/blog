@@ -11,6 +11,8 @@ import FeedbackDialog from '../../components/FeedbackDialog.astro';
 import ArticleChat from '../../components/ArticleChat.astro';
 import CodeCopyButton from '../../components/CodeCopyButton.astro';
 import PostCard from '../../components/PostCard.astro';
+import NextRead from '../../components/NextRead.astro';
+import PostNav from '../../components/PostNav.astro';
 import Newsletter from '../../components/Newsletter.astro';
 import Comments from '../../components/Comments.astro';
 import ViewCounter from '../../components/ViewCounter.astro';
@@ -22,7 +24,7 @@ import { SITE, AUTHOR, ADSENSE_SLOT_IN_ARTICLE, ADSENSE_SLOT_MULTIPLEX } from '.
 import {
   CATEGORIES,
   formatDate,
-  getAdjacentPosts,
+  getNextRead,
   getPostsInSeries,
   getPublishedPosts,
   getRelatedPosts,
@@ -46,8 +48,11 @@ const { data } = post;
 const { Content, headings } = await render(post);
 
 const minutes = readingTime(post.body ?? '');
-const related = await getRelatedPosts(post);
-const { newer, older } = await getAdjacentPosts(post);
+// The one post the reader is handed at the end — next series part first, then
+// the closest related read. "Keep reading" then drops it, so the primary next
+// step and the grid below it never show the same article twice.
+const { next, prev } = await getNextRead(post);
+const related = (await getRelatedPosts(post, 4)).filter((p) => p.id !== next?.post.id).slice(0, 3);
 const seriesPosts = data.series ? await getPostsInSeries(data.series) : [];
 // A flat list of every part gets unwieldy past a handful. Beyond five, collapse
 // to a "you are here" window (prev · current · next); the full list stays
@@ -258,20 +263,7 @@ if (data.faq.length > 0) {
           )}
         </div>
 
-        <nav class="mx-auto mt-10 grid max-w-[68ch] gap-4 sm:grid-cols-2" aria-label="Adjacent posts">
-          {older && (
-            <a href={postUrl(older)} class="rounded-lg border border-default p-4 transition-colors hover:bg-subtle">
-              <span class="text-xs text-muted">← Previous</span>
-              <span class="mt-1 block font-medium">{older.data.title}</span>
-            </a>
-          )}
-          {newer && (
-            <a href={postUrl(newer)} class="rounded-lg border border-default p-4 text-right transition-colors hover:bg-subtle sm:col-start-2">
-              <span class="text-xs text-muted">Next →</span>
-              <span class="mt-1 block font-medium">{newer.data.title}</span>
-            </a>
-          )}
-        </nav>
+        <NextRead next={next} prev={prev} class="mx-auto mt-10 max-w-[68ch]" />
 
         <div class="mx-auto mt-14 max-w-[68ch]">
           <FollowCTA heading="Found this useful?" />
@@ -314,6 +306,9 @@ if (data.faq.length > 0) {
        scrolling, plus the dialog its testimonial button opens. -->
   <EngagementRail slug={post.id} title={data.title} path={path} />
   <FeedbackDialog />
+
+  <!-- Floating prev/next buttons on the right margin, mirroring the rail. -->
+  <PostNav next={next} prev={prev} />
 
   <!-- Floating chat launcher; fixed-position, so it lives at the page root. -->
   <ArticleChat faq={data.faq} body={post.body ?? ''} title={data.title} intro={data.highlight} />

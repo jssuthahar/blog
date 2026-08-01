@@ -1,0 +1,147 @@
+---
+import { postUrl, type NextRead } from '../lib/posts';
+
+/**
+ * Floating previous/next buttons for an article.
+ *
+ * The end-of-article card is the primary hand-off, but a reader who decides
+ * mid-scroll that this part isn't what they wanted shouldn't have to scroll to
+ * the bottom (or back to the series list) to move on. These sit on the right
+ * margin, mirroring the engagement rail on the left, and follow the same reveal
+ * rules: appear once reading has started, disappear as soon as the end-of-post
+ * card is on screen, so the reader never sees two "next" affordances at once.
+ *
+ * xl+ only — below that the margin is gone, and the bottom of the viewport is
+ * already spoken for by the engagement bar and the chat launcher.
+ */
+interface Props {
+  next?: NextRead;
+  prev?: NextRead;
+}
+
+const { next, prev } = Astro.props;
+
+const ITEMS = [
+  { rel: 'prev' as const, item: prev, verb: 'Previous' },
+  { rel: 'next' as const, item: next, verb: 'Next' },
+].filter((entry): entry is { rel: 'prev' | 'next'; item: NextRead; verb: string } =>
+  Boolean(entry.item),
+);
+---
+
+{
+  ITEMS.length > 0 && (
+    <nav
+      data-post-nav
+      class="post-nav fixed top-1/2 right-2 z-40 hidden -translate-y-1/2 flex-col gap-2 opacity-0 transition-opacity duration-300 xl:flex"
+      aria-label="Previous and next article"
+    >
+      {ITEMS.map(({ rel, item, verb }) => (
+        <a
+          href={postUrl(item.post)}
+          data-post-nav-link={rel}
+          rel={rel}
+          aria-label={`${verb}: ${item.post.data.title}`}
+          class="group flex items-center justify-end gap-2"
+        >
+          {/* Title flies out on hover/focus so the resting state stays two quiet
+              circles rather than a wall of text beside the article. */}
+          <span class="max-w-0 overflow-hidden rounded-lg border border-default bg-[var(--bg)] text-sm whitespace-nowrap opacity-0 shadow-lg transition-[max-width,opacity,padding] duration-200 group-hover:max-w-[18rem] group-hover:px-3 group-hover:py-2 group-hover:opacity-100 group-focus-visible:max-w-[18rem] group-focus-visible:px-3 group-focus-visible:py-2 group-focus-visible:opacity-100">
+            <span class="block text-[0.65rem] font-semibold tracking-wider uppercase text-muted">
+              {item.kind === 'series' && rel === 'next' ? 'Next part' : verb}
+            </span>
+            <span class="block max-w-[16rem] truncate font-medium">{item.post.data.title}</span>
+          </span>
+
+          <span class="flex size-10 shrink-0 items-center justify-center rounded-full border border-default bg-[var(--bg)] text-muted shadow-lg transition-colors group-hover:border-[var(--accent)] group-hover:text-accent group-focus-visible:border-[var(--accent)] group-focus-visible:text-accent">
+            <svg
+              class="size-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d={rel === 'next' ? 'M9 6l6 6-6 6' : 'M15 6l-6 6 6 6'} />
+            </svg>
+          </span>
+        </a>
+      ))}
+    </nav>
+  )
+}
+
+<style>
+  .post-nav[data-visible] {
+    opacity: 1;
+  }
+  .post-nav:not([data-visible]) {
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .post-nav,
+    .post-nav * {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  function initPostNav() {
+    const nav = document.querySelector<HTMLElement>('[data-post-nav]');
+    if (!nav || nav.dataset.ready === '') return;
+    nav.dataset.ready = '';
+
+    // Same reveal contract as the engagement rail: past the fold, and gone once
+    // the end-of-article card takes over as the next step.
+    let pastFold = false;
+    let atEnd = false;
+    const apply = () => {
+      if (pastFold && !atEnd) nav.dataset.visible = '';
+      else delete nav.dataset.visible;
+    };
+
+    const onScroll = () => {
+      pastFold = window.scrollY > 500;
+      apply();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    const card = document.querySelector('[data-next-read-card]');
+    if (card && 'IntersectionObserver' in window) {
+      new IntersectionObserver(
+        (entries) => {
+          atEnd = entries[0].isIntersecting;
+          apply();
+        },
+        { rootMargin: '0px 0px -10% 0px' },
+      ).observe(card);
+    }
+
+    // ← / → jump between articles. Ignored while typing, with a modifier held
+    // (those are browser history shortcuts), or with a dialog open.
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+      if (document.querySelector('dialog[open]')) return;
+
+      const el = document.activeElement as HTMLElement | null;
+      if (el?.isContentEditable) return;
+      if (el && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(el.tagName)) return;
+
+      const link = nav.querySelector<HTMLAnchorElement>(
+        `[data-post-nav-link="${event.key === 'ArrowRight' ? 'next' : 'prev'}"]`,
+      );
+      if (!link) return;
+
+      event.preventDefault();
+      window.location.href = link.href;
+    });
+  }
+
+  initPostNav();
+  document.addEventListener('astro:page-load', initPostNav);
+</script>

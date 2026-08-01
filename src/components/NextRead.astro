@@ -1,0 +1,78 @@
+---
+import CoverArt from './CoverArt.astro';
+import { postUrl, readingTime, type NextRead } from '../lib/posts';
+
+interface Props {
+  next?: NextRead;
+  prev?: NextRead;
+  class?: string;
+}
+
+const { next, prev, class: className = '' } = Astro.props;
+const minutes = next ? readingTime(next.post.body ?? '') : 0;
+---
+
+{
+  next && (
+    <section class:list={[className]} aria-labelledby="next-read-label" data-next-read-card>
+      <a
+        href={postUrl(next.post)}
+        class="group flex flex-col overflow-hidden rounded-xl border border-default transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--accent)] hover:shadow-lg sm:flex-row"
+        data-next-read={next.kind}
+      >
+        <div class="h-32 shrink-0 overflow-hidden sm:h-auto sm:w-44">
+          <CoverArt
+            post={next.post}
+            class="transition-transform duration-500 group-hover:scale-[1.04]"
+          />
+        </div>
+
+        <div class="flex min-w-0 flex-1 flex-col p-5">
+          <div class="flex items-baseline justify-between gap-3">
+            <p id="next-read-label" class="text-xs font-semibold tracking-wider uppercase text-accent">
+              {next.label}
+            </p>
+            <span class="shrink-0 text-xs text-muted">{minutes} min</span>
+          </div>
+
+          <h2 class="mt-2 text-lg leading-snug font-semibold tracking-tight group-hover:text-accent">
+            {next.post.data.title}
+          </h2>
+
+          <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">
+            {next.post.data.description}
+          </p>
+
+          <span class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-accent">
+            {next.kind === 'series' ? 'Continue the series' : 'Continue reading'}
+            <svg
+              class="size-4 transition-transform duration-200 group-hover:translate-x-1"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </span>
+        </div>
+      </a>
+
+      {prev && (
+        <a
+          href={postUrl(prev.post)}
+          class="mt-3 flex items-baseline gap-2 text-sm text-muted transition-colors hover:text-accent"
+        >
+          <span aria-hidden="true">←</span>
+          <span class="min-w-0">
+            <span class="text-xs tracking-wide uppercase">{prev.label}</span>
+            <span class="ml-2">{prev.post.data.title}</span>
+          </span>
+        </a>
+      )}
+    </section>
+  )
+}

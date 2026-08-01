@@ -199,6 +199,74 @@ export async function getAdjacentPosts(post: Post) {
   };
 }
 
+export interface NextRead {
+  post: Post;
+  /** Why this post was picked — the page uses it to pick the eyebrow copy. */
+  kind: 'series' | 'related' | 'recent';
+  /** Eyebrow text, e.g. "Next in this series · Part 3 of 6". */
+  label: string;
+}
+
+/**
+ * The single post to hand the reader at the end of this one, plus the one
+ * behind them.
+ *
+ * A reader who finished the article is at the point of highest intent, and the
+ * date-ordered prev/next that used to sit here answered the wrong question: on
+ * a multi-part guide "the post published just before this one" is rarely part
+ * two. So the next link resolves in the order the reader actually thinks in —
+ * the next part of the series they're in, then the closest related post, and
+ * only then the neighbour by date. One destination, not a grid of six, because
+ * a single obvious next step is what gets clicked.
+ */
+export async function getNextRead(post: Post): Promise<{ next?: NextRead; prev?: NextRead }> {
+  let next: NextRead | undefined;
+  let prev: NextRead | undefined;
+
+  if (post.data.series) {
+    const parts = await getPostsInSeries(post.data.series);
+    const i = parts.findIndex((p) => p.id === post.id);
+
+    if (i >= 0) {
+      const after = parts[i + 1];
+      const before = parts[i - 1];
+
+      if (after) {
+        next = {
+          post: after,
+          kind: 'series',
+          label: `Next in this series · Part ${i + 2} of ${parts.length}`,
+        };
+      }
+      if (before) {
+        prev = {
+          post: before,
+          kind: 'series',
+          label: `Part ${i} of ${parts.length}`,
+        };
+      }
+    }
+  }
+
+  // Last part of a series, or not in one at all: the strongest related post.
+  if (!next) {
+    const [related] = await getRelatedPosts(post, 1);
+    if (related) next = { post: related, kind: 'related', label: 'Read next' };
+  }
+
+  const { newer, older } = await getAdjacentPosts(post);
+
+  // Nothing shares a series, a tag, or a category — fall back to the neighbour.
+  if (!next && older) next = { post: older, kind: 'recent', label: 'Read next' };
+
+  if (!prev) {
+    const back = [older, newer].find((p) => p && p.id !== next?.post.id);
+    if (back) prev = { post: back, kind: 'recent', label: 'Previously' };
+  }
+
+  return { next, prev };
+}
+
 /** 200 wpm, rounded up, with code blocks discounted since they're scanned not read. */
 export function readingTime(body: string): number {
   const withoutCode = body.replace(/```[\s\S]*?```/g, ' ');

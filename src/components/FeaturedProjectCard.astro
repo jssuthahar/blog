@@ -82,6 +82,19 @@ const delay = Math.min(index, 5) * 70;
         </svg>
       </a>
     )}
+    {project.android && (
+      <a
+        href={project.android}
+        rel="noopener"
+        target="_blank"
+        class="inline-flex items-center gap-1.5 rounded-full border border-default px-4 py-2 text-sm font-semibold transition-colors hover:bg-subtle"
+      >
+        <svg class="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M6 9h12v9a1.5 1.5 0 0 1-1.5 1.5H15V22a1.25 1.25 0 1 1-2.5 0v-2.5h-1V22A1.25 1.25 0 1 1 9 22v-2.5H7.5A1.5 1.5 0 0 1 6 18V9Zm-2.25 0A1.25 1.25 0 0 1 5 10.25v5a1.25 1.25 0 1 1-2.5 0v-5A1.25 1.25 0 0 1 3.75 9Zm16.5 0a1.25 1.25 0 0 1 1.25 1.25v5a1.25 1.25 0 1 1-2.5 0v-5A1.25 1.25 0 0 1 20.25 9ZM15.9 3.2l1.06-1.6a.4.4 0 0 0-.67-.44L15.2 2.83A7.2 7.2 0 0 0 12 2.1c-1.16 0-2.25.26-3.2.73L7.71 1.16a.4.4 0 0 0-.67.44L8.1 3.2A6.1 6.1 0 0 0 5.25 8h13.5a6.1 6.1 0 0 0-2.85-4.8ZM9.5 5.6a.7.7 0 1 1 0-1.4.7.7 0 0 1 0 1.4Zm5 0a.7.7 0 1 1 0-1.4.7.7 0 0 1 0 1.4Z" />
+        </svg>
+        Android
+      </a>
+    )}
     <a
       href={project.source}
       rel="noopener"

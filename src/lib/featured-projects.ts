@@ -21,6 +21,8 @@ export interface FeaturedProject {
   tech: string[];
   /** Public, hosted demo. Present ⇒ the card shows the primary "Live demo" action. */
   live?: string;
+  /** Installable Android build (Firebase App Distribution), when one is published. */
+  android?: string;
   /** Source repository. */
   source: string;
   /** Two-stop gradient `[from, to]` for the card banner — a distinct look per project. */
@@ -30,6 +32,25 @@ export interface FeaturedProject {
 }
 
 export const featuredProjects: FeaturedProject[] = [
+  {
+    name: 'MSDevBuild Eats',
+    emoji: '🍔',
+    tagline: 'Flutter food delivery app — the reference project for my articles',
+    summary:
+      'Customer, restaurant partner and delivery rider in one Flutter codebase, modelled on the Malaysian super-app experience. Clean Architecture with BLoC, and a seeded offline backend so it runs with no Firebase project and no API keys.',
+    features: [
+      'Three apps, one codebase',
+      'Clean Architecture + BLoC/Cubit',
+      'Offline demo backend, zero config',
+      'Web, Android, iOS and tablet',
+    ],
+    tech: ['Flutter', 'Dart', 'BLoC'],
+    live: 'https://jssuthahar.github.io/food-delivery-app/',
+    android: 'https://appdistribution.firebase.dev/i/00432c5aa60de58b',
+    source: 'https://github.com/jssuthahar/food-delivery-app',
+    gradient: ['#dc2626', '#f97316'],
+    monogram: 'ME',
+  },
   {
     name: 'JSON Studio',
     tagline: 'Free, client-side JSON tooling',

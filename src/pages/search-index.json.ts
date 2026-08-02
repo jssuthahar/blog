@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getPublishedPosts, postUrl, CATEGORIES } from '../lib/posts';
 import { allArticles, primaryCategory } from '../lib/articles';
+import { shortSearchText, shortUrl, getShorts } from '../lib/shorts';
 
 /**
  * One combined search index for the whole site — blog posts, the 236 main-site
@@ -30,8 +31,20 @@ export const GET: APIRoute = async () => {
       external: true,
     })),
 
+    // Indexed on their step text, not just the title: someone searching "mutable
+    // default argument" should find the short that animates exactly that.
+    ...getShorts().map((a) => ({
+      title: a.title,
+      url: shortUrl(a),
+      kind: 'Short',
+      category: CATEGORIES[a.category].label,
+      text: shortSearchText(a),
+      external: false,
+    })),
+
     ...[
       { title: 'About Suthahar', url: '/about/', text: 'about bio profile credentials certifications' },
+      { title: 'Short videos', url: '/shorts/', text: 'short short video watch video short visual learn step by step' },
       { title: 'Speaking', url: '/speaking/', text: 'speaking talks sessions conference book' },
       { title: 'Open source', url: '/open-source/', text: 'open source github repositories code' },
       { title: 'Articles', url: '/articles/', text: 'all articles archive library' },

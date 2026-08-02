@@ -5,6 +5,7 @@ import ContributionTimeline from '../components/ContributionTimeline.astro';
 import { SITE, AUTHOR, MAIN_SITE } from '../config';
 import { getPublishedPosts, postUrl, formatDate } from '../lib/posts';
 import { allArticles, primaryCategory } from '../lib/articles';
+import { getShorts, shortUrl } from '../lib/shorts';
 import { repoIndex } from '../lib/repos';
 import { getUpcomingEvents, getPastEvents } from '../lib/speaking';
 import {
@@ -29,6 +30,16 @@ const KIND_LABELS = {
   community: 'Community',
   book: 'Book',
 } as const;
+
+/**
+ * Short videos count as recorded technical content, so they file under the
+ * `video` activity type an MVP nomination form asks for.
+ *
+ * Only dated ones enter the record. `publishedAt` is optional in a short's
+ * spec, and inventing a date for the one page a reviewer checks for dates
+ * would be the worst possible place to guess — see docs/SHORTS.md.
+ */
+const datedShorts = getShorts().filter((s) => s.publishedAt);
 
 const logged = (await getCollection('contributions'))
   .filter((c) => c.id.toLowerCase() !== 'readme')
@@ -103,6 +114,15 @@ const items: Item[] = [
     external: true,
     meta: primaryCategory(a),
   })),
+  ...datedShorts.map((s) => ({
+    title: s.title,
+    kind: 'video' as const,
+    date: s.publishedAt!,
+    venue: SITE.title,
+    url: shortUrl(s),
+    external: false,
+    meta: `Short video · ${s.seconds}s`,
+  })),
 ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
 const recentCount = items.filter((i) => i.date >= recent.since).length;
@@ -115,9 +135,13 @@ const sessionsDelivered = [...past, ...pastHosted].filter(
 ).length;
 const sessionsScheduled = upcoming.length + upcomingHosted.length;
 
+const recentShorts = datedShorts.filter((s) => s.publishedAt! >= recent.since).length;
+
 const stats = [
   { label: 'Contributions logged', value: recentCount },
   { label: `Articles — ${new URL(SITE.url).hostname}`, value: recentPosts },
+  // Only shown once there are shorts to count — an empty row is not evidence.
+  ...(recentShorts > 0 ? [{ label: 'Short videos', value: recentShorts }] : []),
   { label: `Articles — ${MAIN_SITE.label}`, value: recent.articles.length },
   { label: 'Repositories updated', value: recent.repos.length },
   { label: 'Sessions delivered', value: sessionsDelivered },

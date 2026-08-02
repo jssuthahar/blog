@@ -1,0 +1,312 @@
+---
+/**
+ * One short video, understood one stage at a time.
+ *
+ * The short runs in the sandboxed player; every step it plays is also written
+ * out beside it as ordinary, indexable prose. That duplication is the point of
+ * the page. Nothing that only plays is visible to a search engine or an answer
+ * engine — the step list is the version that gets crawled, quoted and ranked,
+ * and it is also the version a reader can go back over at their own speed,
+ * which a thirty-second player does not allow.
+ *
+ * Clicking a step drives the player to that stage. When the player advances on
+ * its own, the matching step lights up. Neither direction is required for the
+ * page to work: with no JavaScript at all, this is still the full explanation
+ * in order.
+ */
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ShortPlayer from '../../components/ShortPlayer.astro';
+import AppPromo from '../../components/AppPromo.astro';
+import AdUnit from '../../components/AdUnit.astro';
+import Newsletter from '../../components/Newsletter.astro';
+import ShareRow from '../../components/ShareRow.astro';
+import { SITE, ADSENSE_SLOT_IN_ARTICLE, ADSENSE_SLOT_MULTIPLEX } from '../../config';
+import { shortUrl, getShorts, type Short } from '../../lib/shorts';
+import { CATEGORIES, getPublishedPosts, postUrl } from '../../lib/posts';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  getShorts().map((short) => ({
+    params: { slug: short.slug },
+    props: { short },
+  }));
+
+const { short } = Astro.props as { short: Short };
+
+const category = CATEGORIES[short.category];
+const url = new URL(shortUrl(short), SITE.url).href;
+
+// Articles that go deeper on the same subject. A short is the doorway; these
+// are the rooms — and they are the internal links this page contributes.
+const posts = await getPublishedPosts();
+const relatedPosts = posts.filter((p) => p.data.category === short.category).slice(0, 3);
+
+const relatedShorts = getShorts()
+  .filter((a) => a.slug !== short.slug)
+  .sort((a, b) => Number(b.category === short.category) - Number(a.category === short.category))
+  .slice(0, 3);
+
+/**
+ * HowTo, because that is what this genuinely is: an ordered set of steps that
+ * take a reader from not understanding something to understanding it. Every
+ * `name` and `text` below is the short's own authored copy — nothing is
+ * generated to fill a schema slot, which is the line between structured data
+ * that earns a rich result and structured data that earns a penalty.
+ */
+const schema = [
+  {
+    '@type': 'HowTo',
+    '@id': `${url}#howto`,
+    name: short.topic,
+    description: short.sub,
+    totalTime: `PT${short.seconds}S`,
+    inLanguage: SITE.lang,
+    author: { '@id': `${SITE.url}/#person` },
+    publisher: { '@id': `${SITE.url}/#person` },
+    isPartOf: { '@id': `${SITE.url}/#website` },
+    about: { '@type': 'Thing', name: category.label },
+    keywords: short.tags.join(', '),
+    step: short.stages.map((stage, index) => ({
+      '@type': 'HowToStep',
+      position: index + 1,
+      name: stage.title,
+      text: stage.desc,
+      url: `${url}#step-${index + 1}`,
+    })),
+  },
+  {
+    '@type': 'BreadcrumbList',
+    '@id': `${url}#breadcrumbs`,
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Short videos', item: `${SITE.url}/shorts/` },
+      { '@type': 'ListItem', position: 3, name: short.title, item: url },
+    ],
+  },
+];
+---
+
+<BaseLayout
+  title={short.seoTitle}
+  description={short.description}
+  image={`/og/short-${short.slug}.png`}
+  markdownUrl={`/shorts/${short.slug}.md`}
+  schema={schema}
+  wide
+>
+  <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
+    <!-- ══════════════ Breadcrumb ══════════════ -->
+    <nav aria-label="Breadcrumb" class="text-sm text-muted">
+      <ol class="flex flex-wrap items-center gap-1.5">
+        <li><a href="/" class="hover:text-accent">Home</a></li>
+        <li aria-hidden="true">/</li>
+        <li><a href="/shorts/" class="hover:text-accent">Short videos</a></li>
+        <li aria-hidden="true">/</li>
+        <li>
+          <a href={`/shorts/?category=${short.category}`} class="hover:text-accent">
+            {category.label}
+          </a>
+        </li>
+      </ol>
+    </nav>
+
+    <!-- ══════════════ Header ══════════════ -->
+    <header class="mt-6 max-w-3xl">
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <span
+          class="rounded-full px-2.5 py-1 font-semibold"
+          style="background: var(--accent-soft); color: var(--accent);"
+        >
+          {category.label}
+        </span>
+        <span class="text-muted">{short.folderLabel}</span>
+        <span aria-hidden="true" class="text-muted">·</span>
+        <span class="text-muted">{short.stages.length} steps</span>
+        <span aria-hidden="true" class="text-muted">·</span>
+        <span class="text-muted">{short.seconds} seconds</span>
+      </div>
+
+      <h1 class="display mt-3 text-[1.9rem] leading-tight text-balance sm:text-4xl">
+        {short.title}
+      </h1>
+      <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">{short.sub}</p>
+    </header>
+
+    <!-- ══════════════ Player + steps ══════════════ -->
+    <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-12">
+      <div class="lg:sticky lg:top-24 lg:self-start">
+        <ShortPlayer short={short} />
+      </div>
+
+      <div>
+        <h2 class="display text-2xl">Understand it one step at a time</h2>
+        <p class="mt-2 text-sm leading-relaxed text-muted">
+          The short runs these in order in about {short.seconds} seconds. Here they
+          are written out — pick any step to jump the short straight to it.
+        </p>
+
+        <ol class="mt-6 space-y-3" data-short-steps>
+          {short.stages.map((stage, index) => (
+            <li id={`step-${index + 1}`} class="scroll-mt-24">
+              <button
+                type="button"
+                data-short-step={index}
+                aria-current="false"
+                class="short-step w-full rounded-xl border border-default bg-[var(--bg)] p-4 text-left transition-colors hover:border-[var(--accent)]"
+              >
+                <div class="flex gap-3.5">
+                  <span
+                    class="short-step__num mt-0.5 grid size-7 shrink-0 place-items-center rounded-full border border-default text-xs font-semibold tabular-nums"
+                  >
+                    {index + 1}
+                  </span>
+                  <div class="min-w-0">
+                    <h3 class="font-semibold leading-snug tracking-tight">{stage.title}</h3>
+                    <p class="mt-1 text-sm leading-relaxed text-muted">{stage.desc}</p>
+                    {stage.status && (
+                      <p class="mt-1.5 font-mono text-xs text-muted opacity-75">{stage.status}</p>
+                    )}
+                  </div>
+                </div>
+              </button>
+            </li>
+          ))}
+        </ol>
+
+        <!-- The closing card, kept as text. This is the sentence the whole short
+             exists to land, so it is also the passage most worth quoting. -->
+        <aside
+          class="mt-8 rounded-xl border-l-4 bg-subtle p-5"
+          style="border-left-color: var(--accent);"
+        >
+          <p class="text-sm font-semibold tracking-wider uppercase" style="color: var(--accent);">
+            The takeaway
+          </p>
+          <p class="mt-2 text-lg font-semibold leading-snug text-balance">{short.end.title}</p>
+          <p class="mt-2 leading-relaxed text-muted text-pretty">{short.end.sub}</p>
+        </aside>
+
+        <div class="mt-8">
+          <ShareRow title={`${short.title} — a ${short.seconds}-second short`} path={shortUrl(short)} />
+        </div>
+      </div>
+    </div>
+
+    <!-- In-article unit at the end of the read, matching how a blog post places
+         it: nothing sits between the player and the steps, so the explanation
+         is never interrupted by an advert. -->
+    <AdUnit slot={ADSENSE_SLOT_IN_ARTICLE} />
+
+    <div class="mt-12">
+      <AppPromo />
+    </div>
+
+    {relatedPosts.length > 0 && (
+      <section class="mt-14 border-t border-default pt-8">
+        <h2 class="display text-2xl">Read deeper on {category.label}</h2>
+        <p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
+          Twenty seconds gets the shape of an idea across. These go into how it
+          behaves in production.
+        </p>
+        <ul class="mt-6 grid gap-4 sm:grid-cols-3">
+          {relatedPosts.map((post) => (
+            <li class="group rounded-xl border border-default p-4 transition-colors hover:border-[var(--accent)]">
+              <h3 class="font-semibold leading-snug tracking-tight">
+                <a href={postUrl(post)} class="group-hover:text-accent">{post.data.title}</a>
+              </h3>
+              <p class="mt-1.5 line-clamp-3 text-sm leading-relaxed text-muted">
+                {post.data.description}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {relatedShorts.length > 0 && (
+      <section class="mt-12">
+        <h2 class="display text-2xl">More shorts</h2>
+        <ul class="mt-6 grid gap-4 sm:grid-cols-3">
+          {relatedShorts.map((other) => (
+            <li class="group rounded-xl border border-default p-4 transition-colors hover:border-[var(--accent)]">
+              <p class="text-xs font-semibold" style="color: var(--accent);">
+                {CATEGORIES[other.category].label}
+              </p>
+              <h3 class="mt-1 font-semibold leading-snug tracking-tight">
+                <a href={shortUrl(other)} class="group-hover:text-accent">{other.title}</a>
+              </h3>
+              <p class="mt-1.5 text-xs text-muted">
+                {other.stages.length} steps · {other.seconds}s
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    <div class="mt-12">
+      <Newsletter source="shorts" />
+    </div>
+
+    <!-- Multiplex grid last, below our own recommendations — the reader always
+         meets the site's shorts and articles before the ad network's. -->
+    <AdUnit slot={ADSENSE_SLOT_MULTIPLEX} format="multiplex" class="!max-w-none" />
+  </div>
+</BaseLayout>
+
+<style>
+  .short-step[aria-current='true'] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .short-step[aria-current='true'] .short-step__num {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+</style>
+
+<script>
+  /**
+   * Two-way sync with the player.
+   *
+   * Both directions go through DOM events on `document` rather than a direct
+   * reference to the iframe: the player owns the postMessage channel, this owns
+   * the list, and neither imports the other.
+   */
+  function initShortSteps() {
+    const list = document.querySelector('[data-short-steps]');
+    if (!list) return;
+
+    const steps = [...list.querySelectorAll<HTMLButtonElement>('[data-short-step]')];
+    if (steps.length === 0) return;
+
+    const highlight = (index: number) => {
+      steps.forEach((step, i) => step.setAttribute('aria-current', String(i === index)));
+    };
+
+    for (const step of steps) {
+      step.addEventListener('click', () => {
+        const index = Number(step.dataset.shortStep);
+        highlight(index);
+        document.dispatchEvent(new CustomEvent('short:jump', { detail: { index } }));
+
+        // On a phone the player sits above the list and is off-screen by the
+        // time you reach step six — a jump you cannot see has not happened.
+        if (window.matchMedia('(max-width: 1023px)').matches) {
+          document
+            .querySelector('[data-short-player]')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    }
+
+    document.addEventListener('short:stage', (event) => {
+      const index = (event as CustomEvent<{ index: number }>).detail?.index;
+      if (typeof index === 'number') highlight(index);
+    });
+  }
+
+  initShortSteps();
+  document.addEventListener('astro:page-load', initShortSteps);
+</script>

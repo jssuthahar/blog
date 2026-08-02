@@ -20,6 +20,7 @@ Key places to inspect when making changes:
 
 - `src/content/blog/` — blog posts and frontmatter-driven content
 - `src/content/events/`, `src/content/speaking/`, `src/content/contributions/` — other Markdown collections
+- `src/content/Real/<Technology>/` — short videos (`.html` + `.spec.json` + `.md` per short); see [docs/SHORTS.md](docs/SHORTS.md)
 - `src/content.config.ts` — collection schemas and validation rules
 - `src/lib/taxonomy.ts` — category/topic slugs and site taxonomy
 - `src/config.ts` — site-wide settings, feature flags, analytics, and comment integrations
@@ -44,6 +45,7 @@ Useful references in this repo:
 
 - Primary README: [README.md](README.md)
 - Writing guide and frontmatter rules: [WRITING.md](WRITING.md)
+- Publishing a short video: [docs/SHORTS.md](docs/SHORTS.md)
 - Reference project used in article samples: [docs/REFERENCE-PROJECT.md](docs/REFERENCE-PROJECT.md)
 - Content schema and collections: [src/content.config.ts](src/content.config.ts)
 - Topic/category source of truth: [src/lib/taxonomy.ts](src/lib/taxonomy.ts)

@@ -1,0 +1,219 @@
+---
+/**
+ * The embedded short player.
+ *
+ * The short is a complete HTML document — its own CSS, its own audio
+ * engine, its own sequencer — so it runs in an iframe rather than being spliced
+ * into the page. It is passed by `srcdoc`, which means there is no URL anywhere
+ * on the site that serves the short as a file: nothing to right-click and save,
+ * nothing to hotlink, nothing for a scraper to enumerate.
+ *
+ * The sandbox is what enforces that. `allow-scripts` and nothing else gives the
+ * frame an opaque origin, which:
+ *
+ *   - blocks downloads outright (no `allow-downloads`), including the
+ *     anchor-click save the player's own recorder would have used;
+ *   - denies screen capture, because permissions are refused for an opaque
+ *     origin, so getDisplayMedia can never start;
+ *   - blocks top-level navigation, popups and form posts out of the frame.
+ *
+ * Say the honest thing about this: it makes the short not-downloadable, not
+ * uncopyable. A determined visitor can still film their own screen, and the
+ * markup is in the page source. This raises the bar and removes every
+ * affordance — it is not DRM, and nothing in a browser can be.
+ *
+ * Everything else about the frame is deliberate too: no `allow-same-origin`
+ * means the short cannot touch this site's storage or cookies either, so a
+ * generated file gets no ambient authority just by being embedded.
+ */
+import type { Short } from '../lib/shorts';
+
+interface Props {
+  short: Short;
+  /** Renders the step controls under the frame. Off for grid previews. */
+  controls?: boolean;
+  class?: string;
+}
+
+const { short, controls = true, class: className = '' } = Astro.props;
+---
+
+<div class:list={['short-player', className]} data-short-player data-slug={short.slug}>
+  <div class="short-frame">
+    <iframe
+      title={`Short video: ${short.title}`}
+      srcdoc={short.embedHtml}
+      sandbox="allow-scripts"
+      allow="autoplay"
+      loading="lazy"
+      referrerpolicy="no-referrer"
+      scrolling="no"
+    ></iframe>
+  </div>
+
+  {
+    controls && (
+      <div class="short-controls">
+        <button type="button" data-short-replay class="short-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4.5V9h4.5" />
+          </svg>
+          Replay
+        </button>
+
+        <button type="button" data-short-fullscreen class="short-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+          </svg>
+          Full screen
+        </button>
+      </div>
+    )
+  }
+</div>
+
+<style>
+  .short-player {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  /* 9:16, the shape the short is authored at. Height-capped as well as
+     width-capped so a desktop viewer gets the whole frame without scrolling —
+     a vertical video that runs off the fold is the one thing that makes these
+     unwatchable on a laptop. */
+  .short-frame {
+    position: relative;
+    width: 100%;
+    max-width: min(100%, calc((100dvh - 13rem) * 9 / 16));
+    aspect-ratio: 9 / 16;
+    margin-inline: auto;
+    overflow: hidden;
+    border-radius: 1.25rem;
+    border: 1px solid var(--border);
+    background: #05080f;
+    box-shadow: 0 24px 60px -30px rgb(0 0 0 / 0.55);
+  }
+
+  .short-frame iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+
+  /* No overlay guards the frame: the short is driven entirely by tapping it, and
+     an intercepting layer would break play before it blocked anything. The
+     right-click and drag guards run inside the frame, on the content itself. */
+
+  .short-frame:fullscreen {
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    border-radius: 0;
+    border: 0;
+  }
+
+  .short-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .short-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: border-color 0.15s, background-color 0.15s;
+  }
+  .short-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .short-btn svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+</style>
+
+<script>
+  /**
+   * Bridges the sandboxed frame and the page.
+   *
+   * The frame has an opaque origin, so `event.origin` is the string "null" and
+   * proves nothing — identity is established by matching `event.source` against
+   * the iframe's own contentWindow instead, which cannot be spoofed by another
+   * frame on the page.
+   *
+   * Outward, the page speaks in DOM events (`short:jump`) so the step list
+   * never needs a reference to the iframe; inward, stage changes arrive as
+   * `short:stage` on `document`.
+   */
+  function initShortPlayers() {
+    const players = document.querySelectorAll<HTMLElement>('[data-short-player]:not([data-bound])');
+
+    for (const player of players) {
+      player.dataset.bound = '';
+
+      const frame = player.querySelector('.short-frame') as HTMLElement | null;
+      const iframe = player.querySelector('iframe') as HTMLIFrameElement | null;
+      if (!frame || !iframe) continue;
+
+      const send = (message: Record<string, unknown>) => {
+        // targetOrigin '*' is required: an opaque origin cannot be named.
+        iframe.contentWindow?.postMessage(message, '*');
+      };
+
+      player.querySelector('[data-short-replay]')?.addEventListener('click', () => {
+        send({ type: 'msd:replay' });
+      });
+
+      /**
+       * Hand the page's first real interaction to the frame.
+       *
+       * The short starts itself, but browsers keep audio silent until a
+       * document has been interacted with, and the sandboxed frame gets no
+       * user activation from the page around it. So the first click or key
+       * anywhere on the page tells the frame to try its audio again — which
+       * means tapping a step, or Replay, or just the article, is enough to
+       * bring the sound in without anyone hunting for a speaker icon.
+       */
+      const unlock = () => send({ type: 'msd:unlock' });
+      for (const type of ['pointerdown', 'keydown'] as const) {
+        document.addEventListener(type, unlock, { passive: true });
+      }
+
+      player.querySelector('[data-short-fullscreen]')?.addEventListener('click', () => {
+        if (document.fullscreenElement) void document.exitFullscreen();
+        else void frame.requestFullscreen?.().catch(() => {});
+      });
+
+      // The step list asks for a jump without knowing what renders the short.
+      document.addEventListener('short:jump', (event) => {
+        const index = (event as CustomEvent<{ index: number }>).detail?.index;
+        if (typeof index === 'number') send({ type: 'msd:jump', index });
+      });
+
+      window.addEventListener('message', (event) => {
+        if (event.source !== iframe.contentWindow) return;
+        const data = event.data as { type?: string; index?: number };
+        if (data?.type !== 'msd:stage' || typeof data.index !== 'number') return;
+        document.dispatchEvent(
+          new CustomEvent('short:stage', { detail: { index: data.index } }),
+        );
+      });
+    }
+  }
+
+  initShortPlayers();
+  document.addEventListener('astro:page-load', initShortPlayers);
+</script>

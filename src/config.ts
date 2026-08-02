@@ -81,6 +81,7 @@ export const AUTHOR = {
     // alternateName, not a separate Organization entity anywhere in the graph.
     'https://www.linkedin.com/company/31318247/',
     'https://whatsapp.com/channel/0029Va5j2rHEFeXcTlUhQB0J',
+    'https://www.instagram.com/msdevbuild/',
   ],
 
   /** Emitted as schema.org `award`. Award reviewers and LLMs both read this. */
@@ -249,6 +250,18 @@ export const SOCIAL = [
     blurb: 'The publication feed for the blog',
   },
   {
+    id: 'instagram',
+    icon: 'instagram',
+    label: 'Instagram',
+    handle: '@msdevbuild',
+    action: 'Follow',
+    cta: 'Follow on Instagram',
+    href: 'https://www.instagram.com/msdevbuild/',
+    // The short videos are drawn at 1080×1920 — the same frame Instagram is
+    // built around — so this is where they land natively rather than embedded.
+    blurb: 'The short videos, in the feed they were drawn for',
+  },
+  {
     id: 'github',
     icon: 'github',
     label: 'GitHub',
@@ -288,6 +301,9 @@ export const NAV = [
   { label: 'Blog', href: '/blog/' },
   { label: 'Series', href: '/series/' },
   { label: 'Articles', href: '/articles/' },
+  // The short videos. Named "Shorts" — the reader already knows what a short
+  // is, and it sits next to three links that all mean "read".
+  { label: 'Shorts', href: '/shorts/' },
   { label: 'Events', href: '/events/' },
   { label: 'Speaking', href: '/speaking/' },
   { label: 'Open source', href: '/open-source/' },

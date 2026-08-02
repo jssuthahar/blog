@@ -1,0 +1,133 @@
+---
+/**
+ * Install band for the app.
+ *
+ * /install is the page you hand to someone; this is the ask placed where the
+ * reason for it is obvious. On the short-video pages that reason is unusually
+ * strong and worth stating plainly: the shorts are authored at 1080×1920, so a
+ * phone shows them the size they were drawn, and the installed app has no
+ * address bar eating the top of a vertical frame.
+ *
+ * Four honest states, the same ones /install renders — installed, a real
+ * browser prompt, iOS (manual steps only), or a browser that cannot install.
+ * The band removes itself entirely in the installed app: asking someone to
+ * install what they are already using is how a site loses their trust.
+ */
+import { SITE } from '../config';
+
+interface Props {
+  eyebrow?: string;
+  heading?: string;
+  body?: string;
+  class?: string;
+}
+
+const {
+  eyebrow = 'Free app · no app store',
+  heading = 'These are built for a phone',
+  body = 'Every short is drawn at full portrait height, the shape a phone already is. Installed, it opens full-bleed with no address bar across the top — and the whole library reads offline.',
+  class: className = '',
+} = Astro.props;
+---
+
+<section
+  data-app-promo
+  class:list={[
+    'rounded-2xl border border-default bg-subtle p-6 sm:p-8',
+    className,
+  ]}
+>
+  <div class="flex flex-col gap-6 sm:flex-row sm:items-center">
+    <img
+      src="/icon-192.png"
+      alt=""
+      width="64"
+      height="64"
+      class="size-16 shrink-0 rounded-2xl border border-default bg-[var(--bg)]"
+    />
+
+    <div class="min-w-0 flex-1">
+      <p class="eyebrow">{eyebrow}</p>
+      <h2 class="display mt-1 text-xl sm:text-2xl">{heading}</h2>
+      <p class="mt-2 max-w-2xl text-sm leading-relaxed text-muted text-pretty">{body}</p>
+
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        <button type="button" data-app-promo-install class="btn btn-accent btn-sm">
+          <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v11" /><path d="m8 11 4 4 4-4" /><path d="M5 20h14" />
+          </svg>
+          <span data-app-promo-label>Install the {SITE.title} app</span>
+        </button>
+        <a href="/install/" class="btn btn-outline btn-sm">How it works</a>
+      </div>
+
+      <p data-app-promo-status role="status" aria-live="polite" class="mt-3 text-sm text-muted"></p>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { getInstallPrompt, onInstallStateChange, promptInstall } from '../lib/install';
+  import { isIos, isStandalone } from '../lib/push';
+  import { SITE } from '../config';
+
+  let rerender: () => void = () => {};
+
+  function initAppPromo() {
+    const bands = document.querySelectorAll<HTMLElement>('[data-app-promo]');
+    if (bands.length === 0) return;
+
+    const render = () => {
+      for (const band of bands) {
+        const button = band.querySelector<HTMLButtonElement>('[data-app-promo-install]');
+        const label = band.querySelector<HTMLElement>('[data-app-promo-label]');
+        const status = band.querySelector<HTMLElement>('[data-app-promo-status]');
+        if (!button || !label || !status) continue;
+
+        if (isStandalone()) {
+          band.hidden = true;
+          continue;
+        }
+        band.hidden = false;
+
+        if (getInstallPrompt()) {
+          label.textContent = `Install the ${SITE.title} app`;
+          status.textContent = 'One tap — no store, no account, a few hundred kilobytes.';
+        } else if (isIos()) {
+          label.textContent = 'Add to Home Screen';
+          status.textContent = 'On iPhone and iPad this is three taps in Safari — the steps are on the install page.';
+        } else {
+          label.textContent = 'See how to install';
+          status.textContent = 'This browser has no install button. Chrome, Edge or Brave can do it in one tap.';
+        }
+
+        button.onclick = async () => {
+          if (!getInstallPrompt()) {
+            location.href = '/install/';
+            return;
+          }
+          const outcome = await promptInstall();
+          status.textContent =
+            outcome === 'accepted'
+              ? `Installed. Open ${SITE.title} from your home screen.`
+              : 'No problem — /install has it whenever you want it.';
+          button.hidden = outcome === 'accepted';
+        };
+      }
+    };
+
+    rerender = render;
+    render();
+  }
+
+  // The prompt can arrive after render, and installing from the header icon
+  // should settle every band on the page. Bound once for the whole session.
+  if (!(window as any).__appPromoBound) {
+    (window as any).__appPromoBound = true;
+    onInstallStateChange(() => rerender());
+    window.addEventListener('appinstalled', () => rerender());
+  }
+
+  initAppPromo();
+  document.addEventListener('astro:page-load', initAppPromo);
+</script>

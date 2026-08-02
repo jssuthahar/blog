@@ -1,0 +1,107 @@
+{
+  "slug": "azure-durable-functions-replay",
+  "topic": "How Azure Durable Functions replay your orchestrator code",
+  "seoTitle": "How Durable Functions replay",
+  "publishedAt": "2026-08-02",
+  "title": {
+    "main": "Your Durable Function runs <em>many times</em>",
+    "sub": "The orchestrator body re-executes from line one, over and over, until every step is answered.",
+    "pill": "8 stages · 19 sec · Azure internals"
+  },
+  "stageHtml": "\n    <div class=\"t-scene\" id=\"t-scene\">\n\n      <!-- Full-stage hook, lifted after the opening beat -->\n      <div class=\"t-hook\" id=\"t-hook\">\n        <div class=\"t-hook-l1\">Your orchestrator ran</div>\n        <div class=\"t-hook-big\" id=\"t-hook-big\">14&times;</div>\n        <div class=\"t-hook-l2\">You only ever saw one result</div>\n      </div>\n\n      <!-- Run counter + live status -->\n      <div class=\"t-runbar\" id=\"t-runbar\">\n        <div class=\"t-runbadge\" id=\"t-runbadge\">RUN&nbsp;#1</div>\n        <div class=\"t-runstate\" id=\"t-runstate\">executing</div>\n      </div>\n\n      <!-- The orchestrator source; lines change state as it replays -->\n      <div class=\"msd-editor t-editor\" id=\"t-editor\">\n        <div class=\"bar\">\n          <i style=\"background:#ff5f57\"></i><i style=\"background:#febc2e\"></i><i style=\"background:#28c840\"></i>\n          <span class=\"t-file\">OrderOrchestrator.cs</span>\n        </div>\n        <div class=\"body\">\n          <div class=\"t-line\"><span class=\"ln\">1</span><span class=\"cm\">[OrchestrationTrigger]</span></div>\n          <div class=\"t-line\"><span class=\"ln\">2</span><span class=\"kw\">async Task</span> <span class=\"fn\">Run</span>(ctx) {</div>\n          <div class=\"t-line\" id=\"t-l3\"><span class=\"ln\">3</span>  <span class=\"kw\">var</span> a = <span class=\"kw\">await</span> ctx.<span class=\"fn\">Call</span>(<span class=\"st\">\"Charge\"</span>);<span class=\"t-mark\"></span></div>\n          <div class=\"t-line\" id=\"t-l4\"><span class=\"ln\">4</span>  <span class=\"kw\">var</span> b = <span class=\"kw\">await</span> ctx.<span class=\"fn\">Call</span>(<span class=\"st\">\"Ship\"</span>);<span class=\"t-mark\"></span></div>\n          <div class=\"t-line\" id=\"t-l5\"><span class=\"ln\">5</span>  <span class=\"kw\">var</span> c = <span class=\"kw\">await</span> ctx.<span class=\"fn\">Call</span>(<span class=\"st\">\"Notify\"</span>);<span class=\"t-mark\"></span></div>\n          <div class=\"t-line\"><span class=\"ln\">6</span>  <span class=\"kw\">return</span> c;</div>\n          <div class=\"t-line\"><span class=\"ln\">7</span>}</div>\n        </div>\n        <div class=\"t-stopped\" id=\"t-stopped\">FUNCTION EXITED</div>\n      </div>\n\n      <div class=\"t-panelbox\">\n        <!-- Event history in storage -->\n        <div class=\"msd-card t-panel\" id=\"t-p-history\">\n          <div class=\"msd-label\">Event history &middot; Table storage</div>\n          <div class=\"t-hist\" id=\"t-hist\">\n            <div class=\"t-hrow\" id=\"t-h1\"><span class=\"t-ev\">TaskScheduled</span><span class=\"t-nm\">Charge</span><span class=\"t-vl\">&mdash;</span></div>\n            <div class=\"t-hrow\" id=\"t-h2\"><span class=\"t-ev t-ok\">TaskCompleted</span><span class=\"t-nm\">Charge</span><span class=\"t-vl\">$42.00</span></div>\n            <div class=\"t-hrow\" id=\"t-h3\"><span class=\"t-ev\">TaskScheduled</span><span class=\"t-nm\">Ship</span><span class=\"t-vl\">&mdash;</span></div>\n            <div class=\"t-hrow\" id=\"t-h4\"><span class=\"t-ev t-ok\">TaskCompleted</span><span class=\"t-nm\">Ship</span><span class=\"t-vl\">TRK-9931</span></div>\n          </div>\n        </div>\n\n        <!-- Why non-deterministic code breaks -->\n        <div class=\"msd-card t-panel\" id=\"t-p-trap\">\n          <div class=\"msd-label\">DateTime.UtcNow, on each replay</div>\n          <div class=\"t-trap\">\n            <div class=\"t-trow\"><span class=\"t-run\">RUN 1</span><span class=\"t-val\">07:11:04.118</span></div>\n            <div class=\"t-trow\"><span class=\"t-run\">RUN 2</span><span class=\"t-val\">07:11:09.472</span></div>\n            <div class=\"t-trow\"><span class=\"t-run\">RUN 3</span><span class=\"t-val\">07:11:15.006</span></div>\n          </div>\n          <div class=\"t-trapnote\">Different every run &rarr; the replay no longer matches history</div>\n        </div>\n\n        <!-- The fix -->\n        <div class=\"msd-card t-panel\" id=\"t-p-fix\">\n          <div class=\"msd-label\">Deterministic by contract</div>\n          <div class=\"t-fix\">\n            <div class=\"t-frow t-bad\"><span class=\"t-x\">&times;</span><code>DateTime.UtcNow</code><span class=\"t-note\">new value each replay</span></div>\n            <div class=\"t-frow t-good\"><span class=\"t-c\">&check;</span><code>ctx.CurrentUtcDateTime</code><span class=\"t-note\">replayed from history</span></div>\n            <div class=\"t-frow t-good\"><span class=\"t-c\">&check;</span><code>ctx.NewGuid()</code><span class=\"t-note\">stable across replays</span></div>\n          </div>\n        </div>\n      </div>\n\n      <div class=\"t-foot\">\n        <div class=\"msd-card t-stat msd-reveal\" id=\"t-s-a\">\n          <div class=\"t-stat-v msd-num\" id=\"t-v1\">0</div><div class=\"t-stat-l\">executions</div>\n        </div>\n        <div class=\"msd-card t-stat msd-reveal\" id=\"t-s-b\">\n          <div class=\"t-stat-v msd-num\" id=\"t-v2\">0</div><div class=\"t-stat-l\">activities run</div>\n        </div>\n        <div class=\"msd-card t-stat msd-reveal\" id=\"t-s-c\">\n          <div class=\"t-stat-v msd-num\" id=\"t-v3\">0</div><div class=\"t-stat-l\">result returned</div>\n        </div>\n      </div>\n\n    </div>\n",
+  "stageCss": "#stage .t-scene{ position:relative; width:100%; height:100%; }#stage .t-hook{\n  position:absolute; inset:0; z-index:6; display:flex; flex-direction:column;\n  align-items:center; justify-content:center; gap:10px; text-align:center;\n  opacity:0; transform:scale(.97); pointer-events:none;\n  transition:opacity .3s ease, transform .3s cubic-bezier(.22,1,.36,1);\n}#stage .t-hook.on{ opacity:1; transform:none; }#stage .t-hook-l1{ color:var(--text-dim); font-size:40px; font-weight:600; }#stage .t-hook-big{\n  color:#fff; font-size:210px; font-weight:900; line-height:1; letter-spacing:-9px;\n  text-shadow:0 0 80px rgba(58,160,255,.45);\n}#stage .t-hook-l2{ color:var(--accent-1); font-size:34px; font-weight:700; margin-top:14px; }#stage .t-runbar{ position:absolute; top:0; left:0; width:992px; height:58px; display:flex; align-items:center; gap:16px; }#stage .t-runbadge{\n  padding:10px 22px; border-radius:100px; background:rgba(58,160,255,.16);\n  border:1.5px solid rgba(58,160,255,.45); color:var(--accent-1);\n  font-family:var(--font-mono); font-size:24px; font-weight:700; letter-spacing:1px;\n}#stage .t-runstate{ color:var(--text-dim); font-family:var(--font-mono); font-size:22px; }#stage .t-editor{ position:absolute; top:78px; left:0; width:992px; height:414px; }#stage .t-editor .bar{ position:relative; }#stage .t-file{ color:var(--text-dim); font-family:var(--font-mono); font-size:20px; margin-left:14px; }#stage .t-editor .body{ font-size:26px; line-height:1.72; }#stage .t-line{ opacity:0; transform:translateX(-10px); transition:opacity .26s ease, transform .26s ease; position:relative; }#stage .t-line.show{ opacity:1; transform:none; }#stage .t-line.replayed{ opacity:.4; }#stage .t-line.executing{\n  background:rgba(58,160,255,.14); border-radius:8px;\n  box-shadow:inset 3px 0 0 var(--accent-1);\n}#stage .t-mark{ display:inline-block; width:34px; }#stage .t-line.replayed .t-mark::after{ content:\"\\2713\"; color:var(--success); font-weight:700; margin-left:12px; }#stage .t-line.executing .t-mark::after{ content:\"\\25B6\"; color:var(--accent-1); margin-left:12px; }#stage .t-stopped{\n  position:absolute; right:22px; bottom:18px; padding:9px 20px; border-radius:10px;\n  background:rgba(244,74,106,.16); border:1.5px solid rgba(244,74,106,.5);\n  color:var(--danger); font-family:var(--font-mono); font-size:21px; font-weight:700;\n  opacity:0; transition:opacity .24s ease;\n}#stage .t-stopped.on{ opacity:1; }#stage .t-panelbox{ position:absolute; top:524px; left:0; width:992px; height:300px; }#stage .t-panel{\n  position:absolute; inset:0; padding:26px 30px; opacity:0; transform:scale(.98);\n  pointer-events:none; transition:opacity .3s ease, transform .3s cubic-bezier(.22,1,.36,1);\n}#stage .t-panel.on{ opacity:1; transform:none; }#stage .t-hist{ margin-top:14px; display:flex; flex-direction:column; gap:8px; }#stage .t-hrow{\n  display:flex; align-items:center; gap:18px; padding:9px 16px; border-radius:10px;\n  background:rgba(20,27,43,.7); border:1px solid var(--border);\n  font-family:var(--font-mono); font-size:22px;\n  opacity:0; transform:translateY(8px); transition:opacity .24s ease, transform .24s ease;\n}#stage .t-hrow.on{ opacity:1; transform:none; }#stage .t-ev{ color:var(--accent-cyan); min-width:250px; }#stage .t-ev.t-ok{ color:var(--success); }#stage .t-nm{ color:var(--text-primary); min-width:150px; }#stage .t-vl{ color:var(--text-dim); margin-left:auto; }#stage .t-trap{ margin-top:14px; display:flex; flex-direction:column; gap:9px; }#stage .t-trow{ display:flex; align-items:center; gap:22px; font-family:var(--font-mono); font-size:25px; }#stage .t-run{ color:var(--text-dim); min-width:110px; }#stage .t-val{ color:var(--danger); font-weight:700; }#stage .t-trapnote{ color:var(--text-dim); font-size:23px; margin-top:16px; }#stage .t-fix{ margin-top:14px; display:flex; flex-direction:column; gap:11px; }#stage .t-frow{ display:flex; align-items:center; gap:16px; font-family:var(--font-mono); font-size:23px; }#stage .t-frow code{ color:var(--text-primary); }#stage .t-frow .t-note{ color:var(--text-dim); font-size:20px; margin-left:auto; }#stage .t-bad code{ color:var(--danger); }#stage .t-good code{ color:var(--success); }#stage .t-x{ color:var(--danger); font-size:28px; font-weight:800; width:26px; }#stage .t-c{ color:var(--success); font-size:26px; font-weight:800; width:26px; }#stage .t-foot{ position:absolute; top:854px; left:0; width:992px; display:flex; gap:18px; }#stage .t-stat{ flex:1; padding:22px 24px; text-align:center; }#stage .t-stat-v{ font-size:54px; font-weight:800; line-height:1; }#stage .t-stat-l{ color:var(--text-dim); font-size:19px; font-weight:600; margin-top:10px; }\n",
+  "stages": [
+    {
+      "title": "It did not run once",
+      "key": "not run once",
+      "desc": "Your orchestrator function executes again and again. You only ever see the final result.",
+      "status": "Orchestrator idle",
+      "thinking": false,
+      "durationMs": 2400,
+      "js": "\n      MSD.after(80, function(){ MSD.cls('#t-hook', 'on', true); MSD.punch('#t-hook-big'); });\n      MSD.after(900, function(){ MSD.punch('#t-hook-big', 4); });\n      "
+    },
+    {
+      "title": "It looks like normal code",
+      "key": "normal code",
+      "desc": "Three awaits, top to bottom. Nothing here hints that it gets re-executed.",
+      "status": "Loading orchestrator",
+      "thinking": false,
+      "durationMs": 2200,
+      "js": "\n      MSD.cls('#t-hook', 'on', false);\n      MSD.qa('#t-editor .t-line').forEach(function(el, i){\n        MSD.after(60 + i * 85, function(){ el.classList.add('show'); MSD.sfx.tick(); });\n      });\n      MSD.after(760, function(){ MSD.sfx.sparkle(); });\n      "
+    },
+    {
+      "title": "It stops at the first await",
+      "key": "stops",
+      "desc": "The runtime schedules the activity, then the function exits completely. No thread waits around.",
+      "status": "Scheduling activity",
+      "thinking": true,
+      "durationMs": 2400,
+      "js": "\n      MSD.cls('#t-editor .t-line', 'show', true);\n      MSD.focus('#t-editor', '.t-panelbox');\n      MSD.after(150, function(){ MSD.cls('#t-l3', 'executing', true); MSD.sfx.blip(2); });\n      MSD.after(900, function(){\n        MSD.cls('#t-l3', 'executing', false);\n        MSD.cls('#t-stopped', 'on', true);\n        MSD.shake('#t-editor');\n        MSD.q('#t-runstate').textContent = 'exited';\n      });\n      "
+    },
+    {
+      "title": "The result lands in history",
+      "key": "history",
+      "desc": "When the activity finishes, its output is appended to an event history in storage.",
+      "status": "Writing event history",
+      "thinking": false,
+      "durationMs": 2400,
+      "js": "\n      MSD.cls('#t-editor .t-line', 'show', true);\n      MSD.cls('#t-stopped', 'on', false);\n      MSD.focus('.t-panelbox', '#t-editor');\n      MSD.cls('#t-p-history', 'on', true);\n      MSD.cls('#t-p-history', 'msd-scan', true);\n      MSD.after(150, function(){ MSD.cls('#t-h1', 'on', true); MSD.sfx.blip(0); });\n      MSD.after(620, function(){ MSD.cls('#t-h2', 'on', true); MSD.sfx.blip(2); });\n      MSD.after(1150, function(){ MSD.cls('#t-p-history', 'msd-scan', false); MSD.flash('#t-p-history'); MSD.sfx.lock(); });\n      "
+    },
+    {
+      "title": "Then it runs again",
+      "key": "runs again",
+      "desc": "From line one. This time the first await returns instantly from history instead of calling anything.",
+      "status": "Replaying from history",
+      "thinking": true,
+      "durationMs": 2600,
+      "js": "\n      MSD.cls('#t-editor .t-line', 'show', true);\n      MSD.cls('#t-h1, #t-h2', 'on', true);\n      MSD.cls('#t-p-history', 'on', true);\n      MSD.focus('#t-editor', '.t-panelbox');\n      MSD.after(120, function(){\n        MSD.q('#t-runbadge').textContent = 'RUN #2';\n        MSD.q('#t-runstate').textContent = 'replaying';\n        MSD.punch('#t-runbadge', 3);\n      });\n      MSD.after(560, function(){ MSD.cls('#t-l3', 'replayed', true); MSD.sfx.step(1); });\n      MSD.after(1000, function(){ MSD.cls('#t-l4', 'executing', true); MSD.sfx.blip(3); });\n      MSD.after(1700, function(){ MSD.cls('#t-h3', 'on', true); MSD.sfx.data(1); });\n      "
+    },
+    {
+      "title": "One step deeper each time",
+      "key": "One step deeper",
+      "desc": "Every completed activity extends the history, so each replay gets further before it stops.",
+      "status": "Replaying from history",
+      "thinking": true,
+      "durationMs": 2400,
+      "js": "\n      MSD.cls('#t-editor .t-line', 'show', true);\n      MSD.cls('#t-p-history', 'on', true);\n      MSD.cls('#t-h1, #t-h2, #t-h3', 'on', true);\n      MSD.cls('#t-l3', 'replayed', true);\n      MSD.focus('#t-editor', '.t-panelbox');\n      MSD.after(120, function(){\n        MSD.q('#t-runbadge').textContent = 'RUN #3';\n        MSD.punch('#t-runbadge', 4);\n        MSD.cls('#t-l4', 'executing', false);\n        MSD.cls('#t-l4', 'replayed', true);\n        MSD.sfx.step(2);\n      });\n      MSD.after(620, function(){ MSD.cls('#t-l5', 'executing', true); MSD.sfx.blip(4); });\n      MSD.after(1100, function(){ MSD.cls('#t-h4', 'on', true); MSD.sfx.data(2); });\n      MSD.after(1600, function(){ MSD.sfx.sparkle(); });\n      "
+    },
+    {
+      "title": "This is why DateTime breaks",
+      "key": "DateTime breaks",
+      "desc": "Anything non-deterministic returns a new value on every replay, so your code stops matching history.",
+      "status": "Replay mismatch",
+      "thinking": false,
+      "durationMs": 2400,
+      "js": "\n      MSD.cls('#t-editor .t-line', 'show', true);\n      MSD.cls('#t-l3, #t-l4', 'replayed', true);\n      MSD.cls('#t-p-history', 'on', false);\n      MSD.focus('.t-panelbox', '#t-editor');\n      MSD.cls('#t-p-trap', 'on', true);\n      MSD.qa('#t-p-trap .t-trow').forEach(function(el, i){\n        MSD.after(180 + i * 240, function(){ MSD.punch('#t-p-trap .t-trow:nth-child(' + (i + 1) + ')', i); });\n      });\n      MSD.after(1150, function(){ MSD.shake('#t-p-trap'); MSD.sfx.error(); });\n      "
+    },
+    {
+      "title": "Keep the replay invisible",
+      "key": "replay invisible",
+      "desc": "Use the context APIs for time and GUIDs, and the whole re-execution stays hidden from you.",
+      "status": "Orchestration complete",
+      "thinking": false,
+      "durationMs": 2400,
+      "js": "\n      MSD.unfocus();\n      MSD.cls('#t-editor .t-line', 'show', true);\n      MSD.cls('#t-l3, #t-l4, #t-l5', 'replayed', true);\n      MSD.cls('#t-p-trap', 'on', false);\n      MSD.cls('#t-p-fix', 'on', true);\n      MSD.q('#t-runbadge').textContent = 'RUN #14';\n      MSD.q('#t-runstate').textContent = 'completed';\n      MSD.show('.t-stat', 95, true);\n      MSD.after(140, function(){ MSD.count('#t-v1', 14, 520); MSD.sfx.blip(1); });\n      MSD.after(360, function(){ MSD.count('#t-v2', 3, 420); MSD.sfx.blip(3); });\n      MSD.after(580, function(){ MSD.count('#t-v3', 1, 380); MSD.sfx.blip(5); });\n      MSD.after(1050, function(){ MSD.flash('.t-stat'); MSD.sfx.sparkle(); });\n      "
+    }
+  ],
+  "end": {
+    "title": "Your orchestrator is a replay engine",
+    "sub": "The code reads top to bottom. Underneath, it re-runs from line one until every await has an answer."
+  },
+  "post": {
+    "caption": "Azure Durable Functions do not run your orchestrator once.\n\nThey run it from the top again after every activity, replaying completed steps from an event history — which is exactly why DateTime.UtcNow quietly breaks it.\n\nDid you know your orchestrator code re-executes?",
+    "hashtags": [
+      "#azure",
+      "#dotnet",
+      "#serverless",
+      "#durablefunctions",
+      "#azurefunctions",
+      "#cloudcomputing",
+      "#softwareengineering",
+      "#systemdesign",
+      "#csharp",
+      "#devcommunity",
+      "#msdevbuild"
+    ]
+  }
+}

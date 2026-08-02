@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 import { SITE } from '../../config';
 import { CATEGORIES, readingTime } from '../../lib/posts';
+import { getShorts } from '../../lib/shorts';
 import { renderOGCard, type OGCardOptions, type OGOutput } from '../../lib/og-card';
 
 /**
@@ -22,6 +23,7 @@ import { renderOGCard, type OGCardOptions, type OGOutput } from '../../lib/og-ca
  */
 const posts = await getCollection('blog', ({ data }) => import.meta.env.DEV || !data.draft);
 const publishedCount = posts.filter((p) => !p.data.draft).length;
+const shorts = getShorts();
 
 /** Widths the site's thumbnails ask for — one per srcset candidate. */
 const THUMB_WIDTHS = [800, 1200] as const;
@@ -48,6 +50,32 @@ const cards: Record<string, OGCardOptions> = {
           // long after publication, and "12 min read" ages better than a
           // month that makes the post look stale.
           meta: `${readingTime(post.body ?? '')} min read`,
+        } satisfies OGCardOptions,
+      ];
+    }),
+  ),
+
+  // The short videos. One shared to LinkedIn or WhatsApp needs a still that
+  // says what it is — a preview never plays, so the card carries the step
+  // count and the runtime instead.
+  shorts: {
+    title: 'One engineering idea, in about 30 seconds',
+    description:
+      'Short videos on Azure, AI, Python and architecture — one idea each, played out step by step, and written out underneath.',
+    eyebrow: 'Short videos',
+    meta: `${shorts.length} short videos`,
+  },
+  ...Object.fromEntries(
+    shorts.map((short) => {
+      const category = CATEGORIES[short.category];
+      return [
+        `short-${short.slug}`,
+        {
+          title: short.title,
+          description: short.sub,
+          eyebrow: category.label,
+          hue: category.hue,
+          meta: `${short.stages.length} steps · ${short.seconds}s`,
         } satisfies OGCardOptions,
       ];
     }),

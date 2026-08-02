@@ -11,8 +11,9 @@ import SiteChat from '../components/SiteChat.astro';
 import TestimonialForm from '../components/TestimonialForm.astro';
 import { homeTestimonials } from '../lib/testimonials';
 import { SITE, AUTHOR, BOOKING, SPEAKING_TOPICS, ADSENSE_SLOT_DISPLAY } from '../config';
-import { CATEGORIES, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
+import { CATEGORIES, coverArt, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
 import { allArticles, articleCategories, primaryCategory, capturePayload } from '../lib/articles';
+import { getShorts, shortUrl } from '../lib/shorts';
 import { featuredRepos, repoIndex, languageColor } from '../lib/repos';
 import { getUpcomingEvents, eventSchema } from '../lib/speaking';
 import { contributionPillars, publishingSpan } from '../lib/evidence';
@@ -48,6 +49,12 @@ const upcoming = await getUpcomingEvents();
 
 const pillars = contributionPillars();
 const span = publishingSpan();
+
+// Eight fits two rows of four on a laptop and four rows of two on a phone,
+// which is enough to read as a library rather than a teaser.
+const allShorts = getShorts();
+const shorts = allShorts.slice(0, 8);
+const shortCount = allShorts.length;
 
 const testimonials = homeTestimonials(5);
 const leadQuote = testimonials.filter((t) => t.featured).slice(0, 2);
@@ -331,6 +338,62 @@ const schema = [
           <SeriesQuickNav label="Jump into a series" />
         </div>
       </div>
+    </section>
+  )}
+
+  <!-- ══════════════ Short videos ══════════════
+       Directly after the blog, because it is the same material at a different
+       speed: a visitor who is not ready to start a 12-minute read will still
+       give 30 seconds to one idea, and that is a real entry point rather than
+       a bounce. Portrait cards, because the shorts are drawn portrait. -->
+  {shorts.length > 0 && (
+    <section class="mx-auto max-w-6xl px-4 section sm:px-6" aria-labelledby="shorts-heading">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">30-second learning</p>
+          <h2 id="shorts-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">
+            One idea, in about 30 seconds
+          </h2>
+        </div>
+        <a href="/shorts/" class="btn btn-outline btn-sm">All {shortCount} short videos</a>
+      </div>
+
+      <p class="mt-3 max-w-2xl leading-relaxed text-muted text-pretty">
+        Short videos that take a single engineering idea and play it out step by
+        step — and every step is written out underneath, so you can go back over
+        it at your own pace.
+      </p>
+
+      <ul class="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        {shorts.map((short) => {
+          const art = coverArt(short.slug, short.category);
+          return (
+            <li>
+              <a href={shortUrl(short)} class="group block">
+                <span
+                  class="relative block aspect-[9/16] overflow-hidden rounded-xl border border-default transition-transform duration-200 group-hover:-translate-y-1"
+                  style={`background: linear-gradient(${art.angle}deg, ${art.from}, ${art.to});`}
+                >
+                  <span class="absolute inset-x-2 top-2 text-[0.6rem] font-bold tracking-wide text-white/90 uppercase">
+                    {CATEGORIES[short.category].label}
+                  </span>
+                  <span class="absolute inset-0 grid place-items-center text-white/90">
+                    <svg class="size-8 drop-shadow" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M8 5.5v13l11-6.5-11-6.5Z" />
+                    </svg>
+                  </span>
+                  <span class="absolute right-2 bottom-2 rounded-full bg-black/35 px-2 py-0.5 text-[0.65rem] font-semibold text-white backdrop-blur-sm">
+                    {short.seconds}s
+                  </span>
+                </span>
+                <span class="mt-2 block text-sm leading-snug font-medium group-hover:text-accent">
+                  {short.title}
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   )}
 

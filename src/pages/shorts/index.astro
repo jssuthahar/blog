@@ -1,0 +1,296 @@
+---
+/**
+ * The short video hub — 30-second learning.
+ *
+ * One idea per short, played out step by step instead of described. The page is
+ * built to grow: every card, chip and count comes from whatever is in
+ * `src/content/Real/`, so adding a technology folder is the whole publishing
+ * step. Nothing on this page is hand-listed.
+ *
+ * Every short's steps are rendered as real text on its own page rather than
+ * living only inside the player. A search engine cannot watch anything — the
+ * writing is what gets indexed, quoted and ranked, and it is also what lets a
+ * reader take the idea at their own pace instead of the player's.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AppPromo from '../../components/AppPromo.astro';
+import AdUnit from '../../components/AdUnit.astro';
+import Newsletter from '../../components/Newsletter.astro';
+import FollowCTA from '../../components/FollowCTA.astro';
+import { SITE, AUTHOR, ADSENSE_SLOT_DISPLAY, ADSENSE_SLOT_MULTIPLEX } from '../../config';
+import {
+  shortCategories,
+  shortSearchText,
+  shortUrl,
+  getShorts,
+} from '../../lib/shorts';
+import { CATEGORIES, coverArt } from '../../lib/posts';
+
+const shorts = getShorts();
+const categories = shortCategories(shorts);
+const total = shorts.length;
+
+const description = `${total} short videos by ${AUTHOR.name} — one engineering idea in about 30 seconds, on Azure, AI, Python and architecture. Every step also written out.`;
+
+const schema = [
+  {
+    '@type': 'CollectionPage',
+    '@id': `${SITE.url}/shorts/#page`,
+    name: 'Short videos for developers',
+    description,
+    about: { '@id': `${SITE.url}/#person` },
+    isPartOf: { '@id': `${SITE.url}/#website` },
+    inLanguage: SITE.lang,
+  },
+  {
+    '@type': 'ItemList',
+    '@id': `${SITE.url}/shorts/#list`,
+    name: 'Short videos for developers',
+    numberOfItems: total,
+    itemListElement: shorts.map((short, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: new URL(shortUrl(short), SITE.url).href,
+      name: short.title,
+    })),
+  },
+];
+---
+
+<BaseLayout
+  title="Short videos"
+  description={description}
+  image="/og/shorts.png"
+  schema={schema}
+  wide
+>
+  <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:py-14">
+    <!-- ══════════════ Hero ══════════════ -->
+    <section class="max-w-3xl">
+      <p class="eyebrow">30-second learning · {total} short videos</p>
+      <h1 class="display mt-2 text-[2rem] leading-tight sm:text-4xl lg:text-[2.75rem]">
+        One engineering idea, in about 30 seconds
+      </h1>
+      <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">
+        Some things are faster to watch than to read. Each short takes a single
+        idea — how a Durable Function replays, why <code>b = a</code> is not a copy,
+        where Netflix actually streams from — and plays it out one step at a time.
+        Every step is written out under the player too, so you can go back over
+        it at your own pace instead of the player's.
+      </p>
+
+      <div class="mt-6 max-w-xl">
+        <label for="short-search" class="sr-only">Search shorts</label>
+        <div class="relative">
+          <svg
+            class="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+          </svg>
+          <input
+            id="short-search"
+            type="search"
+            autocomplete="off"
+            placeholder="Search shorts, topics and steps…"
+            class="w-full rounded-full border border-default bg-[var(--bg)] py-3.5 pr-4 pl-12 text-base shadow-sm transition-colors focus:border-[var(--accent)] focus:outline-none"
+          />
+        </div>
+      </div>
+
+      <FollowCTA variant="row" heading="New ones land here first:" class="mt-6" />
+    </section>
+
+    <!-- ══════════════ Filter by category ══════════════ -->
+    <div class="mt-12 border-t border-default pt-6">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="text-sm font-semibold tracking-wider uppercase text-muted">
+          Filter by category
+        </h2>
+        <p id="short-count" role="status" aria-live="polite" class="text-sm text-muted">
+          Showing all {total} shorts
+        </p>
+      </div>
+
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          data-filter="all"
+          aria-pressed="true"
+          class="filter-chip rounded-full border border-default px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-subtle"
+        >
+          All <span class="text-xs text-muted">{total}</span>
+        </button>
+        {categories.map((category) => (
+          <button
+            type="button"
+            data-filter={category.slug}
+            aria-pressed="false"
+            class="filter-chip rounded-full border border-default px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-subtle"
+          >
+            {category.label} <span class="text-xs text-muted">{category.count}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <!-- ══════════════ The shorts ══════════════
+         Posters, not players: twelve autoplaying iframes on one page is a
+         phone-melting amount of work for a listing. The short starts on its
+         own page, where the writing that explains it also lives. -->
+    <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {shorts.map((short) => {
+        const art = coverArt(short.slug, short.category);
+        const category = CATEGORIES[short.category];
+        return (
+          <article
+            data-short
+            data-category={short.category}
+            data-search={shortSearchText(short)}
+            class="group relative flex flex-col overflow-hidden rounded-xl border border-default bg-[var(--bg)] shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[var(--accent)] hover:shadow-lg"
+          >
+            <div
+              class="relative aspect-[4/3] overflow-hidden"
+              style={`background: linear-gradient(${art.angle}deg, ${art.from}, ${art.to});`}
+            >
+              <svg class="absolute inset-0 size-full opacity-25" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                {art.blobs.map((blob) => (
+                  <circle cx={blob.x} cy={blob.y} r={blob.r} fill="white" opacity="0.35" />
+                ))}
+              </svg>
+
+              <div class="relative flex size-full flex-col justify-between p-4">
+                <span class="self-start rounded-full bg-black/25 px-2.5 py-1 text-[0.7rem] font-semibold tracking-wide text-white uppercase backdrop-blur-sm">
+                  {category.label}
+                </span>
+                <div class="flex items-center gap-2 text-[0.72rem] font-medium text-white/90">
+                  <span class="inline-flex items-center gap-1.5 rounded-full bg-black/25 px-2.5 py-1 backdrop-blur-sm">
+                    <svg class="size-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M8 5.5v13l11-6.5-11-6.5Z" />
+                    </svg>
+                    {short.seconds}s
+                  </span>
+                  <span class="rounded-full bg-black/25 px-2.5 py-1 backdrop-blur-sm">
+                    {short.stages.length} steps
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-1 flex-col p-4">
+              <h3 class="line-clamp-2 font-semibold leading-snug tracking-tight">
+                <a href={shortUrl(short)} class="after:absolute after:inset-0 group-hover:text-accent">
+                  {short.title}
+                </a>
+              </h3>
+              <p class="mt-1.5 line-clamp-3 flex-1 text-sm leading-relaxed text-muted">
+                {short.sub}
+              </p>
+              <p class="mt-3 text-xs text-muted">{short.folderLabel}</p>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+
+    <p id="short-empty" hidden class="mt-10 rounded-lg border border-default bg-subtle p-6 text-muted">
+      Nothing matches that. Try a different term, or clear the category filter.
+    </p>
+
+    <!-- Responsive display unit below the grid, deliberately outside it: an ad
+         placed among the cards would be a grid child the category filter cannot
+         hide, so it would strand itself in an otherwise empty row. -->
+    <div class="mt-12">
+      <AdUnit slot={ADSENSE_SLOT_DISPLAY} format="display" class="!max-w-none" />
+    </div>
+
+    <!-- The shorts are portrait-first, so the app ask belongs on this page more
+         than on any other — the format is the argument. -->
+    <div class="mt-14">
+      <AppPromo />
+    </div>
+
+    <div class="mt-12">
+      <Newsletter source="shorts" />
+    </div>
+
+    <!-- Recommendation grid last. The newsletter ask comes first, so the
+         subscribe box is never the thing sitting after an advert. -->
+    <AdUnit slot={ADSENSE_SLOT_MULTIPLEX} format="multiplex" class="!max-w-none" />
+  </div>
+</BaseLayout>
+
+<style>
+  .filter-chip[aria-pressed='true'] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .filter-chip[aria-pressed='true'] span {
+    color: rgb(255 255 255 / 0.75);
+  }
+</style>
+
+<script>
+  /**
+   * Search + category filter over static HTML. Every short ships in the markup,
+   * so a crawler sees the whole set and the filter is instant with no fetch.
+   */
+  function initShortFilters() {
+    const search = document.getElementById('short-search') as HTMLInputElement | null;
+    const chips = [...document.querySelectorAll<HTMLButtonElement>('.filter-chip')];
+    const items = [...document.querySelectorAll<HTMLElement>('[data-short]')];
+    const count = document.getElementById('short-count');
+    const empty = document.getElementById('short-empty');
+
+    if (!search || items.length === 0) return;
+
+    // /shorts/?category=azure arrives pre-filtered, so a category link from
+    // anywhere on the site lands on the right slice.
+    const requested = new URLSearchParams(location.search).get('category');
+    let active = requested && chips.some((c) => c.dataset.filter === requested) ? requested : 'all';
+    for (const chip of chips) {
+      chip.setAttribute('aria-pressed', String(chip.dataset.filter === active));
+    }
+
+    const apply = () => {
+      const query = search.value.trim().toLowerCase();
+      let shown = 0;
+
+      for (const item of items) {
+        const matchesText = query === '' || item.dataset.search!.includes(query);
+        const matchesCategory = active === 'all' || item.dataset.category === active;
+        const visible = matchesText && matchesCategory;
+        item.hidden = !visible;
+        if (visible) shown++;
+      }
+
+      if (count) {
+        count.textContent =
+          shown === 0
+            ? 'No matching shorts'
+            : shown === items.length
+              ? `Showing all ${shown} shorts`
+              : shown === 1
+                ? 'Showing 1 short'
+                : `Showing ${shown} shorts`;
+      }
+      if (empty) empty.hidden = shown > 0;
+    };
+
+    search.addEventListener('input', apply);
+    for (const chip of chips) {
+      chip.addEventListener('click', () => {
+        active = chip.dataset.filter!;
+        for (const other of chips) other.setAttribute('aria-pressed', String(other === chip));
+        apply();
+      });
+    }
+
+    apply();
+  }
+
+  initShortFilters();
+  document.addEventListener('astro:page-load', initShortFilters);
+</script>

@@ -33,6 +33,7 @@ const ICONS: Record<string, string> = {
   more: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
   library: '<path d="M5 4.5h5a2 2 0 0 1 2 2V20a2 2 0 0 0-2-2H5Z"/><path d="M19 4.5h-5a2 2 0 0 0-2 2V20a2 2 0 0 1 2-2h5Z"/><path d="M12 6.5V18"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  watch: '<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 9.5v5l4.5-2.5-4.5-2.5Z"/>',
   events: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',
   speaking: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11.5a7 7 0 0 0 14 0"/><path d="M12 18.5V21"/>',
   code: '<path d="m9 8-5 4 5 4"/><path d="m15 8 5 4-5 4"/>',
@@ -67,6 +68,7 @@ const HOME: (Item & { mode: 'browser' | 'app' })[] = [
 
 const MORE: Item[] = [
   { label: 'Blog', href: '/blog/', icon: 'blog' },
+  { label: 'Shorts', href: '/shorts/', icon: 'watch' },
   { label: 'Series', href: '/series/', icon: 'series' },
   { label: 'Articles', href: '/articles/', icon: 'articles' },
   { label: 'Events', href: '/events/', icon: 'events' },

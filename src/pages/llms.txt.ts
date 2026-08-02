@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { SITE, AUTHOR, MAIN_SITE } from '../config';
 import { CATEGORIES, getPublishedPosts, postUrl, type CategoryId } from '../lib/posts';
+import { shortUrl, getShorts } from '../lib/shorts';
 
 /**
  * /llms.txt — a Markdown map of the site for large language models.
@@ -26,6 +27,28 @@ export const GET: APIRoute = async () => {
 
   const topics = SITE.topics.map((t) => `- ${t}`).join('\n');
 
+  /**
+   * The short videos, listed with their Markdown twins.
+   *
+   * A model cannot watch anything, so pointing it at the .md — where every step
+   * is written out in order — is the only way this content is readable at all.
+   * Kept in its own section so it is clear these are short videos rather than
+   * full articles.
+   */
+  const shorts = getShorts();
+  const shortSection = shorts.length
+    ? `## Short videos
+
+Short videos, one engineering idea each, about 30 seconds. The Markdown twin of each contains every step written out in order.
+
+${shorts
+  .map(
+    (a) =>
+      `- [${a.title}](${new URL(`/shorts/${a.slug}.md`, SITE.url).href}): ${a.sub} (${a.stages.length} steps, ~${a.seconds}s — page: ${new URL(shortUrl(a), SITE.url).href})`,
+  )
+  .join('\n')}`
+    : null;
+
   const body = `# ${SITE.title} — ${SITE.alternateName}
 
 > ${SITE.description}
@@ -44,6 +67,7 @@ Author profile and verified identity links: ${SITE.url}/about
 
 ${sections.join('\n\n')}
 
+${shortSection ? `${shortSection}\n` : ''}
 ## Optional
 
 - [RSS feed](${SITE.url}/rss.xml): machine-readable index of all posts

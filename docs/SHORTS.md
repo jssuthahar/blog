@@ -125,6 +125,9 @@ Once the three files are in the folder, the short automatically gets:
 - a card in the "30-second learning" band on the home page
 - a tile in the app feed at `/app/`
 - a dated row on `/contributions/` (when `publishedAt` is set)
+- a poster drawn from its own title card — the `<em>` in `title.main` is what
+  gets picked out in accent on it, so put the emphasis where the idea is
+- reactions (like / love / celebrate / insightful), counted in Firestore
 - a share image at `/og/short-<slug>.png`
 - a Markdown twin at `/shorts/<slug>.md` for AI crawlers
 - a `HowTo` structured-data block built from its steps

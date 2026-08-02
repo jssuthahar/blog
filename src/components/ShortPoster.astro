@@ -1,0 +1,200 @@
+---
+/**
+ * The still that stands in for a short before it is opened.
+ *
+ * It is a rebuild of the short's OWN title card — same deep navy canvas, same
+ * blue glow and grid, same headline with the key phrase picked out in accent —
+ * so the poster and the thing it opens are recognisably one object. A flat
+ * gradient with a play triangle told the visitor nothing: every card looked
+ * identical except for its colour, and the colour meant nothing to them.
+ *
+ * Always dark, in both site themes, for the same reason a video thumbnail is:
+ * it is a picture of the player, not a panel of the page.
+ *
+ * Text scales with the card rather than with the root font size, so one
+ * component serves the 106px tile in the app rail and the 300px card on the
+ * home page without a size prop. That is what `container-type: inline-size`
+ * plus `cqw` units buy — the poster is legible at every width it is used at.
+ */
+import type { Short } from '../lib/shorts';
+import { CATEGORIES } from '../lib/posts';
+
+interface Props {
+  short: Short;
+  /** Hides the meta row on the smallest tiles, where it would be unreadable. */
+  compact?: boolean;
+  class?: string;
+}
+
+const { short, compact = false, class: className = '' } = Astro.props;
+const category = CATEGORIES[short.category];
+---
+
+<span
+  class:list={['poster', compact && 'poster--compact', className]}
+  style={`--poster-hue: ${category.hue};`}
+>
+  <span class="poster__grid" aria-hidden="true"></span>
+  <span class="poster__glow" aria-hidden="true"></span>
+
+  <span class="poster__top">
+    <span class="poster__brand">MSDEVBUILD</span>
+    <span class="poster__cat">{short.folderLabel}</span>
+  </span>
+
+  <!-- The headline exactly as the short's own title card renders it, <em> and
+       all — that emphasis is where the idea lives. -->
+  <span class="poster__title" set:html={short.titleHtml} />
+
+  <span class="poster__foot">
+    <span class="poster__play" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z" /></svg>
+    </span>
+    {!compact && (
+      <span class="poster__meta">{short.stages.length} steps · {short.seconds}s</span>
+    )}
+  </span>
+</span>
+
+<style>
+  .poster {
+    container-type: inline-size;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    aspect-ratio: 9 / 16;
+    overflow: hidden;
+    border-radius: 0.85rem;
+    /* The player's own canvas colour, so opening a short is not a jump cut. */
+    background:
+      radial-gradient(circle at 50% 0%, oklch(0.5 0.16 var(--poster-hue) / 0.42), transparent 58%),
+      radial-gradient(circle at 12% 96%, oklch(0.42 0.14 var(--poster-hue) / 0.38), transparent 46%),
+      #0e1420;
+    border: 1px solid oklch(0.55 0.14 var(--poster-hue) / 0.28);
+    padding: 7cqw;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .poster__grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgb(255 255 255 / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+    background-size: 14cqw 14cqw;
+  }
+
+  /* A soft top-left key light, so the card reads as a lit surface rather than
+     a printed rectangle. */
+  .poster__glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      70% 40% at 50% 38%,
+      oklch(0.72 0.14 var(--poster-hue) / 0.22),
+      transparent 70%
+    );
+  }
+
+  .poster__top,
+  .poster__title,
+  .poster__foot {
+    position: relative;
+    z-index: 1;
+  }
+
+  .poster__top {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5cqw;
+  }
+
+  .poster__brand {
+    font-size: 4.4cqw;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    color: oklch(0.78 0.13 var(--poster-hue));
+  }
+
+  .poster__cat {
+    font-size: 4cqw;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: rgb(255 255 255 / 0.5);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The headline is the poster. It gets the whole middle and as many lines as
+     it needs, clamped so a long one cannot push the meta row out of frame. */
+  .poster__title {
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-block: auto;
+    padding-block: 4cqw;
+    font-size: 9.2cqw;
+    font-weight: 800;
+    line-height: 1.14;
+    letter-spacing: -0.02em;
+    color: #fff;
+    text-wrap: balance;
+  }
+
+  /* Same treatment the short's own title card gives it: not italic, accent. */
+  .poster__title :global(em) {
+    font-style: normal;
+    color: oklch(0.78 0.15 var(--poster-hue));
+  }
+
+  .poster__foot {
+    display: flex;
+    align-items: center;
+    gap: 3cqw;
+  }
+
+  .poster__play {
+    display: grid;
+    place-items: center;
+    width: 13cqw;
+    height: 13cqw;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.12);
+    border: 1px solid rgb(255 255 255 / 0.22);
+    color: #fff;
+    backdrop-filter: blur(4px);
+  }
+  .poster__play svg {
+    width: 6cqw;
+    height: 6cqw;
+    margin-left: 0.6cqw;
+  }
+
+  .poster__meta {
+    font-size: 4.2cqw;
+    font-weight: 600;
+    color: rgb(255 255 255 / 0.62);
+  }
+
+  /* Tiles too small for a six-line headline: fewer lines, bigger type. */
+  .poster--compact {
+    padding: 8cqw;
+  }
+  .poster--compact .poster__cat {
+    display: none;
+  }
+  .poster--compact .poster__title {
+    -webkit-line-clamp: 4;
+    font-size: 11cqw;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    :global(a:hover) > .poster {
+      transform: translateY(-2px);
+      border-color: oklch(0.7 0.15 var(--poster-hue) / 0.6);
+    }
+  }
+</style>

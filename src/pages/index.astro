@@ -24,6 +24,7 @@ import MicrosoftBadges from '../components/MicrosoftBadges.astro';
 import RecentlyRead from '../components/RecentlyRead.astro';
 import SeriesQuickNav from '../components/SeriesQuickNav.astro';
 import CoverArt from '../components/CoverArt.astro';
+import ShortPoster from '../components/ShortPoster.astro';
 import { formatEventDate, FORMAT_LABELS } from '../lib/speaking';
 
 const posts = await getPublishedPosts();
@@ -365,34 +366,16 @@ const schema = [
       </p>
 
       <ul class="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {shorts.map((short) => {
-          const art = coverArt(short.slug, short.category);
-          return (
-            <li>
-              <a href={shortUrl(short)} class="group block">
-                <span
-                  class="relative block aspect-[9/16] overflow-hidden rounded-xl border border-default transition-transform duration-200 group-hover:-translate-y-1"
-                  style={`background: linear-gradient(${art.angle}deg, ${art.from}, ${art.to});`}
-                >
-                  <span class="absolute inset-x-2 top-2 text-[0.6rem] font-bold tracking-wide text-white/90 uppercase">
-                    {CATEGORIES[short.category].label}
-                  </span>
-                  <span class="absolute inset-0 grid place-items-center text-white/90">
-                    <svg class="size-8 drop-shadow" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M8 5.5v13l11-6.5-11-6.5Z" />
-                    </svg>
-                  </span>
-                  <span class="absolute right-2 bottom-2 rounded-full bg-black/35 px-2 py-0.5 text-[0.65rem] font-semibold text-white backdrop-blur-sm">
-                    {short.seconds}s
-                  </span>
-                </span>
-                <span class="mt-2 block text-sm leading-snug font-medium group-hover:text-accent">
-                  {short.title}
-                </span>
-              </a>
-            </li>
-          );
-        })}
+        {shorts.map((short) => (
+          <li>
+            <a href={shortUrl(short)} class="group block">
+              <ShortPoster short={short} />
+              <span class="mt-2 block text-sm leading-snug font-medium group-hover:text-accent">
+                {short.title}
+              </span>
+            </a>
+          </li>
+        ))}
       </ul>
     </section>
   )}

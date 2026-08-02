@@ -21,6 +21,7 @@ import AppPromo from '../../components/AppPromo.astro';
 import AdUnit from '../../components/AdUnit.astro';
 import Newsletter from '../../components/Newsletter.astro';
 import ShareRow from '../../components/ShareRow.astro';
+import Reactions from '../../components/Reactions.astro';
 import { SITE, ADSENSE_SLOT_IN_ARTICLE, ADSENSE_SLOT_MULTIPLEX } from '../../config';
 import { shortUrl, getShorts, type Short } from '../../lib/shorts';
 import { CATEGORIES, getPublishedPosts, postUrl } from '../../lib/posts';
@@ -132,6 +133,16 @@ const schema = [
       <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">{short.sub}</p>
     </header>
 
+    <!-- Reactions and share sit above the player rather than after the steps.
+         A short is thirty seconds long: by the time someone has watched it they
+         have already decided what they think, and a control they have to scroll
+         back up — or all the way down — to reach is a control they do not use.
+         One instance only; the Reactions script binds a single root per page. -->
+    <div class="mt-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-y border-default py-4">
+      <Reactions slug={`short-${short.slug}`} />
+      <ShareRow title={`${short.title} — a ${short.seconds}-second short video`} path={shortUrl(short)} />
+    </div>
+
     <!-- ══════════════ Player + steps ══════════════ -->
     <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-12">
       <div class="lg:sticky lg:top-24 lg:self-start">
@@ -186,9 +197,6 @@ const schema = [
           <p class="mt-2 leading-relaxed text-muted text-pretty">{short.end.sub}</p>
         </aside>
 
-        <div class="mt-8">
-          <ShareRow title={`${short.title} — a ${short.seconds}-second short`} path={shortUrl(short)} />
-        </div>
       </div>
     </div>
 

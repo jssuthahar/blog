@@ -8,12 +8,12 @@
  * 12-minute read are different intentions, and mixing them into one column
  * makes the reader judge every card twice.
  *
- * Newest technology areas first is not knowable — the specs carry no date — so
- * the order is the hub's own (title-sorted), capped to what fits a couple of
- * swipes. The last tile is a link to the full hub, so the rail never dead-ends.
+ * Order is the hub's own — dated shorts newest first — capped to what fits a
+ * couple of swipes. The last tile links on to the full hub, so a rail that has
+ * run out of tiles never dead-ends.
  */
 import { getShorts, shortUrl } from '../lib/shorts';
-import { CATEGORIES, coverArt } from '../lib/posts';
+import ShortPoster from './ShortPoster.astro';
 
 /** Two comfortable swipes on a phone. More than this belongs on /shorts. */
 const MAX_TILES = 8;
@@ -36,31 +36,18 @@ const total = getShorts().length;
 
     <div class="app-rail mt-3">
       <ul class="flex gap-3 overflow-x-auto px-4 pb-1">
-        {shorts.map((short) => {
-          const art = coverArt(short.slug, short.category);
-          const category = CATEGORIES[short.category];
-          return (
-            <li class="shrink-0">
-              <a href={shortUrl(short)} class="app-short">
-                <span
-                  class="app-short__art"
-                  style={`background: linear-gradient(${art.angle}deg, ${art.from}, ${art.to});`}
-                >
-                  <span class="app-short__cat">{category.label}</span>
-                  <span class="app-short__play" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z" /></svg>
-                  </span>
-                  <span class="app-short__time">{short.seconds}s</span>
-                </span>
-                <span class="app-short__title">{short.title}</span>
-              </a>
-            </li>
-          );
-        })}
+        {shorts.map((short) => (
+          <li class="shrink-0">
+            <a href={shortUrl(short)} class="app-short">
+              <ShortPoster short={short} compact />
+              <span class="app-short__title">{short.title}</span>
+            </a>
+          </li>
+        ))}
 
         <li class="shrink-0">
           <a href="/shorts/" class="app-short">
-            <span class="app-short__art app-short__art--more">
+            <span class="app-short__more-art">
               <span class="app-short__more" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                   <path d="M5 12h14M13 6l6 6-6 6" />
@@ -89,68 +76,19 @@ const total = getShorts().length;
     gap: 0.4rem;
   }
 
-  /* 9:16, the shape the shorts are authored at — a landscape thumbnail would
-     misrepresent what opens when you tap it. */
-  .app-short__art {
-    position: relative;
-    display: block;
-    aspect-ratio: 9 / 16;
-    overflow: hidden;
-    border-radius: 0.75rem;
-    border: 1px solid var(--border);
-    transition: transform 0.15s ease;
-  }
-  .app-short:active .app-short__art {
+  /* The poster itself is drawn by ShortPoster; the rail owns only the press
+     feedback and the tile that links on to the hub. */
+  .app-short:active :global(.poster) {
     transform: scale(0.96);
   }
 
-  .app-short__cat {
-    position: absolute;
-    top: 0.4rem;
-    left: 0.4rem;
-    right: 0.4rem;
-    font-size: 0.55rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: rgb(255 255 255 / 0.92);
-    text-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .app-short__play {
-    position: absolute;
-    inset: 0;
+  .app-short__more-art {
     display: grid;
     place-items: center;
-    color: rgb(255 255 255 / 0.9);
-  }
-  .app-short__play svg {
-    width: 1.6rem;
-    height: 1.6rem;
-    filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.4));
-  }
-
-  .app-short__time {
-    position: absolute;
-    right: 0.35rem;
-    bottom: 0.35rem;
-    border-radius: 999px;
-    background: rgb(0 0 0 / 0.4);
-    padding: 0.1rem 0.4rem;
-    font-size: 0.6rem;
-    font-weight: 600;
-    color: #fff;
-    backdrop-filter: blur(4px);
-  }
-
-  .app-short__art--more {
-    display: grid;
-    place-items: center;
+    aspect-ratio: 9 / 16;
+    border-radius: 0.85rem;
     background: var(--bg-subtle);
-    border-style: dashed;
+    border: 1px dashed var(--border);
   }
   .app-short__more svg {
     width: 1.4rem;

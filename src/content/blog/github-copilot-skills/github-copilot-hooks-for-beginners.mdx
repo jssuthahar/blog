@@ -1,7 +1,7 @@
 ---
 title: 'GitHub Copilot Hooks for Beginners: Why You Need Them and What You Can Build'
 description: 'A beginner GitHub Copilot Hooks tutorial: what a hook is, why an AI agent needs deterministic guardrails, and how to write your first one in ten minutes.'
-publishedAt: 2026-07-26
+publishedAt: 2026-08-02
 category: copilot
 categories: ['ai', 'engineering']
 tags: ['GitHub Copilot', 'GitHub Copilot Hooks', 'Copilot CLI', 'Copilot agent', 'AI coding safety', 'preToolUse', 'Deterministic guardrails', 'Automation', 'DevOps']
@@ -9,8 +9,8 @@ seoTitle: 'GitHub Copilot Hooks for Beginners: Why and What to Build'
 highlight: 'A GitHub Copilot hook is a small shell script that runs automatically at a fixed point in an agent session, outside the AI model. Because it runs outside the model, it is deterministic: it does exactly what you told it, every time. Instructions ask the AI nicely. Hooks enforce. The checks you must never skip belong in a hook, not in a polite request to a probabilistic model.'
 series: 'agents-md-instructions'
 seriesOrder: 10
-featured: false
-draft: true
+featured: true
+draft: false
 faq:
   - q: 'What are GitHub Copilot hooks?'
     a: 'GitHub Copilot hooks are custom shell commands or scripts that run automatically at fixed points during a Copilot agent or Copilot CLI session, such as when the session starts or before the agent runs a tool. They execute outside the AI model, so they are deterministic: they do exactly what you configured, every time, and they can enforce rules the model might otherwise ignore.'

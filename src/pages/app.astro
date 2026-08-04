@@ -241,15 +241,25 @@ const totalShorts = getShorts().length;
   /*
    * Filtering.
    *
-   * Promotions show on All only. They are placed against the mixed order — one
-   * after every fifth item — and a filtered feed of four shorts would inherit a
-   * density that was never designed for it.
+   * Content is hidden unless it is the kind the tab asked for. Promotions are
+   * hidden unless they were positioned for that tab — every tab has its own,
+   * counted against its own items, so a reader who stays in Shorts still meets
+   * the follow asks instead of a feed with every promotion stripped out of it.
+   * See `shownIn` in lib/app-feed.ts.
    */
-  .app-feed:not([data-filter='all']) [data-kind='promo'],
   .app-feed[data-filter='short'] [data-feed-item]:not([data-kind='short']),
   .app-feed[data-filter='blog'] [data-feed-item]:not([data-kind='blog']),
-  .app-feed[data-filter='article'] [data-feed-item]:not([data-kind='article']) {
+  .app-feed[data-filter='article'] [data-feed-item]:not([data-kind='article']),
+  .app-feed[data-filter='all'] [data-kind='promo']:not([data-for~='all']) {
     display: none;
+  }
+
+  /* …and back for the promotions that belong to the open tab. Same specificity
+     as the rule above, so it has to come after it to win. */
+  .app-feed[data-filter='short'] [data-kind='promo'][data-for~='short'],
+  .app-feed[data-filter='blog'] [data-kind='promo'][data-for~='blog'],
+  .app-feed[data-filter='article'] [data-kind='promo'][data-for~='article'] {
+    display: grid;
   }
 
   /*

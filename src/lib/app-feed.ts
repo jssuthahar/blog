@@ -71,6 +71,16 @@ export interface ArticleItem {
  */
 export interface PromoItem {
   kind: 'promo';
+  /**
+   * Which filter tabs this promotion belongs to.
+   *
+   * A promotion is placed against a running count of content, so its position
+   * is only correct for the tab it was counted in: one placed after the fifth
+   * item of the mixed feed sits after the third short once everything else is
+   * filtered out. So each tab gets its own promotions at its own positions, and
+   * the ones that do not belong are hidden — see the filter rules in app.astro.
+   */
+  shownIn: FeedKind[] | ['all'];
   promo:
     | { type: 'social'; id: string; icon: string; label: string; handle: string; action: string; blurb: string; href: string }
     | { type: 'newsletter' }
@@ -94,8 +104,24 @@ export type FeedItem = ShortItem | BlogItem | ArticleItem | PromoItem;
  * to /shorts, where they arrive one page at a time.
  */
 const MAX_SHORTS = 6;
-const MAX_POSTS = 12;
-const MAX_ARTICLES = 10;
+
+/**
+ * Everything published, in practice — there are thirteen posts. The cap is a
+ * ceiling for later rather than a limit that bites today.
+ */
+const MAX_POSTS = 20;
+
+/**
+ * Thirty of the two hundred and thirty-six syndicated articles.
+ *
+ * Ten was too few — the Articles tab looked like the whole library. Thirty is
+ * about eight screens of scrolling in that tab, and costs roughly a kilobyte of
+ * markup each, which is nothing next to one short. The rest are one tap away on
+ * /articles, and the end-of-feed card says so; shipping all 236 would add a
+ * quarter of a megabyte to the app's start_url for a tab most readers never
+ * reach the bottom of.
+ */
+const MAX_ARTICLES = 30;
 
 /**
  * One promotion per five pieces of content.
@@ -140,31 +166,28 @@ function adPromo(): PromoItem['promo'] | null {
     : { type: 'ad', slot, format: 'display' };
 }
 
-function promoAt(index: number): PromoItem | null {
+function promoAt(index: number, allowAds: boolean): PromoItem['promo'] | null {
   const id = PROMO_ORDER[index % PROMO_ORDER.length];
 
   if (id === 'ad') {
-    const promo = adPromo();
+    if (!allowAds) return null;
     // No configured slot means no ad card at all, rather than an empty frame
     // sitting between two items the reader wanted.
-    return promo ? { kind: 'promo', promo } : { kind: 'promo', promo: { type: 'newsletter' } };
+    return adPromo();
   }
-  if (id === 'newsletter') return { kind: 'promo', promo: { type: 'newsletter' } };
+  if (id === 'newsletter') return { type: 'newsletter' };
 
   const social = SOCIAL.find((s) => s.id === id);
   if (!social) return null;
   return {
-    kind: 'promo',
-    promo: {
-      type: 'social',
-      id: social.id,
-      icon: social.icon,
-      label: social.label,
-      handle: social.handle,
-      action: social.action,
-      blurb: social.blurb,
-      href: social.href,
-    },
+    type: 'social',
+    id: social.id,
+    icon: social.icon,
+    label: social.label,
+    handle: social.handle,
+    action: social.action,
+    blurb: social.blurb,
+    href: social.href,
   };
 }
 
@@ -298,11 +321,33 @@ export function buildFeed(posts: Post[]): FeedItem[] {
     }),
   };
 
+  /**
+   * The next promotion in the rotation.
+   *
+   * One cursor for the whole page, so no reader ever meets the same ask twice
+   * in a row across two tabs. The newsletter is allowed exactly once anywhere:
+   * it is a form whose input ids are derived from its source, and a second copy
+   * would be duplicate ids with a label pointing at the wrong box.
+   */
+  let cursor = 0;
+  let newsletterPlaced = false;
+
+  function nextPromo(shownIn: PromoItem['shownIn'], allowAds: boolean): PromoItem | null {
+    for (let guard = 0; guard < PROMO_ORDER.length * 2; guard++) {
+      const promo = promoAt(cursor++, allowAds);
+      if (!promo) continue;
+      if (promo.type === 'newsletter') {
+        if (newsletterPlaced) continue;
+        newsletterPlaced = true;
+      }
+      return { kind: 'promo', shownIn, promo };
+    }
+    return null;
+  }
+
   const feed: FeedItem[] = [];
   let slot = 0;
   let content = 0;
-  let promos = 0;
-  let newsletterPlaced = false;
 
   while (queues.short.length + queues.blog.length + queues.article.length > 0) {
     const wanted = PATTERN[slot % PATTERN.length];
@@ -315,23 +360,57 @@ export function buildFeed(posts: Post[]): FeedItem[] {
     content++;
 
     if (content % PROMO_EVERY === 0) {
-      // The newsletter card is a form with ids derived from its source, so a
-      // second one on the page would be duplicate ids and a label pointing at
-      // the wrong input. Skip past a repeat rather than render it — the
-      // rotation is long enough that there is always something else to ask.
-      let promo = promoAt(promos);
-      while (promo?.promo.type === 'newsletter' && newsletterPlaced) {
-        promos++;
-        promo = promoAt(promos);
-        if (promos > PROMO_ORDER.length * 2) break;
-      }
-
-      if (promo) {
-        if (promo.promo.type === 'newsletter') newsletterPlaced = true;
-        feed.push(promo);
-        promos++;
-      }
+      const promo = nextPromo(['all'], true);
+      if (promo) feed.push(promo);
     }
+  }
+
+  /**
+   * Now the same again for each tab on its own.
+   *
+   * Without this, filtering emptied the feed of every ask: the promotions were
+   * positioned against the mixed order and hidden everywhere else, so a reader
+   * who tapped Shorts and stayed there was never asked to follow anything.
+   * Each tab gets its own promotions, counted against its own items, inserted
+   * straight after the item they follow so the DOM order is right once the
+   * other kinds are hidden.
+   *
+   * These carry no adverts, and that is a constraint rather than a preference.
+   * AdSense fills a unit once, on load, and refuses a slot that measures zero
+   * pixels wide — which is exactly what an `<ins>` inside a `display: none`
+   * card measures. An advert placed in a tab that is not open at load would be
+   * marked unfilled before anyone could see it, and would stay blank for the
+   * rest of the visit. So the adverts live in the mixed feed, which is the tab
+   * every visit opens on, and the tabs get the follow asks.
+   */
+  for (const kind of ['short', 'blog', 'article'] as const) {
+    const total = feed.filter((item) => item.kind === kind).length;
+    if (total === 0) continue;
+
+    /*
+     * A tab with fewer items than the interval would get nothing at all — which
+     * is exactly what happened to Shorts, four items against an interval of
+     * five. Below the interval the single ask goes after the last item instead,
+     * so every tab makes the ask once even when it is short.
+     */
+    const every = total >= PROMO_EVERY ? PROMO_EVERY : total;
+
+    const withPromos: FeedItem[] = [];
+    let seen = 0;
+
+    for (const item of feed) {
+      withPromos.push(item);
+      if (item.kind !== kind) continue;
+
+      seen++;
+      if (seen % every !== 0) continue;
+
+      const promo = nextPromo([kind], false);
+      if (promo) withPromos.push(promo);
+    }
+
+    feed.length = 0;
+    feed.push(...withPromos);
   }
 
   return feed;

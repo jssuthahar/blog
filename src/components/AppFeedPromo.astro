@@ -26,7 +26,7 @@ interface Props {
   item: PromoItem;
 }
 
-const { promo } = Astro.props.item as PromoItem;
+const { promo, shownIn } = Astro.props.item as PromoItem;
 
 // The same glyphs FollowCTA draws, so a follow button looks the same wherever
 // the reader meets it. Single filled paths — no stroke pass, no icon package.
@@ -58,7 +58,9 @@ const HUES: Record<string, number> = {
 };
 ---
 
-<article class="feed-item feed-promo" data-feed-item data-kind="promo">
+<!-- `data-for` lists the filter tabs this promotion was positioned for; the
+     filter rules in app.astro show it in those and hide it in the rest. -->
+<article class="feed-item feed-promo" data-feed-item data-kind="promo" data-for={shownIn.join(' ')}>
   {promo.type === 'social' && (
     <div class="feed-promo__card" style={`--promo-hue: ${HUES[promo.id] ?? 250};`}>
       <p class="feed-promo__eyebrow">Keep up with the work</p>

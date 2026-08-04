@@ -74,11 +74,6 @@ const { slug, title, path, category, hue, present = false, align = 'center' } = 
         <slot name="meta" />
       </div>
 
-      <!-- Said once, quietly, because a feature nobody knows the gesture for may
-           as well not exist. It removes itself for good after the first
-           highlight. -->
-      <span class="reader-bar__hint" data-rt-hint>Select any text to highlight or share it</span>
-
       <!--
         One segmented cluster, icons only.
 
@@ -480,22 +475,6 @@ const { slug, title, path, category, hue, present = false, align = 'center' } = 
     color: var(--text-muted);
   }
 
-  /* Only where there is genuinely room beside the meta line. It is a hint, and
-     a hint that pushes the controls onto a second row has cost more than it is
-     worth. */
-  .reader-bar__hint {
-    font-size: 0.74rem;
-    color: var(--text-muted);
-  }
-  .reader-bar__hint[hidden] {
-    display: none;
-  }
-  @media (max-width: 1023px) {
-    .reader-bar__hint {
-      display: none;
-    }
-  }
-
   /* ── Selection toolbar ── */
   .rt-pop {
     position: fixed;
@@ -794,8 +773,6 @@ const { slug, title, path, category, hue, present = false, align = 'center' } = 
   import { SIZES, drawQuoteCard, shareCard, type CardSize } from '../lib/quote-card';
   import { SITE } from '../config';
 
-  const HINT_SEEN = 'msd:rt-hint-seen';
-
   let bound: HTMLElement | null = null;
 
   /**
@@ -835,7 +812,6 @@ const { slug, title, path, category, hue, present = false, align = 'center' } = 
     const empty = drawer.querySelector<HTMLElement>('[data-rt-empty]')!;
     const foot = drawer.querySelector<HTMLElement>('[data-rt-foot]')!;
     const countEl = bar.querySelector<HTMLElement>('[data-rt-count]')!;
-    const hint = bar.querySelector<HTMLElement>('[data-rt-hint]')!;
     const cardDialog = document.querySelector<HTMLElement>('[data-rt-card]')!;
 
     /** What the toolbar is currently pointed at. */
@@ -862,21 +838,7 @@ const { slug, title, path, category, hue, present = false, align = 'center' } = 
         countEl.dataset.bump = '';
       }
 
-      if (live.length > 0) {
-        hint.hidden = true;
-        try {
-          localStorage.setItem(HINT_SEEN, '1');
-        } catch {
-          /* Nothing to remember it with; the hint just shows again. */
-        }
-      }
       renderList();
-    }
-
-    try {
-      if (localStorage.getItem(HINT_SEEN) !== null) hint.hidden = true;
-    } catch {
-      /* Private mode: the hint is shown, which is the harmless direction. */
     }
 
     /* ─────────────────────────────────────────────────────── toolbar ──── */

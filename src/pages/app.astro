@@ -2,57 +2,55 @@
 /**
  * The installed app's home screen, and the manifest's start_url.
  *
- * A phone launched from the home screen has no address bar and no patience for
- * a marketing page: it wants the reading queue. So the installed entry point is
- * its own route rather than a standalone-only branch of `/` — that keeps the
- * feed's markup out of every browser visitor's HTML, and keeps this page out of
- * the index (noindex) since it is a shell around content that lives elsewhere.
+ * One feed, one item at a time, the way a phone is actually held: a short plays
+ * full height, a swipe brings the article that explains it properly, another
+ * swipe brings the next short. It replaced three stacked strips — a shorts
+ * rail, a series rail and a column of cards — which asked the reader to choose
+ * a section before they could choose anything to watch or read, and which put
+ * the shorts on the smallest tiles on the screen.
  *
- * All behaviour for the feed lives in the one script at the bottom: ten cards
- * share a single set of listeners and a single IntersectionObserver.
+ * The feed is assembled at build time in lib/app-feed.ts and driven at runtime
+ * by lib/app-feed-client.ts. This file is the shell around them: the filter
+ * tabs, the scroll container that makes the snapping work, and the sizing that
+ * keeps exactly one item on screen between the header and the tab bar.
+ *
+ * Still noindex. Everything in the feed has its own indexable page, and this is
+ * the shell those pages are reached through.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
-import AdUnit from '../components/AdUnit.astro';
-import AppPostCard from '../components/AppPostCard.astro';
+import AppFeedPromo from '../components/AppFeedPromo.astro';
+import AppFeedRead from '../components/AppFeedRead.astro';
+import AppFeedShort from '../components/AppFeedShort.astro';
 import AppSeriesRail from '../components/AppSeriesRail.astro';
-import AppShortsRail from '../components/AppShortsRail.astro';
-import { getPublishedPosts, getSeriesIndex } from '../lib/posts';
-import {
-  ADSENSE_LAYOUT_KEY_IN_FEED,
-  ADSENSE_SLOT_DISPLAY,
-  ADSENSE_SLOT_IN_FEED,
-} from '../config';
+import { buildFeed, feedCounts } from '../lib/app-feed';
+import { getPublishedPosts } from '../lib/posts';
+import { getShorts } from '../lib/shorts';
 
-const [posts, series] = await Promise.all([getPublishedPosts(), getSeriesIndex()]);
+const posts = await getPublishedPosts();
+const feed = buildFeed(posts);
+const counts = feedCounts(feed);
 
-// Enough to scroll through on a phone without shipping the whole archive.
-const feed = posts.slice(0, 12);
-const seriesTitle = new Map(series.map((s) => [s.id, s.title]));
-
-/*
- * One ad, and only one, placed after the fourth card.
+/**
+ * The filter tabs.
  *
- * Deliberately mid-scroll: the reader has passed real content to reach it, and
- * it is nowhere near the tab bar or a card's own reaction row, where a stray
- * thumb would land on an ad instead of the control it aimed for. It also never
- * takes the last slot, so the feed does not end on an advert.
- *
- * Native in-feed when that unit exists, otherwise the responsive display unit —
- * a correct placement either way, just not native until the unit is created.
+ * "Blogs" and "Articles" are two genuinely different libraries, not a
+ * distinction invented for the tab bar: Blogs are the posts written here, and
+ * Articles are the syndicated library on msdevbuild.com, which opens off-site.
+ * A tab with nothing behind it is dropped rather than shown empty.
  */
-const AD_AFTER = 4;
-const adNative = Boolean(ADSENSE_SLOT_IN_FEED && ADSENSE_LAYOUT_KEY_IN_FEED);
-const adSlot = adNative ? ADSENSE_SLOT_IN_FEED : ADSENSE_SLOT_DISPLAY;
-// Only worth showing when enough cards follow it to keep the feed reading as a
-// feed rather than ending on an advert.
-const showAd = feed.length > AD_AFTER + 1;
-const feedBefore = showAd ? feed.slice(0, AD_AFTER) : feed;
-const feedAfter = showAd ? feed.slice(AD_AFTER) : [];
+const TABS = [
+  { id: 'all', label: 'All', count: counts.all },
+  { id: 'short', label: 'Shorts', count: counts.short },
+  { id: 'blog', label: 'Blogs', count: counts.blog },
+  { id: 'article', label: 'Articles', count: counts.article },
+].filter((tab) => tab.count > 0);
+
+const totalShorts = getShorts().length;
 ---
 
 <BaseLayout
   title="Your feed"
-  description="The latest engineering articles from MSDEVBUILD, plus the article you were last reading."
+  description="Short videos and engineering articles from MSDEVBUILD, one at a time."
   noindex
   ads
   wide
@@ -67,294 +65,369 @@ const feedAfter = showAd ? feed.slice(AD_AFTER) : [];
     }
   </script>
 
-  <div class="mx-auto max-w-2xl pb-10">
-    <AppSeriesRail />
-
-    <!-- Filled from this browser's reading history; stays collapsed when empty. -->
-    <div data-app-resume class="px-4 pt-3 empty:hidden"></div>
-
-    <!-- Shorts above the article feed: a 30-second watch and a long read are
-         different intentions, and one column would make the reader weigh every
-         card twice. -->
-    <AppShortsRail />
-
-    <div class="px-4 pt-6">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">Latest</p>
-          <h1 class="display mt-1 text-2xl">From the blog</h1>
-        </div>
-        <a href="/articles/" class="btn btn-outline btn-sm">All articles</a>
-      </div>
+  <div class="app-feed-shell">
+    <div class="app-feed-tabs" role="tablist" aria-label="Filter the feed">
+      {TABS.map((tab) => (
+        <button
+          type="button"
+          role="tab"
+          data-feed-tab={tab.id}
+          aria-selected={tab.id === 'all'}
+          aria-controls="app-feed"
+          class="app-feed-tab"
+        >
+          {tab.label}
+          <span class="app-feed-tab__count">{tab.count}</span>
+        </button>
+      ))}
     </div>
 
-    <div class="mt-4 grid grid-cols-1 gap-4 px-4">
-      {feedBefore.map((post, i) => (
-        <AppPostCard
-          post={post}
-          seriesTitle={post.data.series ? seriesTitle.get(post.data.series) : undefined}
-          eager={i === 0}
-        />
-      ))}
-
-      <!-- Hairlines on the page background, never card chrome: an ad must not be
-           mistakable for an article. min-h reserves a 320x100 banner so the cards
-           below it do not jump when the unit fills. -->
-      {showAd && (
-        <AdUnit
-          slot={adSlot}
-          format={adNative ? 'in-feed' : 'display'}
-          layoutKey={ADSENSE_LAYOUT_KEY_IN_FEED}
-          class="!my-0 !max-w-none min-h-[100px] border-y border-default py-4"
-        />
+    <!--
+      The scroll container, not the page. Mandatory snapping plus `scroll-snap-stop:
+      always` on every child is what makes one flick move exactly one item, and
+      `overscroll-behavior: contain` stops a flick at the end of the feed from
+      turning into a pull-to-refresh.
+    -->
+    <div id="app-feed" class="app-feed" data-app-feed data-filter="all" role="tabpanel">
+      {feed.map((item, index) =>
+        item.kind === 'short' ? (
+          <AppFeedShort item={item} first={index === 0} />
+        ) : item.kind === 'promo' ? (
+          <AppFeedPromo item={item} />
+        ) : (
+          <AppFeedRead item={item} first={index === 0} />
+        ),
       )}
 
-      {feedAfter.map((post) => (
-        <AppPostCard
-          post={post}
-          seriesTitle={post.data.series ? seriesTitle.get(post.data.series) : undefined}
-        />
-      ))}
-    </div>
+      <!-- The tail. A feed that simply stops reads as a failure to load; this
+           says the reader reached the end and points at the two libraries the
+           feed is a sample of. -->
+      <article class="feed-item feed-end">
+        <div class="feed-end__inner">
+          <p class="eyebrow">That is the feed</p>
+          <h2 class="feed-end__title">You are all caught up</h2>
+          <p class="feed-end__body">
+            That is the newest {counts.short} short {counts.short === 1 ? 'video' : 'videos'} and
+            {' '}{counts.blog + counts.article} things to read. Both libraries go back a lot further.
+          </p>
+          <div class="feed-end__actions">
+            <a href="/shorts/" class="btn btn-accent btn-sm">All {totalShorts} short videos</a>
+            <a href="/blog/" class="btn btn-outline btn-sm">The blog</a>
+            <a href="/articles/" class="btn btn-outline btn-sm">Article library</a>
+          </div>
 
-    <p class="px-4 pt-8 text-center text-sm text-muted">
-      That is the {feed.length} most recent.
-      <a href="/articles/" class="text-accent">Browse everything</a> to go further back.
-    </p>
+          <!-- The series rings, with how far this browser has got through each.
+               They used to sit at the top of /app, where they competed with the
+               feed for the first decision; at the end they are the answer to the
+               question the reader has just arrived at — what now? -->
+          <div class="feed-end__series">
+            <p class="eyebrow">Pick up a series</p>
+            <AppSeriesRail />
+          </div>
+
+          <p class="feed-end__hint">
+            <a href="/history/">Your library</a> keeps everything you saved and how far you
+            got in it.
+          </p>
+        </div>
+      </article>
+    </div>
   </div>
 </BaseLayout>
 
+<style is:global>
+  /*
+   * This page owns the viewport.
+   *
+   * The feed is the scroller, so the document itself must not scroll — two
+   * nested scrollers on a phone means a flick sometimes moves the page and
+   * sometimes moves the feed, which is the fastest way to make a snap feed feel
+   * broken. The footer goes with it: a footer under a full-height feed is
+   * unreachable by design, and leaving it in the flex column would just steal
+   * height from every item.
+   */
+  html:has(.app-feed-shell),
+  body:has(.app-feed-shell) {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  body:has(.app-feed-shell) .site-footer {
+    display: none;
+  }
+
+  .app-feed-shell {
+    /* The strip of filter tabs, and the site header above it. Both are subtracted
+       from the viewport so one feed item is exactly what is left. */
+    --tabs-h: 2.9rem;
+    --header-h: 4rem;
+    --feed-h: calc(100dvh - var(--header-h) - var(--tabs-h) - var(--app-nav-h));
+
+    margin-inline: auto;
+    width: 100%;
+    max-width: 30rem;
+  }
+
+  .app-feed-tabs {
+    display: flex;
+    height: var(--tabs-h);
+    align-items: stretch;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--border);
+    padding-inline: 0.5rem;
+    background: var(--bg);
+  }
+
+  .app-feed-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 0;
+    background: transparent;
+    padding-inline: 0.7rem;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app-feed-tab__count {
+    border-radius: 999px;
+    background: var(--bg-subtle);
+    padding: 0.05rem 0.4rem;
+    font-size: 0.66rem;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Marked twice — colour and a rule under the tab — so the current filter
+     reads for anyone who cannot separate the accent from the muted grey. */
+  .app-feed-tab[aria-selected='true'] {
+    color: var(--accent);
+  }
+  .app-feed-tab[aria-selected='true']::after {
+    content: '';
+    position: absolute;
+    inset: auto 0.5rem -1px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+  .app-feed-tab[aria-selected='true'] .app-feed-tab__count {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .app-feed {
+    height: var(--feed-h);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+  }
+  .app-feed::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Every item is exactly one screen of feed, and a flick can only ever land on
+     one of them. Defined here rather than in each component because the resume
+     item is built in the browser and has no component to be scoped to. */
+  .app-feed .feed-item {
+    position: relative;
+    height: var(--feed-h);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  /*
+   * Filtering.
+   *
+   * Promotions show on All only. They are placed against the mixed order — one
+   * after every fifth item — and a filtered feed of four shorts would inherit a
+   * density that was never designed for it.
+   */
+  .app-feed:not([data-filter='all']) [data-kind='promo'],
+  .app-feed[data-filter='short'] [data-feed-item]:not([data-kind='short']),
+  .app-feed[data-filter='blog'] [data-feed-item]:not([data-kind='blog']),
+  .app-feed[data-filter='article'] [data-feed-item]:not([data-kind='article']) {
+    display: none;
+  }
+
+  /*
+   * The half-read article, prepended by the client when there is one.
+   *
+   * Global rather than component-scoped: this card is built in the browser from
+   * localStorage, so it has no component whose scope it could inherit. It is
+   * deliberately the same shape as AppFeedRead — cover, copy, one button — so
+   * the first item in the feed does not look like it came from another site.
+   */
+  .feed-resume {
+    display: grid;
+    place-items: center;
+    padding: 0.75rem;
+    background: var(--bg-subtle);
+  }
+
+  .feed-resume__card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 32rem;
+    height: 100%;
+    max-height: 44rem;
+    overflow: hidden;
+    border-radius: 1.1rem;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    box-shadow: 0 18px 40px -28px rgb(0 0 0 / 0.45);
+  }
+
+  /* Same rule as AppFeedRead: the picture is the only thing that flexes, so no
+     line of type is ever cut through the middle. */
+  .feed-resume__media {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    aspect-ratio: 1200 / 630;
+    overflow: hidden;
+  }
+  @media (max-height: 720px) {
+    .feed-resume__media {
+      display: none;
+    }
+  }
+  .feed-resume__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .feed-resume__body {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    padding: 0.9rem 1rem 1rem;
+  }
+
+  .feed-resume__eyebrow {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .feed-resume__title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 0.45rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.22;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  .feed-resume__track {
+    height: 0.35rem;
+    margin-top: 1rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--border);
+  }
+  .feed-resume__track span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+
+  .feed-resume__meta {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+  }
+
+  .feed-resume__cta {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    margin-top: 0.85rem;
+    border-radius: 999px;
+    background: var(--accent);
+    padding: 0.5rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .feed-end {
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+    background: var(--bg-subtle);
+  }
+  .feed-end__inner {
+    max-width: 24rem;
+    text-align: center;
+  }
+  .feed-end__title {
+    margin-top: 0.35rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .feed-end__body {
+    margin-top: 0.6rem;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--text-muted);
+    text-wrap: pretty;
+  }
+  .feed-end__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+  }
+  .feed-end__series {
+    margin-top: 1.75rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.25rem;
+  }
+  .feed-end__series .app-rail ul {
+    justify-content: center;
+  }
+  .feed-end__series .eyebrow {
+    margin-bottom: 0.75rem;
+  }
+
+  .feed-end__hint {
+    margin-top: 1.25rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+  .feed-end__hint a {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* On a desktop the feed is a phone-shaped column, so it needs edges to sit
+     against — otherwise it reads as a broken layout rather than a device. */
+  @media (min-width: 640px) {
+    .app-feed-shell {
+      border-inline: 1px solid var(--border);
+    }
+  }
+</style>
+
 <script>
-  import {
-    createResumeCard,
-    getEntry,
-    getHistory,
-    getResume,
-    isBookmarked,
-    toggleBookmark,
-    type ArticleMeta,
-  } from '../lib/reading-history';
-  import { FIREBASE } from '../config';
-
-  const BASE = `https://firestore.googleapis.com/v1/projects/${FIREBASE.projectId}/databases/(default)/documents`;
-  const counters = FIREBASE.projectId.length > 0;
-
-  // Baselines match ViewCounter.astro and Reactions.astro so the same article
-  // never shows one number in the feed and a different one on its own page.
-  const VIEW_BASE = 422;
-  const REACT_BASE = 2;
-
-  const format = (n: number): string =>
-    n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
-
-  const metaOf = (card: HTMLElement): ArticleMeta | null => {
-    const block = card.querySelector('[data-app-meta]');
-    try {
-      return block ? (JSON.parse(block.textContent ?? '') as ArticleMeta) : null;
-    } catch {
-      return null;
-    }
-  };
-
-  function paintSave(card: HTMLElement, on: boolean): void {
-    const btn = card.querySelector<HTMLButtonElement>('[data-app-save]');
-    if (!btn) return;
-    btn.setAttribute('aria-pressed', String(on));
-    btn.setAttribute('aria-label', on ? 'Remove from your library' : 'Save to your library');
-  }
-
-  /** Views and reaction counts, read once per card when it first appears. */
-  async function loadCounts(card: HTMLElement): Promise<void> {
-    if (!counters || card.dataset.counted === '') return;
-    card.dataset.counted = '';
-    const slug = card.dataset.slug;
-    if (!slug) return;
-
-    const views = card.querySelector('[data-app-views]');
-    if (views) {
-      try {
-        const doc = await fetch(`${BASE}/views/${encodeURIComponent(slug)}`).then((r) =>
-          r.ok ? r.json() : null,
-        );
-        views.textContent = format(VIEW_BASE + Number(doc?.fields?.count?.integerValue ?? 0));
-      } catch {
-        views.textContent = format(VIEW_BASE);
-      }
-    }
-
-    try {
-      const doc = await fetch(`${BASE}/reactions/${encodeURIComponent(slug)}`).then((r) =>
-        r.ok ? r.json() : null,
-      );
-      const fields = doc?.fields ?? {};
-      card.querySelectorAll<HTMLButtonElement>('[data-react]').forEach((btn) => {
-        const key = btn.dataset.react!;
-        const out = btn.querySelector(`[data-count="${key}"]`);
-        if (out) out.textContent = format(REACT_BASE + Number(fields[key]?.integerValue ?? 0));
-        if (localStorage.getItem(`reacted:${slug}:${key}`) !== null) btn.dataset.reacted = '';
-      });
-    } catch {
-      // Counts are decoration: leave the em dash rather than break the feed.
-    }
-  }
-
-  async function react(card: HTMLElement, btn: HTMLButtonElement): Promise<void> {
-    const slug = card.dataset.slug;
-    const key = btn.dataset.react;
-    if (!counters || !slug || !key) return;
-
-    // One of each reaction per browser, matching Reactions.astro.
-    const guard = `reacted:${slug}:${key}`;
-    if (localStorage.getItem(guard) !== null) return;
-    localStorage.setItem(guard, '1');
-    btn.dataset.reacted = '';
-
-    const out = btn.querySelector(`[data-count="${key}"]`);
-    const shown = Number(String(out?.textContent).replace(/k$/, '000')) || REACT_BASE;
-    if (out) out.textContent = format(shown + 1);
-
-    try {
-      const res = await fetch(`${BASE}:commit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          writes: [
-            {
-              update: {
-                name: `projects/${FIREBASE.projectId}/databases/(default)/documents/reactions/${slug}`,
-                fields: {},
-              },
-              updateMask: { fieldPaths: [] },
-              updateTransforms: [{ fieldPath: key, increment: { integerValue: '1' } }],
-            },
-          ],
-        }),
-      });
-      if (!res.ok) throw new Error(String(res.status));
-    } catch {
-      // Roll the guard back so a genuine failure can be retried.
-      localStorage.removeItem(guard);
-      delete btn.dataset.reacted;
-      if (out) out.textContent = format(shown);
-    }
-  }
-
-  async function share(card: HTMLElement): Promise<void> {
-    const meta = metaOf(card);
-    if (!meta) return;
-    const url = new URL(meta.url, location.origin).href;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: meta.title, text: meta.description, url });
-        return;
-      } catch {
-        // Cancelled, or unavailable in this context — fall through to copy.
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      const btn = card.querySelector<HTMLButtonElement>('[data-app-share]');
-      if (btn) {
-        const original = btn.lastChild;
-        const was = original?.textContent ?? 'Share';
-        if (original) original.textContent = 'Copied';
-        setTimeout(() => {
-          if (original) original.textContent = was;
-        }, 1600);
-      }
-    } catch {
-      // Nothing sensible left to try; the card's title link still works.
-    }
-  }
-
-  /** How much of each series this browser has opened. */
-  function paintSeries(): void {
-    const opened = new Set(getHistory().map((e) => e.slug));
-    document.querySelectorAll<HTMLElement>('[data-series-slugs]').forEach((link) => {
-      const slugs = link.dataset.seriesSlugs!.split(',').filter(Boolean);
-      const total = Number(link.dataset.seriesTotal) || slugs.length || 1;
-      const read = slugs.filter((s) => opened.has(s)).length;
-
-      const ring = link.querySelector<HTMLElement>('.app-ring');
-      if (ring) ring.style.setProperty('--p', String(Math.round((read / total) * 100)));
-
-      const count = link.querySelector('[data-series-count]');
-      if (count) count.textContent = `${read}/${total}`;
-    });
-  }
-
-  function paintResume(): void {
-    const slot = document.querySelector<HTMLElement>('[data-app-resume]');
-    if (!slot) return;
-    const resume = getResume();
-    slot.replaceChildren(...(resume ? [createResumeCard(resume)] : []));
-  }
-
-  let observer: IntersectionObserver | undefined;
-
-  function initAppFeed(): void {
-    const cards = [...document.querySelectorAll<HTMLElement>('[data-app-card]')];
-    if (cards.length === 0) return;
-
-    paintResume();
-    paintSeries();
-    cards.forEach((card) => {
-      const meta = metaOf(card);
-      if (meta) paintSave(card, isBookmarked(meta.slug));
-      // A card already read shows its progress the way the resume card does.
-      const entry = meta ? getEntry(meta.slug) : undefined;
-      if (entry && entry.progress > 0 && !entry.completed) {
-        card.dataset.progress = String(Math.round(entry.progress * 100));
-      }
-    });
-
-    observer?.disconnect();
-    observer = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue;
-          const card = e.target as HTMLElement;
-          card.dataset.in = '';
-          void loadCounts(card);
-          observer?.unobserve(card);
-        }
-      },
-      { rootMargin: '120px 0px', threshold: 0.01 },
-    );
-    cards.forEach((card) => observer!.observe(card));
-
-    // One delegated listener for the whole feed rather than one per card.
-    if (document.body.dataset.appFeedBound === undefined) {
-      document.body.dataset.appFeedBound = '';
-      document.body.addEventListener('click', (event) => {
-        const target = event.target as HTMLElement;
-        const card = target.closest<HTMLElement>('[data-app-card]');
-        if (!card) return;
-
-        const reactBtn = target.closest<HTMLButtonElement>('[data-react]');
-        if (reactBtn) {
-          void react(card, reactBtn);
-          return;
-        }
-        if (target.closest('[data-app-share]')) {
-          void share(card);
-          return;
-        }
-        if (target.closest('[data-app-save]')) {
-          const meta = metaOf(card);
-          if (meta) paintSave(card, toggleBookmark(meta));
-        }
-      });
-    }
-  }
+  import { initAppFeed } from '../lib/app-feed-client';
 
   initAppFeed();
   // View Transitions swap the body, so re-bind against the new nodes.
   document.addEventListener('astro:page-load', initAppFeed);
-  // Reading elsewhere (or clearing history) should be reflected on return.
-  window.addEventListener('reading-history-change', () => {
-    paintResume();
-    paintSeries();
-  });
 </script>

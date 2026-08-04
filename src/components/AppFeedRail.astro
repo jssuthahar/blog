@@ -1,0 +1,245 @@
+---
+/**
+ * The engagement column every feed item carries.
+ *
+ * Same five controls in the same order on a short, a post and a syndicated
+ * article, because a reader who learns where "save" is on one card should not
+ * have to look for it on the next. Markup only — every listener lives in the
+ * one delegated handler on /app, so thirty of these cost nothing extra.
+ *
+ * Counts start as an em dash and are filled when the item first reaches the
+ * screen. A number that is missing reads as "loading"; a zero that turns out to
+ * be wrong reads as "nobody cares about this", which is the one thing an
+ * engagement rail must never say by accident.
+ */
+interface Props {
+  /** Firestore document id for views and reactions. '' disables both. */
+  slug?: string;
+  /** Where the comment control goes. */
+  commentHref: string;
+  /** Server-known comment count, for the syndicated articles that report one. */
+  comments?: number;
+  /** Shorts add a sound control the other card types have no use for. */
+  sound?: boolean;
+  /** Laid over a dark player (shorts) rather than sitting on the page. */
+  overlay?: boolean;
+  /**
+   * Draw the view count as a rail control. Off where the caption already has
+   * room for the number — every control kept off an overlay rail is another
+   * forty pixels of the short the reader can actually see.
+   */
+  views?: boolean;
+  /**
+   * Lay the controls out left to right. A short fills the screen and has only
+   * its right edge to spare, so the rail runs down it; a reading card has a
+   * whole footer and no reason to crowd its own text into a narrower column.
+   */
+  row?: boolean;
+}
+
+const {
+  slug = '',
+  commentHref,
+  comments,
+  sound = false,
+  overlay = false,
+  row = false,
+  views = true,
+} = Astro.props;
+---
+
+<div class:list={['rail', overlay && 'rail--overlay', row && 'rail--row']} data-feed-rail>
+  <!-- Likes and views both live in Firestore under this item's slug. An article
+       hosted on msdevbuild.com has no slug here and no document to write to, so
+       the controls that would do nothing are not drawn at all — a dead button
+       is worse than a missing one. -->
+  {slug !== '' && (
+    <button type="button" data-feed-like class="rail__btn" aria-pressed="false" aria-label="Like">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 20.3 4.6 13a4.7 4.7 0 0 1 6.6-6.6l.8.8.8-.8A4.7 4.7 0 0 1 19.4 13Z" />
+      </svg>
+      <span class="rail__count" data-feed-likes>—</span>
+    </button>
+  )}
+
+  <a href={commentHref} class="rail__btn" aria-label="Comments">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M20 14.5A3.5 3.5 0 0 1 16.5 18H8.5L4 21V6.5A3.5 3.5 0 0 1 7.5 3h9A3.5 3.5 0 0 1 20 6.5Z" />
+    </svg>
+    {typeof comments === 'number' ? (
+      <span class="rail__count">{comments}</span>
+    ) : (
+      <span class="rail__label">Say</span>
+    )}
+  </a>
+
+  <button type="button" data-feed-share class="rail__btn" aria-label="Share">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 16.5V4" /><path d="m7.5 8.5 4.5-4.5 4.5 4.5" />
+      <path d="M5 14v5.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V14" />
+    </svg>
+    <span class="rail__label" data-feed-share-label>Share</span>
+  </button>
+
+  <button type="button" data-feed-save class="rail__btn" aria-pressed="false" aria-label="Save to your library">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M6.5 3.8h11a1 1 0 0 1 1 1v15.4L12 16.6l-6.5 3.6V4.8a1 1 0 0 1 1-1Z" />
+    </svg>
+    <span class="rail__label" data-feed-save-label>Save</span>
+  </button>
+
+  {slug !== '' && views && (
+    <span class="rail__btn rail__btn--static">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+        <path d="M2.5 12S6 6.2 12 6.2 21.5 12 21.5 12 18 17.8 12 17.8 2.5 12 2.5 12Z" />
+        <circle cx="12" cy="12" r="2.6" />
+      </svg>
+      <span class="rail__count" data-feed-views>—</span>
+      <span class="sr-only">views</span>
+    </span>
+  )}
+
+  {sound && (
+    <button type="button" data-feed-sound class="rail__btn" aria-pressed="true" aria-label="Mute this short">
+      <svg class="rail__sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M11 5 6.5 9H3.5v6h3l4.5 4Z" />
+        <path d="M15 9.2a4 4 0 0 1 0 5.6M17.8 6.4a8 8 0 0 1 0 11.2" />
+      </svg>
+      <svg class="rail__sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M11 5 6.5 9H3.5v6h3l4.5 4Z" />
+        <path d="m15.5 9.5 5 5M20.5 9.5l-5 5" />
+      </svg>
+      <span class="rail__label" data-feed-sound-label>Sound</span>
+    </button>
+  )}
+</div>
+
+<style>
+  .rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+  }
+
+  .rail--row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0;
+  }
+
+  .rail__btn {
+    display: grid;
+    justify-items: center;
+    gap: 0.15rem;
+    width: 3.25rem;
+    padding: 0.45rem 0;
+    border: 0;
+    border-radius: 0.75rem;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s ease;
+  }
+  .rail__btn--static {
+    cursor: default;
+  }
+  .rail__btn svg {
+    width: 1.55rem;
+    height: 1.55rem;
+  }
+  .rail__count,
+  .rail__label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rail__btn:not(.rail__btn--static):active {
+    transform: scale(0.92);
+  }
+
+  /*
+   * Over the player the rail has no panel behind it, so contrast comes from the
+   * glyph itself: white on a drop shadow, which stays readable over both the
+   * near-black canvas and the accent glow the shorts paint behind their title.
+   */
+  .rail--overlay .rail__btn {
+    color: #fff;
+    width: 2.75rem;
+    padding: 0.25rem 0;
+    filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.55));
+  }
+  .rail--overlay .rail__btn svg {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+  /*
+   * Words come off the rail when it is over a player.
+   *
+   * Six labelled controls stack about sixteen rem tall, which on a phone is a
+   * third of the short covered by the feed's own furniture. The numbers stay —
+   * a like count is information — but "Share" and "Save" are carried by icons
+   * every reader already knows, and by the aria-labels for those who do not.
+   */
+  .rail--overlay .rail__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .rail [data-feed-like][aria-pressed='true'] {
+    color: oklch(0.62 0.21 20);
+  }
+  .rail [data-feed-like][aria-pressed='true'] svg {
+    fill: currentColor;
+    animation: rail-pop 0.44s cubic-bezier(0.2, 1.5, 0.4, 1);
+  }
+  .rail--overlay [data-feed-like][aria-pressed='true'] {
+    color: oklch(0.72 0.21 20);
+  }
+
+  .rail [data-feed-save][aria-pressed='true'] {
+    color: var(--accent);
+  }
+  .rail [data-feed-save][aria-pressed='true'] svg {
+    fill: currentColor;
+  }
+  .rail--overlay [data-feed-save][aria-pressed='true'] {
+    color: oklch(0.78 0.14 250);
+  }
+
+  /* One button, two glyphs: whichever the state does not name is hidden, so
+     the control is never ambiguous about what tapping it will do. */
+  [data-feed-sound] .rail__sound-off,
+  [data-feed-sound][aria-pressed='false'] .rail__sound-on {
+    display: none;
+  }
+  [data-feed-sound][aria-pressed='false'] .rail__sound-off {
+    display: block;
+  }
+
+  @keyframes rail-pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.32); }
+    100% { transform: scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rail [data-feed-like][aria-pressed='true'] svg {
+      animation: none;
+    }
+    .rail__btn:not(.rail__btn--static):active {
+      transform: none;
+    }
+  }
+</style>

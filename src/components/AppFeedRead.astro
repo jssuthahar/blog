@@ -1,0 +1,444 @@
+---
+/**
+ * A thing to read, as one full-height item in the app feed.
+ *
+ * Both kinds of reading go through here — a post written on this blog and an
+ * article from the syndicated library on msdevbuild.com — because from the
+ * reader's side they are the same offer, and giving them two different card
+ * designs would only teach people to skip one of them. What genuinely differs
+ * is handled by `kind`: a post has a slug, so it carries live view and reaction
+ * counts and its own comment thread; an off-site article has neither, so it
+ * shows the comment count its feed reported and records the click-through into
+ * reading history on the way out.
+ *
+ * The card is deliberately not a miniature of the article page. It has one
+ * cover, one title, three lines of the opening, and one button — everything
+ * else is a decision the reader has to make before they can swipe on.
+ */
+import AppFeedRail from './AppFeedRail.astro';
+import Avatar from './Avatar.astro';
+import CoverArt from './CoverArt.astro';
+import { AUTHOR } from '../config';
+import type { ArticleItem, BlogItem } from '../lib/app-feed';
+import { normaliseCategory } from '../lib/articles';
+import { CATEGORIES, formatDate } from '../lib/posts';
+import type { ArticleMeta } from '../lib/reading-history';
+
+interface Props {
+  item: BlogItem | ArticleItem;
+  /** The first card in the feed loads its cover eagerly. */
+  first?: boolean;
+}
+
+const { item, first = false } = Astro.props;
+
+const isPost = item.kind === 'blog';
+const category = isPost ? CATEGORIES[item.post.data.category] : undefined;
+
+const title = isPost ? item.post.data.title : item.article.title;
+const description = isPost ? item.post.data.description : item.article.excerpt;
+const url = isPost ? item.url : item.article.url;
+const label = isPost ? category!.label : item.categoryLabel;
+const hue = isPost ? category!.hue : item.hue;
+const dateLabel = isPost ? formatDate(item.post.data.publishedAt) : item.dateLabel;
+const slug = isPost ? item.post.id : '';
+
+/**
+ * The takeaway, when the post states one.
+ *
+ * `highlight` is the paragraph written to be lifted — it opens the article and
+ * it is what answer engines quote — which makes it the best possible thing to
+ * put in a feed card. It is shown only when the post actually sets it: the
+ * schema falls back to `description` when it is missing, and printing the
+ * description twice on one card would be worse than the empty space it fills.
+ */
+const highlight =
+  isPost && item.post.data.highlight && item.post.data.highlight !== item.post.data.description
+    ? item.post.data.highlight
+    : undefined;
+
+/**
+ * Labels along the bottom of the copy. Posts use their own tags; a syndicated
+ * article uses the Blogger labels it was filed under, minus the one already
+ * shown as the category chip, so the row never repeats what is above it.
+ */
+const labels = (
+  isPost
+    ? item.post.data.tags
+    : [...new Set(item.article.categories.map(normaliseCategory))].filter((c) => c !== label)
+).slice(0, 4);
+
+const seriesLine =
+  isPost && item.post.data.series && item.post.data.seriesOrder
+    ? `Part ${item.post.data.seriesOrder} of a series`
+    : undefined;
+
+const meta: ArticleMeta = {
+  slug: isPost ? item.post.id : `ext:${url}`,
+  title,
+  url,
+  description,
+  cover: isPost ? (item.post.data.cover?.src ?? '') : (item.article.image ?? ''),
+  coverAlt: isPost ? (item.post.data.coverAlt ?? '') : '',
+  category: isPost ? item.post.data.category : label.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+  categoryLabel: label,
+  hue,
+  minutes: isPost ? item.minutes : 0,
+};
+
+const metaJson = JSON.stringify(meta).replace(/</g, '\\u003c');
+
+// The payload ArticleCapture reads: a click-through to msdevbuild.com is the
+// only signal we ever get from an off-site article, so it is the read.
+const capture = isPost
+  ? undefined
+  : JSON.stringify({ t: title, u: url, c: label, i: item.article.image ?? '' }).replace(/</g, '\\u003c');
+---
+
+<article
+  class="feed-item feed-read"
+  data-feed-item
+  data-kind={item.kind}
+  data-slug={slug}
+  style={`--item-hue: ${hue};`}
+>
+  <div class="feed-read__card">
+    <a
+      href={url}
+      class="feed-read__media"
+      tabindex="-1"
+      aria-hidden="true"
+      data-capture={capture}
+      rel={isPost ? undefined : 'noopener'}
+    >
+      {isPost ? (
+        <CoverArt post={item.post} eager={first} />
+      ) : item.article.image ? (
+        <img
+          src={item.article.image}
+          alt=""
+          loading={first ? 'eager' : 'lazy'}
+          decoding="async"
+          referrerpolicy="no-referrer"
+          class="size-full object-cover"
+        />
+      ) : (
+        <span class="feed-read__art" aria-hidden="true">
+          <span class="feed-read__art-label">{label}</span>
+        </span>
+      )}
+    </a>
+
+    <div class="feed-read__body">
+      <p class="feed-read__chip">
+        <span class="feed-read__dot" aria-hidden="true"></span>
+        {label}
+        <span class="feed-read__meta">
+          {isPost ? `${item.minutes} min read` : 'From the archive'} · {dateLabel}
+        </span>
+      </p>
+
+      <h2 class="feed-read__title">
+        <a href={url} data-capture={capture} rel={isPost ? undefined : 'noopener'}>{title}</a>
+      </h2>
+
+      <!-- With no takeaway to show — every syndicated article, and any post that
+           has not set one — the opening lines take the room instead. -->
+      <p class:list={['feed-read__excerpt', !highlight && 'feed-read__excerpt--long']}>
+        {description}
+      </p>
+
+      <!-- The room between the opening and the button, spent on the one thing
+           worth reading before deciding: what the article actually concludes. -->
+      {highlight && (
+        <aside class="feed-read__highlight">
+          <p class="feed-read__highlight-label">The takeaway</p>
+          <p class="feed-read__highlight-text">{highlight}</p>
+        </aside>
+      )}
+
+      <!-- Never both: the takeaway is the better use of the space, and a card
+           carrying a quote, a tag row and a byline starts to look like a form. -->
+      {!highlight && labels.length > 0 && (
+        <ul class="feed-read__tags">
+          {labels.map((tag) => (
+            <li>{tag}</li>
+          ))}
+        </ul>
+      )}
+
+      <p class="feed-read__byline">
+        <Avatar size={20} />
+        <span>{AUTHOR.name}</span>
+        {seriesLine && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>{seriesLine}</span>
+          </>
+        )}
+      </p>
+
+      <a
+        href={url}
+        class="feed-read__cta"
+        data-capture={capture}
+        rel={isPost ? undefined : 'noopener'}
+      >
+        <span>{isPost ? 'Read the article' : 'Read on MSDEVBUILD'}</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12h13M12 6l6 6-6 6" />
+        </svg>
+      </a>
+    </div>
+
+    <div class="feed-read__foot">
+      <AppFeedRail
+        slug={slug}
+        commentHref={isPost ? `${url}#comments-heading` : url}
+        comments={isPost ? undefined : item.article.comments}
+        row
+      />
+    </div>
+  </div>
+
+  <script is:inline type="application/json" data-feed-meta set:html={metaJson}></script>
+</article>
+
+<style>
+  .feed-read {
+    display: grid;
+    place-items: center;
+    padding: 0.75rem;
+  }
+
+  /*
+   * The card fills its slot rather than floating in the middle of it.
+   *
+   * Content-height cards left two hundred pixels of page background above and
+   * below every article, which reads as a layout that failed rather than as
+   * breathing room — and in a snap feed, where exactly one card is on screen,
+   * that empty space is the whole screen. Height comes from the slot; the body
+   * takes up the slack, and the button is pinned to the bottom of it.
+   */
+  .feed-read__card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 32rem;
+    height: 100%;
+    /* Filling the slot is right on a phone and wrong on a tall desktop window,
+       where a 460px-wide card 1100px high stops looking like a card. */
+    max-height: 44rem;
+    overflow: hidden;
+    border-radius: 1.1rem;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    box-shadow: 0 18px 40px -28px rgb(0 0 0 / 0.45);
+  }
+
+  /*
+   * The cover is the only part of the card that flexes, and that is the whole
+   * layout rule.
+   *
+   * Letting the copy shrink instead sliced it: `line-clamp` caps how many lines
+   * a block may show, but a flex parent can still squeeze the box below that
+   * height, and `overflow: hidden` then cuts through the middle of a line —
+   * headlines chopped in half horizontally, a sentence ending in the top halves
+   * of its letters. Text is now fixed at whole numbers of lines and never
+   * shrinks; the picture takes whatever height is left, growing on a tall phone
+   * and cropping on a short one, which is the one thing here that can be
+   * resized without becoming unreadable.
+   */
+  .feed-read__media {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    /* The size it prefers when there is neither slack nor pressure. */
+    aspect-ratio: 1200 / 630;
+    overflow: hidden;
+    background: var(--bg-subtle);
+  }
+
+  /* Articles from the Blogger feed often have no image of their own. Rather
+     than a grey rectangle, the card paints the same category-hued panel the
+     rest of the site uses for a post without a cover. */
+  .feed-read__art {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    background:
+      radial-gradient(circle at 25% 20%, oklch(0.62 0.17 var(--item-hue) / 0.55), transparent 60%),
+      linear-gradient(140deg, oklch(0.5 0.15 var(--item-hue)), oklch(0.36 0.13 calc(var(--item-hue) + 40)));
+  }
+  .feed-read__art-label {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.85);
+  }
+
+  /* Exactly as tall as its copy — never squeezed, never stretched. */
+  .feed-read__body {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    padding: 0.9rem 1rem 0.4rem;
+  }
+
+  .feed-read__chip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: oklch(0.55 0.16 var(--item-hue));
+  }
+  :global([data-theme='dark']) .feed-read__chip {
+    color: oklch(0.75 0.14 var(--item-hue));
+  }
+  .feed-read__dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: currentColor;
+  }
+  .feed-read__meta {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    color: var(--text-muted);
+  }
+
+  /* Two lines, not three. The cover above already carries the title in full, so
+     a third line here costs the picture thirty pixels to repeat something the
+     reader has just looked at. */
+  .feed-read__title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 0.45rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.22;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  .feed-read__excerpt {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+  /* No takeaway to show — a syndicated article, or a post that has not set one
+     — so the opening runs longer instead. */
+  .feed-read__excerpt--long {
+    -webkit-line-clamp: 6;
+  }
+
+  /*
+   * What the gap between the opening and the button is spent on.
+   *
+   * That gap was the card's whole problem: three lines of description, then a
+   * hand's width of nothing, then a call to action. The takeaway is the right
+   * thing to put there — it is the paragraph the article opens with, and the
+   * one a reader can actually decide on.
+   */
+  .feed-read__highlight {
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex: 0 0 auto;
+    margin-top: 0.85rem;
+    border-radius: 0.6rem;
+    border-left: 3px solid var(--accent);
+    background: var(--bg-subtle);
+    padding: 0.7rem 0.85rem;
+  }
+  .feed-read__highlight-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .feed-read__highlight-text {
+    margin-top: 0.3rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+
+  /* Wraps to a second row rather than being clipped to one — a max-height here
+     would cut the chips through the middle, which is the same mistake the copy
+     blocks were making. Four labels is the cap, set in the frontmatter read. */
+  .feed-read__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.75rem;
+  }
+  .feed-read__tags li {
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    padding: 0.15rem 0.5rem;
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .feed-read__byline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .feed-read__cta {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.85rem;
+    margin-bottom: 0.5rem;
+    border-radius: 999px;
+    background: var(--accent);
+    padding: 0.5rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .feed-read__cta svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .feed-read__foot {
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    padding: 0.15rem 0.5rem;
+  }
+
+  /* Below this the cover would be a sliver rather than a picture — the copy
+     alone is taller than the card. It is the part that can go: the title, the
+     takeaway and the button are what the item is for. */
+  @media (max-height: 720px) {
+    .feed-read__media {
+      display: none;
+    }
+  }
+</style>

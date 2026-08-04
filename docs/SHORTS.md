@@ -116,6 +116,34 @@ node -e "import('./scripts/check-seo.mjs').then(({titlePx})=>console.log(titlePx
 
 Aim for **570 or less**.
 
+## The field that pairs a short with an article: `article`
+
+In the app feed at `/app/`, every short carries a **Learn more** button. It is
+the short's whole job — thirty seconds states an idea, the article is where it
+is worked out — so it always points somewhere real.
+
+Left alone, the site picks the destination itself: a published post in the same
+category that also shares a tag or two subject words with the short. If nothing
+clears that bar, the button goes to the short's own page, which has every step
+written out plus its related reading. That is a fine outcome, not a fallback of
+last resort.
+
+When you have written the article the short introduces, say so:
+
+```json
+{
+  "slug": "azure-ai-foundry",
+  "topic": "What Azure AI Foundry is, why businesses adopt it",
+  "article": "what-is-azure-ai-foundry-services-overview",
+  ...
+}
+```
+
+The value is the post's **slug** — the `.mdx` filename without its extension,
+with no folder path even when the post lives in a series subfolder, and no
+`/blog/` prefix. A slug that does not match any published post is ignored and
+the automatic pick takes over, so a draft article cannot break the feed.
+
 ## What happens without you doing anything
 
 Once the three files are in the folder, the short automatically gets:
@@ -123,7 +151,7 @@ Once the three files are in the folder, the short automatically gets:
 - its page at `/shorts/<slug>/`, with every step written out and clickable
 - a card on `/shorts/`, counted into the right category filter chip
 - a card in the "30-second learning" band on the home page
-- a tile in the app feed at `/app/`
+- a full-height item in the app feed at `/app/`, with a **Learn more** button
 - a dated row on `/contributions/` (when `publishedAt` is set)
 - a poster drawn from its own title card — the `<em>` in `title.main` is what
   gets picked out in accent on it, so put the emphasis where the idea is
@@ -182,6 +210,7 @@ Send the new template and the bridge in
 - [ ] Stem is unique across every folder, keyword-first, hyphenated
 - [ ] `publishedAt` set, so it counts on `/contributions`
 - [ ] New technology folder? Mapped in `FOLDER_CATEGORY` (or accept Engineering)
+- [ ] Wrote the article this short introduces? Named it in `article`
 - [ ] `npm run build` finishes with no `[shorts]` warning
 - [ ] `npm run check:seo -- --dist` does not flag it — add `seoTitle` if it does
 - [ ] Opened `/shorts/<slug>/` — it plays on its own; sound comes in on first tap

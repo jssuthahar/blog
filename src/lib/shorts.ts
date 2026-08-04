@@ -70,6 +70,16 @@ export interface Short {
   /** Total runtime in seconds, end card included. */
   seconds: number;
   /**
+   * The article this short is the doorway to, from `article` in the spec.
+   *
+   * A short states an idea; the article is where it is worked out. When the
+   * spec names one, "Learn more" in the app feed goes straight there. Left out,
+   * the feed picks the closest published post by category and tags — see
+   * `learnMoreFor` in lib/app-feed.ts — so this is an override, not a
+   * requirement.
+   */
+  articleSlug?: string;
+  /**
    * Publication date, from `publishedAt` in the spec.
    *
    * Optional, and deliberately not defaulted. A short with a date counts as
@@ -334,12 +344,33 @@ const BRIDGE_SCRIPT = `${EMBED_STYLE}
     if(k === 'd') e.preventDefault();
   }, true);
 
+  /* ------------------------------------------------------------- sound ----
+     The player owns its own toggle and its own audio graph, so the page never
+     reaches into either — it clicks the button the short already ships and
+     reads the state back off it. The player's own paintToggle sets opacity to
+     '1' when the effects bus is live and '0.35' when it is not, and an
+     untouched toggle has no inline opacity at all, which is the on state
+     prepareForEmbed boots in.
+     One property, set by the player itself, is a more durable reading than a
+     variable this script would have to be spliced into.  */
+  function soundBtn(){ return document.getElementById('sound-toggle'); }
+  function soundIsOn(){ var b = soundBtn(); return !!b && b.style.opacity !== '0.35'; }
+
   window.addEventListener('message', function(e){
     var data = e.data || {}, ctrl = window.__MSD_CTRL__;
     if(!ctrl || typeof data.type !== 'string') return;
     if(data.type === 'msd:play') ctrl.play();
     if(data.type === 'msd:replay') ctrl.replay();
     if(data.type === 'msd:jump') ctrl.jump(Number(data.index));
+    if(data.type === 'msd:sound'){
+      /* Unmuting is itself a user gesture upstream, so try the audio context
+         again — a short muted before the page had activation would otherwise
+         come back silent. */
+      var btn = soundBtn();
+      if(btn && soundIsOn() !== !!data.on) btn.click();
+      if(data.on) unlock();
+      post({ type: 'msd:sound', on: soundIsOn() });
+    }
   });
 
   /* ------------------------------------------------------ autoplay + sound --
@@ -390,7 +421,7 @@ const BRIDGE_SCRIPT = `${EMBED_STYLE}
     }).observe(num, { childList: true, characterData: true, subtree: true });
   }
 
-  post({ type: 'msd:ready' });
+  post({ type: 'msd:ready', sound: soundIsOn() });
 })();
 </script>`;
 
@@ -420,6 +451,8 @@ interface ShortSpec {
   topic: string;
   /** Optional per-short <title> override. Add it when the pixel gate complains. */
   seoTitle?: string;
+  /** Slug of the blog post this short introduces. Drives "Learn more" on /app. */
+  article?: string;
   /** ISO date the short was published. Required for it to count on /contributions. */
   publishedAt?: string;
   title: { main: string; sub: string; pill: string };
@@ -481,6 +514,7 @@ function loadShorts(): Short[] {
       caption: spec.post?.caption ?? '',
       tags: (spec.post?.hashtags ?? []).map((t) => t.replace(/^#/, '')),
       seconds,
+      articleSlug: spec.article,
       publishedAt: parseDate(spec.publishedAt, specPath),
       embedHtml: prepareForEmbed(html, `${folder}/${stem}.html`),
     });

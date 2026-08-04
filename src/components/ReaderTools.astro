@@ -1,0 +1,1294 @@
+---
+/**
+ * What a reader can do with a passage once they have found it.
+ *
+ * Three tools behind one gesture. Select any text and a small toolbar appears
+ * over it offering: mark it in one of four colours, copy it, or turn it into a
+ * shareable image. Everything marked collects in a drawer that can be re-read,
+ * annotated, copied wholesale or exported as Markdown.
+ *
+ * There is deliberately no new floating button for any of this. An article page
+ * already carries the engagement rail, the chat launcher and — on a phone — the
+ * tab bar, and a fourth persistent control would be the one that finally makes
+ * the page feel cluttered. The toolbar exists only while text is selected, and
+ * the drawer opens from a line in the article's own meta row.
+ *
+ * All of it degrades to nothing: no JavaScript, no marks, and the article reads
+ * exactly as it did before.
+ */
+import { COLOURS } from '../lib/annotations';
+import { SIZES } from '../lib/quote-card';
+
+interface Props {
+  /** Firestore/localStorage key. Must match the one Reactions uses. */
+  slug: string;
+  title: string;
+  /** Site-relative path of the page being read. */
+  path: string;
+  /** Category label and hue — the quote card's only colour decision. */
+  category: string;
+  hue: number;
+  /** Adds the "Present" control. Off where there is no deck to build. */
+  present?: boolean;
+  /**
+   * How the controls line up inside the sticky bar.
+   *
+   * 'center' matches a page whose article header is `mx-auto max-w-3xl` (a blog
+   * post); 'start' matches one whose header is left-aligned (a short). The bar
+   * itself always spans the column — this only positions what sits in it.
+   */
+  align?: 'center' | 'start';
+}
+
+const { slug, title, path, category, hue, present = false, align = 'center' } = Astro.props;
+---
+
+<!--
+  Sticky rather than floating.
+
+  An article page already floats four things — the engagement rail, the prev/next
+  arrows, the chat launcher and the phone tab bar — and the mobile rail is
+  already close to overflowing a 360px screen. A fifth surface would have to
+  clear all of them. Riding under the site header instead keeps the controls one
+  glance away for the whole article, collides with nothing anchored to the
+  bottom of the screen, and is the only option that can keep its text labels.
+-->
+<div class="reader-sticky">
+  <div class:list={['reader-sticky__inner', align === 'start' && 'reader-sticky__inner--start']}>
+    <div
+      class="reader-bar"
+      data-reader-tools
+      data-slug={slug}
+      data-title={title}
+      data-path={path}
+      data-category={category}
+      data-hue={hue}
+    >
+      <!--
+        The article's meta line — byline, date, reading time, views — handed in
+        by the page. It lives here rather than in the header above so the tools
+        cost no row of their own: this is the row the page was already spending,
+        now carrying the controls on its right and sticking as you read.
+      -->
+      <div class="reader-bar__meta">
+        <slot name="meta" />
+      </div>
+
+      <!-- Said once, quietly, because a feature nobody knows the gesture for may
+           as well not exist. It removes itself for good after the first
+           highlight. -->
+      <span class="reader-bar__hint" data-rt-hint>Select any text to highlight or share it</span>
+
+      <!--
+        One segmented cluster, icons only.
+
+        Three labelled pills across two rows was three separate decisions before
+        the reader had read a word. Icons in a single group read as one control
+        with one purpose; the words come back on hover and on keyboard focus,
+        and `title` plus `aria-label` carry them everywhere a hover cannot.
+      -->
+      <div class="rt-cluster">
+        <!-- Anything the page wants in the group — on an article, the bookmark. -->
+        <slot />
+
+        <button
+          type="button"
+          class="rt-tool"
+          data-rt-notes
+          aria-expanded="false"
+          aria-label="Your highlights"
+          title="Your highlights"
+        >
+          <svg class="rt-tool__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H16l4 4v10.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5Z" />
+            <path d="M8 12h8M8 16h5" />
+          </svg>
+          <span class="rt-tool__badge" data-rt-count hidden>0</span>
+          <span class="rt-tool__label">Highlights</span>
+        </button>
+
+        {present && (
+          <button
+            type="button"
+            class="rt-tool"
+            data-rt-present
+            aria-label="Present this as slides"
+            title="Present this as slides"
+          >
+            <svg class="rt-tool__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="12.5" rx="2" />
+              <path d="M12 16.5V20M8.5 20h7" />
+            </svg>
+            <span class="rt-tool__label">Present</span>
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ Selection toolbar ══════════════ -->
+<div class="rt-pop" data-rt-pop hidden role="toolbar" aria-label="Selected text">
+  <div class="rt-pop__colours" role="group" aria-label="Highlight colour">
+    {COLOURS.map((colour) => (
+      <button
+        type="button"
+        class="rt-pop__dot"
+        data-rt-colour={colour.id}
+        style={`--dot: oklch(0.62 0.17 ${colour.hue});`}
+        aria-label={`Highlight in ${colour.label.toLowerCase()}`}
+        title={colour.label}
+      ></button>
+    ))}
+  </div>
+
+  <span class="rt-pop__rule" aria-hidden="true"></span>
+
+  <button type="button" class="rt-pop__btn" data-rt-copy>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5.5A1.5 1.5 0 0 1 6.5 4H15" />
+    </svg>
+    <span data-rt-copy-label>Copy</span>
+  </button>
+
+  <button type="button" class="rt-pop__btn" data-rt-image>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />
+      <circle cx="9" cy="10" r="1.6" /><path d="m4.5 17 4.5-4.5 3.5 3.5 3-2.5 4 3.5" />
+    </svg>
+    <span>Image</span>
+  </button>
+
+  <button type="button" class="rt-pop__btn rt-pop__btn--danger" data-rt-unmark hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M5 7h14M9.5 7V5.5h5V7M7 7l.8 12.5h8.4L17 7" />
+    </svg>
+    <span>Remove</span>
+  </button>
+</div>
+
+<!-- ══════════════ Highlights drawer ══════════════ -->
+<div class="rt-drawer" data-rt-drawer hidden>
+  <div class="rt-drawer__scrim" data-rt-close></div>
+
+  <aside class="rt-drawer__panel" role="dialog" aria-modal="true" aria-labelledby="rt-drawer-title">
+    <header class="rt-drawer__head">
+      <div>
+        <p class="eyebrow">Kept in this browser only</p>
+        <h2 id="rt-drawer-title" class="rt-drawer__title">Your highlights</h2>
+      </div>
+      <button type="button" class="rt-drawer__close" data-rt-close aria-label="Close highlights">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="m6 6 12 12M18 6 6 18" />
+        </svg>
+      </button>
+    </header>
+
+    <div class="rt-drawer__list" data-rt-list></div>
+
+    <p class="rt-drawer__empty" data-rt-empty>
+      Nothing marked yet. Select any sentence in the article and pick a colour —
+      it stays here, on this device, for whenever you come back.
+    </p>
+
+    <footer class="rt-drawer__foot" data-rt-foot hidden>
+      <button type="button" class="btn btn-outline btn-sm" data-rt-copy-all>Copy all</button>
+      <button type="button" class="btn btn-outline btn-sm" data-rt-export>Export .md</button>
+      <button type="button" class="rt-drawer__clear" data-rt-clear>Clear all</button>
+    </footer>
+  </aside>
+</div>
+
+<!-- ══════════════ Quote card ══════════════ -->
+<div class="rt-card" data-rt-card hidden>
+  <div class="rt-card__scrim" data-rt-card-close></div>
+
+  <div class="rt-card__panel" role="dialog" aria-modal="true" aria-labelledby="rt-card-title">
+    <header class="rt-card__head">
+      <h2 id="rt-card-title" class="rt-drawer__title">Share this passage</h2>
+      <button type="button" class="rt-drawer__close" data-rt-card-close aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="m6 6 12 12M18 6 6 18" />
+        </svg>
+      </button>
+    </header>
+
+    <div class="rt-card__sizes" role="group" aria-label="Image shape">
+      {Object.entries(SIZES).map(([id, size], index) => (
+        <button
+          type="button"
+          class="rt-card__size"
+          data-rt-size={id}
+          aria-pressed={index === 0 ? 'true' : 'false'}
+        >
+          {size.label}
+        </button>
+      ))}
+    </div>
+
+    <div class="rt-card__preview" data-rt-preview>
+      <p class="rt-card__drawing">Drawing…</p>
+    </div>
+
+    <div class="rt-card__actions">
+      <button type="button" class="btn btn-accent btn-sm" data-rt-card-share>
+        <span data-rt-card-share-label>Share image</span>
+      </button>
+      <button type="button" class="btn btn-outline btn-sm" data-rt-card-download>Download PNG</button>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  /*
+   * Anchor jumps have to clear the sticky bar.
+   *
+   * Headings carry `scroll-margin-top: 5.5rem` for the site header alone, and a
+   * step in a short carries `scroll-mt-24`. Both now land the target underneath
+   * this bar — a table-of-contents link that appears to go nowhere. These rules
+   * ship only on the pages that mount ReaderTools, which are exactly the pages
+   * that have the bar.
+   */
+  .prose-reading :is(h2, h3, h4),
+  [data-short-steps] > li {
+    scroll-margin-top: 7.75rem;
+  }
+
+  /*
+   * The tool cluster.
+   *
+   * Global, because one of its buttons is slotted in from ReadingTracker and a
+   * component's scoped styles never reach another component's markup. Shipped
+   * only on pages that mount ReaderTools, which is where the cluster is.
+   */
+  .rt-cluster {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.1rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg);
+    padding: 0.15rem;
+  }
+
+  .rt-tool {
+    display: inline-flex;
+    align-items: center;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    padding: 0.4rem 0.5rem;
+    font: inherit;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.18s ease, color 0.18s ease;
+  }
+  .rt-tool:hover,
+  .rt-tool:focus-visible {
+    background: var(--bg-subtle);
+    color: var(--accent);
+  }
+  /* Bookmarked, and — for the highlights tool — drawer open. Both are states
+     the reader should be able to see without opening anything. */
+  .rt-tool[aria-pressed='true'] {
+    color: var(--accent);
+  }
+  .rt-tool[aria-expanded='true'] {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .rt-tool__icon {
+    width: 1.05rem;
+    height: 1.05rem;
+    flex-shrink: 0;
+    transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .rt-tool:hover .rt-tool__icon {
+    transform: translateY(-1px);
+  }
+
+  /*
+   * The label is the animation.
+   *
+   * It expands out of the icon on hover and on keyboard focus, so the cluster
+   * stays icon-small at rest without ever leaving a reader to guess what a
+   * glyph does. `max-width` rather than an animated grid track, because that
+   * interpolates identically in every browser this has to run in — and `title`
+   * plus `aria-label` still carry the name where there is no hover at all.
+   */
+  .rt-tool__label {
+    max-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    opacity: 0;
+    transition:
+      max-width 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+      margin-left 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.18s ease;
+  }
+  .rt-tool:hover .rt-tool__label,
+  .rt-tool:focus-visible .rt-tool__label {
+    max-width: 8rem;
+    margin-left: 0.35rem;
+    opacity: 1;
+  }
+
+  /* The count is information rather than decoration, so unlike the labels it
+     stays visible at rest. */
+  .rt-tool__badge {
+    margin-left: 0.3rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    padding: 0 0.3rem;
+    font-size: 0.66rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+  }
+  .rt-tool__badge[hidden] {
+    display: none;
+  }
+  .rt-tool__badge[data-bump] {
+    animation: rt-bump 0.42s cubic-bezier(0.2, 1.5, 0.4, 1);
+  }
+
+  @keyframes rt-bump {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.35); }
+    100% { transform: scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rt-tool,
+    .rt-tool__icon,
+    .rt-tool__label {
+      transition: none;
+    }
+    .rt-tool__badge[data-bump] {
+      animation: none;
+    }
+  }
+
+  /*
+   * Marks are injected into the article at runtime, so their styling cannot be
+   * component-scoped — there is no scope attribute on a node the browser built.
+   *
+   * A wash rather than a solid block: at 18% the accent reads clearly as a mark
+   * while the text on top keeps its own contrast, which a saturated highlighter
+   * colour destroys. The underline is what makes the four colours tell apart
+   * for a reader who cannot separate them by hue alone.
+   */
+  mark.rt-mark {
+    background: oklch(0.62 0.17 var(--mark-hue) / 0.18);
+    box-shadow: inset 0 -0.12em 0 oklch(0.62 0.17 var(--mark-hue) / 0.55);
+    color: inherit;
+    border-radius: 0.15em;
+    padding: 0.05em 0;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+  mark.rt-mark:hover {
+    background: oklch(0.62 0.17 var(--mark-hue) / 0.3);
+  }
+  mark.rt-mark[data-colour='accent'] { --mark-hue: 252; }
+  mark.rt-mark[data-colour='green'] { --mark-hue: 155; }
+  mark.rt-mark[data-colour='amber'] { --mark-hue: 75; }
+  mark.rt-mark[data-colour='rose'] { --mark-hue: 15; }
+
+  /* A mark carrying a note gets a dotted lead-in, so the drawer is not the only
+     place a reader can tell they wrote something. */
+  mark.rt-mark[data-note]::before {
+    content: '';
+    display: inline-block;
+    width: 0.35em;
+    height: 0.35em;
+    margin-right: 0.25em;
+    border-radius: 50%;
+    background: oklch(0.62 0.17 var(--mark-hue));
+    vertical-align: 0.15em;
+  }
+
+  :global([data-theme='dark']) mark.rt-mark {
+    background: oklch(0.72 0.15 var(--mark-hue) / 0.22);
+    box-shadow: inset 0 -0.12em 0 oklch(0.72 0.15 var(--mark-hue) / 0.6);
+  }
+</style>
+
+<style>
+  /*
+   * The bar rides under the site header for the whole article.
+   *
+   * It sits as a direct child of the page's `max-w-6xl` container rather than
+   * inside the article `<header>`, and that placement is load-bearing: a sticky
+   * element only stays stuck for the length of its containing block, so nested
+   * in the header it would unstick after two paragraphs.
+   */
+  .reader-sticky {
+    position: sticky;
+    /* The header is 4rem, and ReadingProgress pins a 2px bar directly under it.
+       Clearing both keeps the progress line visible rather than covered. */
+    top: calc(4rem + 2px);
+    /* Above the article and the progress bar (40), below the site header (50). */
+    z-index: 45;
+    /* Cancels the page container's gutters so the rule spans the full column
+       instead of stopping short of both edges. Matches `px-4 sm:px-6`. */
+    margin-inline: -1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+
+  .reader-sticky__inner {
+    margin-inline: auto;
+    max-width: 48rem;
+    padding: 0.55rem 1rem;
+  }
+  /* Pages whose article header is left-aligned rather than centred. */
+  .reader-sticky__inner--start {
+    margin-inline: 0;
+  }
+
+  @media (min-width: 640px) {
+    .reader-sticky {
+      margin-inline: -1.5rem;
+    }
+    .reader-sticky__inner {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  /* ── The row ── */
+  .reader-bar {
+    display: flex;
+    /* Wrapping is allowed, and only ever happens on a narrow screen where the
+       meta line wrapped on its own before the tools were ever put in it. */
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+  }
+
+  .reader-bar__meta {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 1rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  /* Only where there is genuinely room beside the meta line. It is a hint, and
+     a hint that pushes the controls onto a second row has cost more than it is
+     worth. */
+  .reader-bar__hint {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+  }
+  .reader-bar__hint[hidden] {
+    display: none;
+  }
+  @media (max-width: 1023px) {
+    .reader-bar__hint {
+      display: none;
+    }
+  }
+
+  /* ── Selection toolbar ── */
+  .rt-pop {
+    position: fixed;
+    z-index: 58;
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    border-radius: 0.8rem;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    padding: 0.3rem;
+    box-shadow: 0 16px 40px -14px rgb(0 0 0 / 0.4);
+    /* Placed by script; the transform centres it on the selection. */
+    transform: translate(-50%, -100%);
+  }
+  .rt-pop[hidden] {
+    display: none;
+  }
+
+  .rt-pop__colours {
+    display: flex;
+    gap: 0.15rem;
+  }
+  .rt-pop__dot {
+    width: 1.6rem;
+    height: 1.6rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+  .rt-pop__dot::after {
+    content: '';
+    width: 1.05rem;
+    height: 1.05rem;
+    border-radius: 999px;
+    background: var(--dot);
+    transition: transform 0.12s ease;
+  }
+  .rt-pop__dot:hover::after {
+    transform: scale(1.18);
+  }
+
+  .rt-pop__rule {
+    width: 1px;
+    height: 1.3rem;
+    margin-inline: 0.25rem;
+    background: var(--border);
+  }
+
+  .rt-pop__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border: 0;
+    border-radius: 0.55rem;
+    background: transparent;
+    padding: 0.35rem 0.5rem;
+    font: inherit;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .rt-pop__btn:hover {
+    background: var(--bg-subtle);
+    color: var(--accent);
+  }
+  .rt-pop__btn svg {
+    width: 1rem;
+    height: 1rem;
+  }
+  .rt-pop__btn--danger:hover {
+    color: oklch(0.58 0.2 20);
+  }
+  .rt-pop__btn[hidden] {
+    display: none;
+  }
+
+  /* ── Drawer ── */
+  .rt-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 68;
+  }
+  .rt-drawer[hidden] {
+    display: none;
+  }
+  .rt-drawer__scrim {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.45);
+  }
+  .rt-drawer__panel {
+    position: absolute;
+    inset: 0 0 0 auto;
+    display: flex;
+    width: min(26rem, 100%);
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+    background: var(--bg);
+    box-shadow: -20px 0 60px -30px rgb(0 0 0 / 0.6);
+  }
+  @media (max-width: 640px) {
+    .rt-drawer__panel {
+      inset: auto 0 0 0;
+      width: 100%;
+      max-height: 82dvh;
+      border-left: 0;
+      border-top: 1px solid var(--border);
+      border-radius: 1.1rem 1.1rem 0 0;
+      padding-bottom: var(--app-nav-h);
+    }
+  }
+
+  .rt-drawer__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding: 1.1rem 1.25rem;
+  }
+  .rt-drawer__title {
+    margin-top: 0.15rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+  .rt-drawer__close {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .rt-drawer__close:hover {
+    background: var(--bg-subtle);
+  }
+  .rt-drawer__close svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .rt-drawer__list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem 1.25rem;
+  }
+  .rt-drawer__empty {
+    padding: 0 1.25rem 1.25rem;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--text-muted);
+    text-wrap: pretty;
+  }
+  .rt-drawer__empty[hidden] {
+    display: none;
+  }
+
+  .rt-drawer__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    border-top: 1px solid var(--border);
+    padding: 0.85rem 1.25rem;
+  }
+  .rt-drawer__foot[hidden] {
+    display: none;
+  }
+  .rt-drawer__clear {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .rt-drawer__clear:hover {
+    color: oklch(0.58 0.2 20);
+  }
+
+  /* ── Quote card dialog ── */
+  .rt-card {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+  }
+  .rt-card[hidden] {
+    display: none;
+  }
+  .rt-card__scrim {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.6);
+  }
+  .rt-card__panel {
+    position: relative;
+    display: flex;
+    width: min(30rem, 100%);
+    max-height: 92dvh;
+    flex-direction: column;
+    overflow-y: auto;
+    border-radius: 1.1rem;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    padding: 1.25rem;
+    box-shadow: 0 30px 70px -30px rgb(0 0 0 / 0.6);
+  }
+  .rt-card__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .rt-card__sizes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 1rem;
+  }
+  .rt-card__size {
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    padding: 0.3rem 0.7rem;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .rt-card__size[aria-pressed='true'] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .rt-card__preview {
+    display: grid;
+    place-items: center;
+    min-height: 12rem;
+    margin-top: 1rem;
+    border-radius: 0.8rem;
+    background: var(--bg-subtle);
+    padding: 0.75rem;
+  }
+  .rt-card__preview img {
+    max-width: 100%;
+    max-height: 48dvh;
+    border-radius: 0.5rem;
+    box-shadow: 0 12px 30px -16px rgb(0 0 0 / 0.5);
+  }
+  .rt-card__drawing {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .rt-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+</style>
+
+<script>
+  import {
+    COLOURS,
+    addHighlight,
+    blocksOf,
+    clearHighlights,
+    exportMarkdown,
+    getHighlights,
+    paint,
+    removeHighlight,
+    selectionToHighlights,
+    updateNote,
+    type ColourId,
+    type Highlight,
+  } from '../lib/annotations';
+  import { SIZES, drawQuoteCard, shareCard, type CardSize } from '../lib/quote-card';
+  import { SITE } from '../config';
+
+  const HINT_SEEN = 'msd:rt-hint-seen';
+
+  let bound: HTMLElement | null = null;
+
+  /**
+   * The listeners that have to live on `document` are bound once for the
+   * session and re-pointed at whichever article is open. View Transitions swap
+   * the body on every navigation, so binding them per page would leave one dead
+   * `selectionchange` handler per article visited — each still measuring against
+   * a detached DOM.
+   */
+  let documentBound = false;
+  let onSelect: () => void = () => {};
+  let onEscape: (event: KeyboardEvent) => void = () => {};
+  let onScroll: () => void = () => {};
+  let onPointer: (event: PointerEvent) => void = () => {};
+
+  function initReaderTools(): void {
+    const barEl = document.querySelector<HTMLElement>('[data-reader-tools]');
+    const rootEl = document.querySelector<HTMLElement>('[data-reader-root]');
+    if (!barEl || !rootEl || barEl === bound) return;
+    bound = barEl;
+
+    // Typed rather than narrowed: the helpers below are function declarations,
+    // which are hoisted, and TypeScript drops a narrowing across a hoist.
+    const bar: HTMLElement = barEl;
+    const root: HTMLElement = rootEl;
+
+    const slug = bar.dataset.slug!;
+    const title = bar.dataset.title!;
+    const path = bar.dataset.path!;
+    const category = bar.dataset.category!;
+    const hue = Number(bar.dataset.hue) || 252;
+    const url = new URL(path, SITE.url).href;
+
+    const pop = document.querySelector<HTMLElement>('[data-rt-pop]')!;
+    const drawer = document.querySelector<HTMLElement>('[data-rt-drawer]')!;
+    const list = drawer.querySelector<HTMLElement>('[data-rt-list]')!;
+    const empty = drawer.querySelector<HTMLElement>('[data-rt-empty]')!;
+    const foot = drawer.querySelector<HTMLElement>('[data-rt-foot]')!;
+    const countEl = bar.querySelector<HTMLElement>('[data-rt-count]')!;
+    const hint = bar.querySelector<HTMLElement>('[data-rt-hint]')!;
+    const cardDialog = document.querySelector<HTMLElement>('[data-rt-card]')!;
+
+    /** What the toolbar is currently pointed at. */
+    let pending: { text: string; ranges: ReturnType<typeof selectionToHighlights> } | null = null;
+    let markUnderCursor: string | null = null;
+
+    /* ────────────────────────────────────────────────────── painting ──── */
+
+    let live: Highlight[] = [];
+
+    function refresh(): void {
+      const before = live.length;
+      live = paint(root, slug);
+
+      countEl.textContent = String(live.length);
+      countEl.hidden = live.length === 0;
+
+      // A count that changes silently in a collapsed cluster is a count nobody
+      // notices. One beat of movement, only when the number actually moved.
+      if (live.length !== before && live.length > 0) {
+        countEl.removeAttribute('data-bump');
+        // Forces the animation to restart when marks are added back to back.
+        void countEl.offsetWidth;
+        countEl.dataset.bump = '';
+      }
+
+      if (live.length > 0) {
+        hint.hidden = true;
+        try {
+          localStorage.setItem(HINT_SEEN, '1');
+        } catch {
+          /* Nothing to remember it with; the hint just shows again. */
+        }
+      }
+      renderList();
+    }
+
+    try {
+      if (localStorage.getItem(HINT_SEEN) !== null) hint.hidden = true;
+    } catch {
+      /* Private mode: the hint is shown, which is the harmless direction. */
+    }
+
+    /* ─────────────────────────────────────────────────────── toolbar ──── */
+
+    function hidePop(): void {
+      pop.hidden = true;
+      pending = null;
+      markUnderCursor = null;
+    }
+
+    function showPopAt(rect: DOMRect): void {
+      pop.hidden = false;
+      // Measured after unhiding, because a hidden element has no size.
+      const width = pop.offsetWidth;
+      const height = pop.offsetHeight;
+      const x = Math.min(Math.max(rect.left + rect.width / 2, width / 2 + 8), window.innerWidth - width / 2 - 8);
+      // Above the selection, unless it would go off the top — then below it.
+      const above = rect.top > height + 16;
+      pop.style.left = `${x}px`;
+      pop.style.top = `${above ? rect.top - 8 : rect.bottom + height + 8}px`;
+    }
+
+    function onSelection(): void {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+        // A collapsed selection inside an existing mark is a request to manage
+        // that mark, not to make a new one.
+        if (!markUnderCursor) hidePop();
+        return;
+      }
+
+      const range = selection.getRangeAt(0);
+      if (!root.contains(range.commonAncestorContainer)) return hidePop();
+
+      const text = selection.toString().trim();
+      if (text.length < 2) return hidePop();
+
+      pending = { text, ranges: selectionToHighlights(root, range) };
+      markUnderCursor = null;
+      pop.querySelector<HTMLElement>('[data-rt-unmark]')!.hidden = true;
+      showPopAt(range.getBoundingClientRect());
+    }
+
+    // Tapping an existing mark offers to remove it, without needing a reselect.
+    root.addEventListener('click', (event) => {
+      const mark = (event.target as HTMLElement).closest<HTMLElement>('mark.rt-mark');
+      if (!mark) return;
+      markUnderCursor = mark.dataset.hl ?? null;
+      pending = { text: live.find((h) => h.id === markUnderCursor)?.text ?? mark.textContent ?? '', ranges: [] };
+      pop.querySelector<HTMLElement>('[data-rt-unmark]')!.hidden = false;
+      showPopAt(mark.getBoundingClientRect());
+    });
+
+    for (const colour of COLOURS) {
+      pop.querySelector(`[data-rt-colour="${colour.id}"]`)?.addEventListener('click', () => {
+        if (markUnderCursor) {
+          // Recolouring an existing mark: drop it and lay the new one down.
+          const existing = live.find((h) => h.id === markUnderCursor);
+          if (existing) {
+            removeHighlight(slug, existing.id);
+            addHighlight(slug, { ...existing, colour: colour.id as ColourId });
+          }
+        } else {
+          for (const range of pending?.ranges ?? []) {
+            addHighlight(slug, { ...range, colour: colour.id as ColourId });
+          }
+        }
+        window.getSelection()?.removeAllRanges();
+        hidePop();
+        refresh();
+      });
+    }
+
+    pop.querySelector('[data-rt-unmark]')?.addEventListener('click', () => {
+      if (markUnderCursor) removeHighlight(slug, markUnderCursor);
+      hidePop();
+      refresh();
+    });
+
+    pop.querySelector('[data-rt-copy]')?.addEventListener('click', async () => {
+      const text = pending?.text ?? '';
+      if (!text) return;
+      const label = pop.querySelector<HTMLElement>('[data-rt-copy-label]')!;
+      try {
+        // The source is worth carrying: a quote pasted into a document with no
+        // link back is a quote nobody can check.
+        await navigator.clipboard.writeText(`"${text}"\n\n— ${title}\n${url}`);
+        label.textContent = 'Copied';
+        setTimeout(() => (label.textContent = 'Copy'), 1600);
+      } catch {
+        label.textContent = 'Press ⌘C';
+        setTimeout(() => (label.textContent = 'Copy'), 2200);
+      }
+    });
+
+    pop.querySelector('[data-rt-image]')?.addEventListener('click', () => {
+      const text = pending?.text;
+      if (text) openCard(text);
+      hidePop();
+    });
+
+    /* ───────────────────────────────────────────────────────── drawer ──── */
+
+    function renderList(): void {
+      list.replaceChildren();
+      empty.hidden = live.length > 0;
+      foot.hidden = live.length === 0;
+
+      for (const highlight of live) {
+        const row = document.createElement('article');
+        row.className = 'rt-row';
+        row.dataset.colour = highlight.colour;
+
+        const quote = document.createElement('button');
+        quote.type = 'button';
+        quote.className = 'rt-row__quote';
+        quote.textContent = highlight.text;
+        quote.addEventListener('click', () => {
+          const mark = root.querySelector(`mark[data-hl="${highlight.id}"]`);
+          mark?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (window.matchMedia('(max-width: 640px)').matches) closeDrawer();
+        });
+
+        const note = document.createElement('textarea');
+        note.className = 'rt-row__note';
+        note.rows = 1;
+        note.placeholder = 'Add a note…';
+        note.value = highlight.note ?? '';
+        note.addEventListener('input', () => {
+          note.style.height = 'auto';
+          note.style.height = `${note.scrollHeight}px`;
+        });
+        note.addEventListener('change', () => {
+          updateNote(slug, highlight.id, note.value);
+          refresh();
+        });
+
+        const tools = document.createElement('div');
+        tools.className = 'rt-row__tools';
+
+        const image = document.createElement('button');
+        image.type = 'button';
+        image.className = 'rt-row__tool';
+        image.textContent = 'Image';
+        image.addEventListener('click', () => openCard(highlight.text));
+
+        const drop = document.createElement('button');
+        drop.type = 'button';
+        drop.className = 'rt-row__tool rt-row__tool--danger';
+        drop.textContent = 'Remove';
+        drop.addEventListener('click', () => {
+          removeHighlight(slug, highlight.id);
+          refresh();
+        });
+
+        tools.append(image, drop);
+        row.append(quote, note, tools);
+        list.append(row);
+      }
+    }
+
+    function openDrawer(): void {
+      drawer.hidden = false;
+      bar.querySelector('[data-rt-notes]')?.setAttribute('aria-expanded', 'true');
+    }
+    function closeDrawer(): void {
+      drawer.hidden = true;
+      bar.querySelector('[data-rt-notes]')?.setAttribute('aria-expanded', 'false');
+    }
+
+    bar.querySelector('[data-rt-notes]')?.addEventListener('click', () => {
+      drawer.hidden ? openDrawer() : closeDrawer();
+    });
+
+    // Announced rather than called: the deck is a separate component and the two
+    // never need to know about each other's markup.
+    bar.querySelector('[data-rt-present]')?.addEventListener('click', () => {
+      closeDrawer();
+      document.dispatchEvent(new CustomEvent('reader:present'));
+    });
+    drawer.querySelectorAll('[data-rt-close]').forEach((el) =>
+      el.addEventListener('click', closeDrawer),
+    );
+
+    drawer.querySelector('[data-rt-copy-all]')?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(exportMarkdown(title, url, live));
+      } catch {
+        /* Denied; Export still writes the same text to a file. */
+      }
+    });
+
+    drawer.querySelector('[data-rt-export]')?.addEventListener('click', () => {
+      const blob = new Blob([exportMarkdown(title, url, live)], { type: 'text/markdown' });
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = href;
+      link.download = `${slug}-notes.md`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 5000);
+    });
+
+    drawer.querySelector('[data-rt-clear]')?.addEventListener('click', () => {
+      if (live.length === 0) return;
+      // Losing a page of marks to a mis-tap is not recoverable — they exist
+      // nowhere else — so this is the one place worth interrupting for.
+      if (!confirm(`Remove all ${live.length} highlights on this article?`)) return;
+      clearHighlights(slug);
+      refresh();
+    });
+
+    /* ─────────────────────────────────────────────────── quote card ──── */
+
+    let cardQuote = '';
+    let cardSize: CardSize = 'square';
+    let cardBlob: Blob | null = null;
+    let previewUrl: string | null = null;
+
+    async function drawCard(): Promise<void> {
+      const preview = cardDialog.querySelector<HTMLElement>('[data-rt-preview]')!;
+      preview.innerHTML = '<p class="rt-card__drawing">Drawing…</p>';
+      try {
+        cardBlob = await drawQuoteCard({
+          quote: cardQuote,
+          title,
+          category,
+          hue,
+          domain: SITE.url.replace(/^https?:\/\//, ''),
+          size: cardSize,
+        });
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        previewUrl = URL.createObjectURL(cardBlob);
+        const img = document.createElement('img');
+        img.src = previewUrl;
+        img.alt = `Preview: "${cardQuote.slice(0, 60)}…" as a share card`;
+        preview.replaceChildren(img);
+      } catch {
+        preview.innerHTML = '<p class="rt-card__drawing">This browser could not draw the card.</p>';
+      }
+    }
+
+    function openCard(text: string): void {
+      cardQuote = text;
+      cardDialog.hidden = false;
+      void drawCard();
+    }
+
+    function closeCard(): void {
+      cardDialog.hidden = true;
+    }
+
+    cardDialog.querySelectorAll('[data-rt-card-close]').forEach((el) =>
+      el.addEventListener('click', closeCard),
+    );
+
+    for (const id of Object.keys(SIZES) as CardSize[]) {
+      cardDialog.querySelector(`[data-rt-size="${id}"]`)?.addEventListener('click', () => {
+        cardSize = id;
+        cardDialog.querySelectorAll<HTMLElement>('[data-rt-size]').forEach((btn) => {
+          btn.setAttribute('aria-pressed', String(btn.dataset.rtSize === id));
+        });
+        void drawCard();
+      });
+    }
+
+    cardDialog.querySelector('[data-rt-card-share]')?.addEventListener('click', async () => {
+      if (!cardBlob) return;
+      const label = cardDialog.querySelector<HTMLElement>('[data-rt-card-share-label]')!;
+      const outcome = await shareCard(cardBlob, `${slug}-quote.png`, `"${cardQuote}"\n\n${url}`);
+      label.textContent = outcome === 'downloaded' ? 'Saved' : 'Shared';
+      setTimeout(() => (label.textContent = 'Share image'), 1800);
+    });
+
+    cardDialog.querySelector('[data-rt-card-download]')?.addEventListener('click', () => {
+      if (!cardBlob || !previewUrl) return;
+      const link = document.createElement('a');
+      link.href = previewUrl;
+      link.download = `${slug}-quote.png`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+    });
+
+    /* ────────────────────────────────────────────────────────── keys ──── */
+
+    let selectionTimer: number | undefined;
+
+    onSelect = () => {
+      // Debounced to the end of the gesture: `selectionchange` fires on every
+      // pixel of a drag, and a toolbar that chases the cursor is unusable.
+      window.clearTimeout(selectionTimer);
+      selectionTimer = window.setTimeout(onSelection, 180);
+    };
+
+    onEscape = (event) => {
+      if (event.key !== 'Escape') return;
+      if (!cardDialog.hidden) return closeCard();
+      if (!drawer.hidden) return closeDrawer();
+      if (!pop.hidden) hidePop();
+    };
+
+    // The toolbar is placed in viewport coordinates against a selection that
+    // scrolls away underneath it, so scrolling dismisses it rather than
+    // chasing it up the page.
+    onScroll = () => {
+      if (!pop.hidden) hidePop();
+    };
+
+    /**
+     * Lets go of a mark the moment the reader points at anything else.
+     *
+     * Without this the toolbar sticks: tapping a mark pins it open on purpose —
+     * a click collapses the selection, and the collapse must not dismiss the
+     * toolbar that click just opened — and nothing ever unpinned it. Pointer-
+     * down fires before the click that re-pins, so the two do not fight.
+     */
+    onPointer = (event) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('[data-rt-pop]') || target?.closest('mark.rt-mark')) return;
+      markUnderCursor = null;
+    };
+
+    if (!documentBound) {
+      documentBound = true;
+      document.addEventListener('selectionchange', () => onSelect());
+      document.addEventListener('keydown', (event) => onEscape(event));
+      document.addEventListener('pointerdown', (event) => onPointer(event), { passive: true });
+      window.addEventListener('scroll', () => onScroll(), { passive: true });
+    }
+
+    refresh();
+  }
+
+  initReaderTools();
+  document.addEventListener('astro:page-load', () => {
+    bound = null;
+    initReaderTools();
+  });
+</script>
+
+<style is:global>
+  /* Drawer rows are built in the browser, so their styling has to be global. */
+  .rt-row {
+    border-left: 3px solid oklch(0.62 0.17 var(--row-hue));
+    border-radius: 0.5rem;
+    background: var(--bg-subtle);
+    padding: 0.7rem 0.85rem;
+    margin-bottom: 0.6rem;
+  }
+  .rt-row[data-colour='accent'] { --row-hue: 252; }
+  .rt-row[data-colour='green'] { --row-hue: 155; }
+  .rt-row[data-colour='amber'] { --row-hue: 75; }
+  .rt-row[data-colour='rose'] { --row-hue: 15; }
+
+  .rt-row__quote {
+    display: block;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    font: inherit;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    text-align: left;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .rt-row__quote:hover {
+    color: var(--accent);
+  }
+
+  .rt-row__note {
+    display: block;
+    width: 100%;
+    resize: none;
+    overflow: hidden;
+    margin-top: 0.5rem;
+    border: 0;
+    border-top: 1px dashed var(--border);
+    background: transparent;
+    padding-top: 0.45rem;
+    font: inherit;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+  .rt-row__note:focus {
+    outline: none;
+    color: var(--text);
+  }
+
+  .rt-row__tools {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+  .rt-row__tool {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .rt-row__tool:hover {
+    color: var(--accent);
+  }
+  .rt-row__tool--danger:hover {
+    color: oklch(0.58 0.2 20);
+  }
+</style>

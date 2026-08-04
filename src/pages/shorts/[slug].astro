@@ -22,9 +22,12 @@ import AdUnit from '../../components/AdUnit.astro';
 import Newsletter from '../../components/Newsletter.astro';
 import ShareRow from '../../components/ShareRow.astro';
 import Reactions from '../../components/Reactions.astro';
+import ReaderTools from '../../components/ReaderTools.astro';
+import PresentationMode from '../../components/PresentationMode.astro';
+import { AUTHOR } from '../../config';
 import { SITE, ADSENSE_SLOT_IN_ARTICLE, ADSENSE_SLOT_MULTIPLEX } from '../../config';
 import { shortUrl, getShorts, type Short } from '../../lib/shorts';
-import { CATEGORIES, getPublishedPosts, postUrl } from '../../lib/posts';
+import { CATEGORIES, formatDate, getPublishedPosts, postUrl } from '../../lib/posts';
 
 export const getStaticPaths: GetStaticPaths = () =>
   getShorts().map((short) => ({
@@ -112,7 +115,13 @@ const schema = [
     </nav>
 
     <!-- ══════════════ Header ══════════════ -->
-    <header class="mt-6 max-w-3xl">
+    <!-- The bottom margin is the gap above the sticky reader bar below. It
+         cannot live on that bar: a margin on a sticky element adds to where it
+         comes to rest, leaving a gap under the site header. -->
+    <header class="mt-6 mb-6 max-w-3xl">
+      <!-- The category chip stays above the title, where it sets up what is
+           coming. The rest of the meta moved into the sticky bar below, so the
+           tools cost no row of their own. -->
       <div class="flex flex-wrap items-center gap-2 text-xs">
         <span
           class="rounded-full px-2.5 py-1 font-semibold"
@@ -120,11 +129,6 @@ const schema = [
         >
           {category.label}
         </span>
-        <span class="text-muted">{short.folderLabel}</span>
-        <span aria-hidden="true" class="text-muted">·</span>
-        <span class="text-muted">{short.stages.length} steps</span>
-        <span aria-hidden="true" class="text-muted">·</span>
-        <span class="text-muted">{short.seconds} seconds</span>
       </div>
 
       <h1 class="display mt-3 text-[1.9rem] leading-tight text-balance sm:text-4xl">
@@ -132,6 +136,33 @@ const schema = [
       </h1>
       <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">{short.sub}</p>
     </header>
+
+    <!--
+      The steps are the readable half of a short, so they get the same reader
+      tools an article does — and the deck turns them straight back into the
+      slides they were drawn as.
+
+      A direct child of the page container, with no wrapper: a sticky element is
+      constrained by its parent, so a `<div class="mt-6">` around it would be a
+      box exactly its own height and it would come unstuck the moment it moved.
+      The spacing above it lives on the header instead.
+    -->
+    <ReaderTools
+      slug={`short-${short.slug}`}
+      title={short.title}
+      path={shortUrl(short)}
+      category={category.label}
+      hue={category.hue}
+      present
+      align="start"
+    >
+      <Fragment slot="meta">
+        <span>{short.folderLabel}</span>
+        <span>{short.stages.length} steps</span>
+        <span>{short.seconds} seconds</span>
+        {short.publishedAt && <time datetime={short.publishedAt.toISOString()}>{formatDate(short.publishedAt)}</time>}
+      </Fragment>
+    </ReaderTools>
 
     <!-- Reactions and share sit above the player rather than after the steps.
          A short is thirty seconds long: by the time someone has watched it they
@@ -156,7 +187,7 @@ const schema = [
           are written out — pick any step to jump the short straight to it.
         </p>
 
-        <ol class="mt-6 space-y-3" data-short-steps>
+        <ol class="mt-6 space-y-3" data-short-steps data-reader-root>
           {short.stages.map((stage, index) => (
             <li id={`step-${index + 1}`} class="scroll-mt-24">
               <button
@@ -260,6 +291,18 @@ const schema = [
          meets the site's shorts and articles before the ad network's. -->
     <AdUnit slot={ADSENSE_SLOT_MULTIPLEX} format="multiplex" class="!max-w-none" />
   </div>
+
+  <!-- One slide per step — which is the shape the short was written in before
+       it was ever a video. -->
+  <PresentationMode
+    title={short.title}
+    description={short.sub}
+    category={category.label}
+    hue={category.hue}
+    author={AUTHOR.name}
+    url={url}
+    mode="items"
+  />
 </BaseLayout>
 
 <style>

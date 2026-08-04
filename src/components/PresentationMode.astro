@@ -1,0 +1,730 @@
+---
+/**
+ * The article, as a deck.
+ *
+ * Every H2 becomes a slide and everything under it comes along — prose, lists,
+ * code, images, and any highlights the reader has left. Nothing is authored
+ * twice and nothing is stored: the deck is built from the page's own DOM when
+ * the button is pressed, so a post edited today presents correctly today.
+ *
+ * It earns its place because of who reads this site and what they do with it.
+ * These articles get walked through — in a session, at a desk with someone
+ * learning, on a screen in a room. Doing that today means scrolling a blog post
+ * in front of people, with a nav bar, a cookie-sized line length and an advert
+ * halfway down. This is the same words at a size a room can read.
+ *
+ * It is the site, not a separate product. The surface uses the site's own
+ * tokens and follows the light/dark theme; the header carries the same avatar
+ * and the same MSDEVBUILD / blog wordmark the site header does, character for
+ * character; the footer repeats the wordmark the way the site footer does; and
+ * slide bodies carry `prose-reading`, so a paragraph, a table and a code block
+ * are styled by exactly the rules that style them in the article. A deck that
+ * invented its own look would be someone else's slides with our words in them.
+ *
+ * The one hard rule: never lose content. A section too tall for the screen is
+ * scaled down to fit, and if it is still too tall at the floor of that scale it
+ * scrolls. Splitting a section automatically would cut code blocks in half and
+ * separate a paragraph from the list it introduces.
+ */
+import Avatar from './Avatar.astro';
+import { SITE } from '../config';
+
+interface Props {
+  title: string;
+  /** Sub-line on the opening slide. */
+  description: string;
+  category: string;
+  hue: number;
+  author: string;
+  /** Shown in the footer and on the closing slide, so a photograph of the
+   *  screen is still useful to whoever took it. */
+  url: string;
+  /**
+   * 'sections' splits at every H2 — an article.
+   * 'items'    makes each direct child of the root its own slide — a short's steps.
+   */
+  mode?: 'sections' | 'items';
+}
+
+const {
+  title,
+  description,
+  category,
+  hue,
+  author,
+  url,
+  mode = 'sections',
+} = Astro.props;
+
+// Shown without a scheme: this is read off a screen, not clicked.
+const readableUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+---
+
+<div
+  class="deck"
+  data-deck
+  data-mode={mode}
+  data-title={title}
+  data-description={description}
+  data-category={category}
+  data-author={author}
+  data-url={readableUrl}
+  style={`--deck-hue: ${hue};`}
+  hidden
+>
+  <!--
+    The site header's identity block, copied exactly — same avatar, same
+    wordmark, same byline. Not a link: navigating away is not something anyone
+    wants to do by accident three slides into talking to a room.
+  -->
+  <header class="deck__header">
+    <span class="deck__logo">
+      <Avatar size={32} eager class="shrink-0 ring-1 ring-[var(--border)]" />
+      <span class="min-w-0 leading-tight">
+        <span class="block truncate font-semibold tracking-tight">
+          <span class="text-accent">MS</span>DEVBUILD
+          <span class="font-normal text-muted">/ blog</span>
+        </span>
+        <span class="block truncate text-[0.7rem] text-muted">
+          {SITE.alternateName} · {SITE.byline}
+        </span>
+      </span>
+    </span>
+
+    <span class="deck__chip">{category}</span>
+
+    <div class="deck__tools">
+      <button type="button" class="deck__icon" data-deck-full aria-label="Full screen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+        </svg>
+      </button>
+      <button type="button" class="deck__icon" data-deck-exit aria-label="Leave the deck">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="m6 6 12 12M18 6 6 18" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Slides are built here when the deck opens. -->
+  <div class="deck__stage" data-deck-stage></div>
+
+  <footer class="deck__footer">
+    <p class="deck__wordmark">
+      <span class="text-accent">MS</span>DEVBUILD
+      <span class="font-normal text-muted">/ blog</span>
+      <span class="deck__url">{readableUrl}</span>
+    </p>
+
+    <div class="deck__controls">
+      <button type="button" class="deck__icon" data-deck-prev aria-label="Previous slide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 6 9 12l6 6" />
+        </svg>
+      </button>
+
+      <div class="deck__meter">
+        <div class="deck__meter-fill" data-deck-fill></div>
+      </div>
+
+      <p class="deck__count"><span data-deck-at>1</span> / <span data-deck-of>1</span></p>
+
+      <button type="button" class="deck__icon" data-deck-next aria-label="Next slide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m9 6 6 6-6 6" />
+        </svg>
+      </button>
+    </div>
+  </footer>
+</div>
+
+<style>
+  /*
+   * Site surface, site tokens, site theme. The deck follows light and dark with
+   * the rest of the property rather than forcing a look of its own — the only
+   * colour decision it makes on its own is the category hue on the chip and the
+   * progress bar, which is the same hue the article uses.
+   */
+  .deck {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .deck[hidden] {
+    display: none;
+  }
+
+  /* ── Header: the site header's identity block ── */
+  .deck__header {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem clamp(1rem, 4vw, 3rem);
+  }
+
+  .deck__logo {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.625rem;
+  }
+
+  .deck__chip {
+    border-radius: 999px;
+    background: oklch(0.62 0.17 var(--deck-hue) / 0.14);
+    padding: 0.2rem 0.65rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: oklch(0.5 0.17 var(--deck-hue));
+    white-space: nowrap;
+  }
+  :global([data-theme='dark']) .deck__chip {
+    color: oklch(0.8 0.14 var(--deck-hue));
+  }
+  @media (max-width: 640px) {
+    .deck__chip {
+      display: none;
+    }
+  }
+
+  .deck__tools {
+    display: flex;
+    margin-left: auto;
+    gap: 0.35rem;
+  }
+
+  .deck__icon {
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 0.65rem;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .deck__icon:hover {
+    border-color: var(--accent);
+    background: var(--bg-subtle);
+    color: var(--accent);
+  }
+  .deck__icon svg {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+  .deck__icon:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .deck__icon:disabled:hover {
+    border-color: var(--border);
+    background: transparent;
+    color: var(--text-muted);
+  }
+
+  /* ── The slide ── */
+  .deck__stage {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    min-height: 0;
+    padding: clamp(1rem, 3vh, 2.5rem) clamp(1rem, 5vw, 4rem);
+  }
+
+  /* ── Footer: the site footer's wordmark, and the controls ── */
+  .deck__footer {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    background: var(--bg-subtle);
+    padding: 0.6rem clamp(1rem, 4vw, 3rem);
+  }
+
+  .deck__wordmark {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .deck__url {
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  @media (max-width: 640px) {
+    .deck__url {
+      display: none;
+    }
+  }
+
+  .deck__controls {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .deck__meter {
+    height: 3px;
+    width: clamp(4rem, 18vw, 16rem);
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--border);
+  }
+  .deck__meter-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--accent);
+    transition: width 0.25s ease;
+  }
+  .deck__count {
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+  }
+</style>
+
+<style is:global>
+  /*
+   * Slides are cloned out of the article in the browser, so everything they
+   * carry has to be styled globally — a scope attribute cannot be attached to a
+   * node the script built.
+   */
+  .deck__slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+  }
+  .deck__slide[data-current] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Scaled as one block so a section never loses its last paragraph. The script
+     works out the factor; the floor is in the script too. */
+  .deck__scale {
+    width: 100%;
+    transform: scale(var(--deck-scale, 1));
+    transform-origin: top center;
+  }
+
+  /*
+   * `prose-reading` is applied to every slide body, so a paragraph, a list, a
+   * table, a blockquote and a Shiki code block are styled by exactly the rules
+   * that style them in the article — including the dual-theme code swap, which
+   * would otherwise need a second copy here that could drift.
+   *
+   * Only two things change for a room: the type is bigger, and the column is
+   * not capped at reading width, because a slide is read from further away than
+   * a laptop and 68 characters wastes half a screen.
+   */
+  .deck__body.prose-reading {
+    max-width: none;
+    font-size: clamp(1.0625rem, 1.5vw, 1.5rem);
+  }
+  .deck__body.prose-reading > :first-child {
+    margin-top: 0;
+  }
+
+  .deck__slide h2.deck__heading {
+    margin: 0 0 clamp(0.75rem, 2vh, 1.4rem);
+    font-family: var(--font-sans);
+    font-size: clamp(1.6rem, 3.4vw, 2.9rem);
+    font-weight: 800;
+    line-height: 1.14;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+    color: var(--text);
+  }
+
+  /* CodeCopyButton wraps every block and appends its own button. The clone in a
+     slide carries no listener — cloneNode never copies them — so it is a button
+     that cannot do anything. Out. */
+  .deck__body [data-code-block] > button {
+    display: none !important;
+  }
+
+  /* ── Opening and closing slides ── */
+  .deck__eyebrow {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.9rem;
+  }
+  .deck__title {
+    font-family: var(--font-sans);
+    font-size: clamp(1.9rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+    color: var(--text);
+  }
+  .deck__sub {
+    margin-top: 1.1rem;
+    max-width: 46ch;
+    font-size: clamp(1rem, 1.7vw, 1.5rem);
+    line-height: 1.5;
+    color: var(--text-muted);
+    text-wrap: pretty;
+  }
+  .deck__by {
+    margin-top: 1.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .deck__link {
+    margin-top: 0.4rem;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 0.95rem;
+    color: var(--accent);
+    overflow-wrap: anywhere;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .deck__slide {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  /**
+   * Builds and drives the deck.
+   *
+   * Slides are cloned from the live article rather than from any stored copy,
+   * so a deck is always the article as it stands — including the reader's own
+   * highlights, which is the detail that makes presenting from your own notes
+   * work at all.
+   */
+  const SCALE_FLOOR = 0.62;
+
+  let bound: HTMLElement | null = null;
+
+  /**
+   * Bound once for the session and re-pointed at the current deck. View
+   * Transitions swap the body on every navigation, and a keydown handler per
+   * article visited would eventually have a dozen decks listening for the
+   * arrow keys.
+   */
+  let documentBound = false;
+  let onPresent: () => void = () => {};
+  let onKey: (event: KeyboardEvent) => void = () => {};
+  let onResize: () => void = () => {};
+
+  function initDeck(): void {
+    const deckEl = document.querySelector<HTMLElement>('[data-deck]');
+    const rootEl = document.querySelector<HTMLElement>('[data-reader-root]');
+    if (!deckEl || !rootEl || deckEl === bound) return;
+    bound = deckEl;
+
+    // Typed rather than narrowed: the builders below are function declarations,
+    // which are hoisted, and TypeScript drops a narrowing across a hoist.
+    const deck: HTMLElement = deckEl;
+    const root: HTMLElement = rootEl;
+
+    const stage = deck.querySelector<HTMLElement>('[data-deck-stage]')!;
+    const fill = deck.querySelector<HTMLElement>('[data-deck-fill]')!;
+    const atEl = deck.querySelector<HTMLElement>('[data-deck-at]')!;
+    const ofEl = deck.querySelector<HTMLElement>('[data-deck-of]')!;
+    const prevBtn = deck.querySelector<HTMLButtonElement>('[data-deck-prev]')!;
+    const nextBtn = deck.querySelector<HTMLButtonElement>('[data-deck-next]')!;
+
+    let slides: HTMLElement[] = [];
+    let index = 0;
+
+    /* ──────────────────────────────────────────────────────── building ── */
+
+    function slideShell(): HTMLElement {
+      const slide = document.createElement('section');
+      slide.className = 'deck__slide';
+      const scale = document.createElement('div');
+      scale.className = 'deck__scale';
+      slide.append(scale);
+      return slide;
+    }
+
+    function titleSlide(): HTMLElement {
+      const slide = slideShell();
+      const scale = slide.firstElementChild!;
+
+      const eyebrow = document.createElement('p');
+      eyebrow.className = 'deck__eyebrow';
+      eyebrow.textContent = deck.dataset.category ?? '';
+
+      const heading = document.createElement('h1');
+      heading.className = 'deck__title';
+      heading.textContent = deck.dataset.title ?? '';
+
+      const sub = document.createElement('p');
+      sub.className = 'deck__sub';
+      sub.textContent = deck.dataset.description ?? '';
+
+      const by = document.createElement('p');
+      by.className = 'deck__by';
+      by.textContent = deck.dataset.author ?? '';
+
+      scale.append(eyebrow, heading, sub, by);
+      return slide;
+    }
+
+    function endSlide(): HTMLElement {
+      const slide = slideShell();
+      const scale = slide.firstElementChild!;
+
+      const eyebrow = document.createElement('p');
+      eyebrow.className = 'deck__eyebrow';
+      eyebrow.textContent = 'Read the whole thing';
+
+      const heading = document.createElement('p');
+      heading.className = 'deck__title';
+      heading.textContent = deck.dataset.title ?? '';
+
+      const link = document.createElement('p');
+      link.className = 'deck__link';
+      link.textContent = deck.dataset.url ?? '';
+
+      const by = document.createElement('p');
+      by.className = 'deck__by';
+      by.textContent = deck.dataset.author ?? '';
+
+      scale.append(eyebrow, heading, link, by);
+      return slide;
+    }
+
+    /** A slide from a heading and the nodes that belong to it. */
+    function contentSlide(heading: Element | null, nodes: Element[]): HTMLElement {
+      const slide = slideShell();
+      const scale = slide.firstElementChild!;
+
+      if (heading) {
+        const title = document.createElement('h2');
+        title.className = 'deck__heading';
+        title.innerHTML = heading.innerHTML;
+        // Heading anchors are for linking, not for reading off a screen.
+        title.querySelectorAll('a').forEach((a) => a.replaceWith(...a.childNodes));
+        scale.append(title);
+      }
+
+      const body = document.createElement('div');
+      // The article's own typography, verbatim — see the note in the styles.
+      body.className = 'deck__body prose-reading';
+      for (const node of nodes) body.append(node.cloneNode(true));
+      scale.append(body);
+
+      return slide;
+    }
+
+    function build(): void {
+      const mode = deck.dataset.mode ?? 'sections';
+      const built: HTMLElement[] = [titleSlide()];
+
+      if (mode === 'items') {
+        // A short's steps: each one is already a single idea, which is exactly
+        // what a slide is.
+        for (const item of [...root.children]) {
+          const heading = item.querySelector('h3, h4');
+          const clone = item.cloneNode(true) as HTMLElement;
+
+          // On the short's page each step is a button that drives the player.
+          // There is no player here, and a slide full of button chrome reads as
+          // a broken interface — so the controls are unwrapped back into the
+          // text they were built around.
+          clone.querySelectorAll('button').forEach((btn) => btn.replaceWith(...btn.childNodes));
+          clone.querySelectorAll('h3, h4').forEach((el) => el.remove());
+
+          built.push(contentSlide(heading, [clone]));
+        }
+      } else {
+        let heading: Element | null = null;
+        let group: Element[] = [];
+
+        const flush = () => {
+          if (heading || group.length > 0) built.push(contentSlide(heading, group));
+          heading = null;
+          group = [];
+        };
+
+        for (const child of [...root.children]) {
+          if (child.tagName === 'H2') {
+            flush();
+            heading = child;
+          } else {
+            group.push(child);
+          }
+        }
+        flush();
+      }
+
+      built.push(endSlide());
+
+      stage.replaceChildren(...built);
+      slides = built;
+      ofEl.textContent = String(slides.length);
+    }
+
+    /* ───────────────────────────────────────────────────────── fitting ── */
+
+    /**
+     * Shrinks a slide until it fits, and lets it scroll if it still does not.
+     *
+     * Measured with the scale reset, because `scrollHeight` on an already
+     * transformed element reports the untransformed height anyway and mixing the
+     * two is how this kind of code ends up oscillating.
+     */
+    function fit(slide: HTMLElement): void {
+      const scale = slide.firstElementChild as HTMLElement | null;
+      if (!scale) return;
+
+      scale.style.setProperty('--deck-scale', '1');
+      const available = slide.clientHeight;
+      const natural = scale.scrollHeight;
+      if (natural <= 0 || available <= 0) return;
+
+      const factor = Math.min(1, available / natural);
+      scale.style.setProperty('--deck-scale', String(Math.max(factor, SCALE_FLOOR)));
+      // Only a slide that could not be shrunk enough is allowed to scroll.
+      slide.style.justifyContent = factor < SCALE_FLOOR ? 'flex-start' : 'center';
+    }
+
+    /* ────────────────────────────────────────────────────────── moving ── */
+
+    function show(next: number): void {
+      index = Math.max(0, Math.min(next, slides.length - 1));
+      slides.forEach((slide, i) => {
+        if (i === index) slide.dataset.current = '';
+        else delete slide.dataset.current;
+      });
+
+      const current = slides[index];
+      if (current) {
+        current.scrollTop = 0;
+        fit(current);
+      }
+
+      atEl.textContent = String(index + 1);
+      fill.style.width = `${((index + 1) / slides.length) * 100}%`;
+      prevBtn.disabled = index === 0;
+      nextBtn.disabled = index === slides.length - 1;
+    }
+
+    function open(): void {
+      build();
+      deck.hidden = false;
+      document.documentElement.style.overflow = 'hidden';
+      show(0);
+    }
+
+    function close(): void {
+      deck.hidden = true;
+      document.documentElement.style.overflow = '';
+      stage.replaceChildren();
+      slides = [];
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    }
+
+    prevBtn.addEventListener('click', () => show(index - 1));
+    nextBtn.addEventListener('click', () => show(index + 1));
+    deck.querySelector('[data-deck-exit]')?.addEventListener('click', close);
+    deck.querySelector('[data-deck-full]')?.addEventListener('click', () => {
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+      else void deck.requestFullscreen?.().catch(() => {});
+    });
+
+    onPresent = open;
+
+    onKey = (event) => {
+      if (deck.hidden) return;
+      const key = event.key;
+      if (key === 'Escape') return close();
+      if (key === 'ArrowRight' || key === 'PageDown' || key === ' ') {
+        event.preventDefault();
+        show(index + 1);
+      }
+      if (key === 'ArrowLeft' || key === 'PageUp') {
+        event.preventDefault();
+        show(index - 1);
+      }
+      if (key === 'Home') show(0);
+      if (key === 'End') show(slides.length - 1);
+      if (key === 'f') deck.querySelector<HTMLElement>('[data-deck-full]')?.click();
+    };
+
+    onResize = () => {
+      if (!deck.hidden) show(index);
+    };
+
+    if (!documentBound) {
+      documentBound = true;
+      document.addEventListener('reader:present', () => onPresent());
+      document.addEventListener('keydown', (event) => onKey(event));
+      window.addEventListener('resize', () => onResize());
+    }
+
+    // Swipe, with a threshold high enough that scrolling a tall slide does not
+    // register as a page turn.
+    let startX = 0;
+    let startY = 0;
+    deck.addEventListener(
+      'touchstart',
+      (event) => {
+        startX = event.touches[0]!.clientX;
+        startY = event.touches[0]!.clientY;
+      },
+      { passive: true },
+    );
+    deck.addEventListener(
+      'touchend',
+      (event) => {
+        const dx = event.changedTouches[0]!.clientX - startX;
+        const dy = event.changedTouches[0]!.clientY - startY;
+        if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
+        show(index + (dx < 0 ? 1 : -1));
+      },
+      { passive: true },
+    );
+  }
+
+  initDeck();
+  document.addEventListener('astro:page-load', () => {
+    bound = null;
+    initDeck();
+  });
+</script>

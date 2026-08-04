@@ -19,6 +19,8 @@ import Comments from '../../components/Comments.astro';
 import ViewCounter from '../../components/ViewCounter.astro';
 import ReadingTracker from '../../components/ReadingTracker.astro';
 import PostHighlight from '../../components/PostHighlight.astro';
+import PresentationMode from '../../components/PresentationMode.astro';
+import ReaderTools from '../../components/ReaderTools.astro';
 import FollowCTA from '../../components/FollowCTA.astro';
 import AdUnit from '../../components/AdUnit.astro';
 import { SITE, AUTHOR, ADSENSE_SLOT_IN_ARTICLE, ADSENSE_SLOT_MULTIPLEX } from '../../config';
@@ -124,8 +126,11 @@ if (data.faq.length > 0) {
   <ReadingProgress />
 
   <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-    <!-- Header spans the full column; the body below is narrower for reading. -->
-    <header class="mx-auto max-w-3xl">
+    <!-- Header spans the full column; the body below is narrower for reading.
+         The bottom margin is the gap above the sticky reader bar — it cannot
+         live on that bar, because a margin on a sticky element adds to where it
+         comes to rest and would leave a gap under the site header. -->
+    <header class="mx-auto mb-6 max-w-3xl">
       <nav aria-label="Breadcrumb" class="text-sm text-muted">
         <a href="/blog/" class="hover:text-accent">Blog</a>
         <span aria-hidden="true" class="mx-2">/</span>
@@ -138,7 +143,34 @@ if (data.faq.length > 0) {
 
       <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">{data.description}</p>
 
-      <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+    </header>
+
+    <!--
+      The article's meta line and every reader tool, in the one row.
+
+      The meta used to sit inside the header above and the tools underneath it,
+      which spent a whole row of the page on three buttons. Merged, the row the
+      page was already paying for now carries the controls too — and because it
+      is `position: sticky`, that row follows the reader down the article.
+
+      Outside the header on purpose: a sticky element only stays stuck for the
+      length of its containing block, so nested in the header it would come
+      unstuck after two paragraphs. ReadingTracker is slotted in for the same
+      reason the meta is — the bookmark belongs with the other two tools. It
+      also records the visit and restores scroll position, neither of which
+      cares where in the DOM it renders.
+    -->
+    <ReaderTools
+      slug={post.id}
+      title={data.title}
+      path={path}
+      category={category.label}
+      hue={category.hue}
+      present
+    >
+      <ReadingTracker post={post} compact />
+
+      <Fragment slot="meta">
         <span>By <a href="/about/" class="hover:text-accent">{AUTHOR.name}</a></span>
         <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time>
         {data.updatedAt && (
@@ -146,9 +178,8 @@ if (data.faq.length > 0) {
         )}
         <span>{minutes} min read</span>
         <ViewCounter slug={post.id} />
-        <ReadingTracker post={post} />
-      </div>
-    </header>
+      </Fragment>
+    </ReaderTools>
 
     {data.cover && (
       <figure class="mx-auto mt-10 max-w-4xl">
@@ -216,7 +247,10 @@ if (data.faq.length > 0) {
           <PostHighlight text={data.highlight ?? data.description} />
         </div>
 
-        <article class="prose-reading">
+        <!-- `data-reader-root` scopes highlighting and the deck to the article
+             itself, so nothing in the nav, the FAQ or the footer can be marked
+             or end up on a slide. -->
+        <article class="prose-reading" data-reader-root>
           <Content />
         </article>
 
@@ -327,4 +361,14 @@ if (data.faq.length > 0) {
 
   <!-- Floating chat launcher; fixed-position, so it lives at the page root. -->
   <ArticleChat faq={data.faq} body={post.body ?? ''} title={data.title} intro={data.highlight} />
+
+  <!-- Full-screen deck built from the article's own H2 sections on demand. -->
+  <PresentationMode
+    title={data.title}
+    description={data.description}
+    category={category.label}
+    hue={category.hue}
+    author={AUTHOR.name}
+    url={new URL(path, SITE.url).href}
+  />
 </BaseLayout>

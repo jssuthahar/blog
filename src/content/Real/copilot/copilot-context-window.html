@@ -1,0 +1,2120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LLMs have no memory — MSDevBuild</title>
+<meta name="description" content="So how does Copilot know your code? It never remembers. It re-reads, re-ranks and re-sends your context on every single request.">
+<meta name="author" content="Suthahar">
+<meta name="theme-color" content="#0E1420">
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg-deep:#0E1420;
+  --bg-panel:#141B2B;
+  --bg-panel-2:#182238;
+  --border:#232C40;
+  --text-primary:#E8EDF5;
+  --text-dim:#8B95A7;
+  --accent-1:#3AA0FF;
+  --accent-2:#1959C9;
+  --accent-cyan:#22D3EE;
+  --success:#3fb950;
+  --warn:#F0A64A;
+  --danger:#F44A6A;
+
+  --editor-bg:#1e1e1e;
+  --editor-sidebar:#181818;
+  --titlebar:#2b2b2e;
+  --line-num:#4b5157;
+  --ghost:#6e7681;
+  --code-keyword:#ff7b72;
+  --code-func:#dcdcaa;
+  --code-str:#ce9178;
+  --code-plain:#d4d4d4;
+  --code-comment:#6a9955;
+
+  --font-ui:'Inter',-apple-system,'Segoe UI',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{
+  width:100%; height:100%; background:#05080F;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden; font-family:var(--font-ui);
+}
+#stage-wrap{ width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
+
+#canvas{
+  position:relative; width:1080px; height:1920px; flex-shrink:0;
+  transform-origin:center center;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(58,160,255,0.12), transparent 55%),
+    radial-gradient(circle at 15% 92%, rgba(25,89,201,0.16), transparent 45%),
+    var(--bg-deep);
+  border-radius:52px; overflow:hidden;
+  box-shadow:0 0 0 2px #1a2233, 0 40px 120px rgba(0,0,0,0.7);
+}
+#canvas::before{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size:54px 54px;
+}
+
+/* ===================== TITLE SCREEN (tap to start) ===================== */
+#title-screen{
+  position:absolute; inset:0; z-index:110; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px;
+  background:radial-gradient(circle at 50% 30%, rgba(58,160,255,0.22), transparent 60%), var(--bg-deep);
+  text-align:center; padding:0 90px;
+  opacity:1; transition:opacity .38s ease;
+}
+#title-screen.hide{ opacity:0; pointer-events:none; }
+#logo-mark{
+  width:132px; height:132px; border-radius:50%;
+  background-size:cover; background-position:center;
+  box-shadow:0 0 0 4px rgba(58,160,255,0.5), 0 0 70px 8px rgba(58,160,255,0.35);
+  border:2px solid rgba(255,255,255,0.15);
+  animation:msd-pulseRing 2.6s ease-in-out infinite;
+}
+#title-brand{ color:var(--accent-1); font-size:22px; font-weight:800; letter-spacing:5px; text-transform:uppercase; }
+#title-brand span{ color:var(--text-dim); font-weight:600; letter-spacing:2px; text-transform:none; }
+#title-main{ color:#fff; font-size:64px; font-weight:900; line-height:1.14; max-width:840px; }
+#title-main em{ font-style:normal; color:var(--accent-1); }
+#title-sub{ color:var(--text-dim); font-size:26px; font-weight:500; max-width:680px; line-height:1.5; }
+#title-pill{
+  margin-top:14px; padding:12px 26px; border-radius:100px;
+  border:1.5px solid rgba(58,160,255,0.4); color:var(--text-primary);
+  font-size:18px; font-weight:600; font-family:var(--font-mono);
+  display:flex; align-items:center; gap:10px;
+}
+#tap-hint{ color:var(--text-dim); font-size:18px; font-weight:600; margin-top:26px; opacity:.85; }
+#rec-hint{ color:var(--text-dim); font-size:16px; font-weight:500; margin-top:-16px; opacity:.6; }
+#rec-hint b{ color:var(--accent-1); font-family:var(--font-mono); }
+.live-dot{ width:8px; height:8px; border-radius:50%; background:var(--accent-cyan); animation:msd-tdot 1.2s infinite; }
+
+/* ===================== TOP BAR ===================== */
+#topbar{
+  position:absolute; top:44px; left:56px; right:56px; height:92px; z-index:20;
+  display:flex; align-items:center; gap:18px;
+}
+#topbar-avatar{
+  width:72px; height:72px; border-radius:50%; flex-shrink:0;
+  background-size:cover; background-position:center;
+  border:2px solid rgba(255,255,255,0.14);
+  box-shadow:0 0 0 3px rgba(58,160,255,0.42);
+}
+#topbar-text{ display:flex; flex-direction:column; gap:4px; }
+#topbar-name{ color:#fff; font-size:30px; font-weight:800; letter-spacing:-0.4px; line-height:1; }
+#topbar-tag{ color:var(--text-dim); font-size:17px; font-weight:600; letter-spacing:.4px; line-height:1; }
+#sound-toggle, #record-toggle{
+  width:62px; height:62px; border-radius:50%;
+  border:1.5px solid var(--border); background:var(--bg-panel);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  opacity:.35; transition:opacity .3s ease;
+}
+#sound-toggle svg{ width:30px; height:30px; }
+#record-toggle{ margin-left:auto; }
+#record-toggle svg{ width:28px; height:28px; }
+#sound-toggle{ margin-left:12px; }
+#record-toggle:hover{ opacity:.85; }
+/* The record button is a tool, not part of the reel — it must not appear in
+   the frames it is capturing. */
+#canvas.capturing #record-toggle{ opacity:0; pointer-events:none; }
+
+/* ===================== STAGE (agent-authored content lives here) ===== */
+/* Sits below the caption card: Reels and Shorts cover roughly the bottom 400px,
+   so the step number and title have to live above the animation, not under it. */
+#stage{
+  position:absolute; top:500px; left:44px; right:44px; height:1024px; z-index:10;
+}
+
+/* ===================== CAPTION CARD ===================== */
+#caption-wrap{
+  position:absolute; top:166px; left:56px; right:56px; min-height:244px; z-index:20;
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border); border-radius:32px; padding:34px 40px;
+  box-shadow:0 24px 70px rgba(0,0,0,0.45);
+}
+#caption-wrap.pulse{ animation:msd-capPulse .34s ease; }
+#stage-num{
+  color:var(--accent-1); font-family:var(--font-mono); font-size:19px;
+  font-weight:700; letter-spacing:3px; margin-bottom:14px;
+}
+#stage-title{ color:#fff; font-size:52px; font-weight:800; line-height:1.16; letter-spacing:-1px; }
+#stage-title .kw-hl{ color:var(--accent-1); }
+#stage-desc{ color:var(--text-dim); font-size:27px; font-weight:500; line-height:1.45; margin-top:14px; }
+
+/* ===================== STATUS BAR ===================== */
+#statusbar{
+  position:absolute; top:1540px; left:56px; right:56px; height:66px; z-index:20;
+  display:flex; align-items:center; gap:14px; padding:0 26px;
+  background:rgba(20,27,43,0.8); border:1.5px solid var(--border); border-radius:18px;
+}
+#status-icon{ width:26px; height:26px; flex-shrink:0; }
+#status-text{ color:var(--text-primary); font-family:var(--font-mono); font-size:21px; font-weight:600; }
+.thinking-wrap{ display:none; gap:7px; margin-left:6px; }
+.thinking-wrap.show{ display:flex; }
+.thinking-dot{ width:9px; height:9px; border-radius:50%; background:var(--accent-cyan); animation:msd-tdot 1.1s infinite; }
+.thinking-dot:nth-child(2){ animation-delay:.18s; }
+.thinking-dot:nth-child(3){ animation-delay:.36s; }
+
+/* ===================== PROGRESS TRACK ===================== */
+/* Directly under the top bar, with the caption card, so "step 3 of 8" survives
+   the platform chrome that eats the bottom of the frame. */
+#progress-track{
+  position:absolute; top:146px; left:56px; right:56px; height:8px; z-index:20;
+  display:flex; gap:7px;
+}
+#progress-track .seg{
+  flex:1; height:100%; border-radius:4px; background:var(--border); overflow:hidden;
+}
+#progress-track .seg-fill{
+  width:0%; height:100%; border-radius:4px;
+  background:linear-gradient(90deg, var(--accent-1), var(--accent-cyan));
+}
+#progress-track .seg.done .seg-fill{ width:100%; }
+#progress-track .seg.active .seg-fill{ animation:msd-fillseg linear forwards; animation-duration:var(--seg-dur,3000ms); }
+
+/* ===================== BOTTOM BRAND STRIP ===================== */
+#bottom-bar{
+  position:absolute; top:1640px; left:56px; right:56px; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+}
+#bottom-bar .b-left{ color:var(--text-dim); font-size:20px; font-weight:700; letter-spacing:1.4px; }
+#bottom-bar .b-left b{ color:var(--accent-1); }
+#bottom-bar .b-right{
+  color:var(--text-dim); font-family:var(--font-mono); font-size:19px; font-weight:600;
+  display:flex; align-items:center; gap:9px;
+}
+
+/* ===================== END CARD ===================== */
+#end-card{
+  position:absolute; inset:0; z-index:105; opacity:0; pointer-events:none;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+  background:radial-gradient(circle at 50% 30%, rgba(58,160,255,0.22), transparent 60%), var(--bg-deep);
+  text-align:center; padding:0 90px; transition:opacity .5s ease;
+}
+#end-card.show{ opacity:1; }
+#end-avatar{
+  width:120px; height:120px; border-radius:50%;
+  background-size:cover; background-position:center;
+  border:3px solid rgba(255,255,255,0.15);
+  box-shadow:0 0 0 4px rgba(58,160,255,0.5), 0 0 70px 8px rgba(58,160,255,0.3);
+}
+#end-check{
+  width:52px; height:52px; border-radius:50%; background:var(--success);
+  display:flex; align-items:center; justify-content:center;
+  margin-top:-42px; margin-left:70px; border:3px solid var(--bg-deep);
+}
+#end-check svg{ width:26px; height:26px; }
+#end-title{ color:#fff; font-size:44px; font-weight:800; line-height:1.2; margin-top:12px; }
+#end-sub{ color:var(--text-dim); font-size:23px; font-weight:500; max-width:660px; line-height:1.5; }
+#end-cta{
+  margin-top:14px; padding:16px 30px; border-radius:100px;
+  border:1.5px solid rgba(58,160,255,0.5); color:#fff;
+  font-size:20px; font-weight:700; font-family:var(--font-mono);
+  display:flex; align-items:center; gap:10px;
+  background:linear-gradient(90deg, rgba(58,160,255,0.16), rgba(34,211,238,0.1));
+}
+#end-tagline{ color:var(--text-dim); font-size:20px; font-weight:600; letter-spacing:1px; margin-top:6px; }
+
+/* Engagement row. Saves and follows are what actually move a reel, so the
+   brand card asks for them explicitly rather than only showing a URL. */
+#end-actions{ display:flex; gap:16px; margin-top:20px; }
+#end-actions .act{
+  display:flex; align-items:center; gap:11px; padding:15px 26px; border-radius:100px;
+  border:1.5px solid var(--border); background:rgba(20,27,43,0.75);
+  color:var(--text-primary); font-size:21px; font-weight:700;
+}
+#end-actions .act svg{ width:24px; height:24px; flex-shrink:0; }
+#end-actions .act.primary{
+  border-color:rgba(58,160,255,0.55); color:#fff;
+  background:linear-gradient(90deg, rgba(58,160,255,0.22), rgba(34,211,238,0.12));
+  animation:msd-breathe 2.4s ease-in-out infinite;
+}
+
+/* ===================== SHARED COMPONENTS FOR STAGE CONTENT =========== */
+/* The agent composes these rather than restyling from scratch, which keeps
+   every reel on-brand even when the visuals are topic-specific. */
+
+.msd-card{
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border); border-radius:26px;
+  box-shadow:0 18px 50px rgba(0,0,0,0.4);
+}
+.msd-card.accent{ border-color:rgba(58,160,255,0.55); box-shadow:0 0 0 1px rgba(58,160,255,0.3), 0 18px 60px rgba(58,160,255,0.18); }
+.msd-pill{
+  display:inline-flex; align-items:center; gap:9px; padding:10px 20px; border-radius:100px;
+  border:1.5px solid var(--border); background:rgba(20,27,43,0.7);
+  color:var(--text-primary); font-family:var(--font-mono); font-size:20px; font-weight:600;
+}
+.msd-pill.accent{ border-color:rgba(58,160,255,0.5); color:var(--accent-1); }
+.msd-chip{
+  display:inline-flex; align-items:center; padding:7px 15px; border-radius:9px;
+  background:rgba(58,160,255,0.14); border:1px solid rgba(58,160,255,0.3);
+  color:var(--accent-1); font-family:var(--font-mono); font-size:19px; font-weight:600;
+}
+.msd-label{ color:var(--text-dim); font-size:21px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; }
+.msd-h{ color:#fff; font-size:38px; font-weight:800; letter-spacing:-.6px; }
+.msd-sub{ color:var(--text-dim); font-size:23px; font-weight:500; line-height:1.4; }
+.msd-mono{ font-family:var(--font-mono); }
+.msd-num{ font-family:var(--font-mono); font-weight:700; color:var(--accent-1); font-variant-numeric:tabular-nums; }
+
+.msd-node{
+  display:flex; align-items:center; gap:18px; padding:22px 26px;
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border); border-radius:22px;
+}
+.msd-node .ic{
+  width:60px; height:60px; border-radius:16px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(58,160,255,0.12); color:var(--accent-1);
+}
+.msd-node .ic svg{ width:32px; height:32px; }
+.msd-node.hot{ border-color:var(--accent-1); box-shadow:0 0 0 1px var(--accent-1), 0 0 46px rgba(58,160,255,0.28); }
+.msd-node.hot .ic{ background:var(--accent-1); color:#0E1420; }
+
+/* Reveal utility: elements start hidden, driver/agent adds .show */
+.msd-reveal{ opacity:0; transform:translateY(18px); transition:opacity .28s ease, transform .28s cubic-bezier(.22,1,.36,1); }
+.msd-reveal.show{ opacity:1; transform:none; }
+
+/* ---- MOTION: the difference between a reel and a slideshow ------------- */
+/* A stage where nothing moves is a stage viewers swipe past. These keep the
+   composition alive between scripted events. */
+
+/* Spotlight: the element that owns this stage grows, everything else recedes.
+   Applied together they read as a camera push rather than a highlight. */
+.msd-focus{
+  transform:scale(1.06); z-index:5;
+  transition:transform .3s cubic-bezier(.22,1,.36,1), opacity .3s ease, filter .3s ease;
+}
+.msd-recede{ opacity:.34; filter:saturate(.5); transition:opacity .3s ease, filter .3s ease; }
+
+/* Continuous idle motion — subtle enough to ignore, enough to feel alive. */
+.msd-live{ animation:msd-float 3.4s ease-in-out infinite; }
+.msd-breathing{ animation:msd-breathe 2.2s ease-in-out infinite; }
+
+/* One-shot attention beats fired from stage code. */
+.msd-flash{ animation:msd-flash .42s ease-out; }
+.msd-punch{ animation:msd-punch .38s cubic-bezier(.22,1,.36,1); }
+.msd-shake{ animation:msd-shake .38s ease-in-out; }
+
+/* An active node should never sit perfectly still. */
+.msd-node.hot{ animation:msd-hotpulse 1.9s ease-in-out infinite; }
+
+/* Scanning sweep for anything being processed or searched. */
+.msd-scan{ position:relative; overflow:hidden; }
+.msd-scan::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(105deg, transparent 35%, rgba(58,160,255,0.22) 50%, transparent 65%);
+  background-size:260% 100%; animation:msd-sweep 1.5s linear infinite;
+}
+
+.msd-glow{ filter:drop-shadow(0 0 14px rgba(58,160,255,0.55)); }
+.msd-dim{ opacity:.35; transition:opacity .26s ease; }
+.msd-flow{ stroke-dasharray:10 14; animation:msd-dash 1.1s linear infinite; }
+
+/* A code editor mock — common enough across dev topics to belong in the kit. */
+.msd-editor{ background:var(--editor-bg); border-radius:20px; overflow:hidden; border:1.5px solid #000; }
+.msd-editor .bar{ height:52px; background:var(--titlebar); display:flex; align-items:center; padding:0 20px; gap:9px; }
+.msd-editor .bar i{ width:14px; height:14px; border-radius:50%; display:block; }
+.msd-editor .body{ padding:22px 24px; font-family:var(--font-mono); font-size:25px; line-height:1.65; color:var(--code-plain); }
+.msd-editor .ln{ display:inline-block; width:44px; color:var(--line-num); user-select:none; }
+.msd-editor .kw{ color:var(--code-keyword); }
+.msd-editor .fn{ color:var(--code-func); }
+.msd-editor .st{ color:var(--code-str); }
+.msd-editor .cm{ color:var(--code-comment); }
+.msd-editor .ghost{ color:var(--ghost); }
+.msd-editor .cursor{ display:inline-block; width:3px; height:26px; background:var(--accent-1); vertical-align:-4px; animation:msd-blink 1s step-end infinite; }
+
+.msd-particle{
+  position:absolute; width:11px; height:11px; border-radius:50%;
+  background:var(--accent-cyan); box-shadow:0 0 16px var(--accent-cyan); pointer-events:none;
+}
+
+/* ===================== KEYFRAMES ===================== */
+@keyframes msd-pulseRing{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.06);} }
+@keyframes msd-tdot{ 0%,80%,100%{opacity:.25; transform:scale(.8);} 40%{opacity:1; transform:scale(1.15);} }
+@keyframes msd-fillseg{ to{ width:100%; } }
+@keyframes msd-capPulse{ 0%{transform:scale(.978);} 55%{transform:scale(1.012);} 100%{transform:scale(1);} }
+@keyframes msd-blink{ 50%{opacity:0;} }
+@keyframes msd-dash{ to{ stroke-dashoffset:-48; } }
+@keyframes msd-fadeUp{ from{opacity:0; transform:translateY(26px);} to{opacity:1; transform:none;} }
+@keyframes msd-pop{ 0%{transform:scale(.86); opacity:0;} 60%{transform:scale(1.04);} 100%{transform:scale(1); opacity:1;} }
+@keyframes msd-float{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-12px);} }
+@keyframes msd-spin{ to{ transform:rotate(360deg); } }
+@keyframes msd-shimmer{ 0%{background-position:-500px 0;} 100%{background-position:500px 0;} }
+@keyframes msd-breathe{ 0%,100%{transform:scale(1); opacity:.75;} 50%{transform:scale(1.08); opacity:1;} }
+@keyframes msd-flash{ 0%{ box-shadow:0 0 0 0 rgba(58,160,255,.55); } 100%{ box-shadow:0 0 0 26px rgba(58,160,255,0); } }
+@keyframes msd-punch{ 0%{transform:scale(1);} 42%{transform:scale(1.09);} 100%{transform:scale(1);} }
+@keyframes msd-shake{ 0%,100%{transform:translateX(0);} 22%{transform:translateX(-9px);} 55%{transform:translateX(8px);} 80%{transform:translateX(-4px);} }
+@keyframes msd-hotpulse{ 0%,100%{ box-shadow:0 0 0 1px var(--accent-1), 0 0 30px rgba(58,160,255,.22); } 50%{ box-shadow:0 0 0 1px var(--accent-1), 0 0 60px rgba(58,160,255,.45); } }
+@keyframes msd-sweep{ to{ background-position:-260% 0; } }
+@keyframes msd-countup{ 0%{transform:translateY(14px); opacity:0;} 100%{transform:none; opacity:1;} }
+
+
+/* ===================== TOPIC-SPECIFIC STAGE STYLES ===================== */
+#stage .c-scene{ position:relative; width:100%; height:100%; }#stage .c-hook{
+  position:absolute; inset:0; z-index:9; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:16px; text-align:center;
+  background:radial-gradient(circle at 50% 40%, rgba(58,160,255,.14), transparent 62%), #0E1420;
+  opacity:0; transform:scale(.985); pointer-events:none;
+  transition:opacity .3s ease, transform .3s cubic-bezier(.22,1,.36,1);
+}#stage .c-hook.on{ opacity:1; transform:none; }#stage .c-hook-l1{ color:var(--text-dim); font-size:36px; font-weight:600; }#stage .c-hook-big{
+  color:#fff; font-size:110px; font-weight:900; line-height:1.04; letter-spacing:-4px;
+  text-shadow:0 0 80px rgba(58,160,255,.45);
+}#stage .c-hook-row{ display:flex; flex-wrap:wrap; gap:14px; justify-content:center; max-width:880px; margin-top:22px; }#stage .c-hook-chip{
+  padding:12px 24px; border-radius:100px; background:rgba(20,27,43,.9);
+  border:1.5px solid var(--border); color:var(--text-dim);
+  font-family:var(--font-mono); font-size:25px; font-weight:600;
+  opacity:0; transform:translateY(12px) scale(.94);
+  transition:opacity .24s ease, transform .24s cubic-bezier(.22,1,.36,1), border-color .24s ease, color .24s ease;
+}#stage .c-hook-chip.on{ opacity:1; transform:none; }#stage .c-hook-chip.gone{ border-color:rgba(244,74,106,.55); color:var(--danger); text-decoration:line-through; }#stage .c-hook-l2{
+  color:var(--accent-1); font-size:30px; font-weight:700; margin-top:20px;
+  opacity:0; transition:opacity .3s ease;
+}#stage .c-hook-l2.on{ opacity:1; }#stage .c-top{ position:absolute; top:0; left:0; width:992px; height:50px; display:flex; align-items:center; gap:16px; }#stage .c-mark{
+  width:44px; height:44px; border-radius:13px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(58,160,255,.16); border:1.5px solid rgba(58,160,255,.45); color:var(--accent-1);
+}#stage .c-mark svg{ width:26px; height:26px; }#stage .c-proj{ color:var(--text-primary); font-family:var(--font-mono); font-size:24px; font-weight:600; }#stage .c-state{
+  margin-left:auto; color:var(--text-dim); font-family:var(--font-mono); font-size:22px;
+  transition:color .26s ease;
+}#stage .c-state.hot{ color:var(--accent-cyan); }#stage .c-flow{ position:absolute; top:72px; left:0; width:992px; height:156px; }#stage .c-node{
+  position:absolute; top:0; width:176px; height:156px; border-radius:22px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border);
+  opacity:.42; transform:scale(.96);
+  transition:opacity .3s ease, transform .3s cubic-bezier(.22,1,.36,1), border-color .3s ease, box-shadow .3s ease;
+}#stage #c-n1{ left:0; }#stage #c-n2{ left:204px; }#stage #c-n3{ left:408px; }#stage #c-n4{ left:612px; }#stage #c-n5{ left:816px; }#stage .c-node.done{ opacity:.78; transform:none; border-color:rgba(58,160,255,.34); }#stage .c-node.hot{
+  opacity:1; transform:scale(1.045); border-color:var(--accent-1);
+  box-shadow:0 0 0 1px var(--accent-1), 0 0 52px rgba(58,160,255,.3);
+}#stage .c-node.cold{ border-color:rgba(244,74,106,.5); box-shadow:0 0 0 1px rgba(244,74,106,.4), 0 0 46px rgba(244,74,106,.2); }#stage .c-ic{
+  width:54px; height:54px; border-radius:16px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(58,160,255,.12); color:var(--accent-1);
+  transition:background .3s ease, color .3s ease;
+}#stage .c-ic svg{ width:30px; height:30px; }#stage .c-node.hot .c-ic{ background:var(--accent-1); color:#0E1420; }#stage .c-node.cold .c-ic{ background:rgba(244,74,106,.16); color:var(--danger); }#stage .c-nm{ color:#fff; font-size:21px; font-weight:800; letter-spacing:1.4px; }#stage .c-ns{ color:var(--text-dim); font-size:18px; font-weight:600; }#stage .c-edge{
+  position:absolute; top:77px; width:28px; height:3px; border-radius:2px;
+  background:var(--border); overflow:hidden; transition:background .3s ease;
+}#stage #c-e1{ left:176px; }#stage #c-e2{ left:380px; }#stage #c-e3{ left:584px; }#stage #c-e4{ left:788px; }#stage .c-edge.on{ background:linear-gradient(90deg, rgba(58,160,255,.4), var(--accent-1)); }#stage .c-edge i{
+  position:absolute; top:0; left:-40%; width:40%; height:100%; border-radius:2px;
+  background:var(--accent-cyan); opacity:0;
+}#stage .c-edge.on i{ opacity:1; animation:c-run 1.1s linear infinite; }#stage .c-stack{ position:absolute; top:280px; left:0; width:992px; height:520px; }#stage .c-sc{
+  position:absolute; inset:0; opacity:0; transform:scale(.985); pointer-events:none;
+  transition:opacity .3s ease, transform .3s cubic-bezier(.22,1,.36,1);
+}#stage .c-sc.on{ opacity:1; transform:none; }#stage .c-reqs{
+  position:absolute; top:0; left:0; width:452px; height:520px; padding:24px 24px 0;
+  border-radius:24px; background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border);
+}#stage .c-req{
+  margin-top:18px; padding:18px 20px; border-radius:18px;
+  background:rgba(20,27,43,.9); border:1.5px solid var(--border);
+}#stage .c-req.hot{ border-color:var(--accent-1); box-shadow:0 0 0 1px var(--accent-1); }#stage .c-rq-h{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }#stage .c-rq-t{ color:var(--text-dim); font-family:var(--font-mono); font-size:19px; font-weight:600; }#stage .c-rq-n{ color:var(--accent-1); font-family:var(--font-mono); font-size:18px; font-weight:700; letter-spacing:1.2px; }#stage .c-rq-p{ color:var(--code-comment); font-family:var(--font-mono); font-size:21px; font-weight:600; }#stage .c-rq-a{ color:var(--text-primary); font-family:var(--font-mono); font-size:20px; font-weight:600; margin-top:10px; }#stage .c-rq-a em{ font-style:normal; color:var(--danger); font-weight:700; }#stage .c-void{
+  display:flex; align-items:center; justify-content:center; gap:12px; margin-top:18px;
+  padding:14px 0; border-radius:14px;
+  background:rgba(244,74,106,.08); border:1.5px dashed rgba(244,74,106,.42);
+  color:var(--danger); font-size:21px; font-weight:700;
+  opacity:0; transition:opacity .28s ease;
+}#stage .c-void.on{ opacity:1; }#stage .c-void-x{ font-size:26px; font-weight:800; }#stage .c-llm{
+  position:absolute; top:0; right:0; width:518px; height:520px; padding:26px 28px;
+  border-radius:24px; background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border);
+  display:flex; flex-direction:column;
+}#stage .c-llm-h{ display:flex; align-items:center; justify-content:space-between; }#stage .c-badge{
+  padding:9px 20px; border-radius:100px; background:rgba(58,160,255,.16);
+  border:1.5px solid rgba(58,160,255,.45); color:var(--accent-1);
+  font-family:var(--font-mono); font-size:21px; font-weight:700;
+}#stage .c-ro{
+  padding:8px 16px; border-radius:9px; background:rgba(20,27,43,.9);
+  border:1px solid var(--border); color:var(--text-dim);
+  font-family:var(--font-mono); font-size:19px; font-weight:600;
+  transition:color .26s ease, border-color .26s ease;
+}#stage .c-ro.lit{ color:var(--warn); border-color:rgba(240,166,74,.5); }#stage .c-io{ margin-top:26px; }#stage .c-io-l{ color:var(--text-dim); font-size:19px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase; }#stage .c-toks{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }#stage .c-tok{
+  padding:10px 16px; border-radius:11px; background:rgba(20,27,43,.9);
+  border:1.5px solid var(--border); color:var(--text-primary);
+  font-family:var(--font-mono); font-size:21px; font-weight:600;
+  opacity:0; transform:translateY(8px);
+  transition:opacity .2s ease, transform .2s ease;
+}#stage .c-tok.on{ opacity:1; transform:none; }#stage .c-tok-hot{ border-color:var(--accent-cyan); color:#fff; background:rgba(34,211,238,.14); }#stage .c-pred{
+  margin-top:26px; padding:18px 20px; border-radius:16px; text-align:center;
+  background:rgba(58,160,255,.1); border:1.5px solid rgba(58,160,255,.32);
+  color:var(--accent-1); font-family:var(--font-mono); font-size:21px; font-weight:600;
+  opacity:0; transition:opacity .28s ease;
+}#stage .c-pred.on{ opacity:1; }#stage .c-llm-f{
+  margin-top:auto; padding-top:20px; border-top:1px solid var(--border);
+  color:var(--text-dim); font-size:21px; font-weight:600; line-height:1.4;
+}#stage .c-src{
+  position:absolute; top:0; left:0; width:430px; height:520px; padding:24px 22px 0;
+  border-radius:24px; background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border);
+}#stage .c-src-row{
+  display:flex; align-items:center; gap:14px; margin-top:13px;
+  padding:13px 16px; border-radius:14px; white-space:nowrap;
+  background:rgba(20,27,43,.85); border:1.5px solid var(--border);
+  color:var(--text-primary); font-size:20px; font-weight:600; line-height:1.25;
+}#stage .c-src-i{
+  flex-shrink:0; color:var(--accent-1); font-family:var(--font-mono); font-size:18px; font-weight:700;
+}#stage .c-src-f{
+  position:absolute; left:22px; right:22px; bottom:22px;
+  color:var(--accent-1); font-size:21px; font-weight:700;
+  opacity:0; transition:opacity .28s ease;
+}#stage .c-src-f.on{ opacity:1; }#stage .c-pay{
+  position:absolute; top:0; right:0; width:530px; height:520px; padding:24px 24px 0;
+  border-radius:24px; background:var(--editor-bg); border:1.5px solid #000;
+}#stage .c-pay-h{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }#stage .c-pay-b{
+  padding:7px 15px; border-radius:9px; background:rgba(58,160,255,.14);
+  border:1px solid rgba(58,160,255,.34); color:var(--accent-1);
+  font-family:var(--font-mono); font-size:18px; font-weight:700;
+}#stage .c-pr{
+  display:flex; align-items:center; gap:14px; margin-top:13px;
+  padding:12px 15px; border-radius:12px; background:rgba(255,255,255,.04);
+  white-space:nowrap;
+}#stage .c-key{
+  flex-shrink:0; width:88px; color:var(--code-keyword);
+  font-family:var(--font-mono); font-size:19px; font-weight:700;
+}#stage .c-val{ color:var(--code-plain); font-family:var(--font-mono); font-size:19px; font-weight:500; }#stage .c-pay-f{
+  position:absolute; left:24px; right:24px; bottom:22px;
+  color:var(--code-comment); font-family:var(--font-mono); font-size:19px; font-weight:600;
+  opacity:0; transition:opacity .28s ease;
+}#stage .c-pay-f.on{ opacity:1; }#stage .c-ed{ position:absolute; top:0; left:0; width:616px; height:404px; }#stage .c-file{ color:var(--text-dim); font-family:var(--font-mono); font-size:20px; margin-left:14px; }#stage .c-ed .body{ font-size:19px; line-height:2.05; padding-top:24px; }#stage .c-cl{
+  white-space:nowrap; border-radius:8px; padding:1px 6px;
+  transition:background .26s ease, box-shadow .26s ease, opacity .26s ease;
+}#stage .c-cl.dim{ opacity:.34; }#stage .c-pre.mark{ background:rgba(58,160,255,.16); box-shadow:inset 3px 0 0 var(--accent-1); }#stage .c-suf.mark{ background:rgba(34,211,238,.14); box-shadow:inset 3px 0 0 var(--accent-cyan); }#stage .c-cur.mark{ background:rgba(240,166,74,.14); box-shadow:inset 3px 0 0 var(--warn); }#stage #c-ghost{ font-family:var(--font-mono); }#stage .c-fim{ position:absolute; top:0; right:0; width:352px; height:520px; }#stage .c-fb{
+  height:162px; margin-bottom:17px; padding:18px 20px; border-radius:20px;
+  display:flex; flex-direction:column; justify-content:center; gap:8px;
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border);
+  opacity:.4; transition:opacity .26s ease, border-color .26s ease, box-shadow .26s ease;
+}#stage .c-fb.on{ opacity:1; }#stage .c-fb.on#c-fb-1{ border-color:var(--accent-1); box-shadow:0 0 0 1px rgba(58,160,255,.5); }#stage .c-fb.on#c-fb-2{ border-color:var(--accent-cyan); box-shadow:0 0 0 1px rgba(34,211,238,.5); }#stage .c-fb.on#c-fb-3{ border-color:var(--warn); box-shadow:0 0 0 1px rgba(240,166,74,.5); }#stage .c-fb b{ color:#fff; font-size:22px; font-weight:800; letter-spacing:1.6px; }#stage .c-fb span{ color:var(--text-dim); font-size:19px; font-weight:500; line-height:1.3; }#stage .c-fb span i{ font-style:normal; color:var(--accent-cyan); font-family:var(--font-mono); }#stage .c-ask{
+  position:absolute; top:420px; left:0; width:616px; height:100px;
+  padding:0 26px; border-radius:20px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(244,74,106,.08); border:1.5px solid rgba(244,74,106,.4);
+  color:var(--text-primary); font-size:27px; font-weight:700; line-height:1.3;
+  opacity:0; transition:opacity .28s ease;
+}#stage .c-ask.on{ opacity:1; }#stage .c-ask em{ font-style:normal; color:var(--danger); font-family:var(--font-mono); }#stage .c-tabbar{
+  position:absolute; top:0; left:0; width:992px; height:62px;
+  display:flex; align-items:stretch; gap:8px;
+}#stage .c-tab{
+  display:flex; align-items:center; padding:0 22px; border-radius:14px 14px 0 0;
+  background:rgba(20,27,43,.75); border:1.5px solid var(--border); border-bottom:none;
+  color:var(--text-dim); font-family:var(--font-mono); font-size:21px; font-weight:600;
+  transition:color .24s ease, border-color .24s ease, background .24s ease;
+}#stage .c-tab-on{ background:var(--editor-bg); color:#fff; border-color:rgba(58,160,255,.5); }#stage .c-tab.read{ color:var(--accent-cyan); border-color:rgba(34,211,238,.45); background:rgba(34,211,238,.08); }#stage .c-tab-off{ opacity:.45; }#stage .c-snips{
+  position:absolute; top:86px; left:0; width:992px; height:318px;
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:18px;
+}#stage .c-snip{
+  border-radius:22px; padding:24px 22px;
+  display:flex; flex-direction:column; gap:16px;
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border);
+  opacity:0; transform:translateY(14px);
+  transition:opacity .28s ease, transform .28s cubic-bezier(.22,1,.36,1), border-color .28s ease, box-shadow .28s ease;
+}#stage .c-snip.on{ opacity:1; transform:none; }#stage .c-snip.win{ border-color:var(--accent-1); box-shadow:0 0 0 1px var(--accent-1), 0 0 46px rgba(58,160,255,.26); }#stage .c-sn-f{ color:#fff; font-family:var(--font-mono); font-size:22px; font-weight:700; }#stage .c-sn-c{
+  padding:16px 14px; border-radius:12px; background:var(--editor-bg);
+  color:var(--code-plain); font-family:var(--font-mono); font-size:18px; line-height:1.4;
+  word-break:break-word;
+}#stage .c-sn-m{ display:flex; align-items:center; gap:14px; margin-top:auto; }#stage .c-sn-t{ flex:1; height:12px; border-radius:6px; background:rgba(35,44,64,.9); overflow:hidden; }#stage .c-sn-t i{
+  display:block; width:0; height:100%; border-radius:6px;
+  background:linear-gradient(90deg, var(--accent-1), var(--accent-cyan));
+  transition:width .8s cubic-bezier(.22,1,.36,1);
+}#stage .c-sn-v{ color:var(--text-primary); font-family:var(--font-mono); font-size:20px; font-weight:700; }#stage .c-tnote{
+  position:absolute; top:434px; left:0; width:992px; height:86px;
+  display:flex; align-items:center; gap:18px; padding:0 24px; border-radius:18px;
+  background:rgba(58,160,255,.08); border:1.5px solid rgba(58,160,255,.3);
+  opacity:0; transform:translateY(10px); transition:opacity .28s ease, transform .28s ease;
+}#stage .c-tnote.on{ opacity:1; transform:none; }#stage .c-tn-k{
+  flex-shrink:0; color:var(--accent-1); font-family:var(--font-mono); font-size:19px;
+  font-weight:700; letter-spacing:1.4px; text-transform:uppercase;
+}#stage .c-tn-v{ color:#fff; font-size:23px; font-weight:700; }#stage .c-query{
+  position:absolute; top:0; left:0; width:992px; height:70px; border-radius:16px;
+  display:flex; align-items:center; gap:16px; padding:0 24px;
+  background:rgba(20,27,43,.9); border:1.5px solid var(--border);
+  color:var(--text-primary); font-size:25px; font-weight:600;
+  opacity:0; transform:translateY(-10px); transition:opacity .28s ease, transform .28s ease;
+}#stage .c-query.on{ opacity:1; transform:none; }#stage .c-hash{
+  padding:8px 16px; border-radius:9px; background:rgba(34,211,238,.12);
+  border:1px solid rgba(34,211,238,.36); color:var(--accent-cyan);
+  font-family:var(--font-mono); font-size:21px; font-weight:700;
+}#stage .c-idx{
+  position:absolute; top:96px; left:0; width:470px; height:340px; padding:22px 24px;
+  border-radius:22px; background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border);
+  opacity:0; transform:translateY(12px); transition:opacity .28s ease, transform .28s ease, border-color .28s ease, box-shadow .28s ease;
+}#stage .c-idx.on{ opacity:1; transform:none; }#stage .c-idx.hot{ border-color:var(--accent-1); box-shadow:0 0 0 1px var(--accent-1), 0 0 44px rgba(58,160,255,.22); }#stage .c-idx-h{ display:flex; align-items:center; justify-content:space-between; }#stage .c-idx-b{
+  color:var(--text-dim); font-family:var(--font-mono); font-size:18px;
+  padding:5px 13px; border-radius:8px; background:rgba(20,27,43,.8); border:1px solid var(--border);
+}#stage .c-dots{ display:grid; grid-template-columns:repeat(10, 1fr); gap:11px; margin-top:22px; }#stage .c-dots i{
+  display:block; width:100%; height:20px; border-radius:6px;
+  background:rgba(139,149,167,.22); transition:background .2s ease, box-shadow .2s ease;
+}#stage .c-dots i.hit{ background:var(--accent-cyan); box-shadow:0 0 14px var(--accent-cyan); }#stage .c-idx-f{
+  position:absolute; left:24px; right:24px; bottom:20px;
+  color:var(--text-dim); font-size:19px; font-weight:600;
+}#stage .c-hits{
+  position:absolute; top:96px; right:0; width:490px; height:340px; padding:22px 24px;
+  border-radius:22px; background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border);
+}#stage .c-hit{
+  display:flex; align-items:center; justify-content:space-between; margin-top:14px;
+  padding:15px 18px; border-radius:14px;
+  background:rgba(34,211,238,.08); border:1.5px solid rgba(34,211,238,.28);
+}#stage .c-hit-f{ color:#fff; font-family:var(--font-mono); font-size:21px; font-weight:600; }#stage .c-hit-s{ color:var(--accent-cyan); font-family:var(--font-mono); font-size:20px; font-weight:700; }#stage .c-hits-f{
+  position:absolute; left:24px; right:24px; bottom:20px;
+  color:var(--accent-1); font-size:21px; font-weight:700; line-height:1.3;
+  opacity:0; transition:opacity .28s ease;
+}#stage .c-hits-f.on{ opacity:1; }#stage .c-win-h{ position:absolute; top:0; left:0; width:992px; display:flex; align-items:center; justify-content:space-between; }#stage .c-win-b{
+  color:var(--text-dim); font-family:var(--font-mono); font-size:19px;
+  padding:6px 15px; border-radius:8px; background:rgba(20,27,43,.85); border:1px solid var(--border);
+  transition:color .26s ease, border-color .26s ease;
+}#stage .c-win-b.full{ color:var(--danger); border-color:rgba(244,74,106,.5); }#stage .c-meter{
+  position:absolute; top:48px; left:0; width:992px; height:76px; border-radius:16px;
+  display:flex; overflow:hidden;
+  background:rgba(20,27,43,.9); border:1.5px solid var(--border);
+  transition:border-color .28s ease, box-shadow .28s ease;
+}#stage .c-meter.full{ border-color:rgba(244,74,106,.55); box-shadow:0 0 0 1px rgba(244,74,106,.35); }#stage .c-seg{ width:0; height:100%; transition:width .7s cubic-bezier(.22,1,.36,1); }#stage .c-g1{ background:#1959C9; }#stage .c-g2{ background:#3AA0FF; }#stage .c-g3{ background:#22D3EE; }#stage .c-g4{ background:#2f9e46; }#stage .c-g5{ background:#F0A64A; }#stage .c-g6{ background:repeating-linear-gradient(135deg, rgba(139,149,167,.3) 0 10px, rgba(139,149,167,.12) 10px 20px); }#stage .c-legend{
+  position:absolute; top:142px; left:0; width:992px;
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:10px 20px;
+}#stage .c-lg{
+  display:flex; align-items:center; gap:10px; white-space:nowrap;
+  color:var(--text-dim); font-size:19px; font-weight:600;
+  transition:color .26s ease, opacity .26s ease;
+}#stage .c-lg i{ width:15px; height:15px; border-radius:4px; flex-shrink:0; }#stage .c-lg b{ color:var(--text-primary); font-family:var(--font-mono); font-size:19px; font-weight:700; }#stage .c-lg.gone{ opacity:.4; text-decoration:line-through; }#stage .c-drop{
+  position:absolute; top:212px; left:0; width:486px; height:308px; padding:22px 24px;
+  border-radius:22px; background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border);
+}#stage .c-dr{
+  display:flex; align-items:center; gap:14px; margin-top:13px;
+  padding:12px 18px; border-radius:14px;
+  background:rgba(20,27,43,.85); border:1.5px solid var(--border);
+  color:var(--text-primary); font-size:21px; font-weight:600;
+  transition:border-color .24s ease, color .24s ease;
+}#stage .c-dr.cut{ border-color:rgba(244,74,106,.45); color:var(--danger); }#stage .c-dn{
+  width:30px; height:30px; border-radius:9px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(244,74,106,.14); color:var(--danger);
+  font-family:var(--font-mono); font-size:17px; font-weight:700;
+}#stage .c-dr-f{
+  position:absolute; left:24px; right:24px; bottom:20px;
+  color:var(--text-dim); font-size:19px; font-weight:600;
+  opacity:0; transition:opacity .28s ease;
+}#stage .c-dr-f.on{ opacity:1; }#stage .c-cost{
+  position:absolute; top:212px; right:0; width:486px; height:308px; padding:22px 24px;
+  border-radius:22px; background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border);
+}#stage .c-co{
+  display:flex; align-items:baseline; gap:14px; margin-top:18px;
+  padding-bottom:16px; border-bottom:1px solid var(--border);
+}#stage .c-co b{ color:#fff; font-family:var(--font-mono); font-size:23px; font-weight:700; }#stage .c-co span{ color:var(--text-dim); font-size:20px; font-weight:500; }#stage .c-chat{
+  position:absolute; top:0; left:0; width:392px; height:520px; padding:24px 22px;
+  border-radius:24px; background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border);
+}#stage .c-turn{
+  display:flex; align-items:center; gap:14px; margin-top:16px;
+  padding:16px 18px; border-radius:16px;
+  background:rgba(20,27,43,.88); border:1.5px solid var(--border);
+  color:var(--text-primary); font-size:20px; font-weight:600; line-height:1.25;
+  transition:opacity .3s ease, border-color .3s ease, color .3s ease;
+}#stage .c-tn-i{
+  flex-shrink:0; color:var(--accent-1); font-family:var(--font-mono); font-size:18px; font-weight:700;
+}#stage .c-turn.faded{ opacity:.3; }#stage .c-turn-now{ border-color:rgba(58,160,255,.5); }#stage .c-turn.miss{ border-color:rgba(244,74,106,.5); color:var(--danger); }#stage .c-replay{
+  position:absolute; top:0; right:0; width:578px; height:520px; padding:24px 24px 0;
+  border-radius:24px; background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border);
+}#stage .c-rp{
+  margin-top:20px; opacity:0; transform:translateY(10px);
+  transition:opacity .28s ease, transform .28s ease;
+}#stage .c-rp.on{ opacity:1; transform:none; }#stage .c-rp-l{ color:var(--text-dim); font-family:var(--font-mono); font-size:18px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; }#stage .c-rp-b{ display:flex; gap:9px; margin-top:11px; }#stage .c-blk{
+  flex:1; height:56px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(58,160,255,.14); border:1.5px solid rgba(58,160,255,.34);
+  color:var(--text-primary); font-family:var(--font-mono); font-size:19px; font-weight:700;
+  transition:opacity .3s ease, background .3s ease, border-color .3s ease, color .3s ease;
+}#stage .c-blk-s{ flex:0 0 74px; background:rgba(139,149,167,.14); border-color:var(--border); color:var(--text-dim); }#stage .c-blk-n{ background:rgba(34,211,238,.16); border-color:rgba(34,211,238,.45); color:#fff; }#stage .c-blk-x.cut{
+  background:rgba(244,74,106,.1); border-color:rgba(244,74,106,.42); border-style:dashed;
+  color:var(--danger); text-decoration:line-through;
+}#stage .c-rp-f{
+  position:absolute; left:24px; right:24px; bottom:22px;
+  color:#fff; font-size:22px; font-weight:700; line-height:1.35;
+  opacity:0; transition:opacity .3s ease;
+}#stage .c-rp-f.on{ opacity:1; }#stage .c-cards{ display:grid; grid-template-columns:repeat(2, 1fr); gap:20px; }#stage .c-card{ height:250px; padding:26px; display:flex; flex-direction:column; gap:12px; justify-content:center; }#stage .c-card-ic{
+  width:56px; height:56px; border-radius:16px; margin-bottom:4px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(58,160,255,.14); color:var(--accent-1);
+}#stage .c-card-ic svg{ width:30px; height:30px; }#stage .c-card b{ color:#fff; font-size:29px; font-weight:800; letter-spacing:-.4px; }#stage .c-card span{ color:var(--text-dim); font-size:21px; font-weight:500; line-height:1.4; }#stage .c-strip{
+  position:absolute; top:818px; left:0; width:992px; height:206px; padding:24px 30px;
+  display:flex; flex-direction:column; gap:12px; justify-content:center;
+}#stage .c-strip-l{ color:var(--accent-1); font-family:var(--font-mono); font-size:19px; font-weight:700; letter-spacing:3px; }#stage .c-strip-t{ color:#fff; font-size:29px; font-weight:700; line-height:1.3; }#stage .c-chips{ display:flex; gap:12px; margin-top:4px; }#stage .c-chip{
+  padding:10px 18px; border-radius:10px;
+  background:rgba(58,160,255,.12); border:1px solid rgba(58,160,255,.3);
+  color:var(--accent-1); font-family:var(--font-mono); font-size:20px; font-weight:600;
+  opacity:0; transform:translateY(8px);
+  transition:opacity .24s ease, transform .24s ease;
+}#stage .c-chip.show{ opacity:1; transform:none; }@keyframes c-run{ from{ left:-40%; } to{ left:100%; } }
+
+</style>
+</head>
+<body>
+<div id="stage-wrap">
+  <div id="canvas">
+
+    <!-- ============ TITLE SCREEN ============ -->
+    <div id="title-screen">
+      <div id="logo-mark" style="background-image:url('data:image/jpeg;base64,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')"></div>
+      <div id="title-brand">MSDevBuild <span>— Multi-Stack Dev Build · by Suthahar</span></div>
+      <div id="title-main">LLMs have <em>no memory</em></div>
+      <div id="title-sub">So how does Copilot know your code? It never remembers. It re-reads, re-ranks and re-sends your context on every single request.</div>
+      <div id="title-pill"><span class="live-dot"></span>9 stages · 24 sec · AI engineering</div>
+      <div id="tap-hint"><svg viewBox="0 0 24 24" fill="none" style="width:22px;height:22px;vertical-align:-5px;margin-right:6px"><path d="M9 11V6a2 2 0 1 1 4 0v5m0 0V9.5a1.8 1.8 0 1 1 3.6 0V11m0 0a1.8 1.8 0 1 1 3.6 0v3.5A6.5 6.5 0 0 1 13.7 21h-1.4a6 6 0 0 1-5.2-3l-2.4-4a1.8 1.8 0 0 1 2.9-2.1L9 13.5" stroke="#8B95A7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Tap anywhere to play</div>
+      <div id="rec-hint">or press <b>D</b> to record one loop and download it</div>
+    </div>
+
+    <!-- ============ TOP BAR ============ -->
+    <div id="topbar">
+      <div id="topbar-avatar" style="background-image:url('data:image/jpeg;base64,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')"></div>
+      <div id="topbar-text">
+        <div id="topbar-name">MSDevBuild</div>
+        <div id="topbar-tag">Multi-Stack Dev Build · by Suthahar</div>
+      </div>
+      <div id="record-toggle" title="Record one loop and download it (D)"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0 0 4-4m-4 4-4-4" stroke="#3AA0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="#3AA0FF" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div id="sound-toggle" title="Toggle sound (S)"><svg viewBox="0 0 24 24" fill="none"><path d="M11 5 6 9H3v6h3l5 4z" fill="#3AA0FF"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" stroke="#3AA0FF" stroke-width="2" stroke-linecap="round"/></svg></div>
+    </div>
+
+    <!-- ============ STAGE (topic-specific) ============ -->
+    <div id="stage">
+
+    <div class="c-scene" id="c-scene">
+
+      <!-- Opening hook: the assumption every viewer is carrying -->
+      <div class="c-hook" id="c-hook">
+        <div class="c-hook-l1">Between two requests, an LLM keeps</div>
+        <div class="c-hook-big" id="c-hook-big">no memory</div>
+        <div class="c-hook-row">
+          <span class="c-hook-chip" id="c-hk-1">your repo</span>
+          <span class="c-hook-chip" id="c-hk-2">yesterday&rsquo;s chat</span>
+          <span class="c-hook-chip" id="c-hk-3">the file you just closed</span>
+          <span class="c-hook-chip" id="c-hk-4">your naming style</span>
+          <span class="c-hook-chip" id="c-hk-5">the bug you fixed</span>
+        </div>
+        <div class="c-hook-l2" id="c-hook-l2">It holds none of it &mdash; and still finishes your line.</div>
+      </div>
+
+      <!-- Request chrome: one Copilot request, start to finish -->
+      <div class="c-top" id="c-top">
+        <div class="c-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 1 4 4v1h1a4 4 0 0 1 4 4v3a6 6 0 0 1-6 6H9a6 6 0 0 1-6-6v-3a4 4 0 0 1 4-4h1V7a4 4 0 0 1 4-4Z"/><path d="M9 14v2M15 14v2"/></svg>
+        </div>
+        <div class="c-proj" id="c-proj">GitHub Copilot &middot; VS Code</div>
+        <div class="c-state" id="c-state">idle</div>
+      </div>
+
+      <!-- The request pipeline. One node per phase, lit as the story reaches it. -->
+      <div class="c-flow" id="c-flow">
+
+        <div class="c-node" id="c-n1">
+          <div class="c-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.6"/><path d="M3 8.5h18"/><path d="M7 13h6"/></svg>
+          </div>
+          <div class="c-nm">EDITOR</div>
+          <div class="c-ns">file + cursor</div>
+        </div>
+
+        <div class="c-node" id="c-n2">
+          <div class="c-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-3.6-3.6"/></svg>
+          </div>
+          <div class="c-nm">GATHER</div>
+          <div class="c-ns">tabs + index</div>
+        </div>
+
+        <div class="c-node" id="c-n3">
+          <div class="c-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5v-9Z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></svg>
+          </div>
+          <div class="c-nm">PACK</div>
+          <div class="c-ns">one window</div>
+        </div>
+
+        <div class="c-node" id="c-n4">
+          <div class="c-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="15" height="15" rx="4"/><path d="M9.5 9.5h5v5h-5z"/><path d="M12 4.5V2M12 22v-2.5M4.5 12H2M22 12h-2.5"/></svg>
+          </div>
+          <div class="c-nm">MODEL</div>
+          <div class="c-ns">no memory</div>
+        </div>
+
+        <div class="c-node" id="c-n5">
+          <div class="c-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg>
+          </div>
+          <div class="c-nm">SUGGEST</div>
+          <div class="c-ns">then forget</div>
+        </div>
+
+        <div class="c-edge" id="c-e1"><i></i></div>
+        <div class="c-edge" id="c-e2"><i></i></div>
+        <div class="c-edge" id="c-e3"><i></i></div>
+        <div class="c-edge" id="c-e4"><i></i></div>
+      </div>
+
+      <!-- One scene per stage: the zoomed-in view of the hot pipeline node. -->
+      <div class="c-stack" id="c-stack">
+
+        <!-- STAGE 2 · the model is a frozen function -->
+        <div class="c-sc" id="c-sc-state">
+          <div class="c-reqs">
+            <div class="msd-label">Two requests in a row</div>
+
+            <div class="c-req msd-reveal" id="c-rq1">
+              <div class="c-rq-h"><span class="c-rq-t">09:14:02</span><span class="c-rq-n">request 1</span></div>
+              <div class="c-rq-p">// sort users by last login</div>
+              <div class="c-rq-a">users.sort((a, b) =&gt; b.last - a.last)</div>
+            </div>
+
+            <div class="c-void" id="c-void">
+              <span class="c-void-x">&times;</span>nothing is written back
+            </div>
+
+            <div class="c-req msd-reveal" id="c-rq2">
+              <div class="c-rq-h"><span class="c-rq-t">09:14:58</span><span class="c-rq-n">request 2</span></div>
+              <div class="c-rq-p">// now the same for orders</div>
+              <div class="c-rq-a" id="c-rq2-a">the same for <em>what</em>?</div>
+            </div>
+          </div>
+
+          <div class="c-llm" id="c-llm">
+            <div class="c-llm-h">
+              <span class="c-badge">the model</span>
+              <span class="c-ro" id="c-ro">weights: read-only</span>
+            </div>
+
+            <div class="c-io">
+              <div class="c-io-l">tokens in</div>
+              <div class="c-toks">
+                <span class="c-tok" id="c-tk-1">const</span>
+                <span class="c-tok" id="c-tk-2">tax</span>
+                <span class="c-tok" id="c-tk-3">=</span>
+                <span class="c-tok" id="c-tk-4">subtotal</span>
+                <span class="c-tok" id="c-tk-5">*</span>
+              </div>
+            </div>
+
+            <div class="c-pred" id="c-pred">P( next token | everything in the prompt )</div>
+
+            <div class="c-io">
+              <div class="c-io-l">one token out</div>
+              <div class="c-toks">
+                <span class="c-tok c-tok-hot" id="c-tk-out">TAX_RATE</span>
+              </div>
+            </div>
+
+            <div class="c-llm-f">No database. No session. No file access of its own.</div>
+          </div>
+        </div>
+
+        <!-- STAGE 3 · the editor assembles a prompt from scratch -->
+        <div class="c-sc" id="c-sc-build">
+          <div class="c-src" id="c-src">
+            <div class="msd-label">Sent with every request</div>
+            <div class="c-src-row msd-reveal" id="c-s1"><span class="c-src-i">01</span>the file around your cursor</div>
+            <div class="c-src-row msd-reveal" id="c-s2"><span class="c-src-i">02</span>snippets from open tabs</div>
+            <div class="c-src-row msd-reveal" id="c-s3"><span class="c-src-i">03</span>imported symbols and types</div>
+            <div class="c-src-row msd-reveal" id="c-s4"><span class="c-src-i">04</span>your repo instruction files</div>
+            <div class="c-src-row msd-reveal" id="c-s5"><span class="c-src-i">05</span>code from the workspace index</div>
+            <div class="c-src-row msd-reveal" id="c-s6"><span class="c-src-i">06</span>the chat transcript so far</div>
+            <div class="c-src-f" id="c-src-f">Rebuilt from scratch. Every time.</div>
+          </div>
+
+          <div class="c-pay" id="c-pay">
+            <div class="c-pay-h">
+              <span class="msd-label">The prompt</span>
+              <span class="c-pay-b" id="c-pay-b">assembling</span>
+            </div>
+            <div class="c-pr msd-reveal"><span class="c-key">system</span><span class="c-val">copilot-instructions.md</span></div>
+            <div class="c-pr msd-reveal"><span class="c-key">context</span><span class="c-val">// tax.ts &rarr; TAX_RATE</span></div>
+            <div class="c-pr msd-reveal"><span class="c-key">prefix</span><span class="c-val">function priceCart(items) {</span></div>
+            <div class="c-pr msd-reveal"><span class="c-key">suffix</span><span class="c-val">return { subtotal, tax }</span></div>
+            <div class="c-pr msd-reveal"><span class="c-key">history</span><span class="c-val">4 earlier turns</span></div>
+            <div class="c-pay-f" id="c-pay-f">One HTTP request. Then the connection closes.</div>
+          </div>
+        </div>
+
+        <!-- STAGE 4 · fill in the middle -->
+        <div class="c-sc" id="c-sc-fim">
+          <div class="msd-editor c-ed">
+            <div class="bar">
+              <i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i>
+              <span class="c-file">cart.ts</span>
+            </div>
+            <div class="body">
+              <div class="c-cl c-pre" id="c-cl-1"><span class="ln">1</span><span class="kw">export function</span> <span class="fn">priceCart</span>(items) {</div>
+              <div class="c-cl c-pre" id="c-cl-2"><span class="ln">2</span>&nbsp;&nbsp;<span class="kw">const</span> subtotal = items.<span class="fn">reduce</span>(</div>
+              <div class="c-cl c-pre" id="c-cl-3"><span class="ln">3</span>&nbsp;&nbsp;&nbsp;&nbsp;(s, i) =&gt; s + i.price * i.qty, <span class="st">0</span>);</div>
+              <div class="c-cl c-cur" id="c-cl-4"><span class="ln">4</span>&nbsp;&nbsp;<span class="ghost" id="c-ghost"></span><span class="cursor"></span></div>
+              <div class="c-cl c-suf" id="c-cl-5"><span class="ln">5</span></div>
+              <div class="c-cl c-suf" id="c-cl-6"><span class="ln">6</span>&nbsp;&nbsp;<span class="kw">return</span> { subtotal, tax, total };</div>
+              <div class="c-cl c-suf" id="c-cl-7"><span class="ln">7</span>}</div>
+            </div>
+          </div>
+
+          <div class="c-fim">
+            <div class="c-fb" id="c-fb-1">
+              <b>PREFIX</b><span>everything above the cursor</span>
+            </div>
+            <div class="c-fb" id="c-fb-2">
+              <b>SUFFIX</b><span>everything below it &mdash; this is where <i>tax</i> is demanded</span>
+            </div>
+            <div class="c-fb c-fb-out" id="c-fb-3">
+              <b>MIDDLE</b><span>the only part the model writes</span>
+            </div>
+          </div>
+
+          <div class="c-ask" id="c-ask"><span>but where did <em>TAX_RATE</em> come from?</span></div>
+        </div>
+
+        <!-- STAGE 5 · neighbouring tabs -->
+        <div class="c-sc" id="c-sc-tabs">
+          <div class="c-tabbar" id="c-tabbar">
+            <span class="c-tab c-tab-on">cart.ts</span>
+            <span class="c-tab" id="c-tb-1">tax.ts</span>
+            <span class="c-tab" id="c-tb-2">useCart.tsx</span>
+            <span class="c-tab" id="c-tb-3">orders.ts</span>
+            <span class="c-tab c-tab-off" id="c-tb-4">README.md</span>
+          </div>
+
+          <div class="c-snips">
+            <div class="c-snip" id="c-sn-1">
+              <div class="c-sn-f">tax.ts</div>
+              <div class="c-sn-c"><span class="kw">export const</span> TAX_RATE = <span class="st">0.0825</span>;</div>
+              <div class="c-sn-m"><span class="c-sn-t"><i id="c-sm-1"></i></span><span class="c-sn-v">0.91</span></div>
+            </div>
+            <div class="c-snip" id="c-sn-2">
+              <div class="c-sn-f">useCart.tsx</div>
+              <div class="c-sn-c"><span class="kw">const</span> { subtotal } = <span class="fn">priceCart</span>(items);</div>
+              <div class="c-sn-m"><span class="c-sn-t"><i id="c-sm-2"></i></span><span class="c-sn-v">0.62</span></div>
+            </div>
+            <div class="c-snip" id="c-sn-3">
+              <div class="c-sn-f">orders.ts</div>
+              <div class="c-sn-c"><span class="kw">function</span> <span class="fn">shipping</span>(zone) { &hellip;</div>
+              <div class="c-sn-m"><span class="c-sn-t"><i id="c-sm-3"></i></span><span class="c-sn-v">0.34</span></div>
+            </div>
+          </div>
+
+          <div class="c-tnote" id="c-tnote">
+            <span class="c-tn-k">pasted into the prompt</span>
+            <span class="c-tn-v">Close the tab and it leaves the prompt. That is the entire mechanism.</span>
+          </div>
+        </div>
+
+        <!-- STAGE 6 · the workspace index behind #codebase -->
+        <div class="c-sc" id="c-sc-index">
+          <div class="c-query" id="c-query">
+            <span class="c-hash">#codebase</span>where do we apply tax?
+          </div>
+
+          <div class="c-idx" id="c-idx">
+            <div class="c-idx-h">
+              <span class="msd-label">Workspace index</span>
+              <span class="c-idx-b">chunk &rarr; embed &rarr; search</span>
+            </div>
+            <div class="c-dots" id="c-dots"></div>
+            <div class="c-idx-f">Built once, re-queried on every turn.</div>
+          </div>
+
+          <div class="c-hits" id="c-hits">
+            <div class="msd-label">Top matches, pasted in</div>
+            <div class="c-hit msd-reveal"><span class="c-hit-f">tax.ts</span><span class="c-hit-s">0.89</span></div>
+            <div class="c-hit msd-reveal"><span class="c-hit-f">checkout.service.ts</span><span class="c-hit-s">0.74</span></div>
+            <div class="c-hit msd-reveal"><span class="c-hit-f">pricing.test.ts</span><span class="c-hit-s">0.66</span></div>
+            <div class="c-hits-f" id="c-hits-f">A search engine, not a memory.</div>
+          </div>
+        </div>
+
+        <!-- STAGE 7 · one fixed token budget -->
+        <div class="c-sc" id="c-sc-win">
+          <div class="c-win-h">
+            <span class="msd-label">Context window</span>
+            <span class="c-win-b" id="c-win-b">sample budget &middot; 16k tokens</span>
+          </div>
+
+          <div class="c-meter" id="c-meter">
+            <i class="c-seg c-g1" id="c-sg-1"></i>
+            <i class="c-seg c-g2" id="c-sg-2"></i>
+            <i class="c-seg c-g3" id="c-sg-3"></i>
+            <i class="c-seg c-g4" id="c-sg-4"></i>
+            <i class="c-seg c-g5" id="c-sg-5"></i>
+            <i class="c-seg c-g6" id="c-sg-6"></i>
+          </div>
+
+          <div class="c-legend">
+            <span class="c-lg"><i class="c-g1"></i>instructions<b>1.2k</b></span>
+            <span class="c-lg"><i class="c-g2"></i>current file<b>4.2k</b></span>
+            <span class="c-lg"><i class="c-g3"></i>open tabs<b>2.7k</b></span>
+            <span class="c-lg"><i class="c-g4"></i>retrieved<b>2.2k</b></span>
+            <span class="c-lg"><i class="c-g5"></i>chat history<b>3.4k</b></span>
+            <span class="c-lg" id="c-lg-6"><i class="c-g6"></i>room to answer<b>2.3k</b></span>
+          </div>
+
+          <div class="c-drop" id="c-drop">
+            <div class="msd-label">When it will not fit</div>
+            <div class="c-dr msd-reveal" id="c-dr-1"><span class="c-dn">1</span>the oldest chat turns are cut</div>
+            <div class="c-dr msd-reveal" id="c-dr-2"><span class="c-dn">2</span>the weakest snippets are dropped</div>
+            <div class="c-dr msd-reveal" id="c-dr-3"><span class="c-dn">3</span>long files are truncated</div>
+            <div class="c-dr-f" id="c-dr-f">Something always leaves.</div>
+          </div>
+
+          <div class="c-cost" id="c-cost">
+            <div class="msd-label">Rough sizes</div>
+            <div class="c-co msd-reveal"><b>1 token</b><span>&asymp; 4 characters of code</span></div>
+            <div class="c-co msd-reveal"><b>600-line file</b><span>&asymp; 7k tokens on its own</span></div>
+            <div class="c-co msd-reveal"><b>the answer</b><span>has to fit in there too</span></div>
+          </div>
+        </div>
+
+        <!-- STAGE 8 · chat memory is the transcript, resent -->
+        <div class="c-sc" id="c-sc-chat">
+          <div class="c-chat" id="c-chat">
+            <div class="msd-label">Your chat</div>
+            <div class="c-turn msd-reveal" id="c-tn-1"><span class="c-tn-i">T1</span>we use snake_case in this repo</div>
+            <div class="c-turn msd-reveal" id="c-tn-2"><span class="c-tn-i">T2</span>write the pricing helper</div>
+            <div class="c-turn msd-reveal" id="c-tn-3"><span class="c-tn-i">T3</span>add the tax line</div>
+            <div class="c-turn msd-reveal" id="c-tn-4"><span class="c-tn-i">T4</span>now the order version</div>
+            <div class="c-turn c-turn-now msd-reveal" id="c-tn-5"><span class="c-tn-i">T5</span>why is it camelCase again?</div>
+          </div>
+
+          <div class="c-replay">
+            <div class="msd-label">What actually goes over the wire</div>
+            <div class="c-rp" id="c-rp-1">
+              <div class="c-rp-l">turn 2</div>
+              <div class="c-rp-b"><span class="c-blk c-blk-s">sys</span><span class="c-blk">T1</span><span class="c-blk c-blk-n">T2</span></div>
+            </div>
+            <div class="c-rp" id="c-rp-2">
+              <div class="c-rp-l">turn 4</div>
+              <div class="c-rp-b"><span class="c-blk c-blk-s">sys</span><span class="c-blk">T1</span><span class="c-blk">T2</span><span class="c-blk">T3</span><span class="c-blk c-blk-n">T4</span></div>
+            </div>
+            <div class="c-rp" id="c-rp-3">
+              <div class="c-rp-l">turn 5</div>
+              <div class="c-rp-b"><span class="c-blk c-blk-s">sys</span><span class="c-blk c-blk-x" id="c-blk-x">T1</span><span class="c-blk">T2</span><span class="c-blk">T3</span><span class="c-blk">T4</span><span class="c-blk c-blk-n">T5</span></div>
+            </div>
+            <div class="c-rp-f" id="c-rp-f">T1 fell out of the window. So the rule you set is simply gone.</div>
+          </div>
+        </div>
+
+        <!-- STAGE 9 · you own the context -->
+        <div class="c-sc" id="c-sc-you">
+          <div class="c-cards">
+            <div class="msd-card c-card msd-reveal">
+              <div class="c-card-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+              </div>
+              <b>Write the rules down</b>
+              <span>copilot-instructions.md is re-sent with every request, so it never falls out of the chat.</span>
+            </div>
+
+            <div class="msd-card c-card msd-reveal">
+              <div class="c-card-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.6"/><path d="M3 8.5h18"/><path d="M8 4v4.5"/></svg>
+              </div>
+              <b>Curate your tabs</b>
+              <span>The files you keep open are the cheapest context there is. Close the noise.</span>
+            </div>
+
+            <div class="msd-card c-card msd-reveal">
+              <div class="c-card-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h6l2 2h8v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7Z"/><path d="m11 13 2 2 4-4"/></svg>
+              </div>
+              <b>Point at it</b>
+              <span>#file, #selection and #codebase beat hoping the ranker guessed right.</span>
+            </div>
+
+            <div class="msd-card c-card msd-reveal">
+              <div class="c-card-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 6"/><path d="M20 5v6h-6"/></svg>
+              </div>
+              <b>Start a fresh chat</b>
+              <span>When the window is full of stale turns, a new chat beats a better prompt.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom strip: the takeaway line for whichever stage is playing -->
+      <div class="msd-card c-strip" id="c-strip">
+        <div class="c-strip-l" id="c-strip-l">THE CATCH</div>
+        <div class="c-strip-t" id="c-strip-t">Every request is the model&rsquo;s first request.</div>
+        <div class="c-chips">
+          <span class="c-chip" id="c-ch1">stateless</span>
+          <span class="c-chip" id="c-ch2">no session</span>
+          <span class="c-chip" id="c-ch3">no file access</span>
+        </div>
+      </div>
+
+    </div>
+
+    </div>
+
+    <!-- ============ CAPTION CARD ============ -->
+    <div id="caption-wrap">
+      <div id="stage-num">STEP 01 / 09</div>
+      <div id="stage-title"></div>
+      <div id="stage-desc"></div>
+    </div>
+
+    <!-- ============ STATUS BAR ============ -->
+    <div id="statusbar">
+      <svg id="status-icon" viewBox="0 0 24 24" fill="none"><svg viewBox="0 0 24 24" fill="none"><path d="M8 3 2 12l6 9M16 3l6 9-6 9" stroke="#3AA0FF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></svg>
+      <span id="status-text"></span>
+      <div class="thinking-wrap" id="thinking">
+        <div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div>
+      </div>
+    </div>
+
+    <!-- ============ PROGRESS + BRAND STRIP ============ -->
+    <div id="progress-track"></div>
+    <div id="bottom-bar">
+      <div class="b-left">MSDEVBUILD — <b>Multi-Stack Dev Build</b></div>
+      <div class="b-right"><span class="live-dot"></span>26s · loops</div>
+    </div>
+
+    <!-- ============ END CARD ============ -->
+    <div id="end-card">
+      <div id="end-avatar" style="background-image:url('data:image/jpeg;base64,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')"></div>
+      <div id="end-check"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.5 4.5L19 7.5" stroke="#0E1420" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div id="end-title">It never remembered. It re-read.</div>
+      <div id="end-sub">Copilot feels like it knows your codebase because your editor rebuilds the context on every request — and all of it has to fit in one window.</div>
+      <div id="end-actions">
+        <div class="act primary"><svg viewBox="0 0 24 24" fill="none"><path d="M6 3.5h12a1 1 0 0 1 1 1v16l-7-4.4-7 4.4v-16a1 1 0 0 1 1-1z" stroke="#3AA0FF" stroke-width="2" stroke-linejoin="round"/></svg>Save this</div>
+        <div class="act"><svg viewBox="0 0 24 24" fill="none"><circle cx="10" cy="8" r="3.4" stroke="#8B95A7" stroke-width="2"/><path d="M3.6 20c1-3.4 3.5-5.2 6.4-5.2 1 0 2 .2 2.8.6" stroke="#8B95A7" stroke-width="2" stroke-linecap="round"/><path d="M17.5 14v6M14.5 17h6" stroke="#8B95A7" stroke-width="2" stroke-linecap="round"/></svg>Follow for more</div>
+      </div>
+      <div id="end-cta"><span class="live-dot"></span>Learn more at https://blog.msdevbuild.com/</div>
+      <div id="end-tagline">Multi-Stack Dev Build · by Suthahar</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+window.__MSD_SLUG__ = "copilot-context-window";
+window.__MSD_STAGES__ = [
+  {
+    title: "Copilot does not remember you",
+    key: "does not remember",
+    desc: "The model is stateless. Between two requests it holds nothing — not your repo, not your last question.",
+    status: "model idle · zero state",
+    thinking: false,
+    durationMs: 2600,
+    run: function(MSD, $, $$){
+
+      MSD.cls('#c-hook', 'on', true);
+      MSD.cls('#c-hook-l2', 'on', false);
+      MSD.cls('.c-hook-chip', 'on', false);
+      MSD.cls('.c-hook-chip', 'gone', false);
+      MSD.after(120, function(){ MSD.punch('#c-hook-big', 2); });
+      MSD.qa('.c-hook-chip').forEach(function(el, i){
+        MSD.after(680 + i * 140, function(){ el.classList.add('on'); MSD.sfx.tick(); });
+      });
+      MSD.after(1650, function(){ MSD.cls('.c-hook-chip', 'gone', true); MSD.sfx.error(); });
+      MSD.after(1920, function(){ MSD.cls('#c-hook-l2', 'on', true); MSD.sfx.pop(); });
+      
+    }
+  },
+  {
+    title: "The model is a frozen function",
+    key: "frozen function",
+    desc: "Tokens in, one token out. Weights are read-only at inference, so nothing you type is ever written back.",
+    status: "inference · weights read-only",
+    thinking: false,
+    durationMs: 2800,
+    run: function(MSD, $, $$){
+
+      MSD.cls('#c-hook', 'on', false);
+      MSD.unfocus();
+      MSD.cls('.c-sc', 'on', false);
+      MSD.cls('.c-node', 'hot', false);
+      MSD.cls('.c-node', 'done', false);
+      MSD.cls('.c-edge', 'on', false);
+      MSD.cls('#c-n4', 'cold', true);
+      MSD.hide('#c-sc-state .msd-reveal');
+      MSD.cls('#c-void, #c-pred', 'on', false);
+      MSD.cls('.c-tok', 'on', false);
+      MSD.cls('#c-ro', 'lit', false);
+      MSD.cls('#c-sc-state', 'on', true);
+      MSD.q('#c-state').textContent = 'one request, no history';
+      MSD.cls('#c-state', 'hot', true);
+      MSD.q('#c-strip-l').textContent = 'WHAT THE MODEL IS';
+      MSD.q('#c-strip-t').textContent = 'A pure function over the prompt. Same prompt in, same distribution out.';
+      MSD.q('#c-ch1').textContent = 'stateless';
+      MSD.q('#c-ch2').textContent = 'no session';
+      MSD.q('#c-ch3').textContent = 'no file access';
+      MSD.hide('.c-chip');
+      MSD.after(60, function(){ MSD.show('.c-chip', 90, true); });
+
+      MSD.after(120, function(){ MSD.show('#c-rq1', 0); });
+      MSD.qa('#c-tk-1, #c-tk-2, #c-tk-3, #c-tk-4, #c-tk-5').forEach(function(el, i){
+        MSD.after(320 + i * 110, function(){ el.classList.add('on'); MSD.sfx.tick(); });
+      });
+      MSD.after(1000, function(){ MSD.cls('#c-pred', 'on', true); MSD.sfx.blip(2); });
+      MSD.after(1350, function(){ MSD.cls('#c-tk-out', 'on', true); MSD.punch('#c-tk-out', 4); });
+      MSD.after(1700, function(){ MSD.cls('#c-void', 'on', true); MSD.cls('#c-ro', 'lit', true); MSD.shake('#c-void'); });
+      MSD.after(2100, function(){ MSD.show('#c-rq2', 0, true); MSD.sfx.error(); });
+      MSD.after(2400, function(){ MSD.punch('#c-rq2-a', 1); });
+      
+    }
+  },
+  {
+    title: "So the editor rebuilds the world",
+    key: "rebuilds the world",
+    desc: "Every suggestion is a fresh prompt your IDE assembles: the file, the tabs, repo rules, retrieved code, the chat so far.",
+    status: "assembling the prompt",
+    thinking: true,
+    durationMs: 2900,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.c-sc', 'on', false);
+      MSD.cls('#c-sc-build', 'on', true);
+      MSD.cls('.c-node', 'hot', false);
+      MSD.cls('#c-n4', 'cold', false);
+      MSD.cls('.c-node', 'done', true);
+      MSD.cls('.c-edge', 'on', true);
+      MSD.hide('#c-sc-build .msd-reveal');
+      MSD.cls('#c-src-f, #c-pay-f', 'on', false);
+      MSD.q('#c-state').textContent = 'building the payload';
+      MSD.q('#c-strip-l').textContent = 'THE TRICK';
+      MSD.q('#c-strip-t').textContent = 'Your context is not stored anywhere. It is re-sent, in full, every time.';
+      MSD.q('#c-ch1').textContent = 'prompt assembly';
+      MSD.q('#c-ch2').textContent = 'per keystroke';
+      MSD.q('#c-ch3').textContent = 'stateless API';
+      MSD.hide('.c-chip');
+      MSD.after(60, function(){ MSD.show('.c-chip', 90, true); });
+
+      MSD.after(100, function(){ MSD.show('#c-src .msd-reveal', 150); });
+      MSD.after(1050, function(){ MSD.show('#c-pay .msd-reveal', 180); });
+      MSD.stream('#c-pay', { from: { x: -6, y: 40 }, to: { x: 30, y: 40 }, count: 5, duration: 900, gap: 700, silent: true });
+      MSD.after(2100, function(){ MSD.cls('#c-src-f', 'on', true); MSD.sfx.pop(); });
+      MSD.after(2400, function(){
+        MSD.q('#c-pay-b').textContent = 'sent';
+        MSD.cls('#c-pay-f', 'on', true);
+        MSD.flash('#c-pay');
+        MSD.sfx.chime();
+      });
+      
+    }
+  },
+  {
+    title: "It reads around your cursor",
+    key: "around your cursor",
+    desc: "Your file is split into a prefix and a suffix, and the model is asked to fill in only the middle.",
+    status: "fill-in-the-middle",
+    thinking: false,
+    durationMs: 2900,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.c-sc', 'on', false);
+      MSD.cls('#c-sc-fim', 'on', true);
+      MSD.cls('.c-node', 'hot', false);
+      MSD.cls('.c-node', 'done', false);
+      MSD.cls('#c-n1', 'hot', true);
+      MSD.cls('.c-edge', 'on', false);
+      MSD.cls('.c-cl', 'mark', false);
+      MSD.cls('.c-cl', 'dim', false);
+      MSD.cls('.c-fb', 'on', false);
+      MSD.cls('#c-ask', 'on', false);
+      MSD.q('#c-ghost').textContent = '';
+      MSD.q('#c-state').textContent = 'reading prefix + suffix';
+      MSD.q('#c-strip-l').textContent = 'COMPLETIONS';
+      MSD.q('#c-strip-t').textContent = 'The line below the cursor is context too — that is why the guess fits.';
+      MSD.q('#c-ch1').textContent = 'prefix';
+      MSD.q('#c-ch2').textContent = 'suffix';
+      MSD.q('#c-ch3').textContent = 'fill-in-the-middle';
+      MSD.hide('.c-chip');
+      MSD.after(60, function(){ MSD.show('.c-chip', 90, true); });
+
+      MSD.after(150, function(){ MSD.cls('.c-pre', 'mark', true); MSD.cls('#c-fb-1', 'on', true); MSD.sfx.blip(0); });
+      MSD.after(750, function(){ MSD.cls('.c-suf', 'mark', true); MSD.cls('#c-fb-2', 'on', true); MSD.sfx.blip(2); });
+      MSD.after(1300, function(){
+        MSD.cls('.c-cur', 'mark', true);
+        MSD.cls('#c-fb-3', 'on', true);
+        MSD.type('#c-ghost', 'const tax = subtotal * TAX_RATE;', 46);
+      });
+      MSD.after(2500, function(){ MSD.cls('#c-ask', 'on', true); MSD.punch('#c-ask', 3); MSD.sfx.error(); });
+      
+    }
+  },
+  {
+    title: "Your open tabs are the context",
+    key: "open tabs",
+    desc: "Copilot scans nearby files you have open, scores the snippets that look like your code, and pastes the winners in.",
+    status: "scanning neighbouring tabs",
+    thinking: true,
+    durationMs: 2800,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.c-sc', 'on', false);
+      MSD.cls('#c-sc-tabs', 'on', true);
+      MSD.cls('.c-node', 'hot', false);
+      MSD.cls('#c-n1', 'done', true);
+      MSD.cls('#c-n2', 'hot', true);
+      MSD.cls('#c-e1', 'on', true);
+      MSD.cls('.c-tab', 'read', false);
+      MSD.cls('.c-snip', 'on', false);
+      MSD.cls('.c-snip', 'win', false);
+      MSD.cls('#c-tnote', 'on', false);
+      MSD.qa('.c-sn-t i').forEach(function(el){ el.style.width = '0'; });
+      MSD.q('#c-state').textContent = 'ranking snippets by similarity';
+      MSD.q('#c-strip-l').textContent = 'WHERE IT LOOKS';
+      MSD.q('#c-strip-t').textContent = 'TAX_RATE was never memorised. It was sitting in a tab you left open.';
+      MSD.q('#c-ch1').textContent = 'neighbouring tabs';
+      MSD.q('#c-ch2').textContent = 'similarity score';
+      MSD.q('#c-ch3').textContent = 'top-k pasted in';
+      MSD.hide('.c-chip');
+      MSD.after(60, function(){ MSD.show('.c-chip', 90, true); });
+
+      ['#c-tb-1', '#c-tb-2', '#c-tb-3'].forEach(function(sel, i){
+        MSD.after(120 + i * 170, function(){ MSD.cls(sel, 'read', true); MSD.sfx.step(i); });
+      });
+      [['#c-sn-1', '#c-sm-1', '91%'], ['#c-sn-2', '#c-sm-2', '62%'], ['#c-sn-3', '#c-sm-3', '34%']].forEach(function(row, i){
+        MSD.after(700 + i * 240, function(){
+          MSD.cls(row[0], 'on', true);
+          var bar = MSD.q(row[1]);
+          if(bar) bar.style.width = row[2];
+          MSD.sfx.blip(i);
+        });
+      });
+      MSD.after(1850, function(){ MSD.cls('#c-sn-1', 'win', true); MSD.punch('#c-sn-1', 4); MSD.sfx.lock(); });
+      MSD.after(2250, function(){ MSD.cls('#c-tnote', 'on', true); MSD.sfx.pop(); });
+      
+    }
+  },
+  {
+    title: "Chat searches your repo index",
+    key: "your repo index",
+    desc: "Ask about #codebase and your workspace is chunked, embedded and searched — again on every turn.",
+    status: "retrieving from the workspace index",
+    thinking: true,
+    durationMs: 2800,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.c-sc', 'on', false);
+      MSD.cls('#c-sc-index', 'on', true);
+      MSD.cls('.c-node', 'hot', false);
+      MSD.cls('#c-n1', 'done', true);
+      MSD.cls('#c-n2', 'hot', true);
+      MSD.cls('#c-e1', 'on', true);
+      MSD.cls('#c-query, #c-idx', 'on', false);
+      MSD.cls('#c-idx', 'hot', false);
+      MSD.cls('#c-hits-f', 'on', false);
+      MSD.hide('#c-hits .msd-reveal');
+      MSD.q('#c-state').textContent = 'searching the index';
+      MSD.q('#c-strip-l').textContent = 'CHAT CONTEXT';
+      MSD.q('#c-strip-t').textContent = 'The index is searched again on every turn. Nothing carries over on its own.';
+      MSD.q('#c-ch1').textContent = 'chunk + embed';
+      MSD.q('#c-ch2').textContent = 'semantic search';
+      MSD.q('#c-ch3').textContent = '#codebase';
+      MSD.hide('.c-chip');
+      MSD.after(60, function(){ MSD.show('.c-chip', 90, true); });
+
+      var dots = MSD.q('#c-dots');
+      if(dots && !dots.childNodes.length){
+        for(var i = 0; i < 40; i++){ dots.appendChild(document.createElement('i')); }
+      }
+      MSD.qa('#c-dots i').forEach(function(el){ el.classList.remove('hit'); });
+
+      MSD.after(100, function(){ MSD.cls('#c-query', 'on', true); MSD.sfx.blip(0); });
+      MSD.after(480, function(){ MSD.cls('#c-idx', 'on', true); MSD.cls('#c-idx', 'hot', true); MSD.sfx.blip(2); });
+      MSD.after(900, function(){
+        [4, 11, 17, 26, 33].forEach(function(n, i){
+          MSD.after(i * 140, function(){
+            var hit = MSD.qa('#c-dots i')[n];
+            if(hit) hit.classList.add('hit');
+            MSD.sfx.data(i);
+          });
+        });
+      });
+      MSD.after(1700, function(){ MSD.cls('#c-idx', 'hot', false); MSD.show('#c-hits .msd-reveal', 190); });
+      MSD.after(2400, function(){ MSD.cls('#c-hits-f', 'on', true); MSD.sfx.chime(); });
+      
+    }
+  },
+  {
+    title: "Everything fights for one budget",
+    key: "one budget",
+    desc: "The context window is a fixed number of tokens. Rules, code, retrieved snippets, history and the answer all share it.",
+    status: "packing the context window",
+    thinking: false,
+    durationMs: 3000,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.c-sc', 'on', false);
+      MSD.cls('#c-sc-win', 'on', true);
+      MSD.cls('.c-node', 'hot', false);
+      MSD.cls('#c-n1, #c-n2', 'done', true);
+      MSD.cls('#c-n3', 'hot', true);
+      MSD.cls('#c-e1, #c-e2', 'on', true);
+      MSD.hide('#c-sc-win .msd-reveal');
+      MSD.cls('.c-dr', 'cut', false);
+      MSD.cls('#c-lg-6', 'gone', false);
+      MSD.cls('#c-meter', 'full', false);
+      MSD.cls('#c-win-b', 'full', false);
+      MSD.cls('#c-dr-f', 'on', false);
+      MSD.q('#c-win-b').textContent = 'sample budget · 16k tokens';
+      MSD.qa('.c-seg').forEach(function(el){ el.style.width = '0'; });
+      MSD.q('#c-state').textContent = 'fitting it all in';
+      MSD.q('#c-strip-l').textContent = 'THE LIMIT';
+      MSD.q('#c-strip-t').textContent = 'A bigger window is still a window. Past the edge, something gets cut.';
+      MSD.q('#c-ch1').textContent = 'fixed tokens';
+      MSD.q('#c-ch2').textContent = 'ranked, then trimmed';
+      MSD.q('#c-ch3').textContent = 'answer needs room';
+      MSD.hide('.c-chip');
+      MSD.after(60, function(){ MSD.show('.c-chip', 90, true); });
+
+      [['#c-sg-1', '8%'], ['#c-sg-2', '26%'], ['#c-sg-3', '17%'], ['#c-sg-4', '14%'], ['#c-sg-5', '21%'], ['#c-sg-6', '14%']].forEach(function(row, i){
+        MSD.after(140 + i * 190, function(){
+          var seg = MSD.q(row[0]);
+          if(seg) seg.style.width = row[1];
+          MSD.sfx.blip(i);
+        });
+      });
+      MSD.after(1350, function(){ MSD.show('#c-cost .msd-reveal', 170); });
+      MSD.after(1750, function(){ MSD.show('#c-drop .msd-reveal', 150); });
+      MSD.after(2250, function(){
+        MSD.q('#c-sg-6').style.width = '0';
+        MSD.q('#c-sg-2').style.width = '32%';
+        MSD.q('#c-sg-5').style.width = '25%';
+        MSD.cls('#c-lg-6', 'gone', true);
+        MSD.cls('#c-meter', 'full', true);
+        MSD.cls('#c-win-b', 'full', true);
+        MSD.q('#c-win-b').textContent = 'full · nothing left over';
+        MSD.shake('#c-meter');
+      });
+      MSD.after(2600, function(){ MSD.cls('#c-dr-1', 'cut', true); MSD.cls('#c-dr-f', 'on', true); MSD.sfx.error(); });
+      
+    }
+  },
+  {
+    title: "Chat memory is the transcript, resent",
+    key: "the transcript, resent",
+    desc: "Every turn ships the whole conversation again. When it stops fitting, the oldest turns fall out — and it \"forgets\".",
+    status: "replaying the conversation",
+    thinking: true,
+    durationMs: 2900,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.c-sc', 'on', false);
+      MSD.cls('#c-sc-chat', 'on', true);
+      MSD.cls('.c-node', 'hot', false);
+      MSD.cls('#c-n1, #c-n2', 'done', true);
+      MSD.cls('#c-n3', 'hot', true);
+      MSD.cls('#c-e1, #c-e2', 'on', true);
+      MSD.hide('#c-sc-chat .msd-reveal');
+      MSD.cls('.c-rp', 'on', false);
+      MSD.cls('.c-turn', 'faded', false);
+      MSD.cls('.c-turn', 'miss', false);
+      MSD.cls('#c-blk-x', 'cut', false);
+      MSD.cls('#c-rp-f', 'on', false);
+      MSD.q('#c-state').textContent = 'turn 5 · resending turns 1-4';
+      MSD.q('#c-strip-l').textContent = 'WHY IT DRIFTS';
+      MSD.q('#c-strip-t').textContent = 'It never forgot your rule. Your rule stopped being in the request.';
+      MSD.q('#c-ch1').textContent = 'full replay';
+      MSD.q('#c-ch2').textContent = 'sliding window';
+      MSD.q('#c-ch3').textContent = 'oldest turns cut';
+      MSD.hide('.c-chip');
+      MSD.after(60, function(){ MSD.show('.c-chip', 90, true); });
+
+      MSD.after(100, function(){ MSD.show('#c-chat .msd-reveal', 130); });
+      MSD.after(900, function(){ MSD.cls('#c-rp-1', 'on', true); MSD.sfx.blip(0); });
+      MSD.after(1250, function(){ MSD.cls('#c-rp-2', 'on', true); MSD.sfx.blip(2); });
+      MSD.after(1600, function(){ MSD.cls('#c-rp-3', 'on', true); MSD.sfx.blip(4); });
+      MSD.after(2050, function(){
+        MSD.cls('#c-blk-x', 'cut', true);
+        MSD.cls('#c-tn-1', 'faded', true);
+        MSD.shake('#c-blk-x');
+      });
+      MSD.after(2400, function(){
+        MSD.cls('#c-tn-5', 'miss', true);
+        MSD.cls('#c-rp-f', 'on', true);
+        MSD.punch('#c-rp-f', 2);
+      });
+      
+    }
+  },
+  {
+    title: "So give it what it needs to know",
+    key: "what it needs",
+    desc: "Instruction files, the right tabs open, explicit #file references and a fresh chat when it drifts. That is the real memory.",
+    status: "you own the context",
+    thinking: false,
+    durationMs: 2800,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.c-sc', 'on', false);
+      MSD.cls('#c-sc-you', 'on', true);
+      MSD.cls('.c-node', 'hot', false);
+      MSD.cls('.c-node', 'done', true);
+      MSD.cls('.c-edge', 'on', true);
+      MSD.hide('#c-sc-you .msd-reveal');
+      MSD.q('#c-proj').textContent = 'GitHub Copilot · context you control';
+      MSD.q('#c-state').textContent = 'better in, better out';
+      MSD.q('#c-strip-l').textContent = 'THE TAKEAWAY';
+      MSD.q('#c-strip-t').textContent = 'It never remembered. It re-read — so decide what it gets to read.';
+      MSD.q('#c-ch1').textContent = 'instruction files';
+      MSD.q('#c-ch2').textContent = 'curated tabs';
+      MSD.q('#c-ch3').textContent = 'explicit references';
+      MSD.hide('.c-chip');
+      MSD.after(60, function(){ MSD.show('.c-chip', 90, true); });
+      MSD.after(140, function(){ MSD.show('#c-sc-you .msd-reveal', 230); });
+      MSD.after(1500, function(){ MSD.cls('.c-node', 'hot', true); MSD.sfx.sparkle(); });
+      MSD.after(2000, function(){ MSD.flash('#c-flow'); MSD.punch('#c-strip', 3); });
+      
+    }
+  }
+];
+</script>
+<script>
+
+(function(){
+  'use strict';
+
+  var canvas = document.getElementById('canvas');
+  var stageEl = document.getElementById('stage');
+  var STAGE_HTML_SNAPSHOT = stageEl.innerHTML;
+
+  /* ---------------------------------------------------------------- fit -- */
+  function fit(){
+    var scale = Math.min(window.innerWidth / 1080, window.innerHeight / 1920);
+    canvas.style.transform = 'scale(' + scale + ')';
+  }
+  window.addEventListener('resize', fit); fit();
+
+  /* -------------------------------------------------------------- audio -- */
+  // Two independent audio layers:
+  //
+  //   soundOn  — the flow effects: whooshes on cuts, blips on reveals, chimes.
+  //              These are tied to the animation and read as craft.
+  //   musicOn  — the ambient bed. OFF by default and opt-in via "m", because a
+  //              synthesised pad drone reads as background hum rather than as
+  //              music. Real background music belongs on the editing timeline,
+  //              not in the reel.
+  //
+  // Both start off so a reel opened in a tab is silent until you ask for sound.
+  var actx = null, soundOn = false, musicOn = false;
+  var master = null, musicGain = null, musicStarted = false;
+
+  // Audio is a nice-to-have: if the browser blocks or lacks Web Audio, the reel
+  // must still play silently rather than die on the first stage.
+  function ensureAudio(){
+    try{
+      if(!actx){
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC) return;
+        actx = new AC();
+        master = actx.createGain();
+        master.gain.value = 0.9;
+        master.connect(actx.destination);
+      }
+      if(actx.state === 'suspended') actx.resume();
+    }catch(err){
+      actx = null;
+      console.warn('[MSDevBuild] audio unavailable, playing silently:', err);
+    }
+  }
+
+  function beep(o){
+    o = o || {};
+    if(!soundOn || !actx) return;
+    try{
+    var t0 = actx.currentTime + (o.delay || 0);
+    var osc = actx.createOscillator();
+    var g = actx.createGain();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(o.freq || 600, t0);
+    if(o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t0 + (o.dur || 0.08));
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(o.gain || 0.05, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (o.dur || 0.08));
+    osc.connect(g); g.connect(master);
+    osc.start(t0); osc.stop(t0 + (o.dur || 0.08) + 0.03);
+    }catch(err){ /* a dropped sound must never interrupt the animation */ }
+  }
+
+  function noiseBurst(dur, gain, sweepFrom, sweepTo){
+    if(!soundOn || !actx) return;
+    try{
+    var len = Math.floor(actx.sampleRate * dur);
+    var buf = actx.createBuffer(1, len, actx.sampleRate);
+    var data = buf.getChannelData(0);
+    for(var i=0;i<len;i++){ data[i] = (Math.random()*2-1) * (1 - i/len); }
+    var src = actx.createBufferSource(); src.buffer = buf;
+    var filter = actx.createBiquadFilter(); filter.type = 'bandpass';
+    var t0 = actx.currentTime;
+    filter.frequency.setValueAtTime(sweepFrom, t0);
+    filter.frequency.exponentialRampToValueAtTime(sweepTo, t0 + dur);
+    filter.Q.value = 1.1;
+    var g = actx.createGain();
+    // Ramp up rather than jumping to full gain — an instant onset is a click.
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(filter); filter.connect(g); g.connect(master);
+    src.start(t0);
+    }catch(err){ /* see beep() */ }
+  }
+
+  // Every pitched effect is quantised to a C major pentatonic scale. Pentatonic
+  // has no dissonant intervals, so effects fired in any order still sound
+  // musical — a run of reveals becomes a rising melodic phrase instead of a
+  // string of beeps. This is the single biggest reason the sound reads as
+  // designed rather than as UI noise.
+  var PENTA = [0, 2, 4, 7, 9];
+  var ROOT = 523.25; // C5
+
+  function scaleFreq(step){
+    step = Math.max(0, step | 0);
+    var octave = Math.floor(step / PENTA.length);
+    var semitone = PENTA[step % PENTA.length] + octave * 12;
+    return ROOT * Math.pow(2, semitone / 12);
+  }
+
+  /** Pitch sweep used for risers — builds anticipation into a payoff. */
+  function sweep(fromFreq, toFreq, dur, gain, type){
+    if(!soundOn || !actx) return;
+    try{
+      var t0 = actx.currentTime;
+      var osc = actx.createOscillator();
+      var g = actx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(fromFreq, t0);
+      osc.frequency.exponentialRampToValueAtTime(toFreq, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(gain, t0 + dur * 0.82);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g); g.connect(master);
+      osc.start(t0); osc.stop(t0 + dur + 0.05);
+    }catch(err){ /* see beep() */ }
+  }
+
+  var SFX = {
+    /** Ascending scale note. Pass the item index for a rising phrase. */
+    blip:  function(i){ beep({ freq: scaleFreq(i || 0), dur: 0.085, gain: 0.026 }); },
+    /** Same phrase an octave up — for secondary or lighter reveals. */
+    step:  function(i){ beep({ freq: scaleFreq((i || 0) + 5), dur: 0.07, gain: 0.02 }); },
+    tick:  function(){ beep({ freq: 1046, dur: 0.03, type: 'square', gain: 0.009 }); },
+    pop:   function(){ beep({ freq: 392, to: 784, dur: 0.12, gain: 0.03 }); },
+    /** Two-note snap for something locking into place. */
+    lock:  function(){ beep({ freq: 659.25, dur: 0.07, gain: 0.03 }); beep({ freq: 987.77, dur: 0.14, gain: 0.026, delay: 0.06 }); },
+    /** Short high blip for data movement — pair with MSD.particles. */
+    data:  function(i){ beep({ freq: scaleFreq((i || 0) + 8), dur: 0.045, gain: 0.014 }); },
+    chime: function(){ beep({ freq: 784, dur: 0.2, gain: 0.03 }); beep({ freq: 1046.5, dur: 0.3, gain: 0.028, delay: 0.11 }); },
+    ding:  function(){ beep({ freq: 587.33, dur: 0.12, gain: 0.032 }); beep({ freq: 880, dur: 0.28, gain: 0.03, delay: 0.1 }); },
+    /** Resolving three-note phrase for a completed idea. */
+    resolve: function(){
+      beep({ freq: 659.25, dur: 0.12, gain: 0.028 });
+      beep({ freq: 783.99, dur: 0.14, gain: 0.028, delay: 0.1 });
+      beep({ freq: 1046.5, dur: 0.34, gain: 0.03, delay: 0.21 });
+    },
+    whoosh:function(up){ noiseBurst(0.42, 0.045, up ? 320 : 2400, up ? 2600 : 300); },
+    swipe: function(){ noiseBurst(0.22, 0.035, 1800, 420); },
+    /** Rising tone that builds tension. Duration in ms, default ~1s. */
+    riser: function(ms){ sweep(220, 1320, (ms || 1000) / 1000, 0.028); },
+    /** Fast four-note arpeggio — satisfying reward for a reveal landing. */
+    sparkle: function(){
+      for(var i = 0; i < 4; i++){
+        beep({ freq: scaleFreq(i + 4), dur: 0.09, gain: 0.019, delay: i * 0.055 });
+      }
+    },
+    /** Soft focus sound — pairs with MSD.focus, feels like a camera settling. */
+    focus: function(){ beep({ freq: 440, to: 660, dur: 0.16, gain: 0.02 }); },
+    thud:  function(){ beep({ freq: 150, to: 48, dur: 0.34, gain: 0.07 }); },
+    error: function(){ beep({ freq: 300, to: 170, dur: 0.2, type: 'sawtooth', gain: 0.03 }); }
+  };
+
+  /* Generative bed: A-minor pad + arpeggio + soft pulse. Deliberately quiet so
+     it sits under narration if voiceover is added in post. */
+  var CHORDS = [[220,261.63,329.63],[174.61,220,261.63],[196,246.94,293.66],[164.81,220,261.63]];
+  var arpStep = 0, chordIndex = 0, musicTimer = null;
+  var MUSIC_LEVEL = 0.028;   // deliberately low — this is a bed, not a track
+  var ARP_MS = 720;          // slower than a click track, so it stays ignorable
+
+  // Built lazily, and only once sound is actually enabled. Oscillators have no
+  // stop time, so creating this graph while muted would keep the OS audio
+  // daemon busy for the life of the tab for no audible benefit.
+  function startMusic(){
+    if(musicStarted || !actx || !musicOn) return;
+    musicStarted = true;
+    try{
+    musicGain = actx.createGain();
+    musicGain.gain.value = musicOn ? MUSIC_LEVEL : 0;
+    // Roll off the highs so the bed sits behind the effects instead of hissing,
+    // and route through master so one control governs everything.
+    var musicTone = actx.createBiquadFilter();
+    musicTone.type = 'lowpass';
+    musicTone.frequency.value = 1400;
+    musicGain.connect(musicTone);
+    musicTone.connect(master || actx.destination);
+
+    // Sustained pad with per-voice LFO breathing.
+    [110, 164.81, 130.81].forEach(function(freq, idx){
+      var osc = actx.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq;
+      var g = actx.createGain(); g.gain.value = 0.4;
+      osc.connect(g); g.connect(musicGain); osc.start();
+      var lfo = actx.createOscillator(); lfo.type = 'sine';
+      lfo.frequency.value = 0.06 + idx * 0.015;
+      var lg = actx.createGain(); lg.gain.value = 0.28;
+      lfo.connect(lg); lg.connect(g.gain); lfo.start();
+    });
+
+    // Arpeggio + pulse, advanced on a timer rather than a sample-accurate
+    // scheduler — at this tempo the drift is inaudible.
+    musicTimer = setInterval(function(){
+      if(!actx || !musicGain) return;
+      var chord = CHORDS[chordIndex % CHORDS.length];
+      var note = chord[arpStep % chord.length] * 2;
+      var t0 = actx.currentTime;
+      var osc = actx.createOscillator(); osc.type = 'sine'; osc.frequency.value = note;
+      var g = actx.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.07, t0 + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6);
+      osc.connect(g); g.connect(musicGain);
+      osc.start(t0); osc.stop(t0 + 0.65);
+
+      if(arpStep % 8 === 0){
+        var k = actx.createOscillator(); var kg = actx.createGain();
+        k.frequency.setValueAtTime(110, t0);
+        k.frequency.exponentialRampToValueAtTime(45, t0 + 0.16);
+        kg.gain.setValueAtTime(0.0001, t0);
+        kg.gain.exponentialRampToValueAtTime(0.28, t0 + 0.012);
+        kg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.28);
+        k.connect(kg); kg.connect(musicGain);
+        k.start(t0); k.stop(t0 + 0.3);
+      }
+      arpStep++;
+      if(arpStep % 16 === 0) chordIndex++;
+    }, ARP_MS);
+    }catch(err){
+      console.warn('[MSDevBuild] music bed unavailable:', err);
+    }
+  }
+
+  function updateGains(){
+    if(musicGain && actx) musicGain.gain.linearRampToValueAtTime(musicOn ? MUSIC_LEVEL : 0, actx.currentTime + 0.4);
+  }
+
+  // The visible toggle governs the flow effects only — that is the sound most
+  // people want. The ambient bed is deliberately keyboard-only.
+  var soundToggle = document.getElementById('sound-toggle');
+  function paintToggle(){ soundToggle.style.opacity = soundOn ? '1' : '0.35'; }
+  soundToggle.addEventListener('click', function(e){
+    e.stopPropagation();
+    ensureAudio(); soundOn = !soundOn; paintToggle();
+  });
+
+  function toggleMusic(){
+    ensureAudio(); musicOn = !musicOn;
+    if(musicOn) startMusic();
+    updateGains();
+  }
+
+  /* ----------------------------------------------------- MSD helper API -- */
+  var stageTimers = [];
+
+  /**
+   * Re-applies a one-shot animation class. Removing the class and forcing a
+   * reflow is what lets the same beat fire twice in a stage — without it the
+   * browser sees no change and the animation never replays.
+   */
+  function retrigger(sel, cls){
+    var els = canvas.querySelectorAll(sel);
+    for(var i = 0; i < els.length; i++){
+      els[i].classList.remove(cls);
+      void els[i].offsetWidth;
+      els[i].classList.add(cls);
+    }
+  }
+
+  function clearStageTimers(){
+    stageTimers.forEach(function(t){ clearTimeout(t); clearInterval(t); });
+    stageTimers = [];
+    // Particles schedule their own removal on a stage timer, so cancelling
+    // those timers would otherwise strand any particle still in flight.
+    var stray = canvas.querySelectorAll('.msd-particle');
+    for(var i = 0; i < stray.length; i++){
+      if(stray[i].parentNode) stray[i].parentNode.removeChild(stray[i]);
+    }
+  }
+
+  var MSD = {
+    /** First match inside the canvas. */
+    q: function(sel){ return canvas.querySelector(sel); },
+    /** All matches inside the canvas, as a real array. */
+    qa: function(sel){ return Array.prototype.slice.call(canvas.querySelectorAll(sel)); },
+
+    /** Reveals .msd-reveal elements one after another, with a blip each. */
+    show: function(sel, stagger, silent){
+      var els = MSD.qa(sel); stagger = stagger == null ? 65 : stagger;
+      els.forEach(function(el, i){
+        MSD.after(i * stagger, function(){
+          el.classList.add('show');
+          if(!silent) SFX.blip(i);
+        });
+      });
+      return els.length;
+    },
+    hide: function(sel){ MSD.qa(sel).forEach(function(el){ el.classList.remove('show'); }); },
+
+    /** Toggles a class on every match. */
+    cls: function(sel, cls, on){
+      MSD.qa(sel).forEach(function(el){ el.classList.toggle(cls, on !== false); });
+    },
+
+    /** Typewriter. Appends into the element, one character at a time. */
+    type: function(sel, text, speed, done){
+      var el = typeof sel === 'string' ? MSD.q(sel) : sel;
+      if(!el) return;
+      speed = speed || 42; el.textContent = '';
+      for(var i = 0; i < text.length; i++){
+        (function(i){
+          MSD.after(i * speed, function(){
+            el.textContent = text.slice(0, i + 1);
+            if(i % 5 === 0) SFX.tick();
+            if(i === text.length - 1 && done) done();
+          });
+        })(i);
+      }
+    },
+
+    /** Counts a number up into an element. */
+    count: function(sel, to, ms, opts){
+      var el = typeof sel === 'string' ? MSD.q(sel) : sel;
+      if(!el) return;
+      opts = opts || {}; ms = ms || 1200;
+      var steps = Math.max(1, Math.round(ms / 40)), i = 0;
+      var id = setInterval(function(){
+        i++;
+        var p = i / steps, eased = 1 - Math.pow(1 - p, 3);
+        var v = to * eased;
+        el.textContent = (opts.prefix || '') + v.toFixed(opts.decimals || 0) + (opts.suffix || '');
+        if(i >= steps){ clearInterval(id); el.textContent = (opts.prefix || '') + to.toFixed(opts.decimals || 0) + (opts.suffix || ''); }
+      }, 40);
+      stageTimers.push(id);
+    },
+
+    /** Emits glowing particles from one point to another inside a host. */
+    particles: function(hostSel, opts){
+      var host = typeof hostSel === 'string' ? MSD.q(hostSel) : hostSel;
+      if(!host) return;
+      opts = opts || {};
+      var n = opts.count || 8, dur = opts.duration || 1200;
+      var from = opts.from || { x: 50, y: 90 }, to = opts.to || { x: 50, y: 10 };
+      for(var i = 0; i < n; i++){
+        (function(i){
+          MSD.after(i * (dur / n / 1.6), function(){
+            var p = document.createElement('div');
+            p.className = 'msd-particle';
+            var jitter = (Math.random() - 0.5) * (opts.spread || 16);
+            p.style.left = 'calc(' + from.x + '% + ' + jitter + 'px)';
+            p.style.top = from.y + '%';
+            p.style.transition = 'left ' + dur + 'ms cubic-bezier(.4,0,.2,1), top ' + dur + 'ms cubic-bezier(.4,0,.2,1), opacity ' + dur + 'ms ease';
+            host.appendChild(p);
+            requestAnimationFrame(function(){
+              p.style.left = 'calc(' + to.x + '% + ' + jitter + 'px)';
+              p.style.top = to.y + '%';
+              p.style.opacity = '0';
+            });
+            MSD.after(dur + 120, function(){ if(p.parentNode) p.parentNode.removeChild(p); });
+          });
+        })(i);
+      }
+    },
+
+    /**
+     * Spotlight. Grows the subject and recedes everything in "othersSel", which
+     * reads as a camera push. One call is usually the difference between a
+     * stage that feels directed and one that feels like a slide.
+     */
+    focus: function(sel, othersSel){
+      MSD.qa('.msd-focus').forEach(function(el){ el.classList.remove('msd-focus'); el.style.transform = ''; });
+      MSD.qa('.msd-recede').forEach(function(el){ el.classList.remove('msd-recede'); });
+      if(othersSel) MSD.qa(othersSel).forEach(function(el){ el.classList.add('msd-recede'); });
+      MSD.qa(sel).forEach(function(el){
+        el.classList.remove('msd-recede');
+        el.classList.add('msd-focus');
+        el.style.transform = 'scale(1.06)';
+      });
+      SFX.focus();
+    },
+    /** Clears any spotlight. */
+    unfocus: function(){
+      MSD.qa('.msd-focus, .msd-recede').forEach(function(el){
+        el.classList.remove('msd-focus'); el.classList.remove('msd-recede');
+        el.style.transform = '';
+      });
+    },
+
+    /** One-shot attention beats. Re-triggerable — the class is removed first. */
+    // Each beat carries its own sound, so motion and audio never drift apart.
+    flash: function(sel){ retrigger(sel, 'msd-flash'); SFX.pop(); },
+    punch: function(sel, i){ retrigger(sel, 'msd-punch'); SFX.blip(i || 0); },
+    shake: function(sel){ retrigger(sel, 'msd-shake'); SFX.error(); },
+
+    /**
+     * Continuous particle stream for the life of the stage. Prefer this over
+     * a one-shot MSD.particles when something is flowing the whole time —
+     * constant motion is what stops a stage feeling static.
+     */
+    stream: function(hostSel, opts){
+      opts = opts || {};
+      var gap = opts.gap || 620;
+      var pulse = 0;
+      MSD.particles(hostSel, opts);
+      if(opts.silent !== true) SFX.data(0);
+      return MSD.every(gap, function(){
+        MSD.particles(hostSel, opts);
+        pulse++;
+        if(opts.silent !== true) SFX.data(pulse % 4);
+      });
+    },
+
+    /** Stage-scoped timers — cleared automatically when the stage changes. */
+    after: function(ms, fn){ var id = setTimeout(fn, ms); stageTimers.push(id); return id; },
+    every: function(ms, fn){ var id = setInterval(fn, ms); stageTimers.push(id); return id; },
+
+    sfx: SFX,
+    stage: 0
+  };
+  window.MSD = MSD;
+
+  /* ---------------------------------------------------------- sequencer -- */
+  var STAGES = window.__MSD_STAGES__ || [];
+  var END_CARD_MS = 2600;
+
+  var track = document.getElementById('progress-track');
+  var segs = STAGES.map(function(){
+    var seg = document.createElement('div'); seg.className = 'seg';
+    var fill = document.createElement('div'); fill.className = 'seg-fill';
+    seg.appendChild(fill); track.appendChild(seg);
+    return seg;
+  });
+
+  var elNum = document.getElementById('stage-num');
+  var elTitle = document.getElementById('stage-title');
+  var elDesc = document.getElementById('stage-desc');
+  var elStatus = document.getElementById('status-text');
+  var elThinking = document.getElementById('thinking');
+  var capCard = document.getElementById('caption-wrap');
+  var endCard = document.getElementById('end-card');
+
+  var cur = -1, seqTimer = null, running = false;
+
+  function escapeHtml(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function paintCaption(s, index){
+    elNum.textContent = 'STEP ' + String(index + 1).padStart(2, '0') + ' / ' + String(STAGES.length).padStart(2, '0');
+    var safe = escapeHtml(s.title);
+    if(s.key){
+      var safeKey = escapeHtml(s.key);
+      safe = safe.replace(safeKey, '<span class="kw-hl">' + safeKey + '</span>');
+    }
+    elTitle.innerHTML = safe;
+    elDesc.textContent = s.desc;
+    elStatus.textContent = s.status;
+    elThinking.classList.toggle('show', !!s.thinking);
+    capCard.classList.remove('pulse'); void capCard.offsetWidth; capCard.classList.add('pulse');
+  }
+
+  function paintTrack(index){
+    segs.forEach(function(seg, i){
+      seg.classList.remove('active');
+      seg.classList.toggle('done', i < index);
+      if(i === index){
+        seg.querySelector('.seg-fill').style.setProperty('--seg-dur', STAGES[i].durationMs + 'ms');
+        seg.classList.add('active');
+      }
+    });
+  }
+
+  function goto(index){
+    clearStageTimers();
+    cur = index; MSD.stage = index;
+    var s = STAGES[index];
+    paintCaption(s, index);
+    paintTrack(index);
+
+    // The transition note climbs the scale stage by stage, so the reel is
+    // audibly "going somewhere" — a cheap but strong reason to keep watching.
+    SFX.whoosh(true);
+    if(index === 0) SFX.thud(); else SFX.blip(index);
+
+    // Build tension across the last stage so the payoff lands instead of
+    // just arriving. Most drop-off happens right before the end.
+    if(index === STAGES.length - 1 && s.durationMs > 1400){
+      var riserMs = Math.min(1100, Math.round(s.durationMs * 0.45));
+      MSD.after(s.durationMs - riserMs, function(){ SFX.riser(riserMs); });
+    }
+
+    if(typeof s.run === 'function'){
+      // A thrown error in one stage must not kill the whole reel.
+      try { s.run(MSD, MSD.q, MSD.qa); }
+      catch(err){ console.error('[MSDevBuild] stage ' + index + ' failed:', err); }
+    }
+
+    seqTimer = setTimeout(function(){
+      if(index + 1 < STAGES.length) goto(index + 1);
+      else finish();
+    }, s.durationMs);
+  }
+
+  function finish(){
+    clearStageTimers();
+    endCard.classList.add('show');
+    // Resolving phrase over the brand card: the audio equivalent of closing
+    // the loop, which is what makes a viewer feel the reel was complete.
+    SFX.thud();
+    SFX.resolve();
+    seqTimer = setTimeout(function(){
+      endCard.classList.remove('show');
+      // Restore the stage to its authored markup so every loop is identical.
+      stageEl.innerHTML = STAGE_HTML_SNAPSHOT;
+      goto(0);
+    }, END_CARD_MS);
+  }
+
+  function start(){
+    if(running) return;
+    running = true;
+    ensureAudio(); paintToggle();
+    document.getElementById('title-screen').classList.add('hide');
+    setTimeout(function(){ goto(0); }, 240);
+  }
+
+  /** Jumps back to stage one from anywhere, including the title screen. */
+  function restart(){
+    clearTimeout(seqTimer); clearStageTimers();
+    endCard.classList.remove('show');
+    stageEl.innerHTML = STAGE_HTML_SNAPSHOT;
+    running = true;
+    document.getElementById('title-screen').classList.add('hide');
+    goto(0);
+  }
+
+  document.getElementById('title-screen').addEventListener('click', start);
+
+  /* ------------------------------------------------------------- capture -- */
+  // The reel is DOM and CSS, not a <canvas>, so there is no stream to grab
+  // directly. Recording the tab through the Screen Capture API is the only way
+  // to produce a file in the browser without shipping a DOM rasteriser, and it
+  // has the side benefit of capturing the Web Audio effects as tab audio.
+  var recordBtn = document.getElementById('record-toggle');
+  var capturing = false;
+
+  function pickMime(){
+    var candidates = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+      'video/mp4'
+    ];
+    for(var i = 0; i < candidates.length; i++){
+      if(window.MediaRecorder && MediaRecorder.isTypeSupported(candidates[i])) return candidates[i];
+    }
+    return '';
+  }
+
+  /** One full pass: every stage plus the end card. */
+  function loopMs(){
+    var total = 0;
+    for(var i = 0; i < STAGES.length; i++) total += STAGES[i].durationMs;
+    return total + END_CARD_MS;
+  }
+
+  function saveBlob(blob, extension){
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = (window.__MSD_SLUG__ || 'msdevbuild-reel') + '.' + extension;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+  }
+
+  function startCapture(){
+    if(capturing) return;
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia || !window.MediaRecorder){
+      window.alert('This browser cannot record the reel.\n\nUse Chrome or Edge on desktop, or screen-record the tab yourself.');
+      return;
+    }
+
+    var mime = pickMime();
+
+    navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: 60 },
+      audio: true,
+      preferCurrentTab: true
+    }).then(function(stream){
+      capturing = true;
+      canvas.classList.add('capturing');
+
+      // A silent recording is a wasted one, and tab audio is captured for free.
+      ensureAudio(); soundOn = true; paintToggle();
+
+      var chunks = [];
+      var recorder = new MediaRecorder(
+        stream,
+        mime ? { mimeType: mime, videoBitsPerSecond: 12000000 } : {}
+      );
+      var stopTimer = null;
+
+      recorder.ondataavailable = function(e){ if(e.data && e.data.size) chunks.push(e.data); };
+      recorder.onstop = function(){
+        stream.getTracks().forEach(function(track){ track.stop(); });
+        capturing = false;
+        canvas.classList.remove('capturing');
+        if(!chunks.length) return;
+        var type = chunks[0].type || mime || 'video/webm';
+        saveBlob(new Blob(chunks, { type: type }), type.indexOf('mp4') > -1 ? 'mp4' : 'webm');
+      };
+
+      function finish(){
+        clearTimeout(stopTimer);
+        if(recorder.state !== 'inactive') recorder.stop();
+      }
+      // "Stop sharing" in the browser's own bar should still save the clip.
+      stream.getVideoTracks().forEach(function(track){
+        track.addEventListener('ended', finish);
+      });
+
+      // Let the picker dialog finish dismissing, then roll: the recording opens
+      // on stage one instead of on a half-faded dialog.
+      setTimeout(function(){
+        recorder.start();
+        setTimeout(restart, 260);
+        stopTimer = setTimeout(finish, 260 + loopMs() + 600);
+      }, 700);
+    }).catch(function(){
+      // Cancelling the picker is a normal outcome, not an error worth shouting.
+    });
+  }
+
+  recordBtn.addEventListener('click', function(e){ e.stopPropagation(); startCapture(); });
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === ' '){ e.preventDefault(); start(); }
+    if(e.key === 's' || e.key === 'S'){ ensureAudio(); soundOn = !soundOn; paintToggle(); }
+    if(e.key === 'm' || e.key === 'M'){ toggleMusic(); }
+    if(e.key === 'r' || e.key === 'R'){ restart(); }
+    if(e.key === 'd' || e.key === 'D'){ startCapture(); }
+  });
+})();
+
+</script>
+</body>
+</html>

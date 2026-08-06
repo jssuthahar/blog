@@ -23,8 +23,8 @@ const read = [
 ];
 
 // Everything a reviewer, recruiter, or answer engine would check before citing
-// the work. Contribution record leads because it is the dated proof.
-const evidence = [
+// the work. Contribution record leads because it is the dated, linkable one.
+const impact = [
   { label: 'Contribution record', href: '/contributions/', hint: 'Dated, linkable public record' },
   { label: 'Open-source projects', href: '/open-source/', hint: 'Repositories and samples' },
   { label: 'Events', href: '/events/', hint: 'Sessions hosted here' },
@@ -124,12 +124,12 @@ const machineReadable = [
         </ul>
       </nav>
 
-      <nav aria-labelledby="footer-evidence">
-        <h2 id="footer-evidence" class="text-xs font-semibold tracking-wider uppercase text-muted">
-          Evidence &amp; record
+      <nav aria-labelledby="footer-impact">
+        <h2 id="footer-impact" class="text-xs font-semibold tracking-wider uppercase text-muted">
+          Impact &amp; recognition
         </h2>
         <ul class="mt-3 space-y-2.5 text-sm">
-          {evidence.map(({ label, href, hint }) => (
+          {impact.map(({ label, href, hint }) => (
             <li>
               <a href={href} class="group block hover:text-accent">
                 {label}

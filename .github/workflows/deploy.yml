@@ -12,10 +12,17 @@ permissions:
   pages: write
   id-token: write
 
-# Never run two deploys at once; queue the newest and let it win.
+# Never run two deploys at once — but queue them rather than cancelling.
+#
+# `cancel-in-progress: true` is right for a build and wrong for a Pages deploy.
+# Once actions/deploy-pages has handed a deployment to the Pages service, that
+# deployment is the service's to finish; killing the job that was waiting on it
+# does not cancel it. The next run then arrives behind a deployment nobody is
+# watching, sits in `deployment_queued`, and times out. Queueing costs a few
+# minutes on a busy day and never wedges.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -56,3 +63,13 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          # The action's own wait loop, not ours. It defaults to 10 minutes and
+          # aborts with "Timeout reached, aborting!" when the Pages service is
+          # backed up — which is a queue, not a failure. Half an hour is long
+          # enough to ride out a backlog and still short enough that a genuinely
+          # stuck deployment surfaces the same day.
+          timeout: 1800000
+          # Transient 5xx from the deployment status API, tolerated before the
+          # step gives up. The default of 10 is thin for a 30-minute wait.
+          error_count: 20

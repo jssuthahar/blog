@@ -51,10 +51,11 @@ const upcoming = await getUpcomingEvents();
 const pillars = contributionPillars();
 const span = publishingSpan();
 
-// Eight fits two rows of four on a laptop and four rows of two on a phone,
-// which is enough to read as a library rather than a teaser.
+// One row of four — the newest, and the whole row plays. Eight filled two rows
+// of static cards, which read as a contact sheet of everything rather than an
+// invitation to watch one; the count on the button is what says there are more.
 const allShorts = getShorts();
-const shorts = allShorts.slice(0, 8);
+const shorts = allShorts.slice(0, 4);
 const shortCount = allShorts.length;
 
 const testimonials = homeTestimonials(5);
@@ -365,11 +366,11 @@ const schema = [
         it at your own pace.
       </p>
 
-      <ul class="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      <ul class="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {shorts.map((short) => (
           <li>
             <a href={shortUrl(short)} class="group block">
-              <ShortPoster short={short} />
+              <ShortPoster short={short} preview />
               <span class="mt-2 block text-sm leading-snug font-medium group-hover:text-accent">
                 {short.title}
               </span>

@@ -23,16 +23,46 @@ interface Props {
   short: Short;
   /** Hides the meta row on the smallest tiles, where it would be unreadable. */
   compact?: boolean;
+  /**
+   * Walks the poster through the short's own steps while it is on screen.
+   *
+   * The player itself is a 140KB document that has to be inlined by `srcdoc` —
+   * see ShortPlayer.astro for why there is no URL to load one from — so putting
+   * four of them on the home page would have cost more than the rest of that
+   * page put together. This is the honest cheap version: the short's real step
+   * titles, held for their real durations, over the real progress of the run.
+   * It costs the step text and nothing else, and it says the same thing the
+   * card needs to say — there is a sequence here, and it goes somewhere.
+   */
+  preview?: boolean;
   class?: string;
 }
 
-const { short, compact = false, class: className = '' } = Astro.props;
+const { short, compact = false, preview = false, class: className = '' } = Astro.props;
 const category = CATEGORIES[short.category];
+
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/**
+ * A step title with its key phrase picked out, the way the short picks it out
+ * on screen. Escaped first, so the only markup that survives is the `<em>` this
+ * puts in — the titles are authored as plain text and stay that way.
+ */
+function stepHtml(title: string, key?: string): string {
+  const safe = escapeHtml(title);
+  if (!key) return safe;
+  const safeKey = escapeHtml(key);
+  const at = safe.indexOf(safeKey);
+  if (at < 0) return safe;
+  return `${safe.slice(0, at)}<em>${safeKey}</em>${safe.slice(at + safeKey.length)}`;
+}
 ---
 
 <span
   class:list={['poster', compact && 'poster--compact', className]}
   style={`--poster-hue: ${category.hue};`}
+  data-poster-preview={preview ? '' : undefined}
 >
   <span class="poster__grid" aria-hidden="true"></span>
   <span class="poster__glow" aria-hidden="true"></span>
@@ -46,14 +76,34 @@ const category = CATEGORIES[short.category];
        all — that emphasis is where the idea lives. -->
   <span class="poster__title" set:html={short.titleHtml} />
 
+  {preview && (
+    <span class="poster__steps" aria-hidden="true">
+      {short.stages.map((stage) => (
+        <span
+          class="poster__step"
+          data-ms={stage.durationMs}
+          set:html={stepHtml(stage.title, stage.key)}
+        />
+      ))}
+    </span>
+  )}
+
   <span class="poster__foot">
     <span class="poster__play" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z" /></svg>
     </span>
     {!compact && (
-      <span class="poster__meta">{short.stages.length} steps · {short.seconds}s</span>
+      <span class="poster__meta" data-poster-meta>
+        {short.stages.length} steps · {short.seconds}s
+      </span>
     )}
   </span>
+
+  {preview && (
+    <span class="poster__bar" aria-hidden="true">
+      <span class="poster__bar-fill" data-poster-bar></span>
+    </span>
+  )}
 </span>
 
 <style>
@@ -71,7 +121,17 @@ const category = CATEGORIES[short.category];
       radial-gradient(circle at 12% 96%, oklch(0.42 0.14 var(--poster-hue) / 0.38), transparent 46%),
       #0e1420;
     border: 1px solid oklch(0.55 0.14 var(--poster-hue) / 0.28);
-    padding: 7cqw;
+    /*
+     * Percent, not cqw — and this is the whole reason the poster is legible.
+     *
+     * `cqw` on the container's OWN properties resolves against the nearest
+     * ancestor container, not itself. There is none here, so it fell back to the
+     * viewport: 7cqw became 90px of padding on a 264px card, which crushed the
+     * content box to 84px, and every child's cqw then measured against THAT.
+     * The headline came out at 8px. A percentage resolves against the parent's
+     * width, which is the card, so it means what 7cqw was written to mean.
+     */
+    padding: 7%;
     transition: border-color 0.2s, transform 0.2s;
   }
 
@@ -181,7 +241,7 @@ const category = CATEGORIES[short.category];
 
   /* Tiles too small for a six-line headline: fewer lines, bigger type. */
   .poster--compact {
-    padding: 8cqw;
+    padding: 8%;
   }
   .poster--compact .poster__cat {
     display: none;
@@ -197,4 +257,194 @@ const category = CATEGORIES[short.category];
       border-color: oklch(0.7 0.15 var(--poster-hue) / 0.6);
     }
   }
+
+  /* ─────────────────────────── the stepping preview ───────────────────────
+     Everything below only ever applies to a poster with `preview` set, and
+     none of it moves until the script starts it — so a poster with no
+     JavaScript, or one the reader has scrolled past, is exactly the still it
+     was before. */
+
+  /* Sits over the headline's band and uses the same padding the poster does,
+     so a step title lands where the headline was rather than beside it. `cqw`
+     is correct HERE, unlike on .poster itself: this is a descendant, so it
+     measures against the poster's content box. */
+  .poster__steps {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    align-content: center;
+    padding: 7cqw;
+    pointer-events: none;
+  }
+
+  /* All steps stacked in one cell, only the current one shown — no reflow per
+     step, and the card never changes height as the titles change length. */
+  .poster__step {
+    grid-area: 1 / 1;
+    align-self: center;
+    opacity: 0;
+    transform: translateY(6%);
+    font-size: 7.4cqw;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    color: #fff;
+    text-wrap: balance;
+    transition: opacity 0.32s ease, transform 0.32s ease;
+  }
+  .poster__step :global(em) {
+    font-style: normal;
+    color: oklch(0.78 0.15 var(--poster-hue));
+  }
+  .poster__step.is-on {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* The headline is the title card. It steps aside while the run is playing and
+     comes back when it loops, which is what the short itself does. */
+  .poster__title {
+    transition: opacity 0.32s ease;
+  }
+  .poster--stepping .poster__title {
+    opacity: 0;
+  }
+
+  .poster__bar {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 2;
+    height: 1cqw;
+    min-height: 2px;
+    background: rgb(255 255 255 / 0.14);
+  }
+
+  /* Width is driven inline: each step sets the target and its own real duration,
+     so the bar fills at the pace the short actually plays at. */
+  .poster__bar-fill {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: oklch(0.78 0.15 var(--poster-hue));
+    transition: width 0s linear;
+  }
 </style>
+
+<script>
+  /**
+   * Walks every `preview` poster through its short's steps while it is visible.
+   *
+   * Three rules, all of them about not being a background tab full of timers:
+   * a poster only runs while at least half of it is on screen, everything stops
+   * when the tab is hidden, and a reader who asked for reduced motion gets the
+   * still and no timer at all.
+   */
+  interface Preview {
+    start: () => void;
+    stop: () => void;
+  }
+
+  const TITLE_CARD_MS = 1800;
+
+  function buildPreview(poster: HTMLElement): Preview | null {
+    const steps = [...poster.querySelectorAll<HTMLElement>('.poster__step')];
+    if (steps.length === 0) return null;
+
+    const bar = poster.querySelector<HTMLElement>('[data-poster-bar]');
+    const meta = poster.querySelector<HTMLElement>('[data-poster-meta]');
+    const idleMeta = meta?.textContent ?? '';
+
+    let index = -1; // -1 is the title card, which is where a run starts and ends
+    let timer = 0;
+
+    // The step counter takes the meta row over while the run is playing: the
+    // total was only ever there to say how long this would take, and once it is
+    // running, where it has got to is the more useful number.
+    const paint = () => {
+      steps.forEach((step, i) => step.classList.toggle('is-on', i === index));
+      poster.classList.toggle('poster--stepping', index >= 0);
+      if (meta) meta.textContent = index < 0 ? idleMeta : `${index + 1} / ${steps.length}`;
+      if (!bar) return;
+
+      if (index < 0) {
+        // Snap back with no transition, so the loop does not run the bar
+        // backwards across the card.
+        bar.style.transitionDuration = '0s';
+        bar.style.width = '0';
+        void bar.offsetWidth;
+        return;
+      }
+      bar.style.transitionDuration = `${Number(steps[index].dataset.ms) || 2600}ms`;
+      bar.style.width = `${((index + 1) / steps.length) * 100}%`;
+    };
+
+    const advance = () => {
+      index = index + 1 >= steps.length ? -1 : index + 1;
+      paint();
+      const hold = index < 0 ? TITLE_CARD_MS : Number(steps[index].dataset.ms) || 2600;
+      timer = window.setTimeout(advance, hold);
+    };
+
+    return {
+      start() {
+        if (timer) return;
+        timer = window.setTimeout(advance, TITLE_CARD_MS);
+      },
+      stop() {
+        window.clearTimeout(timer);
+        timer = 0;
+        index = -1;
+        paint();
+      },
+    };
+  }
+
+  function initPosterPreviews() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const posters = document.querySelectorAll<HTMLElement>(
+      '[data-poster-preview]:not([data-preview-bound])',
+    );
+    if (posters.length === 0) return;
+
+    const onScreen = new Set<Preview>();
+    const previews = new Map<Element, Preview>();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const preview = previews.get(entry.target);
+          if (!preview) continue;
+          if (entry.isIntersecting) {
+            onScreen.add(preview);
+            if (!document.hidden) preview.start();
+          } else {
+            onScreen.delete(preview);
+            preview.stop();
+          }
+        }
+      },
+      { threshold: 0.5 },
+    );
+
+    for (const poster of posters) {
+      const preview = buildPreview(poster);
+      if (!preview) continue;
+      poster.dataset.previewBound = '';
+      previews.set(poster, preview);
+      observer.observe(poster);
+    }
+
+    // A hidden tab still fires timers. Nothing is worth animating in one.
+    document.addEventListener('visibilitychange', () => {
+      for (const preview of onScreen) {
+        if (document.hidden) preview.stop();
+        else preview.start();
+      }
+    });
+  }
+
+  initPosterPreviews();
+  document.addEventListener('astro:page-load', initPosterPreviews);
+</script>

@@ -25,6 +25,7 @@ faq:
 ---
 
 import Callout from '../../../components/mdx/Callout.astro';
+import Pipeline from '../../../components/mdx/Pipeline.astro';
 
 A team I worked with watched a demo where someone typed one sentence — "add rate limiting to the orders API" — and five agents lit up, one after another, planning, coding, testing, reviewing, and opening a pull request while the presenter sipped coffee. It looked like the future. So they went back and wired up their own five-agent "autonomous dev team" on a fifteen-year-old billing system. By the second week they had confident chaos. The developer agent edited a file the architecture agent had just flagged as frozen. The tester agent wrote tests against behaviour the developer agent had already changed. A config change shipped to a branch because the workflow "completed" and nobody, human or agent, was actually accountable for the decision. Everything ran. Nothing was owned.
 
@@ -127,27 +128,24 @@ Say it plainly: the org chart is a design, and the human, the hooks, and CI are 
 
 Here is the pattern as I actually draw it for a team. Note that it is not a closed autonomous loop. Every phase boundary has a human or a CI gate, on purpose.
 
-```mermaid
-flowchart TD
-    R[Developer request<br/>via reusable prompt] --> O{Orchestrator agent<br/>interpret + sequence}
-    O --> D[Discovery agent<br/>read-only map]
-    D --> G1{{Human gate:<br/>approve the plan}}
-    G1 -->|approved| DEV[Developer agent<br/>implement behind a seam]
-    DEV --> T[Tester agent<br/>characterization tests]
-    T --> CI1{{CI gate:<br/>tests must pass}}
-    CI1 -->|green| SEC[Security agent<br/>read-only review]
-    SEC --> HOOK{{Hook + CI gate:<br/>secrets, deps, CodeQL}}
-    HOOK -->|clean| G2{{Human sign-off:<br/>owns what ships}}
-    G2 -->|approved| PR[Pull request / merge]
-    CI1 -->|red| DEV
-    HOOK -->|blocked| DEV
-    style G1 fill:#fde68a,stroke:#b45309
-    style G2 fill:#fde68a,stroke:#b45309
-    style CI1 fill:#bfdbfe,stroke:#1d4ed8
-    style HOOK fill:#bfdbfe,stroke:#1d4ed8
-```
+<Pipeline
+  caption="Not a closed loop. Every phase boundary is a gate — dashed, because it is a condition rather than work — and no agent is allowed to move the flow past one on its own."
+  entry={{ label: 'Developer request', note: 'Stated through a reusable prompt' }}
+  steps={[
+    { label: 'Orchestrator agent', note: 'Interprets the request and sequences the work' },
+    { label: 'Discovery agent', note: 'Read-only map of what the change touches' },
+    { gate: 'Human gate', label: 'Approve the plan' },
+    { label: 'Developer agent', note: 'Implements behind a seam' },
+    { label: 'Tester agent', note: 'Characterization tests around the change' },
+    { gate: 'CI gate', label: 'Tests must pass', back: 'Red → back to the developer agent' },
+    { label: 'Security agent', note: 'Read-only review of the diff' },
+    { gate: 'Hook + CI gate', label: 'Secrets, dependencies, CodeQL', back: 'Blocked → back to the developer agent' },
+    { gate: 'Human gate', label: 'Sign-off — a person owns what ships' },
+    { label: 'Pull request / merge', accent: true },
+  ]}
+/>
 
-The yellow boxes are humans. The blue boxes are deterministic gates: hooks and CI. The agents advise and act inside their lane; the gates are where the flow is allowed to move forward. That is the whole architecture in one picture: AI does the specialised labour, deterministic checks enforce, and humans own the decisions.
+The dashed boxes are the gates, and they come in two kinds. Two are humans: approving the plan and signing off on what ships. Two are deterministic machinery: CI and the hooks. The agents advise and act inside their lane; the gates are where the flow is allowed to move forward. That is the whole architecture in one picture: AI does the specialised labour, deterministic checks enforce, and humans own the decisions.
 
 ## Designing clean role boundaries
 

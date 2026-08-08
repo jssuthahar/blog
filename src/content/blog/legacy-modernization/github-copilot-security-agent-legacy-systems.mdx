@@ -24,6 +24,8 @@ faq:
     a: 'The agent is probabilistic and advisory — it reasons in natural language, explains issues, drafts fixes, and triages, but it can be wrong in both directions. CodeQL, Dependabot, and secret scanning are deterministic and enforceable — they run the same way every time and can block a merge or a push. The agent helps humans understand and prioritise; the scanners are what you actually gate on.'
 ---
 
+import Layers from '../../../components/mdx/Layers.astro';
+
 A pen test finished on a legacy order-management system I looked after, and the report opened with one finding that stung more than the rest. Any logged-in user could view and cancel another customer's order by changing a single ID in the URL. The endpoint required authentication. It just never checked that the order belonged to the person asking. That flaw had been in the code for years. Every human review had passed it. Even the AI review we ran on that repo had passed it, with a green tick and two tidy naming suggestions.
 
 Here is the thing that kept me up. Nobody was careless. The code was clean. It had an `[Authorize]` attribute, so it looked protected. The AI saw the attribute and moved on, because to a pattern-matcher an authenticated endpoint looks safe. But authentication is "are you logged in" and authorization is "are you allowed to touch *this*", and the gap between those two questions is where the worst legacy security bugs live. That is a business-logic authorization flaw. No pattern flags it.
@@ -97,30 +99,41 @@ Read that table top to bottom and the design writes itself. The AI advises. The 
 
 Here is the whole system on one diagram. The AI agent sits at the front as a fast, cheap first pass. The deterministic scanners are the wall nothing gets through. The human owns the questions no tool can answer.
 
-```mermaid
-flowchart TD
-  Dev[Developer or Copilot agent makes a change] --> Agent
-  subgraph Advisory [Advisory layer - probabilistic, never blocks]
-    Agent[Security agent + Cybersecurity agent<br/>reads diff, flags smells, triages, drafts fixes]
-    Skill[Security Skill<br/>your secure-coding rules]
-    Agent --- Skill
-  end
-  Agent --> Hook
-  subgraph Gate [Enforcement layer - deterministic, blocks]
-    Hook[Hooks: preToolUse / pre-commit<br/>secret + new-vulnerable-dependency gate]
-    Scan[CodeQL code scanning]
-    Dep[Dependabot + dependency review]
-    Sec[Secret scanning + push protection]
-  end
-  Hook --> Scan --> Dep --> Sec
-  Sec --> Human
-  subgraph Judgment [Judgment layer - human, decides]
-    Human[Security engineer<br/>authz, access control, threat model, sign-off]
-  end
-  Human --> Merge[Merge / deploy]
-```
+<Layers
+  caption="Three layers, three different kinds of authority. The advisory layer is fast and fallible, the enforcement layer is dumb and absolute, and the judgment layer is the only one that gets to say yes."
+  entry={{ label: 'Developer or Copilot agent makes a change' }}
+  layers={[
+    {
+      name: 'Advisory layer',
+      role: 'Probabilistic, never blocks',
+      items: [
+        { label: 'Security agent + Cybersecurity agent', note: 'Reads the diff, flags smells, triages, drafts fixes' },
+        { label: 'Security Skill', note: 'Your secure-coding rules, loaded on demand' },
+      ],
+    },
+    {
+      name: 'Enforcement layer',
+      role: 'Deterministic, blocks',
+      sequence: true,
+      items: [
+        { label: 'Hooks', note: 'preToolUse / pre-commit: secrets and new vulnerable dependencies' },
+        { label: 'CodeQL', note: 'Code scanning' },
+        { label: 'Dependabot', note: 'Dependency review' },
+        { label: 'Secret scanning', note: 'Push protection' },
+      ],
+    },
+    {
+      name: 'Judgment layer',
+      role: 'Human, decides',
+      items: [
+        { label: 'Security engineer', note: 'Authorization, access control, threat model, sign-off' },
+      ],
+    },
+  ]}
+  result={{ label: 'Merge / deploy' }}
+/>
 
-Notice the agent can never reach `Merge` on its own. Its arrows lead into the gate and then into a human. That is deliberate. If your architecture lets an AI security pass be the last thing before deploy, you have built security theater.
+Notice the agent can never reach merge on its own. Its arrows lead into the gate and then into a human. That is deliberate. If your architecture lets an AI security pass be the last thing before deploy, you have built security theater.
 
 ## Designing the two agents
 

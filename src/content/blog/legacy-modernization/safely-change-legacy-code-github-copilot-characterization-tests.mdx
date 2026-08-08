@@ -24,6 +24,8 @@ faq:
     a: 'Trust the ones you have read, not the ones you have counted. AI can generate tests that pass without asserting anything meaningful, encode an existing bug as the correct answer, or skip the exact edge case that matters. Coverage percentage is not safety. Review AI-generated tests for real assertions, curate the cases that carry business risk, and make a conscious decision before "fixing" any behavior a characterization test captured.'
 ---
 
+import Pipeline from '../../../components/mdx/Pipeline.astro';
+
 A "harmless" refactor is how most of my worst legacy stories start. A few years ago a teammate asked Copilot to clean up a tired pricing method in a decade-old .NET order system. The diff was beautiful. It collapsed a nested `if` ladder into a couple of clean helper methods, renamed some variables, and read like something out of a textbook. Two reviewers approved it. It shipped on a Thursday. By Monday finance in Coimbatore was asking why a specific class of orders — high-volume customers who also had a partial refund on file — were being charged a few rupees too much on each line. The refactor had reordered when a discount was applied relative to a rounding step. That ordering was never a rule anyone wrote down. It lived only in the shape of the old `if` ladder, and the "cleanup" quietly changed it.
 
 The diff looked clean. The behavior was never covered. That is the whole disaster in one sentence, and it is the reason this article exists. This is Part 3 of the legacy-modernization thread. In [Part 2](../github-copilot-understand-legacy-codebase-discovery) you mapped the system — you made Copilot understand the app that nobody documented. Now you change it. Safely. [Part 1](../github-copilot-agents-for-legacy-applications) is the full blueprint for the AI development team; assume you have read both. This piece drills into the one question the blueprint promised and Part 2 set up: once Copilot understands the legacy app, how do you actually modify it without breaking behavior nobody fully understands?
@@ -44,21 +46,20 @@ In short: AI did not make legacy code more dangerous. It made the danger faster.
 
 Before the steps, here is the whole workflow. Everything after this is detail.
 
-```mermaid
-flowchart TD
-  R[Change request] --> C[Step 1: Characterization tests<br/>pin CURRENT behavior, bugs and all]
-  C --> H1{Do they actually<br/>exercise the logic?}
-  H1 -- no --> C
-  H1 -- yes --> S[Step 2: Strangler Fig<br/>generate new impl behind a seam]
-  S --> P[Route a slice to the new path]
-  P --> V{Parity vs<br/>characterization tests?}
-  V -- fail --> S
-  V -- pass --> G[Step 3: Deterministic gate<br/>hooks + required CI checks]
-  G -- blocked --> S
-  G -- green --> E[Expand the slice]
-  E --> P
-  E --> D[Old path dead → remove it]
-```
+<Pipeline
+  caption="The loop is the point. Nothing moves forward until the current behavior is pinned, and every failure sends you back to the new implementation — never to the old path, which stays working the whole time."
+  entry={{ label: 'Change request' }}
+  steps={[
+    { label: 'Step 1 — Characterization tests', note: 'Pin CURRENT behavior, bugs and all' },
+    { gate: 'Human gate', label: 'Do the tests actually exercise the logic?', back: 'Assert-nothing tests → rewrite them before going further' },
+    { label: 'Step 2 — Strangler Fig', note: 'Generate the new implementation behind a seam' },
+    { label: 'Route one slice to the new path' },
+    { gate: 'Check', label: 'Parity against the characterization tests', back: 'Fail → back to the new implementation' },
+    { gate: 'CI gate', label: 'Step 3 — Hooks and required checks', back: 'Blocked → back to the new implementation' },
+    { label: 'Expand the slice', note: 'Then route again, until the old path carries nothing' },
+    { label: 'Old path dead — remove it', accent: true },
+  ]}
+/>
 
 Three ideas hold it together. Characterization tests pin behavior. The Strangler Fig grows the new around the old and cuts over one slice at a time. Deterministic hooks and CI make the safety net non-negotiable instead of a thing people remember to run. AI accelerates all three. It is never the gate.
 

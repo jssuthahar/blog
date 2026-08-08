@@ -1,16 +1,18 @@
 ---
 title: 'Making GitHub Copilot Understand a Legacy Codebase Nobody Documented'
 description: 'A repeatable method for legacy discovery: turning business rules, workflows and history a decade-old codebase never documented into knowledge Copilot uses.'
-publishedAt: 2026-07-26
+publishedAt: 2026-08-07
 category: copilot
 categories: ['ai', 'architecture']
 tags: ['GitHub Copilot legacy codebase', 'Legacy application discovery', 'Application Knowledge Skill', 'GitHub Copilot Instructions', 'AGENTS.md', 'AI software modernization', 'Reverse engineering legacy code', 'Enterprise GitHub Copilot', 'Knowledge extraction', '.NET']
 seoTitle: 'GitHub Copilot Legacy Codebase Discovery Method'
-highlight: 'GitHub Copilot is only as smart as the context you feed it. On a ten-year-old system the code is the symptom, and the real knowledge lives in git history and people''s heads. Discovery extracts that into instructions, an Application Knowledge Skill, and AGENTS.md so Copilot stops guessing. AI can draft the map; a human must verify it, because a confidently wrong knowledge file is worse than none.'
+highlight: ' and AGENTS.md so Copilot stops guessing. AI can draft the map; a human must verify it, because a confidently wrong knowledge file is worse than none.'
 series: 'agents-md-instructions'
+cover: './images/Documented.jpg'
+coverAlt: 'GitHub Copilot is only as smart as the context you feed it. On a ten-year-old system the code is the symptom, and the real knowledge lives in git history and people''s heads. Discovery extracts that into instructions, an Application Knowledge Skill,'
 seriesOrder: 15
-featured: false
-draft: true
+featured: true
+draft: false
 faq:
   - q: 'What is legacy codebase discovery for GitHub Copilot?'
     a: 'Legacy codebase discovery is the structured process of extracting an undocumented application''s architecture, business rules, dependencies, and history into machine-readable knowledge that GitHub Copilot can load. It usually produces a copilot-instructions.md, path-specific instruction files, an Application Knowledge Skill, and an AGENTS.md. The goal is to replace Copilot''s guessing with verified context so its suggestions respect rules the original developers never wrote down.'
@@ -23,6 +25,8 @@ faq:
   - q: 'How do I keep the legacy knowledge current?'
     a: 'Treat the Application Knowledge Skill as code. Update it in the same pull request that changes a documented module, assign an owner per module, and add a hook that flags when a documented file changes without its knowledge file being touched. Discovery is not a one-time project. An out-of-date knowledge file rots into a confidently wrong one, so update-on-change discipline is what keeps it trustworthy.'
 ---
+
+import Pipeline from '../../../components/mdx/Pipeline.astro';
 
 Last year I inherited a module I did not want. A bug had surfaced in the pricing engine of a decade-old .NET order system, and the one person who understood that engine had left the company two years earlier. I opened the file, asked GitHub Copilot to explain the bug and suggest a fix, and it gave me a clean, confident, well-reasoned answer. The fix would have broken a business rule about how partial refunds interact with volume discounts — a rule that existed nowhere in the code as a comment, only as a quiet `if` branch that looked like a mistake. Copilot did not know that rule existed. Neither did I, until a senior finance engineer in Coimbatore stopped me at the last minute.
 
@@ -54,22 +58,28 @@ In short: you cannot point Copilot at a legacy repo and hope. The context it nee
 
 Discovery is not one giant read-through. I run it as four focused passes, and I use Copilot itself as a discovery tool in each one — but every pass ends at a human verification gate before anything becomes a "fact." That gate is the whole method. Skip it and you are just laundering guesses into documentation.
 
-```mermaid
-flowchart TD
-  A[Legacy repo + git history + people] --> P1[Pass 1: Structural map]
-  P1 --> G1{Human verify}
-  G1 --> P2[Pass 2: Business-rule extraction]
-  P2 --> G2{Human verify}
-  G2 --> P3[Pass 3: Risk & dependency mapping]
-  P3 --> G3{Human verify}
-  G3 --> P4[Pass 4: Knowledge from history]
-  P4 --> G4{Human verify}
-  G4 --> K[Verified knowledge]
-  K --> I[copilot-instructions.md]
-  K --> PI[path-specific *.instructions.md]
-  K --> S[Application Knowledge Skill]
-  K --> AM[AGENTS.md]
-```
+<Pipeline
+  caption="Four passes, four gates. Copilot drafts every pass; a human turns each draft into a fact. Only what survives a gate becomes an artifact Copilot is allowed to read back."
+  entry={{ label: 'Legacy repo + git history + people', note: 'Everything the knowledge is currently scattered across' }}
+  steps={[
+    { label: 'Pass 1 — Structural map', note: 'Projects, versions, entry points, data stores, integrations' },
+    { gate: 'Human gate', label: 'Are the module boundaries real?', back: 'Missing integration or wrong boundary → re-run the inventory' },
+    { label: 'Pass 2 — Business-rule extraction', note: 'Candidate rules, quoted code, inferred outcomes' },
+    { gate: 'Human gate', label: 'Is the rule real, load-bearing, and correctly explained?', back: 'Unconfirmed → mark "appears unused, verify before removing"' },
+    { label: 'Pass 3 — Risk and dependency mapping', note: 'High fan-in files, hidden coupling, dependency debt' },
+    { gate: 'Human gate', label: 'Does the blast radius match reality?', back: 'Coupling through a queue, trigger or cron job → add it by hand' },
+    { label: 'Pass 4 — Knowledge from history', note: 'git log and git blame on the load-bearing modules' },
+    { gate: 'Human gate', label: 'Does the history actually explain the why?', back: 'No rationale in the message → ask the people, do not invent one' },
+    { label: 'Verified knowledge', note: 'Findings a person has confirmed', accent: true },
+  ]}
+  outputsLabel="Written to"
+  outputs={[
+    { label: 'copilot-instructions.md', note: 'Always-on, small' },
+    { label: 'Path-specific *.instructions.md', note: 'Loads with the folder' },
+    { label: 'Application Knowledge Skill', note: 'Deep, on demand' },
+    { label: 'AGENTS.md', note: 'Shared across tools' },
+  ]}
+/>
 
 Each pass produces a *draft*. A human turns the draft into verified knowledge. Only verified knowledge becomes an artifact Copilot reads.
 

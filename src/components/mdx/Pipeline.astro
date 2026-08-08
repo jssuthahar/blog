@@ -1,0 +1,346 @@
+---
+/**
+ * A drawn workflow with gates — the replacement for a `flowchart TD` mermaid
+ * block, which this site renders as a code box rather than a picture.
+ *
+ * `Flow.astro` handles a clean left-to-right chain. This handles the shape the
+ * legacy-modernization articles keep needing and `Flow` deliberately refuses:
+ * a long vertical sequence where work alternates with gates, some gates send
+ * you backwards, and the chain can end by fanning out into artifacts.
+ *
+ * Same constraints as `Flow` and `Orchestration`, for the same reasons: zero
+ * JS, zero dependencies, and every label is real text in the static HTML. A
+ * crawler reading `G1{Human verify}` learns nothing; here it reads the gate and
+ * the failure path in document order, which is what answer engines quote.
+ *
+ * A gate is not a colour. Mermaid versions of these diagrams used yellow for
+ * humans and blue for CI, which this site's palette has no room for — one
+ * accent, reserved for the destination. Gates are drawn instead: dashed border,
+ * no fill, and an eyebrow naming who or what the gate is. That survives
+ * greyscale, screen readers, and the dark theme.
+ *
+ * Always vertical. These chains run to ten nodes, so the horizontal layout
+ * `Flow` switches to at 768px would either overflow or shrink every label to
+ * nothing.
+ */
+export interface PipelineNode {
+  /** The box text. Keep it to a few words; long labels wrap. */
+  label: string;
+  /** Optional second line, one short clause of detail. */
+  note?: string;
+  /**
+   * Marks this node as a gate rather than a step. The value is the eyebrow —
+   * 'Human gate', 'CI gate', 'Check'. Free text, not an enum, because the
+   * articles name their gates differently and an enum would only add a lookup.
+   */
+  gate?: string;
+  /** The failure path out of a gate, e.g. 'Red → back to the developer agent'. */
+  back?: string;
+  /** Marks the destination — the node the whole chain is arguing toward. */
+  accent?: boolean;
+}
+
+interface Props {
+  /** What enters the workflow. Optional; some chains start at their first step. */
+  entry?: PipelineNode | string;
+  /** The sequence itself, steps and gates interleaved in reading order. */
+  steps: (PipelineNode | string)[];
+  /** Artifacts the chain produces. Drawn as a fan-out under the last node. */
+  outputs?: (PipelineNode | string)[];
+  /** One line naming what the outputs are, sitting above the fan-out. */
+  outputsLabel?: string;
+  /** Sits under the diagram as a figcaption. Also the accessible name. */
+  caption?: string;
+}
+
+const { entry, steps, outputs, outputsLabel, caption } = Astro.props;
+
+const node = (n: PipelineNode | string): PipelineNode =>
+  typeof n === 'string' ? { label: n } : n;
+
+const entryNode = entry ? node(entry) : null;
+const stepNodes = steps.map(node);
+const outputNodes = (outputs ?? []).map(node);
+---
+
+<figure class="pipe not-prose my-7" aria-label={caption}>
+  <ol class="pipe-track">
+    {
+      entryNode && (
+        <li class="pipe-node is-entry">
+          <span class="pipe-label">{entryNode.label}</span>
+          {entryNode.note && <span class="pipe-note">{entryNode.note}</span>}
+        </li>
+      )
+    }
+    {
+      stepNodes.map((step, i) => (
+        <>
+          {(i > 0 || entryNode) && (
+            <li class="pipe-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M6 13l6 6 6-6" />
+              </svg>
+            </li>
+          )}
+          <li class:list={['pipe-node', step.gate && 'is-gate', step.accent && 'is-accent']}>
+            {step.gate && <span class="pipe-role">{step.gate}</span>}
+            <span class="pipe-label">{step.label}</span>
+            {step.note && <span class="pipe-note">{step.note}</span>}
+          </li>
+          {/* The return edge. Real text, not a drawn curve: "back to step 2" is
+              the part a reader needs, and an arc alone never says which step. */}
+          {step.back && (
+            <li class="pipe-back">
+              <span class="pipe-back-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 14 4 9l5-5" />
+                  <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
+                </svg>
+              </span>
+              <span>{step.back}</span>
+            </li>
+          )}
+        </>
+      ))
+    }
+  </ol>
+
+  {
+    outputNodes.length > 0 && (
+      <>
+        {/* Above the connector, not inside it: dropped between the bus and the
+            boxes the label would sit across the risers it is meant to caption. */}
+        {outputsLabel && <p class="pipe-outputs-label">{outputsLabel}</p>}
+
+        <div class="pipe-bus" style={`--n:${outputNodes.length}`} aria-hidden="true">
+          {outputNodes.map(() => (
+            <span class="pipe-riser" />
+          ))}
+        </div>
+
+        <ul class="pipe-outputs" style={`--n:${outputNodes.length}`}>
+          {outputNodes.map((o) => (
+            <li class="pipe-node is-output">
+              <span class="pipe-label">{o.label}</span>
+              {o.note && <span class="pipe-note">{o.note}</span>}
+            </li>
+          ))}
+        </ul>
+      </>
+    )
+  }
+
+  {caption && <figcaption class="pipe-caption">{caption}</figcaption>}
+</figure>
+
+<style>
+  .pipe-track {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pipe-node {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--bg-subtle);
+    padding: 0.55rem 0.7rem;
+  }
+
+  /* Single-column rows sit centred and narrow so the fan-out below reads as the
+     wider, parallel step rather than one more box in the stack. */
+  .pipe-track .pipe-node {
+    align-self: center;
+    width: 100%;
+    max-width: 26rem;
+    text-align: center;
+  }
+
+  .pipe-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text);
+    text-wrap: balance;
+  }
+
+  .pipe-note {
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    color: var(--text-muted);
+  }
+
+  /* The entry is context, not a step someone performs — lighter border, no
+     fill, so the eye starts on the first real box below it. */
+  .pipe-node.is-entry {
+    background: none;
+    border-style: dashed;
+  }
+
+  /* A gate is where the flow stops until something outside the AI says yes.
+     Dashed and unfilled reads as "not work, a condition". */
+  .pipe-node.is-gate {
+    background: none;
+    border-color: var(--text-muted);
+    border-style: dashed;
+    border-radius: 1.25rem;
+  }
+
+  .pipe-role {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .pipe-node.is-accent {
+    border-color: var(--accent);
+    border-style: solid;
+    background: var(--accent-soft);
+  }
+
+  .pipe-node.is-accent .pipe-label {
+    color: var(--accent);
+  }
+
+  .pipe-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    opacity: 0.65;
+  }
+
+  .pipe-arrow svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .pipe-back {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    align-self: center;
+    width: 100%;
+    max-width: 26rem;
+    padding-left: 0.15rem;
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    color: var(--text-muted);
+  }
+
+  .pipe-back-mark svg {
+    width: 0.85rem;
+    height: 0.85rem;
+    display: block;
+  }
+
+  .pipe-outputs {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pipe-outputs-label {
+    margin: 0.5rem 0 0;
+    text-align: center;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Mobile: no room for a bus across four columns, so it degrades to the plain
+     stem used between single boxes. Same trade-off Orchestration makes. */
+  .pipe-bus {
+    align-self: center;
+    width: 1px;
+    height: 1.1rem;
+    margin-inline: auto;
+    background: var(--border);
+  }
+
+  .pipe-riser {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .pipe-outputs {
+      grid-template-columns: repeat(var(--n), 1fr);
+      gap: 0.25rem;
+    }
+
+    /* One grid row of N cells: ::after is the stem dropping out of the last
+       node, ::before the horizontal bar. The bar spans centre-of-first to
+       centre-of-last, so with N equal columns it insets 50%/N on each side and
+       stops under the outer risers instead of running past them. */
+    .pipe-bus {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(var(--n), 1fr);
+      width: 100%;
+      height: 1.6rem;
+      background: none;
+    }
+
+    .pipe-bus::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: calc(50% / var(--n));
+      right: calc(50% / var(--n));
+      border-top: 1px solid var(--border);
+    }
+
+    .pipe-bus::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      height: 50%;
+      border-left: 1px solid var(--border);
+    }
+
+    .pipe-bus .pipe-riser {
+      display: block;
+      position: relative;
+    }
+
+    .pipe-bus .pipe-riser::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      height: 50%;
+      border-left: 1px solid var(--border);
+    }
+  }
+
+  .pipe-caption {
+    margin-top: 0.6rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+  }
+
+  /* Same borrowed gutter as Flow and Orchestration — four output columns inside
+     a 68ch measure are too tight, and the article column has the room. */
+  @media (min-width: 1024px) {
+    .pipe {
+      margin-inline: -2.5rem;
+    }
+  }
+</style>

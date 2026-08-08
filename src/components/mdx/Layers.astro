@@ -1,0 +1,276 @@
+---
+/**
+ * A drawn layered architecture — the replacement for a mermaid `flowchart` with
+ * `subgraph` blocks, which this site renders as a code box rather than a
+ * picture.
+ *
+ * `Flow` draws a chain, `Orchestration` a fan-out, `Pipeline` a gated sequence.
+ * This draws the fourth shape the articles need: an input passes down through
+ * named layers that each play a different role — advisory, enforcement,
+ * judgment — and comes out the bottom as a result.
+ *
+ * Same constraints as its siblings: zero JS, zero dependencies, real text in
+ * the static HTML. The layer's role line is the whole argument of these
+ * diagrams ("probabilistic, never blocks" versus "deterministic, blocks"), so
+ * it is a heading and a paragraph, not a colour a crawler cannot read.
+ */
+export interface LayerItem {
+  /** The box text. A few words. */
+  label: string;
+  /** Optional second line, one short clause of detail. */
+  note?: string;
+}
+
+export interface Layer {
+  /** The layer name, e.g. 'Enforcement layer'. */
+  name: string;
+  /** What the layer is and what it may do, e.g. 'Deterministic — blocks'. */
+  role?: string;
+  /** The boxes inside the layer. Two to four read well. */
+  items: (LayerItem | string)[];
+  /**
+   * Set when the items run in order rather than sitting side by side, which
+   * draws a chevron between them. Ordering is load-bearing in a scanner chain
+   * and meaningless in a "these two work together" pair.
+   */
+  sequence?: boolean;
+}
+
+interface Props {
+  /** What enters the system — the change, the request, the trigger. */
+  entry?: LayerItem | string;
+  layers: Layer[];
+  /** The destination, drawn in the accent. */
+  result?: LayerItem | string;
+  /** Sits under the diagram as a figcaption. Also the accessible name. */
+  caption?: string;
+}
+
+const { entry, layers, result, caption } = Astro.props;
+
+const item = (n: LayerItem | string): LayerItem => (typeof n === 'string' ? { label: n } : n);
+
+const entryItem = entry ? item(entry) : null;
+const resultItem = result ? item(result) : null;
+---
+
+<figure class="layers not-prose my-7" aria-label={caption}>
+  {
+    entryItem && (
+      <>
+        <div class="layers-box is-solo">
+          <span class="layers-label">{entryItem.label}</span>
+          {entryItem.note && <span class="layers-note">{entryItem.note}</span>}
+        </div>
+        <div class="layers-stem" aria-hidden="true" />
+      </>
+    )
+  }
+
+  <ol class="layers-stack">
+    {
+      layers.map((layer, i) => (
+        <>
+          {i > 0 && <li class="layers-stem is-between" aria-hidden="true" />}
+          <li class="layers-layer">
+            <p class="layers-name">
+              {layer.name}
+              {layer.role && <span class="layers-role"> — {layer.role}</span>}
+            </p>
+            <ul class:list={['layers-items', layer.sequence && 'is-sequence']} style={`--n:${layer.items.length}`}>
+              {layer.items.map(item).map((it, j) => (
+                <>
+                  {layer.sequence && j > 0 && (
+                    <li class="layers-chevron" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 6l6 6-6 6" />
+                      </svg>
+                    </li>
+                  )}
+                  <li class="layers-box">
+                    <span class="layers-label">{it.label}</span>
+                    {it.note && <span class="layers-note">{it.note}</span>}
+                  </li>
+                </>
+              ))}
+            </ul>
+          </li>
+        </>
+      ))
+    }
+  </ol>
+
+  {
+    resultItem && (
+      <>
+        <div class="layers-stem" aria-hidden="true" />
+        <div class="layers-box is-solo is-accent">
+          <span class="layers-label">{resultItem.label}</span>
+          {resultItem.note && <span class="layers-note">{resultItem.note}</span>}
+        </div>
+      </>
+    )
+  }
+
+  {caption && <figcaption class="layers-caption">{caption}</figcaption>}
+</figure>
+
+<style>
+  .layers {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .layers-stack {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* The layer frame. Dashed, because it is a grouping the reader draws in their
+     head, not a component that exists — the boxes inside it are the real
+     things. */
+  .layers-layer {
+    border: 1px dashed var(--border);
+    border-radius: 0.65rem;
+    padding: 0.5rem 0.6rem 0.6rem;
+  }
+
+  .layers-name {
+    margin: 0 0 0.45rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .layers-role {
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
+  .layers-items {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .layers-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--bg-subtle);
+    padding: 0.55rem 0.7rem;
+  }
+
+  .layers-box.is-solo {
+    align-self: center;
+    width: 100%;
+    max-width: 26rem;
+    text-align: center;
+  }
+
+  .layers-box.is-accent {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .layers-box.is-accent .layers-label {
+    color: var(--accent);
+  }
+
+  .layers-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text);
+    text-wrap: balance;
+  }
+
+  .layers-note {
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    color: var(--text-muted);
+  }
+
+  .layers-stem {
+    align-self: center;
+    width: 1px;
+    height: 1.1rem;
+    background: var(--border);
+  }
+
+  /* Between layers the stem is a list item, so it needs the centring the flex
+     parent gives the standalone ones. */
+  .layers-stem.is-between {
+    margin-inline: auto;
+  }
+
+  .layers-chevron {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .layers-items {
+      grid-template-columns: repeat(var(--n), 1fr);
+      gap: 0.3rem;
+      align-items: stretch;
+    }
+
+    /* A sequenced layer interleaves N boxes with N-1 chevrons. Flex rather than
+       grid: the track alternates two different widths, and `repeat()` cannot
+       take a calc()'d count to express that. */
+    .layers-items.is-sequence {
+      display: flex;
+      align-items: stretch;
+      gap: 0.2rem;
+    }
+
+    .layers-items.is-sequence .layers-box {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    .layers-items.is-sequence .layers-chevron {
+      flex: 0 0 auto;
+    }
+
+    .layers-chevron {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      opacity: 0.65;
+    }
+
+    .layers-chevron svg {
+      width: 0.9rem;
+      height: 0.9rem;
+    }
+  }
+
+  .layers-caption {
+    margin-top: 0.6rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+  }
+
+  /* Same borrowed gutter as the other diagram components — four boxes in a row
+     inside a 68ch measure are too tight. */
+  @media (min-width: 1024px) {
+    .layers {
+      margin-inline: -2.5rem;
+    }
+  }
+</style>

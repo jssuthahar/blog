@@ -1,0 +1,164 @@
+---
+/**
+ * A drawn step chain for article bodies — the replacement for a `flowchart LR`
+ * mermaid block, which this site renders as a code box rather than a picture.
+ *
+ * Deliberately zero-JS and zero-dependency. Mermaid would mean shipping ~1MB of
+ * client script per article and painting the diagram after hydration, which
+ * hurts both Core Web Vitals and answer engines: a crawler that reads the HTML
+ * sees `A --> B` source, not the sequence. Here the steps are a real ordered
+ * list in the static HTML, so the diagram is readable, quotable, and indexable.
+ *
+ * Handles linear progressions only (A → B → C). Branches, gates, and back-edges
+ * need a different picture — keep those as a table or a hand-drawn image.
+ */
+export interface FlowStep {
+  /** The box text. Keep it to a few words; long labels wrap and set row height. */
+  label: string;
+  /** Optional second line, one short clause of detail. */
+  note?: string;
+  /** Marks the destination step — the one the whole chain is arguing toward. */
+  accent?: boolean;
+}
+
+interface Props {
+  /** Strings for a plain chain, or objects when a step needs a note or accent. */
+  steps: (FlowStep | string)[];
+  /** Sits under the diagram as a figcaption. Also the accessible name. */
+  caption?: string;
+  /** Ordinal badges on each box. Turn off for chains where order is obvious. */
+  numbered?: boolean;
+}
+
+const { steps, caption, numbered = true } = Astro.props;
+
+const items: FlowStep[] = steps.map((s) => (typeof s === 'string' ? { label: s } : s));
+---
+
+<figure class="flow not-prose my-7" aria-label={caption}>
+  <ol class="flow-track">
+    {
+      items.map((step, i) => (
+        <>
+          {i > 0 && (
+            <li class="flow-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </li>
+          )}
+          <li class:list={['flow-step', step.accent && 'is-accent']}>
+            {numbered && <span class="flow-index">{i + 1}</span>}
+            <span class="flow-label">{step.label}</span>
+            {step.note && <span class="flow-note">{step.note}</span>}
+          </li>
+        </>
+      ))
+    }
+  </ol>
+  {caption && <figcaption class="flow-caption">{caption}</figcaption>}
+</figure>
+
+<style>
+  .flow-track {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .flow-step {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--bg-subtle);
+    padding: 0.55rem 0.7rem;
+  }
+
+  .flow-index {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+
+  .flow-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text);
+    text-wrap: balance;
+  }
+
+  .flow-note {
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    color: var(--text-muted);
+  }
+
+  /* The destination step. One accent, used to mark where the chain lands —
+     the same rule the rest of the site follows: colour is state, not decor. */
+  .flow-step.is-accent {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .flow-step.is-accent .flow-label {
+    color: var(--accent);
+  }
+
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    opacity: 0.65;
+  }
+
+  .flow-arrow svg {
+    width: 1rem;
+    height: 1rem;
+    /* Stacked layout reads top-to-bottom, so the chevron points down. */
+    transform: rotate(90deg);
+  }
+
+  .flow-caption {
+    margin-top: 0.6rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+  }
+
+  /* Wide enough for a real left-to-right chain. Steps share the width evenly
+     and stretch to equal height, so a long label sets the row rather than
+     breaking the line. */
+  @media (min-width: 768px) {
+    .flow-track {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 0.25rem;
+    }
+
+    .flow-step {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    .flow-arrow svg {
+      transform: none;
+    }
+  }
+
+  /* Six boxes inside a 68ch measure get cramped. The article column has room
+     to spare at desktop widths, so the diagram borrows a little of it. */
+  @media (min-width: 1024px) {
+    .flow {
+      margin-inline: -2.5rem;
+    }
+  }
+</style>

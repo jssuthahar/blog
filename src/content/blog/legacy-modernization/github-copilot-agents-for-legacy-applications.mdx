@@ -8,7 +8,7 @@ tags: ['GitHub Copilot Agents', 'Legacy Applications', 'Copilot Agent Mode', 'Mu
 seoTitle: 'GitHub Copilot Agents for Legacy Applications'
 highlight: 'A team of specialized Copilot agents is not a switch you turn on. GitHub ships the real primitives: custom agents in .github/agents, AGENTS.md, copilot-instructions.md, Skills, and Hooks. The developer/tester/security/architecture "AI team" is a pattern you compose on top of them. The highest-value asset for a legacy app is an Application Knowledge Skill that captures behaviour nobody documented.'
 series: 'agents-md-instructions'
-seriesOrder: 11
+seriesOrder: 14
 featured: true
 draft: true
 faq:
@@ -29,6 +29,7 @@ faq:
   - q: 'How do Hooks improve AI development workflows?'
     a: 'Hooks run deterministic scripts at fixed points in an agent session, outside the AI model. They enforce rules the probabilistic model might skip: a preToolUse hook can block a destructive command, a pre-commit gate can run tests and secret scans, and a post-development hook can auto-generate docs. On legacy code, where one bad change is expensive, hooks are the guardrails that make AI-assisted development safe.'
 ---
+import Flow from '../../../components/mdx/Flow.astro';
 
 A few years ago I was pulled into a system that scared everyone who touched it. A payments-heavy application, more than ten years old, millions of lines across a .NET backend, a SQL Server database nobody fully mapped, and a Flutter mobile app bolted on later. The original developers had long left the company. The design documents were three rewrites out of date. Adding one small feature took weeks — not because writing the code was hard, but because *understanding what the existing code already did* was hard.
 
@@ -44,16 +45,19 @@ If Skills and instructions are new to you, read my [Copilot Skills explainer](..
 
 Before the sections, here is the arc I have watched over eighteen years. Each stage did not replace the last; it added a layer.
 
-```mermaid
-flowchart LR
-  A[Traditional Development] --> B[Documentation]
-  B --> C[AI Assistance]
-  C --> D[Copilot Instructions]
-  D --> E[Copilot Skills]
-  E --> F[Multi-Agent AI Development Team]
-```
+<Flow
+  caption="Eighteen years of development support, as layers rather than replacements. Legacy modernization is the work of climbing from stage 2 to stage 6 for a system that skipped stage 2."
+  steps={[
+    { label: 'Traditional development', note: 'Read the code, ask a senior' },
+    { label: 'Documentation', note: 'Written once, stale by the third rewrite' },
+    { label: 'AI assistance', note: 'Completions with no idea what your system does' },
+    { label: 'Copilot instructions', note: 'Your conventions, applied every time' },
+    { label: 'Copilot Skills', note: 'Application knowledge the AI can actually use' },
+    { label: 'Multi-agent AI development team', note: 'Roles, gates, and a human owner', accent: true },
+  ]}
+/>
 
-In short: we went from "read the code and ask a senior" to "encode what the senior knows so an AI team can use it." Legacy modernization is mostly the work of climbing from B to F for a system that skipped B entirely.
+In short: we went from "read the code and ask a senior" to "encode what the senior knows so an AI team can use it." The systems I get called into skipped the documentation stage entirely, which is why the climb starts there and not at the tooling.
 
 ## Section 1 — Why legacy applications are so hard to change
 

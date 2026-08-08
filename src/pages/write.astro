@@ -39,6 +39,8 @@ const TOOLBAR = [
     snippet: '\n<Callout type="warning">\n{sel}\n</Callout>\n' },
   { key: 'video', label: 'Video', title: 'YouTube (needs .mdx)', kind: 'insert',
     snippet: '\n<YouTube id="VIDEO_ID" title="Title" />\n' },
+  { key: 'flow', label: 'Flow', title: 'Step diagram (needs .mdx)', kind: 'insert',
+    snippet: '\n<Flow\n  caption="What the diagram shows."\n  steps={[\n    { label: \'First step\', note: \'Short detail\' },\n    { label: \'Second step\' },\n    { label: \'Where it lands\', accent: true },\n  ]}\n/>\n' },
   { key: 'image', label: 'Image', title: 'Image', kind: 'insert',
     snippet: '\n![alt text](./images/name.png)\n' },
   { key: 'hr', label: '―', title: 'Divider', kind: 'insert', snippet: '\n---\n' },
@@ -635,7 +637,7 @@ const TOOLBAR = [
         writeForm({ ...emptyDraft(), ...draft });
         // Authored slug, not derived from the title — stop the title override.
         field('f-slug').dataset.touched = '';
-        toggleMdx(/\.mdx$/i.test(filename ?? '') || /<(Callout|YouTube)\b/.test(draft.body));
+        toggleMdx(/\.mdx$/i.test(filename ?? '') || /<(Callout|YouTube|Flow)\b/.test(draft.body));
       }
     } catch {}
 
@@ -651,8 +653,8 @@ const TOOLBAR = [
         : '';
       // Strip the two MDX component tags so the preview does not show raw JSX.
       const bodyForPreview = d.body
-        .replace(/<(Callout|YouTube)[^>]*>/g, '')
-        .replace(/<\/(Callout|YouTube)>/g, '');
+        .replace(/<(Callout|YouTube|Flow)[^>]*>/g, '')
+        .replace(/<\/(Callout|YouTube|Flow)>/g, '');
       $('preview').innerHTML = hl + marked.parse(bodyForPreview, { async: false });
 
       const { words, minutes } = readingStats(d.body);
@@ -755,6 +757,7 @@ const TOOLBAR = [
       const needs = [
         md.includes('<Callout') && "import Callout from '../../components/mdx/Callout.astro';",
         md.includes('<YouTube') && "import YouTube from '../../components/mdx/YouTube.astro';",
+        md.includes('<Flow') && "import Flow from '../../components/mdx/Flow.astro';",
       ].filter(Boolean);
       if (!needs.length) return md;
       // Insert imports right after the closing frontmatter fence.
@@ -806,7 +809,7 @@ const TOOLBAR = [
         // The imported slug is authored, not derived — stop the title override.
         field('f-slug').dataset.touched = '';
         // Match the editor's file type to the imported extension.
-        toggleMdx(/\.mdx$/i.test(file.name) || /<(Callout|YouTube)\b/.test(draft.body));
+        toggleMdx(/\.mdx$/i.test(file.name) || /<(Callout|YouTube|Flow)\b/.test(draft.body));
         render();
         $('autosave').textContent = `Imported ${file.name}`;
         setTimeout(() => ($('autosave').textContent = ''), 2500);

@@ -1,0 +1,2420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A rack just lost power. The shop kept selling. — MSDevBuild</title>
+<meta name="description" content="Why Azure places your VMs on different physical racks, and what breaks the moment it does not.">
+<meta name="author" content="Suthahar">
+<meta name="theme-color" content="#0E1420">
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg-deep:#0E1420;
+  --bg-panel:#141B2B;
+  --bg-panel-2:#182238;
+  --border:#232C40;
+  --text-primary:#E8EDF5;
+  --text-dim:#8B95A7;
+  --accent-1:#3AA0FF;
+  --accent-2:#1959C9;
+  --accent-cyan:#22D3EE;
+  --success:#3fb950;
+  --warn:#F0A64A;
+  --danger:#F44A6A;
+
+  --editor-bg:#1e1e1e;
+  --editor-sidebar:#181818;
+  --titlebar:#2b2b2e;
+  --line-num:#4b5157;
+  --ghost:#6e7681;
+  --code-keyword:#ff7b72;
+  --code-func:#dcdcaa;
+  --code-str:#ce9178;
+  --code-plain:#d4d4d4;
+  --code-comment:#6a9955;
+
+  --font-ui:'Inter',-apple-system,'Segoe UI',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{
+  width:100%; height:100%; background:#05080F;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden; font-family:var(--font-ui);
+}
+#stage-wrap{ width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
+
+#canvas{
+  position:relative; width:1080px; height:1920px; flex-shrink:0;
+  transform-origin:center center;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(58,160,255,0.12), transparent 55%),
+    radial-gradient(circle at 15% 92%, rgba(25,89,201,0.16), transparent 45%),
+    var(--bg-deep);
+  border-radius:52px; overflow:hidden;
+  box-shadow:0 0 0 2px #1a2233, 0 40px 120px rgba(0,0,0,0.7);
+}
+#canvas::before{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size:54px 54px;
+}
+
+/* ===================== TITLE SCREEN (tap to start) ===================== */
+#title-screen{
+  position:absolute; inset:0; z-index:110; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px;
+  background:radial-gradient(circle at 50% 30%, rgba(58,160,255,0.22), transparent 60%), var(--bg-deep);
+  text-align:center; padding:0 90px;
+  opacity:1; transition:opacity .38s ease;
+}
+#title-screen.hide{ opacity:0; pointer-events:none; }
+#logo-mark{
+  width:132px; height:132px; border-radius:50%;
+  background-size:cover; background-position:center;
+  box-shadow:0 0 0 4px rgba(58,160,255,0.5), 0 0 70px 8px rgba(58,160,255,0.35);
+  border:2px solid rgba(255,255,255,0.15);
+  animation:msd-pulseRing 2.6s ease-in-out infinite;
+}
+#title-brand{ color:var(--accent-1); font-size:22px; font-weight:800; letter-spacing:5px; text-transform:uppercase; }
+#title-brand span{ color:var(--text-dim); font-weight:600; letter-spacing:2px; text-transform:none; }
+#title-main{ color:#fff; font-size:64px; font-weight:900; line-height:1.14; max-width:840px; }
+#title-main em{ font-style:normal; color:var(--accent-1); }
+#title-sub{ color:var(--text-dim); font-size:26px; font-weight:500; max-width:680px; line-height:1.5; }
+#title-pill{
+  margin-top:14px; padding:12px 26px; border-radius:100px;
+  border:1.5px solid rgba(58,160,255,0.4); color:var(--text-primary);
+  font-size:18px; font-weight:600; font-family:var(--font-mono);
+  display:flex; align-items:center; gap:10px;
+}
+#tap-hint{ color:var(--text-dim); font-size:18px; font-weight:600; margin-top:26px; opacity:.85; }
+#rec-hint{ color:var(--text-dim); font-size:16px; font-weight:500; margin-top:-16px; opacity:.6; }
+#rec-hint b{ color:var(--accent-1); font-family:var(--font-mono); }
+.live-dot{ width:8px; height:8px; border-radius:50%; background:var(--accent-cyan); animation:msd-tdot 1.2s infinite; }
+
+/* ===================== TOP BAR ===================== */
+#topbar{
+  position:absolute; top:44px; left:56px; right:56px; height:92px; z-index:20;
+  display:flex; align-items:center; gap:18px;
+}
+#topbar-avatar{
+  width:72px; height:72px; border-radius:50%; flex-shrink:0;
+  background-size:cover; background-position:center;
+  border:2px solid rgba(255,255,255,0.14);
+  box-shadow:0 0 0 3px rgba(58,160,255,0.42);
+}
+#topbar-text{ display:flex; flex-direction:column; gap:4px; }
+#topbar-name{ color:#fff; font-size:30px; font-weight:800; letter-spacing:-0.4px; line-height:1; }
+#topbar-tag{ color:var(--text-dim); font-size:17px; font-weight:600; letter-spacing:.4px; line-height:1; }
+#sound-toggle, #record-toggle{
+  width:62px; height:62px; border-radius:50%;
+  border:1.5px solid var(--border); background:var(--bg-panel);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  opacity:.35; transition:opacity .3s ease;
+}
+#sound-toggle svg{ width:30px; height:30px; }
+#record-toggle{ margin-left:auto; }
+#record-toggle svg{ width:28px; height:28px; }
+#sound-toggle{ margin-left:12px; }
+#record-toggle:hover{ opacity:.85; }
+/* The record button is a tool, not part of the reel — it must not appear in
+   the frames it is capturing. */
+#canvas.capturing #record-toggle{ opacity:0; pointer-events:none; }
+
+/* ===================== STAGE (agent-authored content lives here) ===== */
+/* Sits below the caption card: Reels and Shorts cover roughly the bottom 400px,
+   so the step number and title have to live above the animation, not under it. */
+#stage{
+  position:absolute; top:500px; left:44px; right:44px; height:1024px; z-index:10;
+}
+
+/* ===================== CAPTION CARD ===================== */
+#caption-wrap{
+  position:absolute; top:166px; left:56px; right:56px; min-height:244px; z-index:20;
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border); border-radius:32px; padding:34px 40px;
+  box-shadow:0 24px 70px rgba(0,0,0,0.45);
+}
+#caption-wrap.pulse{ animation:msd-capPulse .34s ease; }
+#stage-num{
+  color:var(--accent-1); font-family:var(--font-mono); font-size:19px;
+  font-weight:700; letter-spacing:3px; margin-bottom:14px;
+}
+#stage-title{ color:#fff; font-size:52px; font-weight:800; line-height:1.16; letter-spacing:-1px; }
+#stage-title .kw-hl{ color:var(--accent-1); }
+#stage-desc{ color:var(--text-dim); font-size:27px; font-weight:500; line-height:1.45; margin-top:14px; }
+
+/* ===================== STATUS BAR ===================== */
+#statusbar{
+  position:absolute; top:1540px; left:56px; right:56px; height:66px; z-index:20;
+  display:flex; align-items:center; gap:14px; padding:0 26px;
+  background:rgba(20,27,43,0.8); border:1.5px solid var(--border); border-radius:18px;
+}
+#status-icon{ width:26px; height:26px; flex-shrink:0; }
+#status-text{ color:var(--text-primary); font-family:var(--font-mono); font-size:21px; font-weight:600; }
+.thinking-wrap{ display:none; gap:7px; margin-left:6px; }
+.thinking-wrap.show{ display:flex; }
+.thinking-dot{ width:9px; height:9px; border-radius:50%; background:var(--accent-cyan); animation:msd-tdot 1.1s infinite; }
+.thinking-dot:nth-child(2){ animation-delay:.18s; }
+.thinking-dot:nth-child(3){ animation-delay:.36s; }
+
+/* ===================== PROGRESS TRACK ===================== */
+/* Directly under the top bar, with the caption card, so "step 3 of 8" survives
+   the platform chrome that eats the bottom of the frame. */
+#progress-track{
+  position:absolute; top:146px; left:56px; right:56px; height:8px; z-index:20;
+  display:flex; gap:7px;
+}
+#progress-track .seg{
+  flex:1; height:100%; border-radius:4px; background:var(--border); overflow:hidden;
+}
+#progress-track .seg-fill{
+  width:0%; height:100%; border-radius:4px;
+  background:linear-gradient(90deg, var(--accent-1), var(--accent-cyan));
+}
+#progress-track .seg.done .seg-fill{ width:100%; }
+#progress-track .seg.active .seg-fill{ animation:msd-fillseg linear forwards; animation-duration:var(--seg-dur,3000ms); }
+
+/* ===================== BOTTOM BRAND STRIP ===================== */
+#bottom-bar{
+  position:absolute; top:1640px; left:56px; right:56px; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+}
+#bottom-bar .b-left{ color:var(--text-dim); font-size:20px; font-weight:700; letter-spacing:1.4px; }
+#bottom-bar .b-left b{ color:var(--accent-1); }
+#bottom-bar .b-right{
+  color:var(--text-dim); font-family:var(--font-mono); font-size:19px; font-weight:600;
+  display:flex; align-items:center; gap:9px;
+}
+
+/* ===================== END CARD ===================== */
+#end-card{
+  position:absolute; inset:0; z-index:105; opacity:0; pointer-events:none;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+  background:radial-gradient(circle at 50% 30%, rgba(58,160,255,0.22), transparent 60%), var(--bg-deep);
+  text-align:center; padding:0 90px; transition:opacity .5s ease;
+}
+#end-card.show{ opacity:1; }
+#end-avatar{
+  width:120px; height:120px; border-radius:50%;
+  background-size:cover; background-position:center;
+  border:3px solid rgba(255,255,255,0.15);
+  box-shadow:0 0 0 4px rgba(58,160,255,0.5), 0 0 70px 8px rgba(58,160,255,0.3);
+}
+#end-check{
+  width:52px; height:52px; border-radius:50%; background:var(--success);
+  display:flex; align-items:center; justify-content:center;
+  margin-top:-42px; margin-left:70px; border:3px solid var(--bg-deep);
+}
+#end-check svg{ width:26px; height:26px; }
+#end-title{ color:#fff; font-size:44px; font-weight:800; line-height:1.2; margin-top:12px; }
+#end-sub{ color:var(--text-dim); font-size:23px; font-weight:500; max-width:660px; line-height:1.5; }
+#end-cta{
+  margin-top:14px; padding:16px 30px; border-radius:100px;
+  border:1.5px solid rgba(58,160,255,0.5); color:#fff;
+  font-size:20px; font-weight:700; font-family:var(--font-mono);
+  display:flex; align-items:center; gap:10px;
+  background:linear-gradient(90deg, rgba(58,160,255,0.16), rgba(34,211,238,0.1));
+}
+#end-tagline{ color:var(--text-dim); font-size:20px; font-weight:600; letter-spacing:1px; margin-top:6px; }
+
+/* Engagement row. Saves and follows are what actually move a reel, so the
+   brand card asks for them explicitly rather than only showing a URL. */
+#end-actions{ display:flex; gap:16px; margin-top:20px; }
+#end-actions .act{
+  display:flex; align-items:center; gap:11px; padding:15px 26px; border-radius:100px;
+  border:1.5px solid var(--border); background:rgba(20,27,43,0.75);
+  color:var(--text-primary); font-size:21px; font-weight:700;
+}
+#end-actions .act svg{ width:24px; height:24px; flex-shrink:0; }
+#end-actions .act.primary{
+  border-color:rgba(58,160,255,0.55); color:#fff;
+  background:linear-gradient(90deg, rgba(58,160,255,0.22), rgba(34,211,238,0.12));
+  animation:msd-breathe 2.4s ease-in-out infinite;
+}
+
+/* ===================== SHARED COMPONENTS FOR STAGE CONTENT =========== */
+/* The agent composes these rather than restyling from scratch, which keeps
+   every reel on-brand even when the visuals are topic-specific. */
+
+.msd-card{
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border); border-radius:26px;
+  box-shadow:0 18px 50px rgba(0,0,0,0.4);
+}
+.msd-card.accent{ border-color:rgba(58,160,255,0.55); box-shadow:0 0 0 1px rgba(58,160,255,0.3), 0 18px 60px rgba(58,160,255,0.18); }
+.msd-pill{
+  display:inline-flex; align-items:center; gap:9px; padding:10px 20px; border-radius:100px;
+  border:1.5px solid var(--border); background:rgba(20,27,43,0.7);
+  color:var(--text-primary); font-family:var(--font-mono); font-size:20px; font-weight:600;
+}
+.msd-pill.accent{ border-color:rgba(58,160,255,0.5); color:var(--accent-1); }
+.msd-chip{
+  display:inline-flex; align-items:center; padding:7px 15px; border-radius:9px;
+  background:rgba(58,160,255,0.14); border:1px solid rgba(58,160,255,0.3);
+  color:var(--accent-1); font-family:var(--font-mono); font-size:19px; font-weight:600;
+}
+.msd-label{ color:var(--text-dim); font-size:21px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; }
+.msd-h{ color:#fff; font-size:38px; font-weight:800; letter-spacing:-.6px; }
+.msd-sub{ color:var(--text-dim); font-size:23px; font-weight:500; line-height:1.4; }
+.msd-mono{ font-family:var(--font-mono); }
+.msd-num{ font-family:var(--font-mono); font-weight:700; color:var(--accent-1); font-variant-numeric:tabular-nums; }
+
+.msd-node{
+  display:flex; align-items:center; gap:18px; padding:22px 26px;
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border); border-radius:22px;
+}
+.msd-node .ic{
+  width:60px; height:60px; border-radius:16px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(58,160,255,0.12); color:var(--accent-1);
+}
+.msd-node .ic svg{ width:32px; height:32px; }
+.msd-node.hot{ border-color:var(--accent-1); box-shadow:0 0 0 1px var(--accent-1), 0 0 46px rgba(58,160,255,0.28); }
+.msd-node.hot .ic{ background:var(--accent-1); color:#0E1420; }
+
+/* Reveal utility: elements start hidden, driver/agent adds .show */
+.msd-reveal{ opacity:0; transform:translateY(18px); transition:opacity .28s ease, transform .28s cubic-bezier(.22,1,.36,1); }
+.msd-reveal.show{ opacity:1; transform:none; }
+
+/* ---- MOTION: the difference between a reel and a slideshow ------------- */
+/* A stage where nothing moves is a stage viewers swipe past. These keep the
+   composition alive between scripted events. */
+
+/* Spotlight: the element that owns this stage grows, everything else recedes.
+   Applied together they read as a camera push rather than a highlight. */
+.msd-focus{
+  transform:scale(1.06); z-index:5;
+  transition:transform .3s cubic-bezier(.22,1,.36,1), opacity .3s ease, filter .3s ease;
+}
+.msd-recede{ opacity:.34; filter:saturate(.5); transition:opacity .3s ease, filter .3s ease; }
+
+/* Continuous idle motion — subtle enough to ignore, enough to feel alive. */
+.msd-live{ animation:msd-float 3.4s ease-in-out infinite; }
+.msd-breathing{ animation:msd-breathe 2.2s ease-in-out infinite; }
+
+/* One-shot attention beats fired from stage code. */
+.msd-flash{ animation:msd-flash .42s ease-out; }
+.msd-punch{ animation:msd-punch .38s cubic-bezier(.22,1,.36,1); }
+.msd-shake{ animation:msd-shake .38s ease-in-out; }
+
+/* An active node should never sit perfectly still. */
+.msd-node.hot{ animation:msd-hotpulse 1.9s ease-in-out infinite; }
+
+/* Scanning sweep for anything being processed or searched. */
+.msd-scan{ position:relative; overflow:hidden; }
+.msd-scan::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(105deg, transparent 35%, rgba(58,160,255,0.22) 50%, transparent 65%);
+  background-size:260% 100%; animation:msd-sweep 1.5s linear infinite;
+}
+
+.msd-glow{ filter:drop-shadow(0 0 14px rgba(58,160,255,0.55)); }
+.msd-dim{ opacity:.35; transition:opacity .26s ease; }
+.msd-flow{ stroke-dasharray:10 14; animation:msd-dash 1.1s linear infinite; }
+
+/* A code editor mock — common enough across dev topics to belong in the kit. */
+.msd-editor{ background:var(--editor-bg); border-radius:20px; overflow:hidden; border:1.5px solid #000; }
+.msd-editor .bar{ height:52px; background:var(--titlebar); display:flex; align-items:center; padding:0 20px; gap:9px; }
+.msd-editor .bar i{ width:14px; height:14px; border-radius:50%; display:block; }
+.msd-editor .body{ padding:22px 24px; font-family:var(--font-mono); font-size:25px; line-height:1.65; color:var(--code-plain); }
+.msd-editor .ln{ display:inline-block; width:44px; color:var(--line-num); user-select:none; }
+.msd-editor .kw{ color:var(--code-keyword); }
+.msd-editor .fn{ color:var(--code-func); }
+.msd-editor .st{ color:var(--code-str); }
+.msd-editor .cm{ color:var(--code-comment); }
+.msd-editor .ghost{ color:var(--ghost); }
+.msd-editor .cursor{ display:inline-block; width:3px; height:26px; background:var(--accent-1); vertical-align:-4px; animation:msd-blink 1s step-end infinite; }
+
+.msd-particle{
+  position:absolute; width:11px; height:11px; border-radius:50%;
+  background:var(--accent-cyan); box-shadow:0 0 16px var(--accent-cyan); pointer-events:none;
+}
+
+/* ===================== KEYFRAMES ===================== */
+@keyframes msd-pulseRing{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.06);} }
+@keyframes msd-tdot{ 0%,80%,100%{opacity:.25; transform:scale(.8);} 40%{opacity:1; transform:scale(1.15);} }
+@keyframes msd-fillseg{ to{ width:100%; } }
+@keyframes msd-capPulse{ 0%{transform:scale(.978);} 55%{transform:scale(1.012);} 100%{transform:scale(1);} }
+@keyframes msd-blink{ 50%{opacity:0;} }
+@keyframes msd-dash{ to{ stroke-dashoffset:-48; } }
+@keyframes msd-fadeUp{ from{opacity:0; transform:translateY(26px);} to{opacity:1; transform:none;} }
+@keyframes msd-pop{ 0%{transform:scale(.86); opacity:0;} 60%{transform:scale(1.04);} 100%{transform:scale(1); opacity:1;} }
+@keyframes msd-float{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-12px);} }
+@keyframes msd-spin{ to{ transform:rotate(360deg); } }
+@keyframes msd-shimmer{ 0%{background-position:-500px 0;} 100%{background-position:500px 0;} }
+@keyframes msd-breathe{ 0%,100%{transform:scale(1); opacity:.75;} 50%{transform:scale(1.08); opacity:1;} }
+@keyframes msd-flash{ 0%{ box-shadow:0 0 0 0 rgba(58,160,255,.55); } 100%{ box-shadow:0 0 0 26px rgba(58,160,255,0); } }
+@keyframes msd-punch{ 0%{transform:scale(1);} 42%{transform:scale(1.09);} 100%{transform:scale(1);} }
+@keyframes msd-shake{ 0%,100%{transform:translateX(0);} 22%{transform:translateX(-9px);} 55%{transform:translateX(8px);} 80%{transform:translateX(-4px);} }
+@keyframes msd-hotpulse{ 0%,100%{ box-shadow:0 0 0 1px var(--accent-1), 0 0 30px rgba(58,160,255,.22); } 50%{ box-shadow:0 0 0 1px var(--accent-1), 0 0 60px rgba(58,160,255,.45); } }
+@keyframes msd-sweep{ to{ background-position:-260% 0; } }
+@keyframes msd-countup{ 0%{transform:translateY(14px); opacity:0;} 100%{transform:none; opacity:1;} }
+
+
+/* ===================== TOPIC-SPECIFIC STAGE STYLES ===================== */
+#stage .fd-scene{ position:relative; width:100%; height:100%; display:flex; flex-direction:column; gap:14px; }#stage .fd-top{
+  height:76px; flex-shrink:0; display:flex; align-items:center; gap:16px;
+  padding:0 24px; border-radius:20px;
+  background:rgba(20,27,43,.75); border:1.5px solid var(--border);
+  transition:border-color .3s ease;
+}#stage .fd-brand{ display:flex; align-items:center; gap:14px; flex:1; min-width:0; }#stage .fd-cart{
+  width:46px; height:46px; border-radius:13px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(240,166,74,.14); border:1.5px solid rgba(240,166,74,.4); color:var(--warn);
+}#stage .fd-cart svg{ width:26px; height:26px; }#stage .fd-shop{
+  color:var(--text-primary); font-family:var(--font-mono); font-size:23px; font-weight:600;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}#stage .fd-meta{ margin-left:auto; flex-shrink:0; display:flex; align-items:baseline; gap:10px; white-space:nowrap; }#stage .fd-orders{ color:#fff; font-family:var(--font-mono); font-size:30px; font-weight:700; font-variant-numeric:tabular-nums; }#stage .fd-orders-l{ color:var(--text-dim); font-size:21px; font-weight:600; }#stage .fd-health{
+  align-self:center; margin-left:12px; display:flex; align-items:center; gap:9px;
+  padding:8px 16px; border-radius:100px;
+  border:1.5px solid rgba(63,185,80,.45); background:rgba(63,185,80,.1);
+  transition:border-color .3s ease, background .3s ease;
+}#stage .fd-health i{
+  width:11px; height:11px; border-radius:50%; background:var(--success);
+  box-shadow:0 0 12px var(--success); animation:msd-breathe 2s ease-in-out infinite;
+}#stage .fd-health b{ color:var(--success); font-family:var(--font-mono); font-size:20px; font-weight:700; }#stage .fd-health.warn{ border-color:rgba(240,166,74,.55); background:rgba(240,166,74,.12); }#stage .fd-health.warn i{ background:var(--warn); box-shadow:0 0 12px var(--warn); animation-duration:.6s; }#stage .fd-health.warn b{ color:var(--warn); }#stage .fd-health.bad{ border-color:rgba(244,74,106,.55); background:rgba(244,74,106,.12); }#stage .fd-health.bad i{ background:var(--danger); box-shadow:0 0 12px var(--danger); animation-duration:.5s; }#stage .fd-health.bad b{ color:var(--danger); }#stage .fd-body{ position:relative; flex:1; min-height:0; }#stage .fd-sc{
+  position:absolute; inset:0; opacity:0; transform:scale(.985); pointer-events:none;
+  transition:opacity .32s ease, transform .32s cubic-bezier(.22,1,.36,1);
+}#stage .fd-sc.on{ opacity:1; transform:none; }#stage .fd-dc{
+  position:relative; width:100%; height:100%;
+  display:flex; flex-direction:column; gap:10px;
+  padding:38px 22px 20px;
+  border:2px solid rgba(58,160,255,.34); border-radius:30px;
+  background:radial-gradient(circle at 50% 0%, rgba(58,160,255,.1), transparent 58%), rgba(20,27,43,.42);
+  transition:border-color .3s ease, box-shadow .3s ease;
+}#stage .fd-dc.alert{
+  border-color:rgba(244,74,106,.7);
+  box-shadow:0 0 0 1px rgba(244,74,106,.28), 0 0 70px rgba(244,74,106,.2);
+  animation:fd-alertPulse 1s ease-in-out infinite;
+}#stage .fd-dc-tag{
+  position:absolute; top:-17px; left:26px; display:flex; align-items:center; gap:10px;
+  padding:5px 18px; border-radius:100px;
+  background:var(--bg-deep); border:1.5px solid rgba(58,160,255,.5);
+  color:var(--accent-1); font-family:var(--font-mono); font-size:19px;
+  font-weight:700; letter-spacing:1.6px; white-space:nowrap;
+}#stage .fd-dc-tag svg{ width:22px; height:22px; }#stage .fd-alarm{
+  position:absolute; inset:0; z-index:4; pointer-events:none; border-radius:30px;
+  opacity:0; overflow:hidden;
+  background:radial-gradient(circle at 25% 64%, rgba(244,74,106,.3), transparent 52%);
+  transition:opacity .3s ease;
+}#stage .fd-alarm.on{ opacity:1; animation:fd-siren 1.05s ease-in-out infinite; }#stage .fd-alarm-b{
+  position:absolute; top:28px; left:16px; right:16px; height:72px;
+  display:flex; align-items:center; justify-content:center; gap:14px;
+  border-radius:16px; white-space:nowrap;
+  background:linear-gradient(180deg,#2a0d16,#1a070e); border:2px solid var(--danger); color:var(--danger);
+  box-shadow:0 0 46px rgba(244,74,106,.45), inset 0 0 30px rgba(244,74,106,.12);
+}#stage .fd-alarm-b svg{ width:26px; height:26px; }#stage .fd-alarm-b b{ font-family:var(--font-mono); font-size:22px; font-weight:800; letter-spacing:1.6px; }#stage .fd-clients{ flex-shrink:0; height:64px; display:flex; align-items:center; justify-content:center; gap:10px; }#stage .fd-face{
+  width:56px; height:56px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(160deg,#26344e,#1a2338);
+  border:1.5px solid var(--border);
+  color:var(--text-primary); font-family:var(--font-mono); font-size:22px; font-weight:700;
+}#stage .fd-face-more{ background:rgba(58,160,255,.14); border-color:rgba(58,160,255,.4); color:var(--accent-1); font-size:18px; }#stage .fd-clients-l{ margin-left:12px; color:var(--text-dim); font-family:var(--font-mono); font-size:20px; font-weight:600; white-space:nowrap; }#stage .fd-pipe{ flex-shrink:0; height:34px; display:flex; align-items:center; justify-content:center; }#stage .fd-pipe i{
+  position:relative; width:6px; height:100%; border-radius:3px; overflow:hidden;
+  background:rgba(139,149,167,.22);
+}#stage .fd-pipe.flow i{ background:rgba(58,160,255,.28); }#stage .fd-pipe.flow i::after{
+  content:""; position:absolute; left:0; right:0; height:16px; top:-16px;
+  background:var(--accent-cyan); box-shadow:0 0 18px var(--accent-cyan);
+  animation:fd-drop .8s linear infinite;
+}#stage .fd-lb{
+  flex-shrink:0; display:flex; align-items:center; gap:18px; padding:16px 22px;
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border); border-radius:20px;
+  transition:border-color .3s ease, box-shadow .3s ease;
+}#stage .fd-lb.live{ border-color:rgba(58,160,255,.6); box-shadow:0 0 0 1px rgba(58,160,255,.3), 0 0 48px rgba(58,160,255,.22); }#stage .fd-lb.hot{ border-color:rgba(34,211,238,.75); box-shadow:0 0 0 1px rgba(34,211,238,.35), 0 0 60px rgba(34,211,238,.28); }#stage .fd-lb-ic{
+  width:56px; height:56px; border-radius:15px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(58,160,255,.12); color:var(--accent-1);
+  transition:background .3s ease, color .3s ease;
+}#stage .fd-lb.live .fd-lb-ic{ background:var(--accent-1); color:#0E1420; }#stage .fd-lb.hot .fd-lb-ic{ background:var(--accent-cyan); color:#0E1420; }#stage .fd-lb-ic svg{ width:30px; height:30px; }#stage .fd-lb-b{ display:flex; flex-direction:column; gap:4px; min-width:0; }#stage .fd-lb-b b{ color:#fff; font-size:28px; font-weight:800; letter-spacing:-.4px; }#stage .fd-lb-b span{ color:var(--text-dim); font-family:var(--font-mono); font-size:19px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }#stage .fd-badge{
+  margin-left:auto; flex-shrink:0; padding:7px 15px; border-radius:9px;
+  background:rgba(63,185,80,.14); border:1px solid rgba(63,185,80,.4);
+  color:var(--success); font-family:var(--font-mono); font-size:19px; font-weight:700; letter-spacing:1.2px;
+  white-space:nowrap; transition:background .3s ease, border-color .3s ease, color .3s ease;
+}#stage .fd-badge.warn{ background:rgba(240,166,74,.16); border-color:rgba(240,166,74,.45); color:var(--warn); }#stage .fd-badge.bad{ background:rgba(244,74,106,.16); border-color:rgba(244,74,106,.45); color:var(--danger); }#stage .fd-badge.off{ background:rgba(139,149,167,.12); border-color:rgba(139,149,167,.32); color:var(--text-dim); }#stage .fd-fan{ position:relative; flex-shrink:0; height:62px; }#stage .fd-fan-svg{ width:100%; height:100%; display:block; overflow:visible; }#stage .fd-arm{
+  fill:none; stroke:rgba(139,149,167,.3); stroke-width:4; stroke-linecap:round;
+  transition:stroke .3s ease, opacity .3s ease;
+}#stage .fd-arm.on{ stroke:var(--accent-1); stroke-dasharray:10 14; animation:msd-dash 1.1s linear infinite; }#stage .fd-arm.surge{ stroke:var(--accent-cyan); stroke-width:6; stroke-dasharray:12 12; animation:msd-dash .55s linear infinite; }#stage .fd-arm.off{ stroke:rgba(244,74,106,.4); stroke-dasharray:5 11; animation:none; opacity:.5; }#stage .fd-pct{
+  position:absolute; top:14px; padding:5px 14px; border-radius:100px; font-style:normal;
+  background:var(--bg-deep); border:1.5px solid var(--border);
+  color:var(--text-primary); font-family:var(--font-mono); font-size:20px; font-weight:700;
+  opacity:0; transition:opacity .3s ease, color .3s ease, border-color .3s ease;
+}#stage .fd-pct.show{ opacity:1; }#stage .fd-pct.hot{ color:var(--accent-1); border-color:rgba(58,160,255,.55); }#stage .fd-pct.max{ color:var(--accent-cyan); border-color:rgba(34,211,238,.6); }#stage .fd-pct.dead{ color:var(--danger); border-color:rgba(244,74,106,.5); }#stage .fd-pct-l{ left:19%; }#stage .fd-pct-r{ right:19%; }#stage .fd-racks{ flex:1; min-height:0; display:flex; gap:20px; }#stage .fd-col{
+  flex:1; min-width:0; display:flex; flex-direction:column; gap:8px;
+  transition:opacity .3s ease, filter .3s ease;
+}#stage .fd-rack{
+  position:relative; flex:1; min-height:0;
+  display:flex; flex-direction:column; gap:10px; padding:14px 16px;
+  background:linear-gradient(180deg,#18213a,#111828);
+  border:1.5px solid var(--border); border-radius:20px;
+  box-shadow:0 26px 60px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
+  transition:border-color .35s ease, box-shadow .35s ease, filter .45s ease, background .45s ease;
+}#stage .fd-rack-l{ transform:perspective(1500px) rotateY(7deg); transform-origin:right center; }#stage .fd-rack-r{ transform:perspective(1500px) rotateY(-7deg); transform-origin:left center; }#stage .fd-rack.live{ border-color:rgba(63,185,80,.55); box-shadow:0 0 0 1px rgba(63,185,80,.22), 0 26px 60px rgba(0,0,0,.5), 0 0 50px rgba(63,185,80,.15); }#stage .fd-rack.surge{ border-color:rgba(34,211,238,.65); box-shadow:0 0 0 1px rgba(34,211,238,.3), 0 26px 60px rgba(0,0,0,.5), 0 0 66px rgba(34,211,238,.24); }#stage .fd-rack.dark{
+  border-color:rgba(244,74,106,.55);
+  background:linear-gradient(180deg,#141019,#0b0810);
+  filter:brightness(.55) saturate(.35);
+  box-shadow:0 0 0 1px rgba(244,74,106,.24), 0 26px 60px rgba(0,0,0,.6);
+}#stage .fd-rack-h{ flex-shrink:0; display:flex; align-items:center; gap:11px; }#stage .fd-rack-h b{ color:#fff; font-size:26px; font-weight:800; letter-spacing:.4px; }#stage .fd-rdot{
+  width:12px; height:12px; border-radius:50%; flex-shrink:0;
+  background:rgba(139,149,167,.5); transition:background .3s ease, box-shadow .3s ease;
+}#stage .fd-rack.live .fd-rdot{ background:var(--success); box-shadow:0 0 14px var(--success); animation:msd-breathe 2.1s ease-in-out infinite; }#stage .fd-rack.dark .fd-rdot{ background:var(--danger); box-shadow:0 0 12px var(--danger); animation:msd-breathe .55s ease-in-out infinite; }#stage .fd-tag{
+  margin-left:auto; flex-shrink:0; padding:6px 13px; border-radius:8px; white-space:nowrap;
+  background:rgba(34,211,238,.12); border:1px solid rgba(34,211,238,.34);
+  color:var(--accent-cyan); font-family:var(--font-mono); font-size:18px; font-weight:700; letter-spacing:.8px;
+  transition:background .3s ease, border-color .3s ease, color .3s ease;
+}#stage .fd-tag.same{ background:rgba(244,74,106,.14); border-color:rgba(244,74,106,.42); color:var(--danger); }#stage .fd-tag.ping{ animation:msd-flash .55s ease-out; }#stage .fd-blades{ flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; }#stage .fd-blade{
+  flex:1; min-height:0; display:flex; align-items:center; gap:12px; padding:0 14px;
+  background:linear-gradient(180deg,#1b2438,#151d2f);
+  border:1px solid rgba(139,149,167,.18); border-radius:11px;
+  transition:border-color .3s ease, background .3s ease, box-shadow .3s ease;
+}#stage .fd-blade b{
+  flex-shrink:0; width:96px;
+  color:var(--text-dim); font-family:var(--font-mono); font-size:19px; font-weight:700;
+  transition:color .3s ease;
+}#stage .fd-blade.fd-vm{
+  background:linear-gradient(180deg,#1d2b45,#16203a);
+  border-color:rgba(58,160,255,.4);
+  box-shadow:inset 0 0 22px rgba(58,160,255,.1);
+}#stage .fd-blade.fd-vm b{ color:#fff; font-size:22px; font-weight:800; }#stage .fd-rack.live .fd-blade.fd-vm{ border-color:rgba(63,185,80,.5); box-shadow:inset 0 0 22px rgba(63,185,80,.12); }#stage .fd-led{
+  width:12px; height:12px; border-radius:50%; flex-shrink:0;
+  background:var(--success); box-shadow:0 0 12px var(--success);
+  animation:msd-breathe 2.4s ease-in-out infinite;
+  transition:background .3s ease, box-shadow .3s ease;
+}#stage .fd-blade:nth-child(2) .fd-led{ animation-delay:.3s; }#stage .fd-blade:nth-child(3) .fd-led{ animation-delay:.6s; }#stage .fd-blade:nth-child(4) .fd-led{ animation-delay:.9s; }#stage .fd-rack.dark .fd-led{ background:#3a3040; box-shadow:none; animation:none; }#stage .fd-rack.dark .fd-blade{ border-color:rgba(139,149,167,.12); }#stage .fd-rack.dark .fd-blade b{ color:#5c5566; }#stage .fd-load{ flex:1; min-width:0; height:9px; border-radius:5px; background:rgba(139,149,167,.16); overflow:hidden; }#stage .fd-load em{
+  display:block; width:0%; height:100%; border-radius:5px;
+  background:linear-gradient(90deg, var(--accent-1), var(--accent-cyan));
+  transition:width .6s cubic-bezier(.22,1,.36,1), background .3s ease;
+}#stage .fd-rack.dark .fd-load em{ background:rgba(139,149,167,.3); }#stage .fd-util{ flex-shrink:0; display:flex; gap:7px; }#stage .fd-u{
+  flex:1; min-width:0; display:flex; align-items:center; justify-content:center; gap:6px;
+  padding:7px 4px; border-radius:9px; white-space:nowrap;
+  background:rgba(63,185,80,.1); border:1px solid rgba(63,185,80,.3);
+  color:var(--success); font-family:var(--font-mono); font-size:15px; font-weight:700; letter-spacing:.8px;
+  transition:background .3s ease, border-color .3s ease, color .3s ease;
+}#stage .fd-u svg{ width:15px; height:15px; flex-shrink:0; }#stage .fd-rack.dark .fd-u{
+  background:rgba(244,74,106,.12); border-color:rgba(244,74,106,.36); color:var(--danger);
+  text-decoration:line-through;
+}#stage .fd-rack-f{
+  flex-shrink:0; height:26px; text-align:center;
+  color:var(--text-dim); font-family:var(--font-mono); font-size:19px; font-weight:600;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  transition:color .3s ease;
+}#stage .fd-rack-f.good{ color:var(--success); }#stage .fd-rack-f.hot{ color:var(--accent-cyan); }#stage .fd-rack-f.bad{ color:var(--danger); }#stage .fd-strip{
+  flex-shrink:0; display:flex; align-items:center; gap:16px;
+  padding:13px 20px; border-radius:18px;
+  background:rgba(20,27,43,.85); border:1.5px solid var(--border);
+  transition:border-color .3s ease, background .3s ease;
+}#stage .fd-strip-l{
+  flex-shrink:0; padding:6px 14px; border-radius:8px;
+  background:rgba(139,149,167,.14); border:1px solid rgba(139,149,167,.32);
+  color:var(--text-dim); font-family:var(--font-mono); font-size:18px; font-weight:700; letter-spacing:1.4px;
+  transition:background .3s ease, border-color .3s ease, color .3s ease;
+}#stage .fd-strip b{ color:var(--text-primary); font-size:23px; font-weight:700; line-height:1.25; }#stage .fd-strip.good{ border-color:rgba(63,185,80,.5); background:rgba(63,185,80,.09); }#stage .fd-strip.good .fd-strip-l{ background:rgba(63,185,80,.16); border-color:rgba(63,185,80,.45); color:var(--success); }#stage .fd-strip.good b{ color:#fff; }#stage .fd-strip.bad{ border-color:rgba(244,74,106,.5); background:rgba(244,74,106,.09); }#stage .fd-strip.bad .fd-strip-l{ background:rgba(244,74,106,.16); border-color:rgba(244,74,106,.45); color:var(--danger); }#stage .fd-strip.bad b{ color:#fff; }#stage .fd-term{
+  width:100%; height:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+  padding:28px 30px;
+  border:2px solid rgba(58,160,255,.42); border-radius:30px;
+  background:radial-gradient(circle at 50% 16%, rgba(58,160,255,.16), transparent 62%), rgba(20,27,43,.5);
+}#stage .fd-term-k{
+  color:var(--accent-cyan); font-family:var(--font-mono); font-size:20px;
+  font-weight:700; letter-spacing:3.4px; text-align:center;
+}#stage .fd-term-h{
+  color:#fff; font-size:66px; font-weight:900; letter-spacing:-1.6px; text-align:center; line-height:1.05;
+  text-shadow:0 0 46px rgba(58,160,255,.55);
+}#stage .fd-term-h.pop{ animation:fd-titlePop .6s cubic-bezier(.22,1,.36,1); }#stage .fd-term-s{
+  max-width:820px; text-align:center;
+  color:var(--text-dim); font-size:24px; font-weight:500; line-height:1.4;
+}#stage .fd-term-g{ display:flex; align-items:center; gap:26px; margin-top:14px; }#stage .fd-mini{
+  width:212px; display:flex; flex-direction:column; align-items:center; gap:9px;
+  padding:18px 18px; border-radius:18px;
+  background:linear-gradient(180deg,#18213a,#111828);
+  border:1.5px solid rgba(63,185,80,.45);
+  box-shadow:0 0 40px rgba(63,185,80,.14);
+}#stage .fd-mini-t{ color:var(--accent-cyan); font-family:var(--font-mono); font-size:18px; font-weight:700; letter-spacing:1.6px; }#stage .fd-slat{
+  width:100%; height:20px; border-radius:5px;
+  background:rgba(139,149,167,.16); border:1px solid rgba(139,149,167,.2);
+}#stage .fd-slat-on{
+  background:linear-gradient(90deg, rgba(63,185,80,.4), rgba(34,211,238,.3));
+  border-color:rgba(63,185,80,.55); box-shadow:0 0 16px rgba(63,185,80,.35);
+}#stage .fd-mini-f{ margin-top:4px; color:#fff; font-family:var(--font-mono); font-size:21px; font-weight:800; }#stage .fd-vs{
+  width:56px; height:56px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(244,74,106,.12); border:2px solid rgba(244,74,106,.45); color:var(--danger);
+}#stage .fd-vs svg{ width:28px; height:28px; }#stage .fd-props{ display:flex; gap:11px; margin-top:8px; }#stage .fd-prop{
+  display:flex; align-items:center; gap:10px; padding:12px 18px; border-radius:100px;
+  background:rgba(20,27,43,.85); border:1.5px solid var(--border); color:var(--accent-1);
+}#stage .fd-prop svg{ width:22px; height:22px; flex-shrink:0; }#stage .fd-prop b{ color:var(--text-primary); font-size:21px; font-weight:700; white-space:nowrap; }#stage .fd-win{
+  width:100%; height:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+  padding:30px 34px;
+  border:2px solid rgba(63,185,80,.42); border-radius:30px;
+  background:radial-gradient(circle at 50% 12%, rgba(63,185,80,.14), transparent 60%), rgba(20,27,43,.5);
+}#stage .fd-shield{
+  width:104px; height:104px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(63,185,80,.16); border:3px solid var(--success); color:var(--success);
+  opacity:0; transform:scale(.5);
+  transition:opacity .34s ease, transform .42s cubic-bezier(.22,1,.36,1);
+}#stage .fd-shield svg{ width:54px; height:54px; }#stage .fd-shield.show{ opacity:1; transform:scale(1); box-shadow:0 0 0 8px rgba(63,185,80,.1), 0 0 60px rgba(63,185,80,.34); }#stage .fd-eq{ display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; }#stage .fd-eq-a{ color:var(--accent-1); font-size:52px; font-weight:900; letter-spacing:-1px; }#stage .fd-eq-s{ color:var(--text-dim); font-family:var(--font-mono); font-size:38px; font-weight:700; line-height:1; }#stage .fd-eq-b{
+  color:#fff; font-size:50px; font-weight:900; letter-spacing:-1px; line-height:1.08;
+  text-shadow:0 0 42px rgba(63,185,80,.45);
+}#stage .fd-win-list{ width:100%; display:flex; flex-direction:column; gap:10px; margin-top:6px; }#stage .fd-win-i{
+  display:flex; align-items:center; gap:15px; padding:14px 20px; border-radius:16px;
+  background:rgba(20,27,43,.85); border:1.5px solid var(--border);
+}#stage .fd-win-i i{
+  width:34px; height:34px; border-radius:50%; flex-shrink:0; font-style:normal;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(63,185,80,.16); border:1.5px solid rgba(63,185,80,.45);
+  color:var(--success); font-size:19px; font-weight:800;
+}#stage .fd-win-i b{ color:var(--text-primary); font-size:25px; font-weight:700; }#stage .fd-win-sla{
+  margin-top:2px; display:flex; align-items:center; gap:14px;
+  padding:12px 22px; border-radius:100px;
+  background:rgba(58,160,255,.1); border:1.5px solid rgba(58,160,255,.42);
+}#stage .fd-win-sla b{ color:var(--accent-1); font-family:var(--font-mono); font-size:29px; font-weight:800; }#stage .fd-win-sla span{ color:var(--text-dim); font-size:19px; font-weight:600; }#stage .fd-cta{
+  width:100%; height:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+  padding:30px 34px;
+  border:2px solid rgba(58,160,255,.45); border-radius:30px;
+  background:radial-gradient(circle at 50% 14%, rgba(58,160,255,.2), transparent 62%), rgba(20,27,43,.5);
+}#stage .fd-cta-ring{
+  width:96px; height:96px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(58,160,255,.14); border:3px solid rgba(58,160,255,.6); color:var(--accent-1);
+  box-shadow:0 0 0 8px rgba(58,160,255,.07), 0 0 60px rgba(58,160,255,.3);
+  animation:msd-breathe 2.6s ease-in-out infinite;
+}#stage .fd-cta-ring svg{ width:50px; height:50px; }#stage .fd-cta-h{
+  color:#fff; font-size:52px; font-weight:900; letter-spacing:-1.1px; line-height:1.14; text-align:center;
+  text-shadow:0 0 42px rgba(58,160,255,.45);
+}#stage .fd-cta-s{ color:var(--text-dim); font-size:24px; font-weight:500; text-align:center; }#stage .fd-cta-row{ display:flex; gap:14px; margin-top:6px; }#stage .fd-cta-b{
+  display:flex; align-items:center; gap:11px; padding:15px 26px; border-radius:100px;
+  background:rgba(20,27,43,.8); border:1.5px solid var(--border);
+  color:var(--text-primary); font-size:23px; font-weight:700; white-space:nowrap;
+}#stage .fd-cta-b svg{ width:24px; height:24px; flex-shrink:0; }#stage .fd-cta-p{
+  border-color:rgba(58,160,255,.6); color:#fff;
+  background:linear-gradient(90deg, rgba(58,160,255,.26), rgba(34,211,238,.14));
+  box-shadow:0 0 40px rgba(58,160,255,.24);
+}#stage .fd-cta-next{
+  display:flex; align-items:center; gap:14px; margin-top:8px;
+  padding:13px 22px; border-radius:16px;
+  background:rgba(20,27,43,.85); border:1.5px solid var(--border);
+}#stage .fd-cta-next-l{
+  flex-shrink:0; padding:5px 13px; border-radius:8px;
+  background:rgba(34,211,238,.14); border:1px solid rgba(34,211,238,.4);
+  color:var(--accent-cyan); font-family:var(--font-mono); font-size:17px; font-weight:700; letter-spacing:1.4px;
+}#stage .fd-cta-next b{ color:var(--text-primary); font-size:21px; font-weight:600; }@keyframes fd-drop{ to{ transform:translateY(120px); } }@keyframes fd-siren{ 0%,100%{ opacity:.45; } 50%{ opacity:1; } }@keyframes fd-alertPulse{
+  0%,100%{ box-shadow:0 0 0 1px rgba(244,74,106,.28), 0 0 50px rgba(244,74,106,.16); }
+  50%{ box-shadow:0 0 0 1px rgba(244,74,106,.5), 0 0 90px rgba(244,74,106,.34); }
+}@keyframes fd-titlePop{ 0%{ transform:scale(.86); opacity:0; } 60%{ transform:scale(1.04); } 100%{ transform:scale(1); opacity:1; } }
+
+</style>
+</head>
+<body>
+<div id="stage-wrap">
+  <div id="canvas">
+
+    <!-- ============ TITLE SCREEN ============ -->
+    <div id="title-screen">
+      <div id="logo-mark" style="background-image:url('data:image/jpeg;base64,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')"></div>
+      <div id="title-brand">MSDevBuild <span>— Multi-Stack Dev Build · by Suthahar</span></div>
+      <div id="title-main">A rack just lost power. <em>The shop kept selling.</em></div>
+      <div id="title-sub">Why Azure places your VMs on different physical racks, and what breaks the moment it does not.</div>
+      <div id="title-pill"><span class="live-dot"></span>16 stages · 50 sec · Azure</div>
+      <div id="tap-hint"><svg viewBox="0 0 24 24" fill="none" style="width:22px;height:22px;vertical-align:-5px;margin-right:6px"><path d="M9 11V6a2 2 0 1 1 4 0v5m0 0V9.5a1.8 1.8 0 1 1 3.6 0V11m0 0a1.8 1.8 0 1 1 3.6 0v3.5A6.5 6.5 0 0 1 13.7 21h-1.4a6 6 0 0 1-5.2-3l-2.4-4a1.8 1.8 0 0 1 2.9-2.1L9 13.5" stroke="#8B95A7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Tap anywhere to play</div>
+      <div id="rec-hint">or press <b>D</b> to record one loop and download it</div>
+    </div>
+
+    <!-- ============ TOP BAR ============ -->
+    <div id="topbar">
+      <div id="topbar-avatar" style="background-image:url('data:image/jpeg;base64,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')"></div>
+      <div id="topbar-text">
+        <div id="topbar-name">MSDevBuild</div>
+        <div id="topbar-tag">Multi-Stack Dev Build · by Suthahar</div>
+      </div>
+      <div id="record-toggle" title="Record one loop and download it (D)"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0 0 4-4m-4 4-4-4" stroke="#3AA0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="#3AA0FF" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div id="sound-toggle" title="Toggle sound (S)"><svg viewBox="0 0 24 24" fill="none"><path d="M11 5 6 9H3v6h3l5 4z" fill="#3AA0FF"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" stroke="#3AA0FF" stroke-width="2" stroke-linecap="round"/></svg></div>
+    </div>
+
+    <!-- ============ STAGE (topic-specific) ============ -->
+    <div id="stage">
+
+    <div class="fd-scene" id="fd-scene">
+
+      <!-- Persistent header: the only question that matters is whether the shop
+           is still taking money. It stays green through the entire outage. -->
+      <div class="fd-top" id="fd-top">
+        <div class="fd-brand">
+          <span class="fd-cart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.6"/><circle cx="18" cy="20" r="1.6"/><path d="M2 3h3l2.4 11.4a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 2-1.6L21 7H6"/></svg>
+          </span>
+          <span class="fd-shop" id="fd-shop">shop.msdevbuild.com &middot; checkout</span>
+        </div>
+        <div class="fd-meta">
+          <span class="fd-orders" id="fd-orders">0</span>
+          <span class="fd-orders-l">orders / min</span>
+          <span class="fd-health" id="fd-health"><i></i><b id="fd-health-t">online</b></span>
+        </div>
+      </div>
+
+      <div class="fd-body" id="fd-body">
+
+        <!-- =============== SCENE 1 · the datacenter floor =============== -->
+        <div class="fd-sc" id="fd-sc-dc">
+          <div class="fd-dc" id="fd-dc">
+            <div class="fd-dc-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 .3-9 6 6 0 0 0-11.5 1.4A3.8 3.8 0 0 0 7 19z"/></svg>
+              MICROSOFT AZURE &middot; ONE DATACENTER
+            </div>
+
+            <!-- Red alert wash, weighted over rack A rather than the whole floor -->
+            <div class="fd-alarm" id="fd-alarm">
+              <span class="fd-alarm-b">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 22 20H2z"/><path d="M12 10v4.5"/><path d="M12 17.4v.2"/></svg>
+                <b id="fd-alarm-t">POWER FAILURE &middot; RACK A</b>
+              </span>
+            </div>
+
+            <div class="fd-clients" id="fd-clients">
+              <span class="fd-face msd-reveal">A</span>
+              <span class="fd-face msd-reveal">R</span>
+              <span class="fd-face msd-reveal">K</span>
+              <span class="fd-face msd-reveal">S</span>
+              <span class="fd-face fd-face-more msd-reveal">+12k</span>
+              <span class="fd-clients-l" id="fd-clients-l">shoppers &middot; one public address</span>
+            </div>
+
+            <div class="fd-pipe" id="fd-pipe"><i></i></div>
+
+            <div class="fd-lb" id="fd-lb">
+              <div class="fd-lb-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5 8h14"/><path d="M5 8 2 14h6z"/><path d="M19 8l-3 6h6z"/></svg>
+              </div>
+              <div class="fd-lb-b">
+                <b>Azure Load Balancer</b>
+                <span id="fd-lb-s">waiting for backends</span>
+              </div>
+              <span class="fd-badge" id="fd-lb-badge">IDLE</span>
+            </div>
+
+            <div class="fd-fan" id="fd-fan">
+              <svg class="fd-fan-svg" viewBox="0 0 940 62" preserveAspectRatio="none">
+                <path id="fd-arm1" class="fd-arm" d="M470 2 L235 60" vector-effect="non-scaling-stroke"/>
+                <path id="fd-arm2" class="fd-arm" d="M470 2 L705 60" vector-effect="non-scaling-stroke"/>
+              </svg>
+              <em class="fd-pct fd-pct-l" id="fd-pct1">50%</em>
+              <em class="fd-pct fd-pct-r" id="fd-pct2">50%</em>
+            </div>
+
+            <div class="fd-racks" id="fd-racks">
+
+              <!-- ------------------------------ rack A ------------------- -->
+              <div class="fd-col" id="fd-colA">
+                <div class="fd-rack fd-rack-l" id="fd-rackA">
+                  <div class="fd-rack-h">
+                    <i class="fd-rdot"></i>
+                    <b>RACK A</b>
+                    <span class="fd-tag" id="fd-tagA">FD 0</span>
+                  </div>
+                  <div class="fd-blades">
+                    <div class="fd-blade fd-vm" id="fd-a1"><i class="fd-led"></i><b id="fd-a1-n">VM1</b><span class="fd-load"><em id="fd-la1" style="width:50%"></em></span></div>
+                    <div class="fd-blade" id="fd-a2"><i class="fd-led"></i><b id="fd-a2-n">srv-04</b><span class="fd-load"><em id="fd-la2" style="width:34%"></em></span></div>
+                    <div class="fd-blade" id="fd-a3"><i class="fd-led"></i><b>srv-07</b><span class="fd-load"><em style="width:61%"></em></span></div>
+                    <div class="fd-blade" id="fd-a4"><i class="fd-led"></i><b>srv-11</b><span class="fd-load"><em style="width:22%"></em></span></div>
+                  </div>
+                  <div class="fd-util" id="fd-utilA">
+                    <span class="fd-u">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+                      POWER
+                    </span>
+                    <span class="fd-u">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16l-3-3"/><path d="M20 16H4l3 3"/></svg>
+                      SWITCH
+                    </span>
+                    <span class="fd-u">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9"/></svg>
+                      COOLING
+                    </span>
+                  </div>
+                </div>
+                <div class="fd-rack-f" id="fd-fA">serving 50%</div>
+              </div>
+
+              <!-- ------------------------------ rack B ------------------- -->
+              <div class="fd-col" id="fd-colB">
+                <div class="fd-rack fd-rack-r" id="fd-rackB">
+                  <div class="fd-rack-h">
+                    <i class="fd-rdot"></i>
+                    <b>RACK B</b>
+                    <span class="fd-tag" id="fd-tagB">FD 1</span>
+                  </div>
+                  <div class="fd-blades">
+                    <div class="fd-blade fd-vm" id="fd-b1"><i class="fd-led"></i><b id="fd-b1-n">VM2</b><span class="fd-load"><em id="fd-lb1" style="width:50%"></em></span></div>
+                    <div class="fd-blade" id="fd-b2"><i class="fd-led"></i><b>srv-22</b><span class="fd-load"><em style="width:44%"></em></span></div>
+                    <div class="fd-blade" id="fd-b3"><i class="fd-led"></i><b>srv-29</b><span class="fd-load"><em style="width:29%"></em></span></div>
+                    <div class="fd-blade" id="fd-b4"><i class="fd-led"></i><b>srv-31</b><span class="fd-load"><em style="width:55%"></em></span></div>
+                  </div>
+                  <div class="fd-util" id="fd-utilB">
+                    <span class="fd-u">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+                      POWER
+                    </span>
+                    <span class="fd-u">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16l-3-3"/><path d="M20 16H4l3 3"/></svg>
+                      SWITCH
+                    </span>
+                    <span class="fd-u">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9"/></svg>
+                      COOLING
+                    </span>
+                  </div>
+                </div>
+                <div class="fd-rack-f" id="fd-fB">serving 50%</div>
+              </div>
+
+            </div>
+
+            <div class="fd-strip" id="fd-strip">
+              <span class="fd-strip-l" id="fd-strip-l">LIVE</span>
+              <b id="fd-strip-t">Two racks. One shop. Nobody is thinking about hardware.</b>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= SCENE 2 · the title reveal ================= -->
+        <div class="fd-sc" id="fd-sc-term">
+          <div class="fd-term" id="fd-term">
+            <div class="fd-term-k" id="fd-term-k">THE AZURE NAME FOR THAT RACK</div>
+            <div class="fd-term-h" id="fd-term-h">Azure Fault Domain</div>
+            <div class="fd-term-s">A group of servers sharing one power source and one network switch. In practice: one physical rack.</div>
+
+            <div class="fd-term-g" id="fd-term-g">
+              <div class="fd-mini msd-reveal" id="fd-mini1">
+                <span class="fd-mini-t">FD 0</span>
+                <i class="fd-slat fd-slat-on"></i><i class="fd-slat"></i><i class="fd-slat"></i><i class="fd-slat"></i>
+                <span class="fd-mini-f">VM1</span>
+              </div>
+              <div class="fd-vs msd-reveal" id="fd-vs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M4 9h16M4 15h16"/><path d="M19 4 5 20"/></svg>
+              </div>
+              <div class="fd-mini msd-reveal" id="fd-mini2">
+                <span class="fd-mini-t">FD 1</span>
+                <i class="fd-slat fd-slat-on"></i><i class="fd-slat"></i><i class="fd-slat"></i><i class="fd-slat"></i>
+                <span class="fd-mini-f">VM2</span>
+              </div>
+            </div>
+
+            <div class="fd-props" id="fd-props">
+              <span class="fd-prop msd-reveal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+                <b>Its own power feed</b>
+              </span>
+              <span class="fd-prop msd-reveal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16l-3-3"/><path d="M20 16H4l3 3"/></svg>
+                <b>Its own network switch</b>
+              </span>
+              <span class="fd-prop msd-reveal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9"/></svg>
+                <b>Its own cooling</b>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- =================== SCENE 3 · the payoff ==================== -->
+        <div class="fd-sc" id="fd-sc-win">
+          <div class="fd-win" id="fd-win">
+            <div class="fd-shield" id="fd-shield">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6 4 5.8v6c0 5 3.4 8.4 8 9.6 4.6-1.2 8-4.6 8-9.6v-6z"/><path d="m8.6 12 2.4 2.4 4.4-4.6"/></svg>
+            </div>
+
+            <div class="fd-eq" id="fd-eq">
+              <span class="fd-eq-a msd-reveal" id="fd-eq-a">Fault Domain</span>
+              <span class="fd-eq-s msd-reveal" id="fd-eq-s">=</span>
+              <span class="fd-eq-b msd-reveal" id="fd-eq-b">Hardware Failure Protection</span>
+            </div>
+
+            <div class="fd-win-list">
+              <div class="fd-win-i msd-reveal"><i>&#10003;</i><b>Rack power loss survived</b></div>
+              <div class="fd-win-i msd-reveal"><i>&#10003;</i><b>Switch failure survived</b></div>
+              <div class="fd-win-i msd-reveal"><i>&#10003;</i><b>Host failure survived</b></div>
+            </div>
+
+            <div class="fd-win-sla msd-reveal" id="fd-win-sla">
+              <b>99.95%</b>
+              <span>SLA for 2+ VMs in an availability set &middot; a single VM is 99.9%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================== SCENE 4 · the CTA ===================== -->
+        <div class="fd-sc" id="fd-sc-cta">
+          <div class="fd-cta" id="fd-cta">
+            <div class="fd-cta-ring" id="fd-cta-ring">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 .3-9 6 6 0 0 0-11.5 1.4A3.8 3.8 0 0 0 7 19z"/></svg>
+            </div>
+            <div class="fd-cta-h" id="fd-cta-h">Follow for Azure &amp;<br>Cloud Engineering Tips</div>
+            <div class="fd-cta-s">One architecture idea, explained in under a minute.</div>
+
+            <div class="fd-cta-row" id="fd-cta-row">
+              <span class="fd-cta-b fd-cta-p msd-reveal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="3.4"/><path d="M3.6 20c1-3.4 3.5-5.2 6.4-5.2 1 0 2 .2 2.8.6"/><path d="M17.5 14v6M14.5 17h6"/></svg>
+                Follow
+              </span>
+              <span class="fd-cta-b msd-reveal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M6 3.5h12a1 1 0 0 1 1 1v16l-7-4.4-7 4.4v-16a1 1 0 0 1 1-1z"/></svg>
+                Save
+              </span>
+              <span class="fd-cta-b msd-reveal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 15V3M8 7l4-4 4 4"/></svg>
+                Share
+              </span>
+            </div>
+
+            <div class="fd-cta-next msd-reveal" id="fd-cta-next">
+              <span class="fd-cta-next-l">NEXT</span>
+              <b>Availability Zones &mdash; surviving a whole datacenter</b>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ============ CAPTION CARD ============ -->
+    <div id="caption-wrap">
+      <div id="stage-num">STEP 01 / 16</div>
+      <div id="stage-title"></div>
+      <div id="stage-desc"></div>
+    </div>
+
+    <!-- ============ STATUS BAR ============ -->
+    <div id="statusbar">
+      <svg id="status-icon" viewBox="0 0 24 24" fill="none"><svg viewBox="0 0 24 24" fill="none"><path d="M8 3 2 12l6 9M16 3l6 9-6 9" stroke="#3AA0FF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></svg>
+      <span id="status-text"></span>
+      <div class="thinking-wrap" id="thinking">
+        <div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div>
+      </div>
+    </div>
+
+    <!-- ============ PROGRESS + BRAND STRIP ============ -->
+    <div id="progress-track"></div>
+    <div id="bottom-bar">
+      <div class="b-left">MSDEVBUILD — <b>Multi-Stack Dev Build</b></div>
+      <div class="b-right"><span class="live-dot"></span>50s · loops</div>
+    </div>
+
+    <!-- ============ END CARD ============ -->
+    <div id="end-card">
+      <div id="end-avatar" style="background-image:url('data:image/jpeg;base64,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')"></div>
+      <div id="end-check"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.5 4.5L19 7.5" stroke="#0E1420" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div id="end-title">Fault Domain = Hardware Failure Protection</div>
+      <div id="end-sub">Azure spreads the VMs in an availability set across separate racks, so a dead power feed or switch takes one of them and the load balancer sends everyone to the other. Follow for Azure &amp; Cloud Engineering tips.</div>
+      <div id="end-actions">
+        <div class="act primary"><svg viewBox="0 0 24 24" fill="none"><path d="M6 3.5h12a1 1 0 0 1 1 1v16l-7-4.4-7 4.4v-16a1 1 0 0 1 1-1z" stroke="#3AA0FF" stroke-width="2" stroke-linejoin="round"/></svg>Save this</div>
+        <div class="act"><svg viewBox="0 0 24 24" fill="none"><circle cx="10" cy="8" r="3.4" stroke="#8B95A7" stroke-width="2"/><path d="M3.6 20c1-3.4 3.5-5.2 6.4-5.2 1 0 2 .2 2.8.6" stroke="#8B95A7" stroke-width="2" stroke-linecap="round"/><path d="M17.5 14v6M14.5 17h6" stroke="#8B95A7" stroke-width="2" stroke-linecap="round"/></svg>Follow for more</div>
+      </div>
+      <div id="end-cta"><span class="live-dot"></span>Learn more at https://blog.msdevbuild.com/</div>
+      <div id="end-tagline">Multi-Stack Dev Build · by Suthahar</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+window.__MSD_SLUG__ = "azure-fault-domain";
+window.__MSD_STAGES__ = [
+  {
+    title: "12,000 shoppers. One checkout",
+    key: "12,000 shoppers",
+    desc: "A live e-commerce site on Azure. Orders are landing, nobody is thinking about hardware.",
+    status: "shop.msdevbuild.com · online",
+    thinking: false,
+    durationMs: 3000,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-dc', 'on', true);
+      MSD.cls('#fd-dc', 'alert', false);
+      MSD.cls('#fd-alarm', 'on', false);
+      MSD.cls('#fd-health', 'bad', false);
+      MSD.cls('#fd-health', 'warn', false);
+      MSD.q('#fd-health-t').textContent = 'online';
+      MSD.q('#fd-shop').textContent = 'shop.msdevbuild.com · checkout';
+
+      MSD.cls('.fd-rack', 'dark', false);
+      MSD.cls('.fd-rack', 'surge', false);
+      MSD.cls('.fd-rack', 'live', true);
+      MSD.cls('#fd-lb', 'hot', false);
+      MSD.cls('#fd-lb', 'live', true);
+      MSD.cls('#fd-pipe', 'flow', true);
+      MSD.cls('.fd-arm', 'off', false);
+      MSD.cls('.fd-arm', 'surge', false);
+      MSD.cls('.fd-arm', 'on', true);
+      MSD.cls('.fd-pct', 'show', false);
+      MSD.cls('.fd-tag', 'same', false);
+      MSD.cls('#fd-strip', 'bad', false);
+      MSD.cls('#fd-strip', 'good', false);
+      MSD.cls('.fd-tag', 'ping', false);
+      MSD.q('#fd-a1-n').textContent = 'VM1';
+      MSD.q('#fd-a2-n').textContent = 'srv-04';
+      MSD.cls('#fd-a2', 'fd-vm', false);
+      MSD.cls('#fd-b1', 'fd-vm', true);
+      MSD.q('#fd-b1-n').textContent = 'VM2';
+      MSD.q('#fd-tagA').textContent = 'FD 0';
+      MSD.q('#fd-tagB').textContent = 'FD 1';
+      MSD.q('#fd-la1').style.width = '50%';
+      MSD.q('#fd-la2').style.width = '34%';
+      MSD.q('#fd-lb1').style.width = '50%';
+      MSD.q('#fd-lb-s').textContent = 'receiving requests on port 443';
+      MSD.q('#fd-lb-badge').textContent = 'ROUTING';
+      MSD.cls('#fd-lb-badge', 'off', false);
+      MSD.cls('#fd-lb-badge', 'warn', false);
+      MSD.cls('#fd-lb-badge', 'bad', false);
+      // Cleared explicitly so the first play and every later loop start identical.
+      MSD.cls('.fd-rack-f', 'good', false);
+      MSD.cls('.fd-rack-f', 'bad', false);
+      MSD.cls('.fd-rack-f', 'hot', false);
+      MSD.q('#fd-fA').textContent = 'serving 50%';
+      MSD.q('#fd-fB').textContent = 'serving 50%';
+      MSD.q('#fd-strip-l').textContent = 'LIVE';
+      MSD.q('#fd-strip-t').textContent = 'Two racks. One shop. Nobody is thinking about hardware.';
+
+      MSD.hide('.msd-reveal');
+      MSD.show('#fd-clients .fd-face', 80);
+      MSD.count('#fd-orders', 1840, 2000);
+      MSD.stream('#fd-dc', { from: { x: 50, y: 9 }, to: { x: 50, y: 23 }, count: 6, duration: 640, gap: 620, spread: 26 });
+      MSD.after(1500, function(){ MSD.punch('#fd-lb', 1); });
+      
+    }
+  },
+  {
+    title: "Two servers, two racks",
+    key: "two racks",
+    desc: "VM1 sits in rack A, VM2 in rack B. The load balancer splits every request between them.",
+    status: "load balancer · VM1 50% · VM2 50%",
+    thinking: false,
+    durationMs: 3000,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-dc', 'on', true);
+      MSD.cls('#fd-dc', 'alert', false);
+      MSD.cls('#fd-alarm', 'on', false);
+      MSD.cls('#fd-health', 'bad', false);
+      MSD.cls('#fd-health', 'warn', false);
+      MSD.q('#fd-health-t').textContent = 'online';
+      MSD.cls('.fd-rack', 'dark', false);
+      MSD.cls('.fd-rack', 'surge', false);
+      MSD.cls('.fd-rack', 'live', true);
+      MSD.cls('#fd-lb', 'hot', false);
+      MSD.cls('#fd-lb', 'live', true);
+      MSD.cls('#fd-pipe', 'flow', true);
+      MSD.cls('.fd-arm', 'off', false);
+      MSD.cls('.fd-arm', 'surge', false);
+      MSD.cls('.fd-arm', 'on', true);
+      MSD.cls('.fd-tag', 'same', false);
+      MSD.cls('#fd-strip', 'bad', false);
+      MSD.cls('#fd-strip', 'good', true);
+      MSD.cls('.fd-rack-f', 'bad', false);
+      MSD.cls('.fd-rack-f', 'hot', false);
+      MSD.cls('.fd-rack-f', 'good', true);
+      MSD.q('#fd-orders').textContent = '1840';
+      MSD.q('#fd-la1').style.width = '50%';
+      MSD.q('#fd-lb1').style.width = '50%';
+      MSD.q('#fd-fA').textContent = 'VM1 · serving 50%';
+      MSD.q('#fd-fB').textContent = 'VM2 · serving 50%';
+      MSD.q('#fd-lb-s').textContent = 'distributing · both backends healthy';
+      MSD.q('#fd-strip-l').textContent = 'NORMAL';
+      MSD.q('#fd-strip-t').textContent = 'Every LED in both cabinets is green. This is a Tuesday.';
+      MSD.show('#fd-clients .fd-face', 0, true);
+
+      MSD.after(200, function(){
+        MSD.q('#fd-pct1').textContent = '50%';
+        MSD.q('#fd-pct2').textContent = '50%';
+        MSD.cls('.fd-pct', 'dead', false);
+        MSD.cls('.fd-pct', 'max', false);
+        MSD.cls('.fd-pct', 'hot', true);
+        MSD.cls('.fd-pct', 'show', true);
+        MSD.sfx.lock();
+      });
+      MSD.after(900, function(){ MSD.punch('#fd-colA', 0); MSD.punch('#fd-colB', 2); });
+      MSD.stream('#fd-dc', { from: { x: 50, y: 25 }, to: { x: 24, y: 58 }, count: 5, duration: 720, gap: 680, spread: 18 });
+      MSD.stream('#fd-dc', { from: { x: 50, y: 25 }, to: { x: 76, y: 58 }, count: 5, duration: 720, gap: 680, spread: 18 });
+      
+    }
+  },
+  {
+    title: "Rack A just lost power",
+    key: "lost power",
+    desc: "Not a reboot. Not a patch. The power feed to an entire cabinet is gone.",
+    status: "ALARM · rack A power failure",
+    thinking: false,
+    durationMs: 3200,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-dc', 'on', true);
+      MSD.cls('.fd-rack', 'surge', false);
+      MSD.cls('#fd-rackB', 'dark', false);
+      MSD.cls('#fd-rackB', 'live', true);
+      MSD.cls('#fd-lb', 'hot', false);
+      MSD.cls('#fd-lb', 'live', true);
+      MSD.cls('#fd-pipe', 'flow', true);
+      MSD.cls('.fd-arm', 'surge', false);
+      MSD.cls('.fd-arm', 'off', false);
+      MSD.cls('.fd-arm', 'on', true);
+      MSD.cls('.fd-pct', 'show', true);
+      MSD.cls('.fd-tag', 'same', false);
+      MSD.cls('#fd-strip', 'good', false);
+      MSD.cls('#fd-strip', 'bad', true);
+      MSD.q('#fd-pct1').textContent = '50%';
+      MSD.q('#fd-pct2').textContent = '50%';
+      MSD.q('#fd-orders').textContent = '1840';
+      MSD.q('#fd-alarm-t').textContent = 'POWER FAILURE · RACK A';
+      MSD.q('#fd-strip-l').textContent = 'INCIDENT';
+      MSD.q('#fd-strip-t').textContent = 'A power distribution unit died. Nobody chose this and nobody saw it coming.';
+      MSD.show('#fd-clients .fd-face', 0, true);
+
+      MSD.after(150, function(){
+        MSD.cls('#fd-rackA', 'live', false);
+        MSD.cls('#fd-rackA', 'dark', true);
+        MSD.cls('#fd-dc', 'alert', true);
+        MSD.cls('#fd-alarm', 'on', true);
+        MSD.shake('#fd-colA');
+        MSD.sfx.thud();
+      });
+      MSD.after(700, function(){
+        MSD.q('#fd-fA').textContent = 'no power · 4 servers dark';
+        MSD.cls('#fd-fA', 'good', false);
+        MSD.cls('#fd-fA', 'bad', true);
+        MSD.q('#fd-la1').style.width = '0%';
+        MSD.sfx.error();
+      });
+      MSD.after(1600, function(){ MSD.shake('#fd-colA'); });
+      MSD.after(2500, function(){ MSD.flash('#fd-colA'); MSD.sfx.error(); });
+      
+    }
+  },
+  {
+    title: "Four servers gone at once",
+    key: "Four servers",
+    desc: "A rack is a shared blast radius. One power feed, one switch, one cooling loop — and everything in it drops together.",
+    status: "rack A · 0 hosts responding",
+    thinking: false,
+    durationMs: 3000,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-dc', 'on', true);
+      MSD.cls('#fd-dc', 'alert', true);
+      MSD.cls('#fd-alarm', 'on', true);
+      MSD.cls('#fd-rackA', 'live', false);
+      MSD.cls('#fd-rackA', 'dark', true);
+      MSD.cls('#fd-rackB', 'dark', false);
+      MSD.cls('#fd-rackB', 'live', true);
+      MSD.cls('.fd-rack', 'surge', false);
+      MSD.cls('#fd-lb', 'live', true);
+      MSD.cls('#fd-pipe', 'flow', true);
+      MSD.cls('.fd-arm', 'surge', false);
+      MSD.cls('.fd-arm', 'off', false);
+      MSD.cls('.fd-arm', 'on', true);
+      MSD.cls('.fd-pct', 'show', true);
+      MSD.cls('#fd-strip', 'good', false);
+      MSD.cls('#fd-strip', 'bad', true);
+      MSD.cls('#fd-fA', 'good', false);
+      MSD.cls('#fd-fA', 'bad', true);
+      MSD.q('#fd-la1').style.width = '0%';
+      MSD.q('#fd-fA').textContent = 'no power · 4 servers dark';
+      MSD.q('#fd-alarm-t').textContent = 'RACK A · POWER, SWITCH, COOLING DOWN';
+      MSD.q('#fd-orders').textContent = '1840';
+      MSD.q('#fd-strip-l').textContent = 'BLAST RADIUS';
+      MSD.q('#fd-strip-t').textContent = 'Everything sharing that cabinet shares its failure.';
+      MSD.show('#fd-clients .fd-face', 0, true);
+
+      MSD.after(300, function(){ MSD.focus('#fd-utilA', '#fd-clients, #fd-lb, #fd-colB'); });
+      MSD.after(1700, function(){
+        MSD.unfocus();
+        MSD.focus('#fd-colA', '#fd-clients, #fd-lb, #fd-colB');
+        MSD.sfx.error();
+      });
+      MSD.after(2600, function(){ MSD.unfocus(); });
+      
+    }
+  },
+  {
+    title: "This is where most sites die",
+    key: "most sites die",
+    desc: "Half the capacity is gone mid-checkout. You would expect the error page right about now.",
+    status: "expected: HTTP 503",
+    thinking: true,
+    durationMs: 2800,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-dc', 'on', true);
+      MSD.cls('#fd-dc', 'alert', true);
+      MSD.cls('#fd-alarm', 'on', true);
+      MSD.cls('#fd-rackA', 'live', false);
+      MSD.cls('#fd-rackA', 'dark', true);
+      MSD.cls('#fd-rackB', 'dark', false);
+      MSD.cls('#fd-rackB', 'live', true);
+      MSD.cls('.fd-rack', 'surge', false);
+      MSD.cls('#fd-pipe', 'flow', true);
+      MSD.cls('.fd-arm', 'surge', false);
+      MSD.cls('.fd-arm', 'off', false);
+      MSD.cls('.fd-arm', 'on', true);
+      MSD.cls('.fd-pct', 'show', true);
+      MSD.cls('#fd-strip', 'good', false);
+      MSD.cls('#fd-strip', 'bad', true);
+      MSD.cls('#fd-fA', 'good', false);
+      MSD.cls('#fd-fA', 'bad', true);
+      MSD.q('#fd-fA').textContent = 'no power · 4 servers dark';
+      MSD.q('#fd-la1').style.width = '0%';
+      MSD.q('#fd-alarm-t').textContent = 'RACK A · POWER, SWITCH, COOLING DOWN';
+      MSD.q('#fd-strip-l').textContent = 'THE MOMENT';
+      MSD.q('#fd-strip-t').textContent = 'Watch the status pill at the top. It has not moved.';
+      MSD.show('#fd-clients .fd-face', 0, true);
+
+      // The header flickers to "checking" and holds there — the honest state of
+      // a site whose probe has failed once but not yet twice.
+      MSD.after(200, function(){
+        MSD.cls('#fd-health', 'bad', false);
+        MSD.cls('#fd-health', 'warn', true);
+        MSD.q('#fd-health-t').textContent = 'checking';
+        MSD.punch('#fd-health', 2);
+        MSD.sfx.riser(1400);
+      });
+      MSD.after(1100, function(){ MSD.focus('#fd-health', '#fd-colA, #fd-colB'); });
+      MSD.after(2300, function(){ MSD.unfocus(); });
+      
+    }
+  },
+  {
+    title: "The health probe fails",
+    key: "health probe",
+    desc: "Azure Load Balancer probes every backend on a fixed interval. VM1 stops answering, so it leaves the pool.",
+    status: "probe failed · VM1 removed",
+    thinking: false,
+    durationMs: 3000,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-dc', 'on', true);
+      MSD.cls('#fd-dc', 'alert', true);
+      MSD.cls('#fd-alarm', 'on', true);
+      MSD.cls('#fd-rackA', 'live', false);
+      MSD.cls('#fd-rackA', 'dark', true);
+      MSD.cls('#fd-rackB', 'dark', false);
+      MSD.cls('#fd-rackB', 'live', true);
+      MSD.cls('.fd-rack', 'surge', false);
+      MSD.cls('#fd-lb', 'live', true);
+      MSD.cls('#fd-pipe', 'flow', true);
+      MSD.cls('.fd-pct', 'show', true);
+      MSD.cls('#fd-health', 'bad', false);
+      MSD.cls('#fd-health', 'warn', true);
+      MSD.q('#fd-health-t').textContent = 'checking';
+      MSD.cls('#fd-strip', 'good', false);
+      MSD.cls('#fd-strip', 'bad', true);
+      MSD.cls('#fd-fA', 'good', false);
+      MSD.cls('#fd-fA', 'bad', true);
+      MSD.q('#fd-fA').textContent = 'no power · 4 servers dark';
+      MSD.q('#fd-la1').style.width = '0%';
+      MSD.q('#fd-strip-l').textContent = 'DETECTION';
+      MSD.q('#fd-strip-t').textContent = 'Detection is automatic. No alert, no engineer, no DNS change.';
+      MSD.show('#fd-clients .fd-face', 0, true);
+
+      MSD.after(250, function(){
+        MSD.q('#fd-lb-s').textContent = 'probe timeout on VM1 · retrying';
+        MSD.q('#fd-lb-badge').textContent = 'PROBING';
+        MSD.cls('#fd-lb-badge', 'warn', true);
+        MSD.punch('#fd-lb', 1);
+        MSD.sfx.blip(1);
+      });
+      MSD.after(1300, function(){
+        MSD.cls('#fd-arm1', 'on', false);
+        MSD.cls('#fd-arm1', 'off', true);
+        MSD.q('#fd-pct1').textContent = '0%';
+        MSD.cls('#fd-pct1', 'hot', false);
+        MSD.cls('#fd-pct1', 'dead', true);
+        MSD.q('#fd-lb-s').textContent = 'VM1 removed from the backend pool';
+        MSD.q('#fd-lb-badge').textContent = 'FAILOVER';
+        MSD.cls('#fd-lb-badge', 'warn', false);
+        MSD.cls('#fd-lb-badge', 'bad', true);
+        MSD.shake('#fd-colA');
+        MSD.sfx.error();
+      });
+      MSD.after(2300, function(){ MSD.flash('#fd-lb'); });
+      
+    }
+  },
+  {
+    title: "Every request goes to Rack B",
+    key: "Rack B",
+    desc: "Within seconds the surviving backend is carrying 100% of the traffic. Same URL, same cart, same session.",
+    status: "failover complete · VM2 100%",
+    thinking: false,
+    durationMs: 3200,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-dc', 'on', true);
+      MSD.cls('#fd-dc', 'alert', false);
+      MSD.cls('#fd-alarm', 'on', false);
+      MSD.cls('#fd-rackA', 'live', false);
+      MSD.cls('#fd-rackA', 'dark', true);
+      MSD.cls('#fd-rackB', 'dark', false);
+      MSD.cls('#fd-rackB', 'live', true);
+      MSD.cls('#fd-pipe', 'flow', true);
+      MSD.cls('#fd-arm1', 'on', false);
+      MSD.cls('#fd-arm1', 'surge', false);
+      MSD.cls('#fd-arm1', 'off', true);
+      MSD.cls('.fd-pct', 'show', true);
+      MSD.cls('#fd-pct1', 'hot', false);
+      MSD.cls('#fd-pct1', 'dead', true);
+      MSD.q('#fd-pct1').textContent = '0%';
+      MSD.cls('#fd-fA', 'good', false);
+      MSD.cls('#fd-fA', 'bad', true);
+      MSD.q('#fd-fA').textContent = 'no power · out of rotation';
+      MSD.q('#fd-la1').style.width = '0%';
+      MSD.cls('#fd-strip', 'bad', false);
+      MSD.cls('#fd-strip', 'good', true);
+      MSD.q('#fd-strip-l').textContent = 'FAILOVER';
+      MSD.q('#fd-strip-t').textContent = 'Rack B was never touched by the power fault. It just absorbs the load.';
+      MSD.show('#fd-clients .fd-face', 0, true);
+
+      MSD.after(200, function(){
+        MSD.cls('#fd-lb', 'hot', true);
+        MSD.cls('#fd-arm2', 'on', false);
+        MSD.cls('#fd-arm2', 'surge', true);
+        MSD.cls('#fd-rackB', 'surge', true);
+        MSD.q('#fd-pct2').textContent = '100%';
+        MSD.cls('#fd-pct2', 'dead', false);
+        MSD.cls('#fd-pct2', 'hot', false);
+        MSD.cls('#fd-pct2', 'max', true);
+        MSD.q('#fd-lb1').style.width = '100%';
+        MSD.cls('#fd-fB', 'good', false);
+        MSD.cls('#fd-fB', 'hot', true);
+        MSD.q('#fd-fB').textContent = 'VM2 · serving 100%';
+        MSD.q('#fd-lb-s').textContent = 'all traffic → VM2 · rack B';
+        MSD.q('#fd-lb-badge').textContent = 'ROUTING';
+        MSD.cls('#fd-lb-badge', 'bad', false);
+        MSD.punch('#fd-colB', 3);
+        MSD.sfx.sparkle();
+      });
+      MSD.stream('#fd-dc', { from: { x: 50, y: 9 }, to: { x: 50, y: 23 }, count: 6, duration: 600, gap: 620, spread: 26, silent: true });
+      MSD.after(600, function(){
+        MSD.stream('#fd-dc', { from: { x: 50, y: 25 }, to: { x: 76, y: 58 }, count: 8, duration: 640, gap: 520, spread: 20 });
+      });
+      MSD.after(2100, function(){ MSD.flash('#fd-colB'); });
+      
+    }
+  },
+  {
+    title: "The shop never went down",
+    key: "never went down",
+    desc: "An entire rack is dark and the checkout is still taking money. That is the whole trick.",
+    status: "site online · orders flowing",
+    thinking: false,
+    durationMs: 3200,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-dc', 'on', true);
+      MSD.cls('#fd-dc', 'alert', false);
+      MSD.cls('#fd-alarm', 'on', false);
+      MSD.cls('#fd-rackA', 'live', false);
+      MSD.cls('#fd-rackA', 'dark', true);
+      MSD.cls('#fd-rackB', 'dark', false);
+      MSD.cls('#fd-rackB', 'live', true);
+      MSD.cls('#fd-rackB', 'surge', true);
+      MSD.cls('#fd-lb', 'hot', true);
+      MSD.cls('#fd-pipe', 'flow', true);
+      MSD.cls('#fd-arm1', 'on', false);
+      MSD.cls('#fd-arm1', 'off', true);
+      MSD.cls('#fd-arm2', 'on', false);
+      MSD.cls('#fd-arm2', 'surge', true);
+      MSD.cls('.fd-pct', 'show', true);
+      MSD.cls('#fd-pct1', 'hot', false);
+      MSD.cls('#fd-pct1', 'dead', true);
+      MSD.cls('#fd-pct2', 'dead', false);
+      MSD.cls('#fd-pct2', 'max', true);
+      MSD.q('#fd-pct1').textContent = '0%';
+      MSD.q('#fd-pct2').textContent = '100%';
+      MSD.q('#fd-la1').style.width = '0%';
+      MSD.q('#fd-lb1').style.width = '100%';
+      MSD.cls('#fd-fA', 'good', false);
+      MSD.cls('#fd-fA', 'bad', true);
+      MSD.cls('#fd-fB', 'good', false);
+      MSD.cls('#fd-fB', 'hot', true);
+      MSD.q('#fd-fA').textContent = 'no power · out of rotation';
+      MSD.q('#fd-fB').textContent = 'VM2 · serving 100% · 0 errors';
+      MSD.q('#fd-lb-s').textContent = 'all traffic → VM2 · rack B';
+      MSD.cls('#fd-strip', 'bad', false);
+      MSD.cls('#fd-strip', 'good', true);
+      MSD.q('#fd-strip-l').textContent = 'STILL UP';
+      MSD.q('#fd-strip-t').textContent = 'Not zero impact — a few in-flight requests died. But the site did not.';
+      MSD.show('#fd-clients .fd-face', 0, true);
+
+      MSD.after(250, function(){
+        MSD.cls('#fd-health', 'warn', false);
+        MSD.cls('#fd-health', 'bad', false);
+        MSD.q('#fd-health-t').textContent = 'online';
+        MSD.q('#fd-shop').textContent = 'shop.msdevbuild.com · still selling';
+        MSD.punch('#fd-health', 4);
+        MSD.sfx.chime();
+      });
+      MSD.count('#fd-orders', 2190, 2400);
+      MSD.stream('#fd-dc', { from: { x: 50, y: 9 }, to: { x: 50, y: 23 }, count: 6, duration: 600, gap: 640, spread: 26, silent: true });
+      MSD.stream('#fd-dc', { from: { x: 50, y: 25 }, to: { x: 76, y: 58 }, count: 7, duration: 640, gap: 560, spread: 20 });
+      MSD.after(1800, function(){ MSD.flash('#fd-strip'); });
+      
+    }
+  },
+  {
+    title: "Azure Fault Domain",
+    key: "Fault Domain",
+    desc: "That rack has a name. A fault domain is a group of hardware that shares one power source and one network switch.",
+    status: "the term · fault domain",
+    thinking: false,
+    durationMs: 3400,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-term', 'on', true);
+      MSD.cls('#fd-health', 'warn', false);
+      MSD.cls('#fd-health', 'bad', false);
+      MSD.q('#fd-health-t').textContent = 'online';
+      MSD.q('#fd-orders').textContent = '2190';
+
+      MSD.hide('#fd-sc-term .msd-reveal');
+      MSD.cls('#fd-term-h', 'pop', false);
+
+      MSD.after(150, function(){
+        MSD.cls('#fd-term-h', 'pop', true);
+        MSD.sfx.resolve();
+      });
+      MSD.after(1300, function(){
+        MSD.show('#fd-mini1', 0);
+        MSD.punch('#fd-mini1', 1);
+      });
+      MSD.after(1900, function(){ MSD.show('#fd-vs', 0); });
+      MSD.after(2400, function(){
+        MSD.show('#fd-mini2', 0);
+        MSD.punch('#fd-mini2', 3);
+        MSD.sfx.lock();
+      });
+      
+    }
+  },
+  {
+    title: "Separate power, switch and cooling",
+    key: "Separate power",
+    desc: "Two fault domains share nothing physical. A failure in one has no path into the other.",
+    status: "FD 0 ≠ FD 1",
+    thinking: false,
+    durationMs: 3000,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-term', 'on', true);
+      MSD.cls('#fd-term-h', 'pop', false);
+      MSD.show('#fd-mini1, #fd-vs, #fd-mini2', 0, true);
+      MSD.hide('.fd-prop');
+      MSD.q('#fd-term-k').textContent = 'WHAT THE RACKS DO NOT SHARE';
+
+      MSD.after(200, function(){ MSD.show('.fd-prop', 420); });
+      MSD.after(1900, function(){
+        MSD.focus('#fd-props', '#fd-term-g');
+      });
+      MSD.after(2600, function(){ MSD.unfocus(); MSD.sfx.sparkle(); });
+      
+    }
+  },
+  {
+    title: "Azure picks the racks for you",
+    key: "picks the racks",
+    desc: "Put the VMs in an availability set and Azure spreads them across 2–3 fault domains. You never choose a cabinet.",
+    status: "availability set · FD 0 / FD 1",
+    thinking: false,
+    durationMs: 3000,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-dc', 'on', true);
+      MSD.cls('#fd-dc', 'alert', false);
+      MSD.cls('#fd-alarm', 'on', false);
+      MSD.cls('.fd-rack', 'dark', false);
+      MSD.cls('.fd-rack', 'surge', false);
+      MSD.cls('.fd-rack', 'live', true);
+      MSD.cls('#fd-lb', 'hot', false);
+      MSD.cls('#fd-lb', 'live', true);
+      MSD.cls('#fd-pipe', 'flow', true);
+      MSD.cls('.fd-arm', 'off', false);
+      MSD.cls('.fd-arm', 'surge', false);
+      MSD.cls('.fd-arm', 'on', true);
+      MSD.cls('.fd-pct', 'dead', false);
+      MSD.cls('.fd-pct', 'max', false);
+      MSD.cls('.fd-pct', 'hot', true);
+      MSD.cls('.fd-pct', 'show', true);
+      MSD.cls('.fd-tag', 'same', false);
+      MSD.q('#fd-pct1').textContent = '50%';
+      MSD.q('#fd-pct2').textContent = '50%';
+      MSD.q('#fd-la1').style.width = '50%';
+      MSD.q('#fd-lb1').style.width = '50%';
+      MSD.q('#fd-a1-n').textContent = 'VM1';
+      MSD.q('#fd-a2-n').textContent = 'srv-04';
+      MSD.cls('#fd-a2', 'fd-vm', false);
+      MSD.cls('#fd-b1', 'fd-vm', true);
+      MSD.q('#fd-b1-n').textContent = 'VM2';
+      MSD.q('#fd-tagA').textContent = 'FD 0';
+      MSD.q('#fd-tagB').textContent = 'FD 1';
+      MSD.cls('.fd-rack-f', 'bad', false);
+      MSD.cls('.fd-rack-f', 'hot', false);
+      MSD.cls('.fd-rack-f', 'good', true);
+      MSD.q('#fd-fA').textContent = 'VM1 · serving 50%';
+      MSD.q('#fd-fB').textContent = 'VM2 · serving 50%';
+      MSD.q('#fd-lb-s').textContent = 'distributing · both backends healthy';
+      MSD.q('#fd-lb-badge').textContent = 'ROUTING';
+      MSD.cls('#fd-lb-badge', 'bad', false);
+      MSD.cls('#fd-lb-badge', 'warn', false);
+      MSD.cls('#fd-health', 'warn', false);
+      MSD.cls('#fd-health', 'bad', false);
+      MSD.q('#fd-health-t').textContent = 'online';
+      MSD.cls('#fd-strip', 'bad', false);
+      MSD.cls('#fd-strip', 'good', true);
+      MSD.q('#fd-strip-l').textContent = 'PLACEMENT';
+      MSD.q('#fd-strip-t').textContent = 'You declare the intent. The platform does the placement.';
+      MSD.show('#fd-clients .fd-face', 0, true);
+
+      MSD.after(300, function(){
+        MSD.cls('.fd-tag', 'ping', true);
+        MSD.focus('#fd-tagA, #fd-tagB', '#fd-clients, #fd-lb');
+      });
+      MSD.after(1800, function(){
+        MSD.cls('.fd-tag', 'ping', false);
+        MSD.unfocus();
+        MSD.sfx.lock();
+      });
+      MSD.stream('#fd-dc', { from: { x: 50, y: 25 }, to: { x: 24, y: 58 }, count: 4, duration: 720, gap: 760, spread: 18, silent: true });
+      MSD.stream('#fd-dc', { from: { x: 50, y: 25 }, to: { x: 76, y: 58 }, count: 4, duration: 720, gap: 760, spread: 18, silent: true });
+      
+    }
+  },
+  {
+    title: "Now put both VMs in one rack",
+    key: "one rack",
+    desc: "Two VMs, same app, same load balancer — but both landed in fault domain 0. It looks identical from the portal.",
+    status: "VM1 + VM2 · both in FD 0",
+    thinking: true,
+    durationMs: 3200,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-dc', 'on', true);
+      MSD.cls('#fd-dc', 'alert', false);
+      MSD.cls('#fd-alarm', 'on', false);
+      MSD.cls('.fd-rack', 'dark', false);
+      MSD.cls('.fd-rack', 'surge', false);
+      MSD.cls('.fd-rack', 'live', true);
+      MSD.cls('#fd-lb', 'hot', false);
+      MSD.cls('#fd-lb', 'live', true);
+      MSD.cls('#fd-pipe', 'flow', true);
+      MSD.cls('.fd-arm', 'off', false);
+      MSD.cls('.fd-arm', 'surge', false);
+      MSD.cls('.fd-arm', 'on', true);
+      MSD.cls('.fd-pct', 'show', false);
+      MSD.cls('#fd-health', 'warn', false);
+      MSD.cls('#fd-health', 'bad', false);
+      MSD.q('#fd-health-t').textContent = 'online';
+      MSD.q('#fd-orders').textContent = '2190';
+      MSD.cls('.fd-rack-f', 'bad', false);
+      MSD.cls('.fd-rack-f', 'hot', false);
+      MSD.cls('.fd-rack-f', 'good', true);
+      MSD.cls('#fd-strip', 'good', false);
+      MSD.cls('#fd-strip', 'bad', false);
+      MSD.q('#fd-strip-l').textContent = 'WHAT IF';
+      MSD.q('#fd-strip-t').textContent = 'Same two VMs. Same load balancer. One difference: the cabinet.';
+      MSD.show('#fd-clients .fd-face', 0, true);
+
+      // Move VM2 into rack A's second slot. Same racks, same everything — only
+      // the placement changes, which is exactly the lesson.
+      MSD.after(400, function(){
+        MSD.cls('#fd-b1', 'fd-vm', false);
+        MSD.q('#fd-b1-n').textContent = 'srv-19';
+        MSD.q('#fd-lb1').style.width = '38%';
+        MSD.cls('#fd-a2', 'fd-vm', true);
+        MSD.q('#fd-a2-n').textContent = 'VM2';
+        MSD.q('#fd-la2').style.width = '50%';
+        MSD.punch('#fd-colA', 2);
+        MSD.sfx.swipe();
+      });
+      MSD.after(1400, function(){
+        MSD.q('#fd-tagA').textContent = 'FD 0 · VM1 + VM2';
+        MSD.q('#fd-tagB').textContent = 'FD 1 · empty';
+        MSD.cls('#fd-tagA', 'same', true);
+        MSD.cls('#fd-tagA', 'ping', true);
+        MSD.q('#fd-fA').textContent = 'both VMs · serving 100%';
+        MSD.q('#fd-fB').textContent = 'nothing of ours here';
+        MSD.cls('#fd-fB', 'good', false);
+        MSD.sfx.error();
+      });
+      MSD.after(2400, function(){ MSD.cls('#fd-tagA', 'ping', false); MSD.flash('#fd-colA'); });
+      
+    }
+  },
+  {
+    title: "Same power cut. Site is gone",
+    key: "Site is gone",
+    desc: "One cabinet, one failure, zero surviving backends. The load balancer has nowhere left to send anyone.",
+    status: "HTTP 503 · no healthy backends",
+    thinking: false,
+    durationMs: 3000,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-dc', 'on', true);
+      MSD.cls('#fd-rackB', 'dark', false);
+      MSD.cls('#fd-rackB', 'live', true);
+      MSD.cls('#fd-rackB', 'surge', false);
+      MSD.cls('#fd-lb', 'hot', false);
+      MSD.cls('#fd-lb', 'live', true);
+      MSD.cls('#fd-pipe', 'flow', false);
+      MSD.cls('.fd-arm', 'surge', false);
+      MSD.cls('.fd-pct', 'show', false);
+      MSD.cls('#fd-a2', 'fd-vm', true);
+      MSD.q('#fd-a2-n').textContent = 'VM2';
+      MSD.cls('#fd-b1', 'fd-vm', false);
+      MSD.q('#fd-b1-n').textContent = 'srv-19';
+      MSD.q('#fd-tagA').textContent = 'FD 0 · VM1 + VM2';
+      MSD.cls('#fd-tagA', 'same', true);
+      MSD.q('#fd-tagB').textContent = 'FD 1 · empty';
+      MSD.q('#fd-alarm-t').textContent = 'POWER FAILURE · RACK A';
+      MSD.q('#fd-strip-l').textContent = 'OUTAGE';
+      MSD.q('#fd-strip-t').textContent = 'Redundancy that shares a rack is not redundancy.';
+      MSD.cls('#fd-strip', 'good', false);
+      MSD.cls('#fd-strip', 'bad', true);
+      MSD.show('#fd-clients .fd-face', 0, true);
+
+      MSD.after(150, function(){
+        MSD.cls('#fd-rackA', 'live', false);
+        MSD.cls('#fd-rackA', 'dark', true);
+        MSD.cls('#fd-dc', 'alert', true);
+        MSD.cls('#fd-alarm', 'on', true);
+        MSD.q('#fd-la1').style.width = '0%';
+        MSD.q('#fd-la2').style.width = '0%';
+        MSD.shake('#fd-colA');
+        MSD.sfx.thud();
+      });
+      MSD.after(900, function(){
+        MSD.cls('.fd-arm', 'on', false);
+        MSD.cls('.fd-arm', 'off', true);
+        MSD.q('#fd-lb-s').textContent = 'no healthy backends in the pool';
+        MSD.q('#fd-lb-badge').textContent = 'DOWN';
+        MSD.cls('#fd-lb-badge', 'warn', false);
+        MSD.cls('#fd-lb-badge', 'bad', true);
+        MSD.cls('#fd-health', 'warn', false);
+        MSD.cls('#fd-health', 'bad', true);
+        MSD.q('#fd-health-t').textContent = 'OFFLINE';
+        MSD.q('#fd-shop').textContent = 'shop.msdevbuild.com · 503';
+        MSD.q('#fd-orders').textContent = '0';
+        MSD.q('#fd-fA').textContent = 'VM1 + VM2 · both dark';
+        MSD.cls('#fd-fA', 'good', false);
+        MSD.cls('#fd-fA', 'bad', true);
+        MSD.punch('#fd-health', 1);
+        MSD.sfx.error();
+      });
+      MSD.after(2100, function(){ MSD.shake('#fd-lb'); MSD.flash('#fd-health'); });
+      
+    }
+  },
+  {
+    title: "Fault domains fix that at deploy time",
+    key: "at deploy time",
+    desc: "Nothing about the VMs changed. Only where Azure put them — and that is decided before the outage, not during it.",
+    status: "restored · FD 0 / FD 1",
+    thinking: false,
+    durationMs: 3600,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-dc', 'on', true);
+      MSD.cls('#fd-dc', 'alert', false);
+      MSD.cls('#fd-alarm', 'on', false);
+      MSD.cls('.fd-rack', 'dark', false);
+      MSD.cls('.fd-rack', 'surge', false);
+      MSD.cls('.fd-rack', 'live', true);
+      MSD.cls('#fd-lb', 'hot', false);
+      MSD.cls('#fd-lb', 'live', true);
+      MSD.cls('#fd-pipe', 'flow', true);
+      MSD.cls('#fd-health', 'bad', false);
+      MSD.cls('#fd-health', 'warn', false);
+      MSD.q('#fd-health-t').textContent = 'online';
+      MSD.q('#fd-shop').textContent = 'shop.msdevbuild.com · checkout';
+      MSD.q('#fd-lb-badge').textContent = 'ROUTING';
+      MSD.cls('#fd-lb-badge', 'bad', false);
+      MSD.cls('#fd-lb-badge', 'warn', false);
+      MSD.q('#fd-lb-s').textContent = 'distributing · both backends healthy';
+      MSD.cls('.fd-rack-f', 'bad', false);
+      MSD.cls('.fd-rack-f', 'hot', false);
+      MSD.cls('#fd-strip', 'bad', false);
+      MSD.cls('#fd-strip', 'good', true);
+      // Cleared synchronously, not in the 1200ms beat: otherwise the frames
+      // before that beat show a red "0%" pill sitting next to a restored VM.
+      MSD.cls('.fd-pct', 'show', false);
+      MSD.cls('.fd-pct', 'dead', false);
+      MSD.cls('.fd-pct', 'max', false);
+      MSD.cls('.fd-pct', 'hot', false);
+      MSD.q('#fd-strip-l').textContent = 'THE FIX';
+      MSD.q('#fd-strip-t').textContent = 'An availability set costs nothing. You pay only for the VMs.';
+      MSD.show('#fd-clients .fd-face', 0, true);
+
+      MSD.after(300, function(){
+        MSD.cls('#fd-a2', 'fd-vm', false);
+        MSD.q('#fd-a2-n').textContent = 'srv-04';
+        MSD.q('#fd-la2').style.width = '34%';
+        MSD.cls('#fd-b1', 'fd-vm', true);
+        MSD.q('#fd-b1-n').textContent = 'VM2';
+        MSD.q('#fd-la1').style.width = '50%';
+        MSD.q('#fd-lb1').style.width = '50%';
+        MSD.cls('#fd-tagA', 'same', false);
+        MSD.q('#fd-tagA').textContent = 'FD 0';
+        MSD.q('#fd-tagB').textContent = 'FD 1';
+        MSD.cls('.fd-tag', 'ping', true);
+        MSD.cls('.fd-rack-f', 'good', true);
+        MSD.q('#fd-fA').textContent = 'VM1 · serving 50%';
+        MSD.q('#fd-fB').textContent = 'VM2 · serving 50%';
+        MSD.sfx.lock();
+      });
+      MSD.after(1200, function(){
+        MSD.cls('.fd-tag', 'ping', false);
+        MSD.cls('.fd-arm', 'off', false);
+        MSD.cls('.fd-arm', 'on', true);
+        MSD.cls('.fd-pct', 'dead', false);
+        MSD.cls('.fd-pct', 'max', false);
+        MSD.cls('.fd-pct', 'hot', true);
+        MSD.cls('.fd-pct', 'show', true);
+        MSD.q('#fd-pct1').textContent = '50%';
+        MSD.q('#fd-pct2').textContent = '50%';
+        MSD.punch('#fd-colA', 2);
+        MSD.punch('#fd-colB', 4);
+        MSD.sfx.chime();
+      });
+      // The scope limit rides on the tail of the fix rather than taking a stage
+      // of its own — 16 is the hard ceiling and the CTA is not negotiable.
+      MSD.after(2400, function(){
+        MSD.q('#fd-strip-l').textContent = 'THE LIMIT';
+        MSD.q('#fd-strip-t').textContent = 'Racks, yes. A whole datacenter, no — that is what availability zones are for.';
+        MSD.flash('#fd-strip');
+        MSD.sfx.blip(3);
+      });
+      MSD.count('#fd-orders', 2240, 1800);
+      MSD.stream('#fd-dc', { from: { x: 50, y: 25 }, to: { x: 24, y: 58 }, count: 5, duration: 720, gap: 700, spread: 18 });
+      MSD.stream('#fd-dc', { from: { x: 50, y: 25 }, to: { x: 76, y: 58 }, count: 5, duration: 720, gap: 700, spread: 18 });
+      
+    }
+  },
+  {
+    title: "Fault Domain = Hardware Failure Protection",
+    key: "Hardware Failure Protection",
+    desc: "Rack power, top-of-rack switch, a dead host — spread across fault domains, none of them is your outage.",
+    status: "SLA 99.95% · availability set",
+    thinking: false,
+    durationMs: 3400,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-win', 'on', true);
+      MSD.cls('#fd-health', 'bad', false);
+      MSD.cls('#fd-health', 'warn', false);
+      MSD.q('#fd-health-t').textContent = 'online';
+      MSD.q('#fd-orders').textContent = '2240';
+      MSD.q('#fd-shop').textContent = 'shop.msdevbuild.com · 100% uptime';
+
+      MSD.hide('#fd-sc-win .msd-reveal');
+      MSD.cls('#fd-shield', 'show', false);
+
+      MSD.after(200, function(){ MSD.cls('#fd-shield', 'show', true); MSD.sfx.resolve(); });
+      MSD.after(800, function(){ MSD.show('#fd-eq-a', 0); });
+      MSD.after(1100, function(){ MSD.show('#fd-eq-s', 0, true); });
+      MSD.after(1350, function(){ MSD.show('#fd-eq-b', 0); MSD.punch('#fd-eq-b', 4); MSD.sfx.chime(); });
+      MSD.after(2000, function(){ MSD.show('.fd-win-i', 300); });
+      MSD.after(3000, function(){ MSD.show('#fd-win-sla', 0, true); MSD.sfx.sparkle(); });
+      
+    }
+  },
+  {
+    title: "Follow for Azure & Cloud Engineering Tips",
+    key: "Follow",
+    desc: "One architecture idea per reel, from the failure backwards. Save this one for your next design review.",
+    status: "MSDevBuild · Azure & Cloud Engineering",
+    thinking: false,
+    durationMs: 3000,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.fd-sc', 'on', false);
+      MSD.cls('#fd-sc-cta', 'on', true);
+      MSD.cls('#fd-health', 'bad', false);
+      MSD.cls('#fd-health', 'warn', false);
+      MSD.q('#fd-health-t').textContent = 'online';
+      MSD.q('#fd-shop').textContent = 'shop.msdevbuild.com · 100% uptime';
+
+      MSD.hide('#fd-sc-cta .msd-reveal');
+      MSD.after(250, function(){ MSD.punch('#fd-cta-h', 2); MSD.sfx.pop(); });
+      MSD.after(800, function(){ MSD.show('.fd-cta-b', 320); });
+      MSD.after(1900, function(){ MSD.show('#fd-cta-next', 0); MSD.sfx.sparkle(); });
+      MSD.after(2400, function(){ MSD.flash('#fd-cta-ring'); });
+      
+    }
+  }
+];
+</script>
+<script>
+
+(function(){
+  'use strict';
+
+  var canvas = document.getElementById('canvas');
+  var stageEl = document.getElementById('stage');
+  var STAGE_HTML_SNAPSHOT = stageEl.innerHTML;
+
+  /* ---------------------------------------------------------------- fit -- */
+  function fit(){
+    var scale = Math.min(window.innerWidth / 1080, window.innerHeight / 1920);
+    canvas.style.transform = 'scale(' + scale + ')';
+  }
+  window.addEventListener('resize', fit); fit();
+
+  /* -------------------------------------------------------------- audio -- */
+  // Two independent audio layers:
+  //
+  //   soundOn  — the flow effects: whooshes on cuts, blips on reveals, chimes.
+  //              These are tied to the animation and read as craft.
+  //   musicOn  — the ambient bed. OFF by default and opt-in via "m", because a
+  //              synthesised pad drone reads as background hum rather than as
+  //              music. Real background music belongs on the editing timeline,
+  //              not in the reel.
+  //
+  // Both start off so a reel opened in a tab is silent until you ask for sound.
+  var actx = null, soundOn = false, musicOn = false;
+  var master = null, musicGain = null, musicStarted = false;
+
+  // Audio is a nice-to-have: if the browser blocks or lacks Web Audio, the reel
+  // must still play silently rather than die on the first stage.
+  function ensureAudio(){
+    try{
+      if(!actx){
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC) return;
+        actx = new AC();
+        master = actx.createGain();
+        master.gain.value = 0.9;
+        master.connect(actx.destination);
+      }
+      if(actx.state === 'suspended') actx.resume();
+    }catch(err){
+      actx = null;
+      console.warn('[MSDevBuild] audio unavailable, playing silently:', err);
+    }
+  }
+
+  function beep(o){
+    o = o || {};
+    if(!soundOn || !actx) return;
+    try{
+    var t0 = actx.currentTime + (o.delay || 0);
+    var osc = actx.createOscillator();
+    var g = actx.createGain();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(o.freq || 600, t0);
+    if(o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t0 + (o.dur || 0.08));
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(o.gain || 0.05, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (o.dur || 0.08));
+    osc.connect(g); g.connect(master);
+    osc.start(t0); osc.stop(t0 + (o.dur || 0.08) + 0.03);
+    }catch(err){ /* a dropped sound must never interrupt the animation */ }
+  }
+
+  function noiseBurst(dur, gain, sweepFrom, sweepTo){
+    if(!soundOn || !actx) return;
+    try{
+    var len = Math.floor(actx.sampleRate * dur);
+    var buf = actx.createBuffer(1, len, actx.sampleRate);
+    var data = buf.getChannelData(0);
+    for(var i=0;i<len;i++){ data[i] = (Math.random()*2-1) * (1 - i/len); }
+    var src = actx.createBufferSource(); src.buffer = buf;
+    var filter = actx.createBiquadFilter(); filter.type = 'bandpass';
+    var t0 = actx.currentTime;
+    filter.frequency.setValueAtTime(sweepFrom, t0);
+    filter.frequency.exponentialRampToValueAtTime(sweepTo, t0 + dur);
+    filter.Q.value = 1.1;
+    var g = actx.createGain();
+    // Ramp up rather than jumping to full gain — an instant onset is a click.
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(filter); filter.connect(g); g.connect(master);
+    src.start(t0);
+    }catch(err){ /* see beep() */ }
+  }
+
+  // Every pitched effect is quantised to a C major pentatonic scale. Pentatonic
+  // has no dissonant intervals, so effects fired in any order still sound
+  // musical — a run of reveals becomes a rising melodic phrase instead of a
+  // string of beeps. This is the single biggest reason the sound reads as
+  // designed rather than as UI noise.
+  var PENTA = [0, 2, 4, 7, 9];
+  var ROOT = 523.25; // C5
+
+  function scaleFreq(step){
+    step = Math.max(0, step | 0);
+    var octave = Math.floor(step / PENTA.length);
+    var semitone = PENTA[step % PENTA.length] + octave * 12;
+    return ROOT * Math.pow(2, semitone / 12);
+  }
+
+  /** Pitch sweep used for risers — builds anticipation into a payoff. */
+  function sweep(fromFreq, toFreq, dur, gain, type){
+    if(!soundOn || !actx) return;
+    try{
+      var t0 = actx.currentTime;
+      var osc = actx.createOscillator();
+      var g = actx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(fromFreq, t0);
+      osc.frequency.exponentialRampToValueAtTime(toFreq, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(gain, t0 + dur * 0.82);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g); g.connect(master);
+      osc.start(t0); osc.stop(t0 + dur + 0.05);
+    }catch(err){ /* see beep() */ }
+  }
+
+  var SFX = {
+    /** Ascending scale note. Pass the item index for a rising phrase. */
+    blip:  function(i){ beep({ freq: scaleFreq(i || 0), dur: 0.085, gain: 0.026 }); },
+    /** Same phrase an octave up — for secondary or lighter reveals. */
+    step:  function(i){ beep({ freq: scaleFreq((i || 0) + 5), dur: 0.07, gain: 0.02 }); },
+    tick:  function(){ beep({ freq: 1046, dur: 0.03, type: 'square', gain: 0.009 }); },
+    pop:   function(){ beep({ freq: 392, to: 784, dur: 0.12, gain: 0.03 }); },
+    /** Two-note snap for something locking into place. */
+    lock:  function(){ beep({ freq: 659.25, dur: 0.07, gain: 0.03 }); beep({ freq: 987.77, dur: 0.14, gain: 0.026, delay: 0.06 }); },
+    /** Short high blip for data movement — pair with MSD.particles. */
+    data:  function(i){ beep({ freq: scaleFreq((i || 0) + 8), dur: 0.045, gain: 0.014 }); },
+    chime: function(){ beep({ freq: 784, dur: 0.2, gain: 0.03 }); beep({ freq: 1046.5, dur: 0.3, gain: 0.028, delay: 0.11 }); },
+    ding:  function(){ beep({ freq: 587.33, dur: 0.12, gain: 0.032 }); beep({ freq: 880, dur: 0.28, gain: 0.03, delay: 0.1 }); },
+    /** Resolving three-note phrase for a completed idea. */
+    resolve: function(){
+      beep({ freq: 659.25, dur: 0.12, gain: 0.028 });
+      beep({ freq: 783.99, dur: 0.14, gain: 0.028, delay: 0.1 });
+      beep({ freq: 1046.5, dur: 0.34, gain: 0.03, delay: 0.21 });
+    },
+    whoosh:function(up){ noiseBurst(0.42, 0.045, up ? 320 : 2400, up ? 2600 : 300); },
+    swipe: function(){ noiseBurst(0.22, 0.035, 1800, 420); },
+    /** Rising tone that builds tension. Duration in ms, default ~1s. */
+    riser: function(ms){ sweep(220, 1320, (ms || 1000) / 1000, 0.028); },
+    /** Fast four-note arpeggio — satisfying reward for a reveal landing. */
+    sparkle: function(){
+      for(var i = 0; i < 4; i++){
+        beep({ freq: scaleFreq(i + 4), dur: 0.09, gain: 0.019, delay: i * 0.055 });
+      }
+    },
+    /** Soft focus sound — pairs with MSD.focus, feels like a camera settling. */
+    focus: function(){ beep({ freq: 440, to: 660, dur: 0.16, gain: 0.02 }); },
+    thud:  function(){ beep({ freq: 150, to: 48, dur: 0.34, gain: 0.07 }); },
+    error: function(){ beep({ freq: 300, to: 170, dur: 0.2, type: 'sawtooth', gain: 0.03 }); }
+  };
+
+  /* Generative bed: A-minor pad + arpeggio + soft pulse. Deliberately quiet so
+     it sits under narration if voiceover is added in post. */
+  var CHORDS = [[220,261.63,329.63],[174.61,220,261.63],[196,246.94,293.66],[164.81,220,261.63]];
+  var arpStep = 0, chordIndex = 0, musicTimer = null;
+  var MUSIC_LEVEL = 0.028;   // deliberately low — this is a bed, not a track
+  var ARP_MS = 720;          // slower than a click track, so it stays ignorable
+
+  // Built lazily, and only once sound is actually enabled. Oscillators have no
+  // stop time, so creating this graph while muted would keep the OS audio
+  // daemon busy for the life of the tab for no audible benefit.
+  function startMusic(){
+    if(musicStarted || !actx || !musicOn) return;
+    musicStarted = true;
+    try{
+    musicGain = actx.createGain();
+    musicGain.gain.value = musicOn ? MUSIC_LEVEL : 0;
+    // Roll off the highs so the bed sits behind the effects instead of hissing,
+    // and route through master so one control governs everything.
+    var musicTone = actx.createBiquadFilter();
+    musicTone.type = 'lowpass';
+    musicTone.frequency.value = 1400;
+    musicGain.connect(musicTone);
+    musicTone.connect(master || actx.destination);
+
+    // Sustained pad with per-voice LFO breathing.
+    [110, 164.81, 130.81].forEach(function(freq, idx){
+      var osc = actx.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq;
+      var g = actx.createGain(); g.gain.value = 0.4;
+      osc.connect(g); g.connect(musicGain); osc.start();
+      var lfo = actx.createOscillator(); lfo.type = 'sine';
+      lfo.frequency.value = 0.06 + idx * 0.015;
+      var lg = actx.createGain(); lg.gain.value = 0.28;
+      lfo.connect(lg); lg.connect(g.gain); lfo.start();
+    });
+
+    // Arpeggio + pulse, advanced on a timer rather than a sample-accurate
+    // scheduler — at this tempo the drift is inaudible.
+    musicTimer = setInterval(function(){
+      if(!actx || !musicGain) return;
+      var chord = CHORDS[chordIndex % CHORDS.length];
+      var note = chord[arpStep % chord.length] * 2;
+      var t0 = actx.currentTime;
+      var osc = actx.createOscillator(); osc.type = 'sine'; osc.frequency.value = note;
+      var g = actx.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.07, t0 + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6);
+      osc.connect(g); g.connect(musicGain);
+      osc.start(t0); osc.stop(t0 + 0.65);
+
+      if(arpStep % 8 === 0){
+        var k = actx.createOscillator(); var kg = actx.createGain();
+        k.frequency.setValueAtTime(110, t0);
+        k.frequency.exponentialRampToValueAtTime(45, t0 + 0.16);
+        kg.gain.setValueAtTime(0.0001, t0);
+        kg.gain.exponentialRampToValueAtTime(0.28, t0 + 0.012);
+        kg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.28);
+        k.connect(kg); kg.connect(musicGain);
+        k.start(t0); k.stop(t0 + 0.3);
+      }
+      arpStep++;
+      if(arpStep % 16 === 0) chordIndex++;
+    }, ARP_MS);
+    }catch(err){
+      console.warn('[MSDevBuild] music bed unavailable:', err);
+    }
+  }
+
+  function updateGains(){
+    if(musicGain && actx) musicGain.gain.linearRampToValueAtTime(musicOn ? MUSIC_LEVEL : 0, actx.currentTime + 0.4);
+  }
+
+  // The visible toggle governs the flow effects only — that is the sound most
+  // people want. The ambient bed is deliberately keyboard-only.
+  var soundToggle = document.getElementById('sound-toggle');
+  function paintToggle(){ soundToggle.style.opacity = soundOn ? '1' : '0.35'; }
+  soundToggle.addEventListener('click', function(e){
+    e.stopPropagation();
+    ensureAudio(); soundOn = !soundOn; paintToggle();
+  });
+
+  function toggleMusic(){
+    ensureAudio(); musicOn = !musicOn;
+    if(musicOn) startMusic();
+    updateGains();
+  }
+
+  /* ----------------------------------------------------- MSD helper API -- */
+  var stageTimers = [];
+
+  /**
+   * Re-applies a one-shot animation class. Removing the class and forcing a
+   * reflow is what lets the same beat fire twice in a stage — without it the
+   * browser sees no change and the animation never replays.
+   */
+  function retrigger(sel, cls){
+    var els = canvas.querySelectorAll(sel);
+    for(var i = 0; i < els.length; i++){
+      els[i].classList.remove(cls);
+      void els[i].offsetWidth;
+      els[i].classList.add(cls);
+    }
+  }
+
+  function clearStageTimers(){
+    stageTimers.forEach(function(t){ clearTimeout(t); clearInterval(t); });
+    stageTimers = [];
+    // Particles schedule their own removal on a stage timer, so cancelling
+    // those timers would otherwise strand any particle still in flight.
+    var stray = canvas.querySelectorAll('.msd-particle');
+    for(var i = 0; i < stray.length; i++){
+      if(stray[i].parentNode) stray[i].parentNode.removeChild(stray[i]);
+    }
+  }
+
+  var MSD = {
+    /** First match inside the canvas. */
+    q: function(sel){ return canvas.querySelector(sel); },
+    /** All matches inside the canvas, as a real array. */
+    qa: function(sel){ return Array.prototype.slice.call(canvas.querySelectorAll(sel)); },
+
+    /** Reveals .msd-reveal elements one after another, with a blip each. */
+    show: function(sel, stagger, silent){
+      var els = MSD.qa(sel); stagger = stagger == null ? 65 : stagger;
+      els.forEach(function(el, i){
+        MSD.after(i * stagger, function(){
+          el.classList.add('show');
+          if(!silent) SFX.blip(i);
+        });
+      });
+      return els.length;
+    },
+    hide: function(sel){ MSD.qa(sel).forEach(function(el){ el.classList.remove('show'); }); },
+
+    /** Toggles a class on every match. */
+    cls: function(sel, cls, on){
+      MSD.qa(sel).forEach(function(el){ el.classList.toggle(cls, on !== false); });
+    },
+
+    /** Typewriter. Appends into the element, one character at a time. */
+    type: function(sel, text, speed, done){
+      var el = typeof sel === 'string' ? MSD.q(sel) : sel;
+      if(!el) return;
+      speed = speed || 42; el.textContent = '';
+      for(var i = 0; i < text.length; i++){
+        (function(i){
+          MSD.after(i * speed, function(){
+            el.textContent = text.slice(0, i + 1);
+            if(i % 5 === 0) SFX.tick();
+            if(i === text.length - 1 && done) done();
+          });
+        })(i);
+      }
+    },
+
+    /** Counts a number up into an element. */
+    count: function(sel, to, ms, opts){
+      var el = typeof sel === 'string' ? MSD.q(sel) : sel;
+      if(!el) return;
+      opts = opts || {}; ms = ms || 1200;
+      var steps = Math.max(1, Math.round(ms / 40)), i = 0;
+      var id = setInterval(function(){
+        i++;
+        var p = i / steps, eased = 1 - Math.pow(1 - p, 3);
+        var v = to * eased;
+        el.textContent = (opts.prefix || '') + v.toFixed(opts.decimals || 0) + (opts.suffix || '');
+        if(i >= steps){ clearInterval(id); el.textContent = (opts.prefix || '') + to.toFixed(opts.decimals || 0) + (opts.suffix || ''); }
+      }, 40);
+      stageTimers.push(id);
+    },
+
+    /** Emits glowing particles from one point to another inside a host. */
+    particles: function(hostSel, opts){
+      var host = typeof hostSel === 'string' ? MSD.q(hostSel) : hostSel;
+      if(!host) return;
+      opts = opts || {};
+      var n = opts.count || 8, dur = opts.duration || 1200;
+      var from = opts.from || { x: 50, y: 90 }, to = opts.to || { x: 50, y: 10 };
+      for(var i = 0; i < n; i++){
+        (function(i){
+          MSD.after(i * (dur / n / 1.6), function(){
+            var p = document.createElement('div');
+            p.className = 'msd-particle';
+            var jitter = (Math.random() - 0.5) * (opts.spread || 16);
+            p.style.left = 'calc(' + from.x + '% + ' + jitter + 'px)';
+            p.style.top = from.y + '%';
+            p.style.transition = 'left ' + dur + 'ms cubic-bezier(.4,0,.2,1), top ' + dur + 'ms cubic-bezier(.4,0,.2,1), opacity ' + dur + 'ms ease';
+            host.appendChild(p);
+            requestAnimationFrame(function(){
+              p.style.left = 'calc(' + to.x + '% + ' + jitter + 'px)';
+              p.style.top = to.y + '%';
+              p.style.opacity = '0';
+            });
+            MSD.after(dur + 120, function(){ if(p.parentNode) p.parentNode.removeChild(p); });
+          });
+        })(i);
+      }
+    },
+
+    /**
+     * Spotlight. Grows the subject and recedes everything in "othersSel", which
+     * reads as a camera push. One call is usually the difference between a
+     * stage that feels directed and one that feels like a slide.
+     */
+    focus: function(sel, othersSel){
+      MSD.qa('.msd-focus').forEach(function(el){ el.classList.remove('msd-focus'); el.style.transform = ''; });
+      MSD.qa('.msd-recede').forEach(function(el){ el.classList.remove('msd-recede'); });
+      if(othersSel) MSD.qa(othersSel).forEach(function(el){ el.classList.add('msd-recede'); });
+      MSD.qa(sel).forEach(function(el){
+        el.classList.remove('msd-recede');
+        el.classList.add('msd-focus');
+        el.style.transform = 'scale(1.06)';
+      });
+      SFX.focus();
+    },
+    /** Clears any spotlight. */
+    unfocus: function(){
+      MSD.qa('.msd-focus, .msd-recede').forEach(function(el){
+        el.classList.remove('msd-focus'); el.classList.remove('msd-recede');
+        el.style.transform = '';
+      });
+    },
+
+    /** One-shot attention beats. Re-triggerable — the class is removed first. */
+    // Each beat carries its own sound, so motion and audio never drift apart.
+    flash: function(sel){ retrigger(sel, 'msd-flash'); SFX.pop(); },
+    punch: function(sel, i){ retrigger(sel, 'msd-punch'); SFX.blip(i || 0); },
+    shake: function(sel){ retrigger(sel, 'msd-shake'); SFX.error(); },
+
+    /**
+     * Continuous particle stream for the life of the stage. Prefer this over
+     * a one-shot MSD.particles when something is flowing the whole time —
+     * constant motion is what stops a stage feeling static.
+     */
+    stream: function(hostSel, opts){
+      opts = opts || {};
+      var gap = opts.gap || 620;
+      var pulse = 0;
+      MSD.particles(hostSel, opts);
+      if(opts.silent !== true) SFX.data(0);
+      return MSD.every(gap, function(){
+        MSD.particles(hostSel, opts);
+        pulse++;
+        if(opts.silent !== true) SFX.data(pulse % 4);
+      });
+    },
+
+    /** Stage-scoped timers — cleared automatically when the stage changes. */
+    after: function(ms, fn){ var id = setTimeout(fn, ms); stageTimers.push(id); return id; },
+    every: function(ms, fn){ var id = setInterval(fn, ms); stageTimers.push(id); return id; },
+
+    sfx: SFX,
+    stage: 0
+  };
+  window.MSD = MSD;
+
+  /* ---------------------------------------------------------- sequencer -- */
+  var STAGES = window.__MSD_STAGES__ || [];
+  var END_CARD_MS = 2600;
+
+  var track = document.getElementById('progress-track');
+  var segs = STAGES.map(function(){
+    var seg = document.createElement('div'); seg.className = 'seg';
+    var fill = document.createElement('div'); fill.className = 'seg-fill';
+    seg.appendChild(fill); track.appendChild(seg);
+    return seg;
+  });
+
+  var elNum = document.getElementById('stage-num');
+  var elTitle = document.getElementById('stage-title');
+  var elDesc = document.getElementById('stage-desc');
+  var elStatus = document.getElementById('status-text');
+  var elThinking = document.getElementById('thinking');
+  var capCard = document.getElementById('caption-wrap');
+  var endCard = document.getElementById('end-card');
+
+  var cur = -1, seqTimer = null, running = false;
+
+  function escapeHtml(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function paintCaption(s, index){
+    elNum.textContent = 'STEP ' + String(index + 1).padStart(2, '0') + ' / ' + String(STAGES.length).padStart(2, '0');
+    var safe = escapeHtml(s.title);
+    if(s.key){
+      var safeKey = escapeHtml(s.key);
+      safe = safe.replace(safeKey, '<span class="kw-hl">' + safeKey + '</span>');
+    }
+    elTitle.innerHTML = safe;
+    elDesc.textContent = s.desc;
+    elStatus.textContent = s.status;
+    elThinking.classList.toggle('show', !!s.thinking);
+    capCard.classList.remove('pulse'); void capCard.offsetWidth; capCard.classList.add('pulse');
+  }
+
+  function paintTrack(index){
+    segs.forEach(function(seg, i){
+      seg.classList.remove('active');
+      seg.classList.toggle('done', i < index);
+      if(i === index){
+        seg.querySelector('.seg-fill').style.setProperty('--seg-dur', STAGES[i].durationMs + 'ms');
+        seg.classList.add('active');
+      }
+    });
+  }
+
+  function goto(index){
+    clearStageTimers();
+    cur = index; MSD.stage = index;
+    var s = STAGES[index];
+    paintCaption(s, index);
+    paintTrack(index);
+
+    // The transition note climbs the scale stage by stage, so the reel is
+    // audibly "going somewhere" — a cheap but strong reason to keep watching.
+    SFX.whoosh(true);
+    if(index === 0) SFX.thud(); else SFX.blip(index);
+
+    // Build tension across the last stage so the payoff lands instead of
+    // just arriving. Most drop-off happens right before the end.
+    if(index === STAGES.length - 1 && s.durationMs > 1400){
+      var riserMs = Math.min(1100, Math.round(s.durationMs * 0.45));
+      MSD.after(s.durationMs - riserMs, function(){ SFX.riser(riserMs); });
+    }
+
+    if(typeof s.run === 'function'){
+      // A thrown error in one stage must not kill the whole reel.
+      try { s.run(MSD, MSD.q, MSD.qa); }
+      catch(err){ console.error('[MSDevBuild] stage ' + index + ' failed:', err); }
+    }
+
+    seqTimer = setTimeout(function(){
+      if(index + 1 < STAGES.length) goto(index + 1);
+      else finish();
+    }, s.durationMs);
+  }
+
+  function finish(){
+    clearStageTimers();
+    endCard.classList.add('show');
+    // Resolving phrase over the brand card: the audio equivalent of closing
+    // the loop, which is what makes a viewer feel the reel was complete.
+    SFX.thud();
+    SFX.resolve();
+    seqTimer = setTimeout(function(){
+      endCard.classList.remove('show');
+      // Restore the stage to its authored markup so every loop is identical.
+      stageEl.innerHTML = STAGE_HTML_SNAPSHOT;
+      goto(0);
+    }, END_CARD_MS);
+  }
+
+  function start(){
+    if(running) return;
+    running = true;
+    ensureAudio(); paintToggle();
+    document.getElementById('title-screen').classList.add('hide');
+    setTimeout(function(){ goto(0); }, 240);
+  }
+
+  /** Jumps back to stage one from anywhere, including the title screen. */
+  function restart(){
+    clearTimeout(seqTimer); clearStageTimers();
+    endCard.classList.remove('show');
+    stageEl.innerHTML = STAGE_HTML_SNAPSHOT;
+    running = true;
+    document.getElementById('title-screen').classList.add('hide');
+    goto(0);
+  }
+
+  document.getElementById('title-screen').addEventListener('click', start);
+
+  /* ------------------------------------------------------------- capture -- */
+  // The reel is DOM and CSS, not a <canvas>, so there is no stream to grab
+  // directly. Recording the tab through the Screen Capture API is the only way
+  // to produce a file in the browser without shipping a DOM rasteriser, and it
+  // has the side benefit of capturing the Web Audio effects as tab audio.
+  var recordBtn = document.getElementById('record-toggle');
+  var capturing = false;
+
+  function pickMime(){
+    var candidates = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+      'video/mp4'
+    ];
+    for(var i = 0; i < candidates.length; i++){
+      if(window.MediaRecorder && MediaRecorder.isTypeSupported(candidates[i])) return candidates[i];
+    }
+    return '';
+  }
+
+  /** One full pass: every stage plus the end card. */
+  function loopMs(){
+    var total = 0;
+    for(var i = 0; i < STAGES.length; i++) total += STAGES[i].durationMs;
+    return total + END_CARD_MS;
+  }
+
+  function saveBlob(blob, extension){
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = (window.__MSD_SLUG__ || 'msdevbuild-reel') + '.' + extension;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+  }
+
+  function startCapture(){
+    if(capturing) return;
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia || !window.MediaRecorder){
+      window.alert('This browser cannot record the reel.\n\nUse Chrome or Edge on desktop, or screen-record the tab yourself.');
+      return;
+    }
+
+    var mime = pickMime();
+
+    navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: 60 },
+      audio: true,
+      preferCurrentTab: true
+    }).then(function(stream){
+      capturing = true;
+      canvas.classList.add('capturing');
+
+      // A silent recording is a wasted one, and tab audio is captured for free.
+      ensureAudio(); soundOn = true; paintToggle();
+
+      var chunks = [];
+      var recorder = new MediaRecorder(
+        stream,
+        mime ? { mimeType: mime, videoBitsPerSecond: 12000000 } : {}
+      );
+      var stopTimer = null;
+
+      recorder.ondataavailable = function(e){ if(e.data && e.data.size) chunks.push(e.data); };
+      recorder.onstop = function(){
+        stream.getTracks().forEach(function(track){ track.stop(); });
+        capturing = false;
+        canvas.classList.remove('capturing');
+        if(!chunks.length) return;
+        var type = chunks[0].type || mime || 'video/webm';
+        saveBlob(new Blob(chunks, { type: type }), type.indexOf('mp4') > -1 ? 'mp4' : 'webm');
+      };
+
+      function finish(){
+        clearTimeout(stopTimer);
+        if(recorder.state !== 'inactive') recorder.stop();
+      }
+      // "Stop sharing" in the browser's own bar should still save the clip.
+      stream.getVideoTracks().forEach(function(track){
+        track.addEventListener('ended', finish);
+      });
+
+      // Let the picker dialog finish dismissing, then roll: the recording opens
+      // on stage one instead of on a half-faded dialog.
+      setTimeout(function(){
+        recorder.start();
+        setTimeout(restart, 260);
+        stopTimer = setTimeout(finish, 260 + loopMs() + 600);
+      }, 700);
+    }).catch(function(){
+      // Cancelling the picker is a normal outcome, not an error worth shouting.
+    });
+  }
+
+  recordBtn.addEventListener('click', function(e){ e.stopPropagation(); startCapture(); });
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === ' '){ e.preventDefault(); start(); }
+    if(e.key === 's' || e.key === 'S'){ ensureAudio(); soundOn = !soundOn; paintToggle(); }
+    if(e.key === 'm' || e.key === 'M'){ toggleMusic(); }
+    if(e.key === 'r' || e.key === 'R'){ restart(); }
+    if(e.key === 'd' || e.key === 'D'){ startCapture(); }
+  });
+})();
+
+</script>
+</body>
+</html>

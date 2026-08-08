@@ -7,7 +7,7 @@ categories: ['ai', 'engineering']
 tags: ['GitHub Copilot', 'Copilot code review', 'AI code review', 'Copilot Skills', 'SKILL.md', 'Pull request review', 'Code quality', 'Enterprise', '.NET']
 cover: './images/github-copilot-automate-code-review-limits.png'
 coverAlt: 'GitHub Copilot Code Review Automate'
-seoTitle: 'GitHub Copilot Code Review: What to Automate, What Not To'
+seoTitle: 'GitHub Copilot Code Review Limits'
 highlight: 'GitHub Copilot cannot automate code review 100%. It reliably owns the mechanical layer — standards, naming, missing tests, obvious security smells, layer-boundary breaks. It cannot own the judgment layer — is this the right design, does it fit the business context, is the trade-off worth it, and who is accountable for what ships. Automate the checklist; keep the human for the conversation.'
 series: 'agents-md-instructions'
 seriesOrder: 8
@@ -15,15 +15,15 @@ featured: true
 draft: false
 faq:
   - q: 'Can GitHub Copilot fully automate code review?'
-    a: 'No. Copilot can automate the mechanical layer of review — coding standards, naming, missing tests, obvious security smells, and layer-boundary violations — but it cannot own the judgment layer. Deciding whether a design fits the business context, whether a trade-off is worth the complexity, and who is accountable for what ships stays with a human. Realistically you automate most of the review tax, not the judgment.'
+    a: 'No. Copilot can automate the mechanical layer of review — coding standards, naming, missing tests, obvious security smells, and layer-boundary violations — but not the judgment layer. Whether a design fits the business context, and who is accountable for what ships, stays with a human.'
   - q: 'What can an AI code review Skill reliably catch?'
-    a: 'A well-written review Skill reliably catches rule-based issues: naming and formatting deviations, business logic sitting in a controller, missing unit tests for new logic, missing validators, hardcoded secrets, unstructured logging, swallowed exceptions, and responses that break your API contract. These are consistent, checklist-style problems, and that is exactly where AI is strong and tireless.'
+    a: 'A well-written review Skill reliably catches rule-based issues: naming and formatting deviations, business logic sitting in a controller, missing unit tests, missing validators, hardcoded secrets, unstructured logging, swallowed exceptions, and responses that break your API contract. Checklist problems are where AI is tireless.'
   - q: 'What does AI code review miss?'
-    a: 'It misses design and architecture flaws that are correct line by line, code that is clean but solves the wrong problem, threat-model level security issues, and any trade-off that needs business context. It also has no accountability and can flood a PR with low-value nitpicks that bury the one comment that mattered. Never trust its suggestions blindly.'
+    a: 'It misses design and architecture flaws that are correct line by line, code that is clean but solves the wrong problem, threat-model level security issues, and any trade-off that needs business context. It also has no accountability, and can bury the one comment that mattered under low-value nitpicks.'
   - q: 'Should AI be allowed to approve or merge PRs?'
     a: 'No. Let AI produce a first-pass structured review and enforce standards, but keep a human as the accountability gate on approval and merge. Someone has to own what ships to production, and an AI cannot carry that responsibility. Use it to speed the review, not to remove the reviewer.'
   - q: 'How do I make Copilot PR review more efficient without the noise?'
-    a: 'Give the review Skill a strict output format — blocking issues, suggestions, and questions for the author, in that order — and tell it to report at most a few high-value items instead of every nitpick. Scope it to the diff, tie it to your real standards, and let it run before a human opens the PR so people arrive to discuss design, not formatting.'
+    a: 'Give the review Skill a strict output format — blocking issues, suggestions, then questions for the author — and tell it to report a few high-value items instead of every nitpick. Scope it to the diff, tie it to your real standards, and run it before a human opens the PR.'
 ---
 
 import Callout from '../../../components/mdx/Callout.astro';

@@ -1,27 +1,27 @@
 ---
 title: 'Building a GitHub Copilot Security Agent for Legacy Systems (Honestly)'
-description: 'Building a GitHub Copilot security agent for legacy systems: what AI security review catches, what it misses, and why CodeQL and Dependabot stay the gate.'
-publishedAt: 2026-07-26
+description: 'A GitHub Copilot security agent for legacy systems: what AI review catches, what it misses, and why CodeQL and Dependabot stay the gate.'
+publishedAt: 2026-08-12
 category: copilot
 categories: ['ai', 'devops']
 tags: ['GitHub Copilot security agent', 'AI security review', 'Legacy application security', 'Copilot OWASP', 'GitHub Copilot Skills', 'CodeQL', 'Dependabot', 'Secret scanning', 'GitHub Copilot Hooks', 'Enterprise security', 'Cybersecurity']
-seoTitle: 'GitHub Copilot Security Agent for Legacy Systems'
+seoTitle: 'Copilot Security Agent for Legacy Systems'
 highlight: 'A GitHub Copilot security agent is a force multiplier for review and triage, not a security sign-off. It reliably flags obvious, pattern-level issues and reliably misses the ones that hurt: business-logic authorization flaws and broken access control. The honest design: AI advises, deterministic scanners (CodeQL, Dependabot, secret scanning) block, and a human decides.'
-series: 'agents-md-instructions'
-seriesOrder: 17
+series: 'legacy-modernization'
+seriesOrder: 4
 featured: false
 draft: true
 faq:
   - q: 'Can GitHub Copilot do a security review?'
-    a: 'Partly. A GitHub Copilot security agent does a useful first-pass, advisory review — it flags concatenated SQL, hardcoded-looking secrets, missing authorization attributes, and surfaces OWASP-category candidates, and it can explain a CVE and draft a fix. It cannot own the review. It misses business-logic authorization flaws and broken access control, and it can hallucinate a vulnerability that does not exist. Treat its output as a triage aid, not a sign-off.'
+    a: 'Partly. A GitHub Copilot security agent does a useful first-pass, advisory review — it flags concatenated SQL, hardcoded-looking secrets, and missing authorization attributes, and can explain a CVE and draft a fix. It cannot own the review: it misses business-logic authorization flaws and can hallucinate a vulnerability.'
   - q: 'What security issues does AI miss in a code review?'
-    a: 'The ones that hurt most. AI misses business-logic authorization flaws (can user A act on user B''s resource?), broken access control across a multi-step workflow, trust-boundary and threat-model gaps, and anything that is correct line by line but wrong in context. These need human judgment and a real threat model. AI reads patterns; these flaws are about intent and workflow, not patterns.'
+    a: 'The ones that hurt most. AI misses business-logic authorization flaws (can user A act on user B''s resource?), broken access control across a multi-step workflow, trust-boundary and threat-model gaps, and anything correct line by line but wrong in context. Those are about intent and workflow, not patterns.'
   - q: 'Should AI approve security fixes?'
-    a: 'No. Let the agent draft a remediation and explain the risk, but a human security engineer must review and approve any security fix, and a deterministic scanner must confirm it. AI has no accountability, and a fix that looks correct can still miss the real trust boundary. AI advises; the human decides what ships.'
+    a: 'No. Let the agent draft a remediation and explain the risk, but a human security engineer must review and approve any security fix, and a deterministic scanner must confirm it. AI has no accountability, and a fix that looks correct can still miss the real trust boundary.'
   - q: 'How do I make GitHub Copilot enforce our security rules?'
-    a: 'You do not make Copilot enforce anything — Copilot advises. You encode your rules in a security Skill (SKILL.md) so the agent reviews against your standards, then you enforce with the deterministic layer: CodeQL code scanning, Dependabot and dependency review, and secret scanning with push protection as required checks under branch protection, plus a preToolUse or pre-commit hook that blocks secrets locally. The scanner and branch protection are the gate; the Skill just makes the AI advice match your rules.'
+    a: 'You do not — Copilot advises. Encode your rules in a security Skill (SKILL.md) so the agent reviews against your standards, then enforce with the deterministic layer: CodeQL, Dependabot, and secret scanning with push protection as required checks, plus a hook that blocks secrets locally.'
   - q: 'What is the difference between a Copilot security agent and scanners like CodeQL or Dependabot?'
-    a: 'The agent is probabilistic and advisory — it reasons in natural language, explains issues, drafts fixes, and triages, but it can be wrong in both directions. CodeQL, Dependabot, and secret scanning are deterministic and enforceable — they run the same way every time and can block a merge or a push. The agent helps humans understand and prioritise; the scanners are what you actually gate on.'
+    a: 'The agent is probabilistic and advisory — it reasons in natural language, explains issues, drafts fixes, and triages, but can be wrong in both directions. CodeQL, Dependabot, and secret scanning are deterministic and enforceable: they run the same way every time and can block a merge. Scanners are what you gate on.'
 ---
 
 import Layers from '../../../components/mdx/Layers.astro';

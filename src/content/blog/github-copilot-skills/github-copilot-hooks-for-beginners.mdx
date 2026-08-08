@@ -5,7 +5,7 @@ publishedAt: 2026-08-02
 category: copilot
 categories: ['ai', 'engineering']
 tags: ['GitHub Copilot', 'GitHub Copilot Hooks', 'Copilot CLI', 'Copilot agent', 'AI coding safety', 'preToolUse', 'Deterministic guardrails', 'Automation', 'DevOps']
-seoTitle: 'GitHub Copilot Hooks for Beginners: Why and What to Build'
+seoTitle: 'GitHub Copilot Hooks for Beginners'
 highlight: 'A GitHub Copilot hook is a small shell script that runs automatically at a fixed point in an agent session, outside the AI model. Because it runs outside the model, it is deterministic: it does exactly what you told it, every time. Instructions ask the AI nicely. Hooks enforce. The checks you must never skip belong in a hook, not in a polite request to a probabilistic model.'
 series: 'agents-md-instructions'
 seriesOrder: 10
@@ -13,11 +13,11 @@ featured: true
 draft: false
 faq:
   - q: 'What are GitHub Copilot hooks?'
-    a: 'GitHub Copilot hooks are custom shell commands or scripts that run automatically at fixed points during a Copilot agent or Copilot CLI session, such as when the session starts or before the agent runs a tool. They execute outside the AI model, so they are deterministic: they do exactly what you configured, every time, and they can enforce rules the model might otherwise ignore.'
+    a: 'GitHub Copilot hooks are shell commands or scripts that run automatically at fixed points in a Copilot agent or Copilot CLI session — when the session starts, or before the agent runs a tool. They execute outside the model, so they are deterministic: they do exactly what you configured, every time.'
   - q: 'Where do Copilot hooks live in a repo?'
-    a: 'In a repository, hooks live in JSON files under `.github/hooks/`, and they apply whenever a Copilot agent runs in that repo. Copilot CLI also reads hooks from `~/.copilot/config.json` for global hooks or `.copilot/config.json` for repo-local ones, under a "hooks" key. Because it is an evolving feature, confirm the exact path against current GitHub docs.'
-  - q: "What can a hook do that instructions can't?"
-    a: 'Instructions are advisory: they guide a probabilistic model that may or may not follow them. A hook is deterministic code that runs every time, so it can hard-enforce a rule, block a dangerous command before it runs, log every prompt for audit, or run a formatter after every edit. If a check must never be skipped, it belongs in a hook, not in an instruction.'
+    a: 'In a repository, hooks live in JSON files under `.github/hooks/` and apply whenever a Copilot agent runs there. Copilot CLI also reads a "hooks" key from `~/.copilot/config.json` globally or `.copilot/config.json` per repo. It is an evolving feature, so confirm the path against current GitHub docs.'
+  - q: 'What can a hook do that instructions can''t?'
+    a: 'Instructions are advisory: they guide a probabilistic model that may or may not follow them. A hook is deterministic code that runs every time, so it can hard-enforce a rule, block a dangerous command before it runs, log every prompt, or run a formatter after every edit. If a check must never be skipped, it belongs in a hook.'
   - q: 'Can a hook block the agent from running a command?'
     a: 'Yes. The preToolUse hook runs before the agent uses a tool such as bash or edit, and it can approve or deny that tool call. That is what makes it the most powerful event: you can block a destructive command like a recursive delete or a force-push before it ever executes, no matter what the model decided to do.'
   - q: 'Do I need to be an expert to write a Copilot hook?'

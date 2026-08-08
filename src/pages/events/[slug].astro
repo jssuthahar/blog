@@ -65,7 +65,7 @@ const facts: { label: string; value: string; href?: string }[] = [
 ---
 
 <BaseLayout
-  title={data.title}
+  title={data.seoTitle ?? data.title}
   description={data.description}
   canonical={path}
   type="article"

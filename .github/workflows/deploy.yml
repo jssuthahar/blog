@@ -3,6 +3,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  # A post with a future publishedAt is not built until its date arrives, so
+  # something has to rebuild on that day. 05:30 UTC is 11:00 IST — a post dated
+  # today is live by late morning here, without anyone touching the repo.
+  # GitHub throttles cron under load; a post going out an hour late is fine.
+  schedule:
+    - cron: '30 5 * * *'
   # Lets you re-publish without a commit (useful for scheduled posts).
   workflow_dispatch:
 

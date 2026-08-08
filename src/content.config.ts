@@ -163,6 +163,11 @@ const events = defineCollection({
         /** Meeting link for online events, revealed on the detail page. */
         joinUrl: z.string().url().optional(),
 
+        /** Search-results title, when the event's own name would truncate.
+         *  The on-page H1 always stays as `title` — an event is known by its
+         *  real name, so shorten what Google shows, never what attendees read. */
+        seoTitle: z.string().max(70).optional(),
+
         cover: image().optional(),
         coverAlt: z.string().optional(),
 

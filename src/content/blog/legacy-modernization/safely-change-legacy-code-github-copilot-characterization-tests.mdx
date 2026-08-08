@@ -1,27 +1,27 @@
 ---
 title: 'Safely Change Legacy Code with GitHub Copilot: Characterization Tests and the Strangler Fig Pattern'
 description: 'Change legacy code safely with GitHub Copilot: characterization tests, the Strangler Fig pattern, and CI gates so a fast AI refactor cannot break behavior.'
-publishedAt: 2026-07-26
+publishedAt: 2026-08-10
 category: copilot
 categories: ['ai', 'architecture']
 tags: ['safely change legacy code GitHub Copilot', 'Characterization tests', 'Strangler Fig pattern', 'Legacy refactoring with AI', 'GitHub Copilot tests', 'Regression testing AI', 'Legacy code modernization', 'Enterprise GitHub Copilot', 'AI refactoring safety', '.NET']
-seoTitle: 'Safely Change Legacy Code with GitHub Copilot'
+seoTitle: 'Safely Change Legacy Code with Copilot'
 highlight: 'AI makes generating a legacy change easy and knowing it is safe hard. The seatbelt is not trusting Copilot, and not even letting Copilot review the diff (that is advisory). It is characterization tests that pin current behavior bugs and all, the Strangler Fig pattern that grows the new around the old, and deterministic hook and CI gates. AI is the accelerator; tests are the safety net.'
-series: 'agents-md-instructions'
-seriesOrder: 16
+series: 'legacy-modernization'
+seriesOrder: 3
 featured: false
 draft: true
 faq:
   - q: 'How do I safely refactor legacy code with Copilot?'
-    a: 'Pin the current behavior in characterization tests before you touch anything, so any behavior change becomes a visible test failure. Then have Copilot generate the change behind a seam using the Strangler Fig pattern, verify parity against those tests, and gate the merge with deterministic hooks and required CI checks. Copilot is the accelerator that writes the tests and the change fast; the tests are what let it move without breaking behavior nobody documented.'
+    a: 'Pin the current behavior in characterization tests before you touch anything, so any behavior change fails loudly. Then have Copilot generate the change behind a seam using the Strangler Fig pattern, verify parity against those tests, and gate the merge with deterministic hooks and required CI checks.'
   - q: 'What are characterization tests?'
-    a: 'Characterization tests capture what code actually does right now — including its bugs — rather than what it should do. You feed a range of inputs, snapshot the real outputs, and assert against those snapshots. Their job is not correctness; it is to make any change in behavior fail loudly. On untested legacy code they are the first safety net you build before refactoring, and Copilot can generate the bulk of them from existing behavior.'
+    a: 'Characterization tests capture what code actually does right now — including its bugs — rather than what it should do. You feed a range of inputs, snapshot the real outputs, and assert against those snapshots. Their job is not correctness; it is to make any change in behavior fail loudly.'
   - q: 'Can Copilot write tests for untested legacy code?'
-    a: 'Yes, and this is one of its strongest legacy use cases. Copilot can read a method, enumerate representative inputs, run or infer the outputs, and generate golden-master characterization tests that pin current behavior. The catch is that it asserts what the code does, not what it should do, and it can produce tests that pass trivially without exercising the logic. A human must curate the important edge cases and reject assert-nothing tests.'
+    a: 'Yes, and this is one of its strongest legacy use cases. Copilot can read a method, enumerate representative inputs, and generate golden-master tests that pin current behavior. The catch: it asserts what the code does, not what it should, and can produce tests that pass without exercising the logic.'
   - q: 'What is the Strangler Fig pattern?'
-    a: 'The Strangler Fig pattern replaces a legacy system incrementally instead of in one big-bang rewrite. You wrap the old code in a seam, route a small slice of traffic to a new implementation, verify it behaves identically, then expand the slice until the old code is dead and can be removed. It is named after a fig that grows around a host tree and eventually replaces it, and it is the safest modernization path because you are never far from a working system.'
+    a: 'The Strangler Fig pattern replaces a legacy system incrementally instead of in one big-bang rewrite. You wrap the old code in a seam, route a small slice of traffic to a new implementation, verify it behaves identically, then expand the slice until the old code is dead. You are never far from a working system.'
   - q: 'Can I trust AI-generated tests?'
-    a: 'Trust the ones you have read, not the ones you have counted. AI can generate tests that pass without asserting anything meaningful, encode an existing bug as the correct answer, or skip the exact edge case that matters. Coverage percentage is not safety. Review AI-generated tests for real assertions, curate the cases that carry business risk, and make a conscious decision before "fixing" any behavior a characterization test captured.'
+    a: 'Trust the ones you have read, not the ones you have counted. AI can generate tests that assert nothing meaningful, encode an existing bug as the correct answer, or skip the edge case that matters. Coverage percentage is not safety. Review for real assertions and curate the cases that carry business risk.'
 ---
 
 import Pipeline from '../../../components/mdx/Pipeline.astro';

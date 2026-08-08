@@ -1,35 +1,31 @@
 ---
 title: 'GitHub Copilot Agents for Legacy Applications: A Complete Guide to Building an AI-Powered Development Team'
-description: 'A handbook for GitHub Copilot Agents on legacy code: what counts as a real feature, what is a pattern, and how to build an AI development team around it.'
+description: 'A handbook for GitHub Copilot Agents on legacy code: what is a real feature, what is a pattern, and how to build an AI development team around it.'
 publishedAt: 2026-08-06
 category: copilot
 categories: ['ai', 'architecture']
 tags: ['GitHub Copilot Agents', 'Legacy Applications', 'Copilot Agent Mode', 'Multi Agent Architecture', 'AI Software Modernization', 'GitHub Copilot Skills', 'GitHub Copilot Instructions', 'Enterprise AI', '.NET', 'Flutter', 'Azure']
-seoTitle: 'GitHub Copilot Agents for Legacy Applications'
+seoTitle: 'GitHub Copilot Agents for Legacy Apps'
 highlight: 'A team of specialized Copilot agents is not a switch you turn on. GitHub ships the real primitives: custom agents in .github/agents, AGENTS.md, copilot-instructions.md, Skills, and Hooks. The developer/tester/security/architecture "AI team" is a pattern you compose on top of them. The highest-value asset for a legacy app is an Application Knowledge Skill that captures behaviour nobody documented.'
-series: 'agents-md-instructions'
+series: 'legacy-modernization'
 cover: './images/Agents for Legacy.jpg'
 coverAlt: 'A team of specialized Copilot agents is not a switch you turn on. GitHub ships the real primitives: custom agents in .github/agents, AGENTS.md, copilot-instructions.md, Skills, and Hooks. The developer/tester/security/architecture "AI team" is a pattern you compose on top of them. The highest-value asset'
-seriesOrder: 14
+seriesOrder: 1
 featured: true
 draft: false
 faq:
   - q: 'What are GitHub Copilot Agents?'
-    a: 'GitHub Copilot Agents are AI workers that can take on a task and carry it through multiple steps — reading code, editing files, running tools — rather than just autocompleting a line. Custom agents are defined as .agent.md files in your repository''s .github/agents/ folder, each with YAML frontmatter (name, description, tools) and Markdown instructions that shape its behaviour. They run in Copilot''s coding agent, the Copilot CLI, and increasingly in the editor.'
+    a: 'GitHub Copilot Agents are AI workers that take on a task and carry it through multiple steps — reading code, editing files, running tools — rather than autocompleting a line. Custom agents are .agent.md files in .github/agents/, each with YAML frontmatter (name, description, tools) and Markdown instructions.'
   - q: 'How can GitHub Copilot understand a legacy application?'
-    a: 'Copilot understands a legacy app only as well as you describe it. It reads the code, but old code rarely explains its own business rules. You bridge that gap with three things: a copilot-instructions.md and AGENTS.md that state conventions, and an Application Knowledge Skill that captures the business modules, workflows, and rules the original developers never wrote down. That documentation, not the model, is what turns weeks of code archaeology into minutes.'
+    a: 'Only as well as you describe it. Copilot reads the code, but old code rarely explains its own business rules. You bridge that gap with a copilot-instructions.md and AGENTS.md stating conventions, and an Application Knowledge Skill capturing the modules, workflows, and rules nobody ever wrote down.'
   - q: 'What is the difference between GitHub Copilot Skills and Agents?'
-    a: 'An agent is the worker; a Skill is the playbook it reaches for. The agent decides what to do and executes multi-step work. A Skill is a reusable folder of instructions (a SKILL.md) that Copilot loads only when a task matches its description. Agents provide autonomy and role; Skills provide the domain-specific method. On a legacy app you want both: role-specialized agents that call a shared Application Knowledge Skill.'
-  - q: 'How do multiple Copilot agents work together?'
-    a: 'They work together as an orchestration pattern you design, not a turnkey team GitHub ships. You define a main orchestrator agent that reads the request, decides which specialized agents (developer, tester, security, architecture) apply, delegates, and validates the result. Custom agents support handoffs between agents, but treat the multi-agent team as a structure you assemble from real primitives and confirm against current GitHub docs.'
+    a: 'An agent is the worker; a Skill is the playbook it reaches for. The agent decides what to do and executes multi-step work. A Skill is a reusable folder of instructions (a SKILL.md) Copilot loads only when a task matches its description. On a legacy app you want both: role agents calling a shared Application Knowledge Skill.'
   - q: 'Can GitHub Copilot help modernize old applications?'
-    a: 'Yes, but its biggest value is understanding, not rewriting. Before Copilot can safely change a 10-year-old system, someone has to explain how that system behaves. Copilot accelerates the discovery and knowledge-extraction phases — mapping dependencies, explaining flows, drafting the documentation that never existed — so human engineers can modernize with far less risk. It is a knowledge bridge first and a code generator second.'
+    a: 'Yes, but its biggest value is understanding, not rewriting. Before Copilot can safely change a 10-year-old system, someone has to explain how that system behaves. It accelerates discovery and knowledge extraction — mapping dependencies, explaining flows, drafting the documentation that never existed.'
   - q: 'What files should be created before using Copilot agents?'
-    a: 'Start with .github/copilot-instructions.md for repo-wide conventions, path-specific *.instructions.md for per-area rules, and an AGENTS.md for how agents should operate. Then add role agents under .github/agents/*.agent.md, Skills under .github/skills/, reusable prompt files, and hooks under .github/hooks/. Create the documentation and Application Knowledge Skill before you expect good output.'
-  - q: 'How do you create enterprise-level Copilot Skills?'
-    a: 'Start from a real engineering problem, write a sharp description that states exactly when the Skill applies, keep each Skill focused on one job, include concrete examples from your codebase, add a validation checklist, and version it in the repo so it is reviewed in pull requests. For legacy work, the flagship Skill is an Application Knowledge Skill that documents business modules, workflows, and rules.'
+    a: 'Start with .github/copilot-instructions.md for repo-wide conventions, path-specific *.instructions.md for per-area rules, and an AGENTS.md for how agents should operate. Then add role agents under .github/agents/, Skills under .github/skills/, prompt files, and hooks. Write the documentation before you expect good output.'
   - q: 'How do Hooks improve AI development workflows?'
-    a: 'Hooks run deterministic scripts at fixed points in an agent session, outside the AI model. They enforce rules the probabilistic model might skip: a preToolUse hook can block a destructive command, a pre-commit gate can run tests and secret scans, and a post-development hook can auto-generate docs. On legacy code, where one bad change is expensive, hooks are the guardrails that make AI-assisted development safe.'
+    a: 'Hooks run deterministic scripts at fixed points in an agent session, outside the AI model. They enforce rules the probabilistic model might skip: a preToolUse hook can block a destructive command, a pre-commit gate can run tests and secret scans, a post-development hook can generate docs. On legacy code, hooks are the guardrails.'
 ---
 import Flow from '../../../components/mdx/Flow.astro';
 import Orchestration from '../../../components/mdx/Orchestration.astro';

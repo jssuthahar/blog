@@ -144,12 +144,19 @@ function frontmatterValue(raw, key) {
 // BaseHead.astro renders "<title> | MSDEVBUILD by Suthahar", so a frontmatter
 // title is never what search engines actually measure. Charge the suffix to
 // every content title or the numbers here would disagree with --dist.
-const BRAND_SUFFIX = ' | MSDEVBUILD by Suthahar';
+// Keep in sync with `fullTitle` in src/components/BaseHead.astro. If the two
+// disagree, source mode and --dist mode report different numbers for the same
+// page, and the one you trust is whichever you ran last.
+const BRAND_SUFFIX = ' | MSDEVBUILD';
 
 function readContentFile(path) {
   const raw = readFileSync(path, 'utf8');
   const draft = /^draft:\s*true\s*$/m.test(raw.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '');
-  const title = frontmatterValue(raw, 'title');
+  // What search engines see is `seoTitle ?? title` — the page sets it that way
+  // so a long, human on-page H1 can keep a short title in the results. Measure
+  // the same thing, or every post that has already been fixed with a seoTitle
+  // reports as broken and the real over-length ones get lost in the noise.
+  const title = frontmatterValue(raw, 'seoTitle') ?? frontmatterValue(raw, 'title');
   return {
     path,
     draft,
@@ -199,6 +206,11 @@ function collect() {
     .filter((f) => {
       // README.md files document a content folder; they never become pages.
       if (/README\.mdx?$/i.test(f)) return false;
+      // A short's .md is its caption sheet, not a page — see docs/SHORTS.md.
+      // The page metadata lives in the sibling .spec.json, so demanding
+      // frontmatter here only produces failures nobody can fix, and a gate that
+      // is permanently red is a gate everyone learns to ignore.
+      if (/[\\/]src[\\/]content[\\/]Real[\\/]/.test(f)) return false;
       try {
         return statSync(f).isFile();
       } catch {

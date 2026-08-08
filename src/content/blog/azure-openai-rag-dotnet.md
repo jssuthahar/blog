@@ -1,6 +1,7 @@
 ---
 title: 'Building a RAG Pipeline in .NET with Azure OpenAI and Azure AI Search'
 description: 'End-to-end retrieval-augmented generation in C#: chunking, embeddings, hybrid vector search, and grounding a chat completion so it cites its sources.'
+seoTitle: 'RAG in .NET with Azure OpenAI'
 highlight: 'Chunk on semantic boundaries at 500-800 tokens with 15% overlap, retrieve with hybrid search plus semantic reranking, then instruct the model to answer only from the supplied context. Retrieval quality decides whether a RAG system is any good - not the prompt.'
 publishedAt: 2026-07-18
 category: ai

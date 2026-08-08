@@ -1,5 +1,6 @@
 ---
 title: 'Azure Fundamentals Bootcamp — AZ-900 in a Day'
+seoTitle: 'Azure Fundamentals Bootcamp (AZ-900)'
 description: 'A free full-day bootcamp covering Azure core services, pricing, and governance, mapped to the AZ-900 certification exam.'
 startDate: 2025-08-16T10:00:00
 endDate: 2025-08-16T16:00:00

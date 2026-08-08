@@ -48,12 +48,19 @@ const showAds = ads ?? !noindex;
 
 const canonicalUrl = new URL(canonical ?? Astro.url.pathname, SITE.url);
 const imageUrl = new URL(image, SITE.url);
-// Every page is attributed, so a search result or a shared link names the
-// author without the reader having to click through. The home page title
-// carries the positioning line instead of the plain brand, so the site's
+// The suffix is the brand alone, not the brand plus byline. Google truncates a
+// desktop title around 600px, and " | MSDEVBUILD by Suthahar" costs 270px of
+// that — 45% of the budget spent before the page has said anything, which left
+// roughly 30 characters for the actual title and truncated nearly every post.
+// Dropping the byline buys back 121px. Attribution does not suffer: the author
+// is carried by the Person node in the JSON-LD graph, twitter:creator, and the
+// visible byline on the page — all of which survive where a truncated title
+// tail does not. The home page keeps the positioning line, so the site's
 // <title> reads as a multi-stack platform rather than a .NET blog.
+const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `${title} | ${SITE.title}`;
+// og:site_name has no pixel budget to spend, so the byline stays where it costs
+// nothing — a shared card still reads "MSDEVBUILD by Suthahar".
 const brand = `${SITE.title} ${SITE.byline}`;
-const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `${title} | ${brand}`;
 ---
 
 <meta charset="utf-8" />

@@ -1,6 +1,7 @@
 ---
 title: 'How to Secure a .NET Minimal API with JWT Bearer Authentication'
 description: 'A working JWT bearer auth setup for ASP.NET Core Minimal APIs — token validation, role policies, and the config mistakes that silently disable security.'
+seoTitle: 'Secure a .NET Minimal API with JWT'
 highlight: 'Register AddJwtBearer with all four validation flags set explicitly, call UseAuthentication() before UseAuthorization(), and protect route groups rather than individual endpoints. The two failures that bite most teams are a silently weakened signature check and middleware ordering.'
 publishedAt: 2026-07-10
 updatedAt: 2026-07-21

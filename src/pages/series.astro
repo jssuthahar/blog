@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Newsletter from '../components/Newsletter.astro';
 import SeriesQuickNav from '../components/SeriesQuickNav.astro';
-import { getSeriesIndex, formatDate, postUrl } from '../lib/posts';
+import { getSeriesIndex, formatDate, postUrl, seriesUrl } from '../lib/posts';
 
 const series = await getSeriesIndex();
 ---
@@ -24,10 +24,12 @@ const series = await getSeriesIndex();
 
   <div class="mt-10 space-y-8">
     {series.map(({ id, title, description, parts, latest }) => (
-      <!-- id + scroll-mt: /series/#slug is how every quick link arrives here. -->
+      <!-- id + scroll-mt kept: older links and shares still arrive at /series/#slug. -->
       <section id={id} class="scroll-mt-20 rounded-xl border border-default p-6">
         <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2 class="text-xl font-semibold tracking-tight capitalize">{title}</h2>
+          <h2 class="text-xl font-semibold tracking-tight capitalize">
+            <a href={seriesUrl(id)} class="hover:text-accent">{title}</a>
+          </h2>
           <p class="text-xs text-muted">
             {parts.length} parts · updated {formatDate(latest.data.publishedAt)}
           </p>

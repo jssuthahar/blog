@@ -1,29 +1,29 @@
 ---
 title: 'Making GitHub Copilot Understand a Legacy Codebase Nobody Documented'
-description: 'A repeatable method for legacy discovery: turning business rules, workflows and history a decade-old codebase never documented into knowledge Copilot uses.'
+description: 'A repeatable method for legacy discovery: turning the business rules, workflows and history a codebase never documented into knowledge Copilot uses.'
 publishedAt: 2026-08-07
 category: copilot
 categories: ['ai', 'architecture']
 tags: ['GitHub Copilot legacy codebase', 'Legacy application discovery', 'Application Knowledge Skill', 'GitHub Copilot Instructions', 'AGENTS.md', 'AI software modernization', 'Reverse engineering legacy code', 'Enterprise GitHub Copilot', 'Knowledge extraction', '.NET']
-seoTitle: 'GitHub Copilot Legacy Codebase Discovery Method'
+seoTitle: 'GitHub Copilot Legacy Code Discovery'
 highlight: ' and AGENTS.md so Copilot stops guessing. AI can draft the map; a human must verify it, because a confidently wrong knowledge file is worse than none.'
-series: 'agents-md-instructions'
+series: 'legacy-modernization'
 cover: './images/Documented.jpg'
 coverAlt: 'GitHub Copilot is only as smart as the context you feed it. On a ten-year-old system the code is the symptom, and the real knowledge lives in git history and people''s heads. Discovery extracts that into instructions, an Application Knowledge Skill,'
-seriesOrder: 15
+seriesOrder: 2
 featured: true
 draft: false
 faq:
   - q: 'What is legacy codebase discovery for GitHub Copilot?'
-    a: 'Legacy codebase discovery is the structured process of extracting an undocumented application''s architecture, business rules, dependencies, and history into machine-readable knowledge that GitHub Copilot can load. It usually produces a copilot-instructions.md, path-specific instruction files, an Application Knowledge Skill, and an AGENTS.md. The goal is to replace Copilot''s guessing with verified context so its suggestions respect rules the original developers never wrote down.'
+    a: 'Legacy codebase discovery is the structured process of extracting an undocumented application''s architecture, business rules, dependencies, and history into knowledge GitHub Copilot can load. It produces a copilot-instructions.md, path-specific instruction files, an Application Knowledge Skill, and an AGENTS.md.'
   - q: 'Can GitHub Copilot understand an undocumented application?'
-    a: 'Only as well as you describe it. Copilot reads the code, but old code explains what it does, not why it does it. It cannot infer a business rule that lives in a senior developer''s memory or a two-year-old support ticket. You bridge that gap with instructions and an Application Knowledge Skill that capture the modules, workflows, and load-bearing rules. That documentation, not the model, is what makes Copilot safe on legacy code.'
+    a: 'Only as well as you describe it. Copilot reads the code, but old code explains what it does, not why. It cannot infer a business rule that lives in a senior developer''s memory or a two-year-old support ticket. You bridge that gap with instructions and an Application Knowledge Skill capturing the load-bearing rules.'
   - q: 'What is an Application Knowledge Skill?'
-    a: 'An Application Knowledge Skill is a reusable Skill file (a SKILL.md under .github/skills/) that documents your application''s business modules, workflows, and load-bearing rules. Copilot loads it on demand when a task touches that area, so the deep domain knowledge stays out of the always-on context window until it is needed. On a legacy app it is the single highest-value artifact you can build.'
+    a: 'An Application Knowledge Skill is a reusable Skill file (a SKILL.md under .github/skills/) documenting your application''s business modules, workflows, and load-bearing rules. Copilot loads it on demand when a task touches that area, so deep domain knowledge stays out of the always-on context window until it is needed.'
   - q: 'Should I trust AI-generated documentation of legacy code?'
-    a: 'Draft with it, never ship it unverified. AI will confidently invent a plausible rationale for code it cannot actually explain, mislabel dead code as important, and state guesses as facts. Every extracted rule must be checked against tests, real behaviour, and the people who know the system. A confidently wrong knowledge file steers every future AI change in the wrong direction, which is worse than having no file at all.'
+    a: 'Draft with it, never ship it unverified. AI will invent a plausible rationale for code it cannot explain, mislabel dead code as important, and state guesses as facts. Check every extracted rule against tests, real behaviour, and the people who know the system. A confidently wrong knowledge file is worse than no file at all.'
   - q: 'How do I keep the legacy knowledge current?'
-    a: 'Treat the Application Knowledge Skill as code. Update it in the same pull request that changes a documented module, assign an owner per module, and add a hook that flags when a documented file changes without its knowledge file being touched. Discovery is not a one-time project. An out-of-date knowledge file rots into a confidently wrong one, so update-on-change discipline is what keeps it trustworthy.'
+    a: 'Treat the Application Knowledge Skill as code. Update it in the same pull request that changes a documented module, assign an owner per module, and add a hook that flags when a documented file changes without its knowledge file being touched. An out-of-date knowledge file rots into a confidently wrong one.'
 ---
 
 import Pipeline from '../../../components/mdx/Pipeline.astro';

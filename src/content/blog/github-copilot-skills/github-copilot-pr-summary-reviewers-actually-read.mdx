@@ -5,7 +5,7 @@ publishedAt: 2026-08-02
 category: copilot
 categories: ['ai', 'engineering']
 tags: ['GitHub Copilot', 'Copilot pull request summary', 'PR description', 'AI PR description', 'Pull request template', 'Code review', 'Developer productivity', 'Enterprise', '.NET']
-seoTitle: 'GitHub Copilot PR Summary: Descriptions Reviewers Read'
+seoTitle: 'GitHub Copilot PR Summary Guide'
 highlight: 'A GitHub Copilot PR summary reads your diff and drafts a description, but its default failure mode is restating the diff, which is exactly what the diff already shows. The summary a reviewer needs answers what the diff cannot: why the change exists, what the blast radius is, how it was tested, and where to look first. Let the AI draft the what. You supply the why. That split is the whole trick.'
 cover: './images/github-copilot-pr-summary-reviewers-actually-read.png'
 coverAlt: 'A GitHub Copilot PR summary reads your diff and drafts a description, but its default failure mode is restating the diff, which is exactly what the diff already shows. The summary a reviewer'
@@ -15,15 +15,15 @@ featured: true
 draft: false
 faq:
   - q: 'What is a GitHub Copilot PR summary?'
-    a: 'It is a pull request description that GitHub Copilot generates by reading your diff. On github.com you click the Copilot icon in the description field and select Summary, and it produces a prose overview plus a bulleted list of changes with the files they touch. It is a first draft of the "what", not a finished description — it does not know why you made the change.'
+    a: 'It is a pull request description GitHub Copilot generates by reading your diff. On github.com you click the Copilot icon in the description field and select Summary; it produces a prose overview plus a bulleted list of changes and the files they touch. It is a first draft of the "what", never the why.'
   - q: 'Can Copilot write my pull request description automatically?'
-    a: 'Yes, for the mechanical part. Copilot can draft the summary of what changed from the diff, in the IDE or on github.com (it is not in the Copilot Free tier, and it works best when you start from a blank description). It cannot write the parts that matter most — the reason for the change, the risk, and the rollback plan — because those live in your head and the ticket, not in the diff.'
+    a: 'Yes, for the mechanical part. Copilot drafts the summary of what changed from the diff, in the IDE or on github.com (not in the Copilot Free tier, and best from a blank description). It cannot write the parts that matter most — the reason, the risk, and the rollback plan — because those are not in the diff.'
   - q: 'Why are AI PR summaries often useless?'
-    a: 'Because they restate the diff and call it a summary. The reviewer can already read the diff. If the description just says "added CalculateRefund method, modified OrdersController", it has added nothing. A useful summary explains why the change exists, what could break, and how it was verified — and the AI cannot know any of that unless you or your template tell it to look for it.'
+    a: 'Because they restate the diff and call it a summary. The reviewer can already read the diff. "Added CalculateRefund method, modified OrdersController" adds nothing. A useful summary explains why the change exists, what could break, and how it was verified — and AI cannot know that unless your template asks for it.'
   - q: 'How do I make Copilot follow our PR template?'
-    a: 'Commit a pull_request_template.md with the sections you want, and add repository custom instructions telling Copilot to fill those exact sections instead of restating the diff. Support for the template is still improving, so treat the generated draft as a starting point and edit the "why" and "risk" sections yourself before you request review.'
+    a: 'Commit a pull_request_template.md with the sections you want, and add repository custom instructions telling Copilot to fill those exact sections instead of restating the diff. Template support is still improving, so edit the "why" and "risk" sections yourself before you request review.'
   - q: 'Should the AI or the author write the PR description?'
-    a: 'Both, in that order. Let the AI draft the summary of changes so you are not staring at a blank box. Then the author owns the intent — the why, the risk, the rollback, the ticket link, and the one line telling the reviewer where to focus. AI drafts, human supplies intent. The author is still accountable for what the description claims.'
+    a: 'Both, in that order. Let the AI draft the summary of changes so you are not staring at a blank box. Then the author owns the intent — the why, the risk, the rollback, the ticket link, and the one line telling the reviewer where to focus. The author is still accountable for what the description claims.'
 ---
 
 import Callout from '../../../components/mdx/Callout.astro';

@@ -48,9 +48,33 @@ export function coverArt(slug: string, category: CategoryId) {
 }
 
 /** Drafts are visible in `astro dev` only — never in a production build. */
+/**
+ * A post is live when it is not a draft AND its publish date has arrived.
+ *
+ * The date half is what makes scheduling possible. Shipping a finished series
+ * all at once reads as a dump; two or three parts a week reads as an active
+ * publication, and that is a real ranking difference. So a finished part sits
+ * with `draft: false` and a future date, and goes live on its own — the daily
+ * scheduled deploy in .github/workflows/deploy.yml rebuilds and picks it up.
+ *
+ * Dev shows everything, so you can read the whole queue while writing.
+ */
+export function isLive(data: Post['data'], now = Date.now()): boolean {
+  return !data.draft && data.publishedAt.getTime() <= now;
+}
+
 export async function getPublishedPosts(): Promise<Post[]> {
-  const posts = await getCollection('blog', ({ data }) => import.meta.env.DEV || !data.draft);
+  const posts = await getCollection('blog', ({ data }) => import.meta.env.DEV || isLive(data));
   return posts.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+}
+
+/**
+ * Finished, undrafted, but not due yet. These are proofable at /preview like a
+ * draft, because "waiting for its date" is exactly when you want a last read.
+ */
+export async function getScheduledPosts(): Promise<Post[]> {
+  const posts = await getCollection('blog', ({ data }) => !data.draft && !isLive(data));
+  return posts.sort((a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime());
 }
 
 /**
@@ -63,7 +87,9 @@ export async function getPublishedPosts(): Promise<Post[]> {
  * draft on this host.
  */
 export async function getDraftPosts(): Promise<Post[]> {
-  const posts = await getCollection('blog', ({ data }) => data.draft);
+  // Scheduled posts ride along: they are not live yet, so /preview is the only
+  // place to read them, and the day before publication is when you want to.
+  const posts = await getCollection('blog', ({ data }) => data.draft || !isLive(data));
   return posts.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
 }
 
@@ -127,9 +153,14 @@ export async function getSeriesIndex(): Promise<SeriesSummary[]> {
     .sort((a, b) => a.order - b.order);
 }
 
-/** Series live as anchored sections on one page, so links are hash links. */
+/**
+ * Each series has its own page. It used to be an anchor into the one long
+ * /series list, which meant the whole topic had no URL of its own — nothing for
+ * a search engine to rank for "azure ai foundry agents", and nothing for an
+ * answer engine to cite as the source for the topic rather than one part of it.
+ */
 export function seriesUrl(id: string): string {
-  return `/series/#${id}`;
+  return `/series/${id}`;
 }
 
 export async function getPostsInSeries(seriesId: string): Promise<Post[]> {

@@ -30,12 +30,15 @@ import {
   getNextRead,
   getPostsInSeries,
   getPublishedPosts,
+  getSeriesIndex,
   getRelatedPosts,
   postUrl,
   readingTime,
   slugifyTag,
+  seriesUrl,
   type Post,
 } from '../../lib/posts';
+import { entitiesForTags } from '../../lib/taxonomy';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -70,6 +73,29 @@ const path = postUrl(post);
 const category = CATEGORIES[data.category];
 
 // --- Structured data -------------------------------------------------------
+// The technologies this post is about, as resolvable entities rather than
+// keyword strings. `about` carries the primary subject, `mentions` the rest —
+// the distinction search engines use to decide what the page is *for* versus
+// what it merely references.
+const entities = entitiesForTags(data.tags).map((e) => ({
+  '@type': 'Thing',
+  name: e.name,
+  sameAs: e.sameAs,
+}));
+// A part of a series is not a standalone work, and saying so is what lets a
+// search engine surface the hub for the topic instead of part 7 of it.
+const seriesMeta = data.series
+  ? (await getSeriesIndex()).find((s) => s.id === data.series)
+  : undefined;
+const seriesNode = data.series
+  ? {
+      '@type': 'CreativeWorkSeries',
+      '@id': new URL(seriesUrl(data.series), SITE.url).href + '#series',
+      name: seriesMeta?.title ?? data.series,
+      url: new URL(seriesUrl(data.series), SITE.url).href,
+    }
+  : null;
+
 const schema: Record<string, unknown>[] = [
   {
     '@type': 'BlogPosting',
@@ -85,8 +111,13 @@ const schema: Record<string, unknown>[] = [
     keywords: data.tags.join(', '),
     wordCount: (post.body ?? '').split(/\s+/).filter(Boolean).length,
     inLanguage: SITE.lang,
-    isPartOf: { '@id': `${SITE.url}/#website` },
+    isPartOf: seriesNode
+      ? [{ '@id': `${SITE.url}/#website` }, { '@id': seriesNode['@id'] }]
+      : { '@id': `${SITE.url}/#website` },
+    ...(entities.length > 0 && { about: entities[0], mentions: entities.slice(1) }),
+    ...(data.seriesOrder != null && { position: data.seriesOrder }),
   },
+  ...(seriesNode ? [seriesNode] : []),
   {
     '@type': 'BreadcrumbList',
     itemListElement: [

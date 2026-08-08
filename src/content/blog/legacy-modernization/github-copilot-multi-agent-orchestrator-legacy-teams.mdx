@@ -1,27 +1,27 @@
 ---
 title: 'Designing a Multi-Agent GitHub Copilot Orchestrator for Legacy Teams (Honestly)'
 description: 'Designing a GitHub Copilot multi-agent orchestrator for legacy teams: what Copilot really orchestrates today, and where you still own the seams.'
-publishedAt: 2026-07-26
+publishedAt: 2026-08-14
 category: copilot
 categories: ['ai', 'architecture']
 tags: ['GitHub Copilot multi-agent', 'Copilot orchestrator', 'GitHub Copilot custom agents', 'Multi-agent AI development', 'GitHub Copilot agent handoffs', 'AI development team', 'Enterprise Copilot workflow', 'Agent orchestration pattern', 'GitHub Copilot Hooks', 'Legacy modernization']
-seoTitle: 'GitHub Copilot Multi-Agent Orchestrator for Legacy Teams'
+seoTitle: 'GitHub Copilot Multi-Agent Orchestrator'
 highlight: 'A GitHub Copilot multi-agent setup is not an autonomous AI dev team. It is separation of concerns for AI: narrow role agents, least-privilege tools, explicit handoffs, and deterministic gates between phases. The orchestration is a design you own. Copilot gives you the primitives; the human, the hooks, and CI are the glue that make the org chart safe. Design clean seams, not more autonomy.'
-series: 'agents-md-instructions'
-seriesOrder: 18
+series: 'legacy-modernization'
+seriesOrder: 5
 featured: false
 draft: true
 faq:
   - q: 'What is a multi-agent GitHub Copilot setup?'
-    a: 'It is a set of narrow, single-purpose custom agents — for example a developer, tester, security, and architecture agent — each defined in its own `.agent.md` file with a tight role and least-privilege tools, plus an orchestrator agent and reusable prompts that sequence them. It is separation of concerns for AI, not a self-organising team. The value is role clarity, a smaller blast radius per agent, and reviewable seams between phases.'
+    a: 'It is a set of narrow, single-purpose custom agents — developer, tester, security, architecture — each in its own `.agent.md` file with a tight role and least-privilege tools, plus an orchestrator and reusable prompts that sequence them. It is separation of concerns for AI, not a self-organising team.'
   - q: 'Can GitHub Copilot agents work autonomously as a team?'
-    a: 'No, not as a closed autonomous loop today. The Copilot coding agent can run multi-step work, and custom agents can hand off to each other, but there is no emergent five-agent team that self-organises and ships without you. The human, the hooks, and CI are the real glue between phases. Treat "multi-agent" as good design and disciplined handoffs, not autonomy.'
+    a: 'No, not as a closed autonomous loop today. The Copilot coding agent runs multi-step work and custom agents can hand off to each other, but there is no emergent five-agent team that self-organises and ships without you. The human, the hooks, and CI are the real glue between phases.'
   - q: 'How do GitHub Copilot agent handoffs work?'
-    a: 'Handoffs are declared in an agent''s YAML frontmatter with a `handoffs` list — each entry has a label, a target agent, an optional pre-filled prompt, and a `send` flag. Selecting a handoff switches you to the target agent with conversation context carried over; with `send: false` you review and send the prompt yourself. Note that handoffs are an IDE-side feature and are not supported for the Copilot cloud agent on GitHub.com, so confirm against current docs.'
+    a: 'Handoffs are declared in an agent''s YAML frontmatter with a `handoffs` list — a label, a target agent, an optional pre-filled prompt, and a `send` flag. Selecting one switches you to the target agent with context carried over. Handoffs are an IDE-side feature, not supported for the cloud agent on GitHub.com.'
   - q: 'How many Copilot agents should a team start with?'
-    a: 'One. Start with a single high-value role — usually a developer or a discovery agent — prove it earns its keep, then add a second role only when there is a clear need and an owner for it. Most teams that begin with five agents end up with autonomy theatre: agents nobody uses and no one is accountable for. Grow the org chart as trust grows.'
+    a: 'One. Start with a single high-value role — usually a developer or a discovery agent — prove it earns its keep, then add a second only when there is a clear need and an owner for it. Teams that begin with five end up with autonomy theatre: agents nobody uses and nobody is accountable for.'
   - q: 'How do you stop AI agents from contradicting each other?'
-    a: 'Give them a shared source of truth. Put your standards in repository instructions and Skills that every agent reads, keep each agent''s charter narrow so their responsibilities do not overlap, and make the seams deterministic — tests and CI decide who is right, not the agents. When two agents disagree, a human resolves it at the handoff gate. Shared context plus non-overlapping roles plus a human tiebreaker removes most contradictions.'
+    a: 'Give them a shared source of truth. Put your standards in repository instructions and Skills every agent reads, keep each charter narrow so responsibilities do not overlap, and make the seams deterministic — tests and CI decide who is right. When two agents disagree, a human resolves it at the handoff gate.'
 ---
 
 import Callout from '../../../components/mdx/Callout.astro';

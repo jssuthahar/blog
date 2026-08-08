@@ -1,16 +1,18 @@
 ---
 title: 'What Is an AI Token? Why Every AI Cost Is Calculated in Them'
 description: 'Tokens are not words, and they are not characters. Here is what a token really is, why AI billing counts them, and how to work out the cost of a request.'
-publishedAt: 2026-07-30
+publishedAt: 2026-08-03
 category: ai
 categories: ['copilot', 'engineering']
 tags: ['AI tokens', 'tokenization', 'LLM', 'GitHub Copilot', 'Azure OpenAI', 'token cost', 'context window', 'AI fundamentals']
+cover: './images/AIToken.jpg'
+coverAlt: 'A token is a subword fragment from a fixed vocabulary'
 seoTitle: 'What Is an AI Token? How AI Cost Is Calculated'
 highlight: 'A token is a subword fragment from a fixed vocabulary, not a word and not a character. English prose averages about four characters per token and code about three, which puts a line of C# near 10 tokens. Billing counts tokens because tokens are what the model actually processes, and output costs more than input because it is generated one token at a time.'
 series: 'agents-md-instructions'
 seriesOrder: 11
 featured: true
-draft: true
+draft: false
 faq:
   - q: 'What is a token in AI?'
     a: 'A token is a fragment of text from a fixed vocabulary the model was trained on, usually a whole common word, a piece of a longer word, or a single punctuation mark. Models never see letters or words directly. Text is converted into token IDs before it reaches the model, and every price, limit, and quota is counted in those units.'

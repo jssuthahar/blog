@@ -21,7 +21,9 @@
     "check:all": "npm run check:humanizer && npm run check:seo && npm run check:aeo && npm run check:covers",
     "seed:testimonials": "node scripts/seed-testimonials.mjs",
     "push:keys": "node scripts/push-keys.mjs",
-    "push:send": "node --env-file=.env scripts/send-push.mjs"
+    "push:send": "node --env-file=.env scripts/send-push.mjs",
+    "push:announce": "node --env-file=.env scripts/announce-new-posts.mjs",
+    "push:announce:dry": "node scripts/announce-new-posts.mjs --dry-run"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.7",

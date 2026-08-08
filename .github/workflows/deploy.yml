@@ -73,3 +73,28 @@ jobs:
           # Transient 5xx from the deployment status API, tolerated before the
           # step gives up. The default of 10 is thin for a 30-minute wait.
           error_count: 20
+
+  # Tell readers who installed the app that a new article is live.
+  #
+  # Runs only after `deploy`, never in parallel with it: the notification links
+  # straight to the article, so the page has to exist before anyone taps it.
+  # The script only queues into Firestore — the every-5-minutes send-push
+  # workflow holds the VAPID key and does the delivering.
+  announce:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Announcing is not part of shipping. A Firestore hiccup, or the batch cap
+      # refusing an unexpected pile of posts, must never mark a good deploy red.
+      - name: Queue notifications for new articles
+        continue-on-error: true
+        env:
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: node scripts/announce-new-posts.mjs

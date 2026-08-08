@@ -1,0 +1,275 @@
+---
+/**
+ * A drawn fan-out / fan-in diagram — the shape `Flow.astro` deliberately refuses.
+ *
+ * `Flow` handles linear chains (A → B → C). This handles the one branch shape
+ * that keeps coming up in the agent articles: a request reaches a hub, the hub
+ * delegates to N workers running in parallel, and their output converges on a
+ * join before landing on a result.
+ *
+ * Same constraints as `Flow`, and for the same reasons: zero JS, zero deps, and
+ * every label is real text in the static HTML rather than mermaid source. A
+ * crawler reading `M --> D` learns nothing; here it reads the actual roles in
+ * document order, which is what the answer engines quote.
+ *
+ * The connectors are CSS, not SVG: a horizontal bus drawn across the branch
+ * columns, with risers into each one. That keeps the boxes as ordinary flow
+ * content, so long labels wrap and set the row height instead of overflowing a
+ * fixed viewBox. Below 768px the whole thing stacks into a single column and
+ * the bus collapses to a plain stem — the parallel step is still marked, but
+ * four columns of 5-word labels are unreadable on a phone.
+ */
+export interface OrchNode {
+  /** The box text. A few words. Long labels wrap and set the row height. */
+  label: string;
+  /** Optional second line, one short clause of detail. */
+  note?: string;
+}
+
+interface Props {
+  /** What enters the system — the request, the trigger, the input. */
+  entry: OrchNode | string;
+  /** The router. Everything fans out from here. */
+  hub: OrchNode | string;
+  /** The parallel workers. Two to five reads well; six starts to crowd. */
+  branches: (OrchNode | string)[];
+  /** Where the branches converge. Omit to fan out without converging. */
+  join?: OrchNode | string;
+  /** The destination, drawn in the accent. Omit if `join` is the end. */
+  result?: OrchNode | string;
+  /** Sits under the diagram as a figcaption. Also the accessible name. */
+  caption?: string;
+}
+
+const { entry, hub, branches, join, result, caption } = Astro.props;
+
+const node = (n: OrchNode | string): OrchNode => (typeof n === 'string' ? { label: n } : n);
+
+const entryNode = node(entry);
+const hubNode = node(hub);
+const branchNodes = branches.map(node);
+const joinNode = join ? node(join) : null;
+const resultNode = result ? node(result) : null;
+---
+
+<figure class="orch not-prose my-7" aria-label={caption}>
+  <div class="orch-box orch-solo">
+    <span class="orch-label">{entryNode.label}</span>
+    {entryNode.note && <span class="orch-note">{entryNode.note}</span>}
+  </div>
+
+  <div class="orch-stem" aria-hidden="true"></div>
+
+  <div class="orch-box orch-solo is-hub">
+    <span class="orch-label">{hubNode.label}</span>
+    {hubNode.note && <span class="orch-note">{hubNode.note}</span>}
+  </div>
+
+  <div class="orch-bus" style={`--n:${branchNodes.length}`} aria-hidden="true">
+    {branchNodes.map(() => <span class="orch-riser" />)}
+  </div>
+
+  <ul class="orch-branches" style={`--n:${branchNodes.length}`}>
+    {
+      branchNodes.map((b) => (
+        <li class="orch-box">
+          <span class="orch-label">{b.label}</span>
+          {b.note && <span class="orch-note">{b.note}</span>}
+        </li>
+      ))
+    }
+  </ul>
+
+  {
+    joinNode && (
+      <>
+        <div class="orch-bus is-in" style={`--n:${branchNodes.length}`} aria-hidden="true">
+          {branchNodes.map(() => (
+            <span class="orch-riser" />
+          ))}
+        </div>
+
+        <div class="orch-box orch-solo">
+          <span class="orch-label">{joinNode.label}</span>
+          {joinNode.note && <span class="orch-note">{joinNode.note}</span>}
+        </div>
+      </>
+    )
+  }
+
+  {
+    resultNode && (
+      <>
+        <div class="orch-stem" aria-hidden="true" />
+        <div class="orch-box orch-solo is-accent">
+          <span class="orch-label">{resultNode.label}</span>
+          {resultNode.note && <span class="orch-note">{resultNode.note}</span>}
+        </div>
+      </>
+    )
+  }
+
+  {caption && <figcaption class="orch-caption">{caption}</figcaption>}
+</figure>
+
+<style>
+  .orch {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .orch-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--bg-subtle);
+    padding: 0.55rem 0.7rem;
+  }
+
+  /* Single-column rows sit centred and narrow so the branch row below reads as
+     the wider, parallel step rather than one more box in a stack. */
+  .orch-solo {
+    align-self: center;
+    width: 100%;
+    max-width: 22rem;
+    text-align: center;
+  }
+
+  .orch-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text);
+    text-wrap: balance;
+  }
+
+  .orch-note {
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    color: var(--text-muted);
+  }
+
+  /* The hub is the only structural emphasis that is not the accent — a heavier
+     border, no colour. Colour stays reserved for the destination. */
+  .orch-box.is-hub {
+    border-color: var(--text-muted);
+  }
+
+  .orch-box.is-accent {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .orch-box.is-accent .orch-label {
+    color: var(--accent);
+  }
+
+  .orch-stem {
+    align-self: center;
+    width: 1px;
+    height: 1.1rem;
+    background: var(--border);
+  }
+
+  .orch-branches {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Mobile: no room for a bus across four columns, so it degrades to the same
+     plain stem used between single boxes. */
+  .orch-bus {
+    align-self: center;
+    width: 1px;
+    height: 1.1rem;
+    background: var(--border);
+  }
+
+  .orch-bus .orch-riser {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .orch-branches {
+      grid-template-columns: repeat(var(--n), 1fr);
+      gap: 0.25rem;
+    }
+
+    /* The bus is one grid row of N cells. Its ::after is the stem dropping from
+       the hub, its ::before the horizontal bar. The bar spans centre-of-first to
+       centre-of-last: with N equal columns that inset is 50%/N on each side, so
+       it stops under the outer risers instead of running past them. */
+    .orch-bus {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(var(--n), 1fr);
+      width: 100%;
+      height: 1.6rem;
+      background: none;
+    }
+
+    .orch-bus::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: calc(50% / var(--n));
+      right: calc(50% / var(--n));
+      border-top: 1px solid var(--border);
+    }
+
+    /* Hub → bar on the way out; bar → join on the way in. */
+    .orch-bus::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      height: 50%;
+      border-left: 1px solid var(--border);
+    }
+
+    .orch-bus.is-in::after {
+      top: 50%;
+    }
+
+    .orch-bus .orch-riser {
+      display: block;
+      position: relative;
+    }
+
+    /* Bar → branch below on the way out; branch above → bar on the way in. */
+    .orch-bus .orch-riser::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      height: 50%;
+      border-left: 1px solid var(--border);
+    }
+
+    .orch-bus.is-in .orch-riser::before {
+      top: 0;
+    }
+  }
+
+  .orch-caption {
+    margin-top: 0.6rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+  }
+
+  /* Same borrowed gutter as Flow — four branch columns inside a 68ch measure
+     are too tight, and the article column has the room at desktop widths. */
+  @media (min-width: 1024px) {
+    .orch {
+      margin-inline: -2.5rem;
+    }
+  }
+</style>

@@ -1,16 +1,18 @@
 ---
 title: 'GitHub Copilot Agents for Legacy Applications: A Complete Guide to Building an AI-Powered Development Team'
 description: 'A handbook for GitHub Copilot Agents on legacy code: what counts as a real feature, what is a pattern, and how to build an AI development team around it.'
-publishedAt: 2026-07-26
+publishedAt: 2026-08-06
 category: copilot
 categories: ['ai', 'architecture']
 tags: ['GitHub Copilot Agents', 'Legacy Applications', 'Copilot Agent Mode', 'Multi Agent Architecture', 'AI Software Modernization', 'GitHub Copilot Skills', 'GitHub Copilot Instructions', 'Enterprise AI', '.NET', 'Flutter', 'Azure']
 seoTitle: 'GitHub Copilot Agents for Legacy Applications'
 highlight: 'A team of specialized Copilot agents is not a switch you turn on. GitHub ships the real primitives: custom agents in .github/agents, AGENTS.md, copilot-instructions.md, Skills, and Hooks. The developer/tester/security/architecture "AI team" is a pattern you compose on top of them. The highest-value asset for a legacy app is an Application Knowledge Skill that captures behaviour nobody documented.'
 series: 'agents-md-instructions'
+cover: './images/Agents for Legacy.jpg'
+coverAlt: 'A team of specialized Copilot agents is not a switch you turn on. GitHub ships the real primitives: custom agents in .github/agents, AGENTS.md, copilot-instructions.md, Skills, and Hooks. The developer/tester/security/architecture "AI team" is a pattern you compose on top of them. The highest-value asset'
 seriesOrder: 14
 featured: true
-draft: true
+draft: false
 faq:
   - q: 'What are GitHub Copilot Agents?'
     a: 'GitHub Copilot Agents are AI workers that can take on a task and carry it through multiple steps — reading code, editing files, running tools — rather than just autocompleting a line. Custom agents are defined as .agent.md files in your repository''s .github/agents/ folder, each with YAML frontmatter (name, description, tools) and Markdown instructions that shape its behaviour. They run in Copilot''s coding agent, the Copilot CLI, and increasingly in the editor.'
@@ -30,6 +32,7 @@ faq:
     a: 'Hooks run deterministic scripts at fixed points in an agent session, outside the AI model. They enforce rules the probabilistic model might skip: a preToolUse hook can block a destructive command, a pre-commit gate can run tests and secret scans, and a post-development hook can auto-generate docs. On legacy code, where one bad change is expensive, hooks are the guardrails that make AI-assisted development safe.'
 ---
 import Flow from '../../../components/mdx/Flow.astro';
+import Orchestration from '../../../components/mdx/Orchestration.astro';
 
 A few years ago I was pulled into a system that scared everyone who touched it. A payments-heavy application, more than ten years old, millions of lines across a .NET backend, a SQL Server database nobody fully mapped, and a Flutter mobile app bolted on later. The original developers had long left the company. The design documents were three rewrites out of date. Adding one small feature took weeks — not because writing the code was hard, but because *understanding what the existing code already did* was hard.
 
@@ -80,32 +83,35 @@ Here is the honest before-and-after. The "after" is an orchestration pattern you
 
 **Before — a developer working a legacy change alone:**
 
-```
-Developer request
-   -> search stale docs
-   -> read unfamiliar code for hours
-   -> ask the one senior who knows
-   -> implement carefully
-   -> manually test and hope
-```
+<Flow
+  caption="One developer carrying the whole change. Every step depends on knowledge that lives in stale documents or in someone else's head."
+  steps={[
+    { label: 'Developer request', note: 'A small change, on paper' },
+    { label: 'Search stale docs', note: 'Written for a version that no longer exists' },
+    { label: 'Read unfamiliar code', note: 'Hours, sometimes days' },
+    { label: 'Ask the one senior', note: 'If they are still at the company' },
+    { label: 'Implement carefully', note: 'Blast radius unknown' },
+    { label: 'Test manually and hope', note: 'No regression suite to catch the miss' },
+  ]}
+/>
 
 **After — the same request through an AI development team:**
 
-```mermaid
-flowchart TD
-  U[Developer request] --> M[Main orchestrator agent]
-  M --> D[Developer agent]
-  M --> T[Tester agent]
-  M --> S[Security agent]
-  M --> A[Architecture agent]
-  D --> V[Final validation]
-  T --> V
-  S --> V
-  A --> V
-  V --> R[Reviewed change + tests + notes]
-```
+<Orchestration
+  caption="The same request through an orchestrated team. The four role agents run in parallel — the orchestrator delegates only to the ones a given request actually touches, and validation will not pass until each one it called has reported back."
+  entry={{ label: 'Developer request', note: 'Stated in plain language' }}
+  hub={{ label: 'Main orchestrator agent', note: 'Reads the request, decides who is involved' }}
+  branches={[
+    { label: 'Developer agent', note: 'Proposes the change' },
+    { label: 'Tester agent', note: 'Unit, integration, regression' },
+    { label: 'Security agent', note: 'Authn, authz, sensitive data' },
+    { label: 'Architecture agent', note: 'Consistency with existing patterns' },
+  ]}
+  join={{ label: 'Final validation', note: "Cross-checks every agent's output" }}
+  result={{ label: 'Reviewed change + tests + notes', note: 'A human still owns the merge' }}
+/>
 
-The roles collaborate like a real team. The orchestrator reads the request and decides who is involved. The developer agent proposes the change grounded in the Application Knowledge Skill. The tester agent writes unit, integration, and regression tests. The security agent checks authentication, authorization, and sensitive data. The architecture agent checks consistency with existing patterns. Validation pulls it together.
+What the picture cannot show is the thing that makes it work. All four roles read from the same Application Knowledge Skill — the one in Section 7. Take that away and the shape survives but the value does not: four agents branching off an orchestrator, each confidently guessing about a system none of them has been told anything about. The boxes are cheap. What you put behind them is not.
 
 I want to be precise here: GitHub does not ship this five-agent team as a single feature. It ships **custom agents** you define as `.agent.md` files, and those agents support **handoffs** between them. The team structure — who exists, what each one owns, how they hand off — is your design. That is good news. It means you shape it around *your* legacy system, not a vendor's generic idea of one.
 

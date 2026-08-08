@@ -15,7 +15,8 @@ and sends are fanned out from a local script.
 | Icons | `public/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` | App icons (maskable for Android). |
 | Runtime | `src/components/PwaController.astro` | Registers the SW, shows Install + Enable-notifications UI. |
 | Subscribe logic | `src/lib/push.ts` | Permission + `PushManager.subscribe`, stores the subscription in Firestore. |
-| Compose UI | `/admin` → **Notify** tab | Where you write and queue a notification. |
+| Compose UI | `/admin` → **Notify** tab | Where you write and queue a notification by hand. |
+| Auto-announce | `scripts/announce-new-posts.mjs` + the `announce` job in `.github/workflows/deploy.yml` | Queues a notification for each newly published article, automatically, after every deploy. |
 | Outbox → send | `pushOutbox` collection + `scripts/drain-push-outbox.mjs` + `.github/workflows/send-push.yml` | Queued notifications are sent by a scheduled GitHub Action. |
 | Manual sender | `scripts/send-push.mjs` | Optional: send one immediately from a terminal. |
 | Keygen | `scripts/push-keys.mjs` | Prints a fresh VAPID key pair. |
@@ -71,6 +72,45 @@ the browser, and there's no `.env` to manage.
    (`.env` is only needed for the optional local `npm run push:send`. If you send
    solely from `/admin`, you can delete `.env` — the secrets above are what the
    Action uses.)
+
+### Sending — automatically, when an article goes live
+
+Nothing to do. After every deploy to `main`, the `announce` job scans
+`src/content/blog` and queues a notification for each article that is published,
+not a draft, and hasn't been announced before. Title and message come from the
+article's own `title` and `description`; the click target is `/blog/<slug>`. The
+job runs **after** the Pages deploy finishes, so the link is never a 404, and it
+is `continue-on-error` — a Firestore hiccup can't turn a good deploy red.
+
+Two guards stop it ever mass-mailing:
+
+- **Publish window** (`--days`, default 7) — only genuinely recent posts qualify,
+  so an old article edited today does not re-announce.
+- **Batch cap** (`--max`, default 3) — more than three un-announced posts at once
+  looks like a bulk import or a back-dated `publishedAt`, so the job stops and
+  says so instead of firing a dozen notifications.
+
+Repeat runs are safe: the outbox document id is `post-<slug>` and the write
+carries an `exists: false` precondition, so an article can only ever be queued
+once.
+
+Check what would go out, without credentials and without writing anything:
+
+```bash
+npm run push:announce:dry
+```
+
+**One-time setup.** The existing archive predates this, so record it all as
+already-announced before the first real deploy — this writes the rows and closes
+them immediately, delivering nothing:
+
+```bash
+npm run push:announce -- --seed --days 3650
+```
+
+Do that when the send workflow isn't mid-drain; the queue and close are
+milliseconds apart, but a drain landing exactly between them would deliver that
+row for real.
 
 ### Sending — from `/admin`
 

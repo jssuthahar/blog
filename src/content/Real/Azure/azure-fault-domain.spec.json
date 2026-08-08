@@ -2,6 +2,8 @@
   "slug": "azure-fault-domain",
   "pacing": "long",
   "topic": "Azure Fault Domain — how spreading VMs across separate physical racks keeps an e-commerce site online when a rack loses power.",
+  "seoTitle": "Azure Fault Domain",
+  "publishedAt": "2026-08-08",
   "title": {
     "main": "A rack just lost power. <em>The shop kept selling.</em>",
     "sub": "Why Azure places your VMs on different physical racks, and what breaks the moment it does not.",

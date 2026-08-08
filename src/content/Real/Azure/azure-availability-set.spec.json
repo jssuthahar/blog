@@ -2,6 +2,8 @@
   "slug": "azure-availability-set",
   "pacing": "long",
   "topic": "Azure Availability Set — how fault domains, update domains and a load balancer keep an e-commerce site online while Azure patches the servers under it.",
+  "seoTitle": "Azure Availability Set",
+  "publishedAt": "2026-08-07",
   "title": {
     "main": "Azure is rebooting your server. <em>Nobody notices.</em>",
     "sub": "How an Azure Availability Set keeps an online shop selling straight through planned server maintenance.",

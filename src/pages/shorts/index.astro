@@ -31,7 +31,13 @@ const shorts = getShorts();
 const categories = shortCategories(shorts);
 const total = shorts.length;
 
-const description = `${total} short videos by ${AUTHOR.name} — one engineering idea in about 30 seconds, on Azure, AI, Python and architecture. Every step also written out.`;
+/**
+ * Measured, not guessed: `npm run check:seo` renders this in Arial 14px and
+ * wants 500–960px. Naming the author and the subjects earns the width; "every
+ * step written out" is the part no other shorts page can claim, so it stays
+ * even when the count grows and pushes the line along.
+ */
+const description = `${total} short videos by ${AUTHOR.name}. One engineering idea each, played out step by step — Azure, AI, Python, architecture. Every step written out.`;
 
 const schema = [
   {
@@ -59,7 +65,7 @@ const schema = [
 ---
 
 <BaseLayout
-  title="Short videos"
+  title="Short videos for developers"
   description={description}
   image="/og/shorts.png"
   schema={schema}
@@ -70,14 +76,15 @@ const schema = [
     <section class="max-w-3xl">
       <p class="eyebrow">30-second learning · {total} short videos</p>
       <h1 class="display mt-2 text-[2rem] leading-tight sm:text-4xl lg:text-[2.75rem]">
-        One engineering idea, in about 30 seconds
+        One engineering idea, played out step by step
       </h1>
       <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">
-        Some things are faster to watch than to read. Each short takes a single
-        idea — how a Durable Function replays, why <code>b = a</code> is not a copy,
-        where Netflix actually streams from — and plays it out one step at a time.
-        Every step is written out under the player too, so you can go back over
-        it at your own pace instead of the player's.
+        Some things are faster to watch than to read. Each short takes one idea —
+        why a rack losing power does not take your shop down, why <code>b = a</code>
+        is not a copy, where Netflix actually streams from — and plays it out a
+        step at a time, most of them in under a minute. Every step is written out
+        under the player too, so you can go back over it at your own pace instead
+        of the player's.
       </p>
 
       <div class="mt-6 max-w-xl">

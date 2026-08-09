@@ -1,7 +1,7 @@
 {
   "slug": "azure-service-bus-flash-sale",
   "topic": "Azure Service Bus — how a queue in front of the order API stops a flash sale from dropping real customer orders.",
-  "seoTitle": "azure service bus flash sale",
+  "seoTitle": "Azure Service Bus flash sale",
   "publishedAt": "2026-06-29",
   "title": {
     "main": "The sale opened. <em>The orders vanished.</em>",

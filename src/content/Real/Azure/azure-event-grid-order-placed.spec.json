@@ -1,7 +1,7 @@
 {
   "slug": "azure-event-grid-order-placed",
   "topic": "Azure Event Grid — why one \"OrderPlaced\" event with subscriptions beats a checkout service that calls email, inventory and shipping itself.",
-  "seoTitle": "Azure Event Grid Order Placed",
+  "seoTitle": "Azure Event Grid OrderPlaced event",
   "publishedAt": "2026-05-21",
   "title": {
     "main": "One order. <em>Four teams need to know.</em>",

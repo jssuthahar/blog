@@ -1,7 +1,7 @@
 {
   "slug": "azure-service-bus-vs-kafka",
   "topic": "Service Bus or Kafka — why \"we need Kafka\" is usually the wrong answer on Azure, and what the team actually needed.",
-  "seoTitle": "azure service bus vs kafka",
+  "seoTitle": "Azure Service Bus vs Kafka",
   "publishedAt": "2026-06-30",
   "title": {
     "main": "Somebody said <em>“we need Kafka”.</em>",

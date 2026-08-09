@@ -1,7 +1,7 @@
 {
   "slug": "azure-event-hubs-driver-pings",
   "topic": "Azure Event Hubs — why 60,000 drivers reporting GPS every four seconds belongs in a partitioned event stream and not in a queue.",
-  "seoTitle": "Azure Event Hubs Driver Pings",
+  "seoTitle": "When to use Azure Event Hubs",
   "publishedAt": "2026-06-22",
   "title": {
     "main": "15,000 GPS pings a second. <em>Do not put that in a queue.</em>",

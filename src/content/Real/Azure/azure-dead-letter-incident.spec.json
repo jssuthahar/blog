@@ -1,7 +1,7 @@
 {
   "slug": "azure-dead-letter-incident",
   "topic": "A Service Bus incident — how EnableDeadLetteringOnMessageExpiration defaulting to false silently deleted real customer orders.",
-  "seoTitle": "Azure Dead Letter Incident",
+  "seoTitle": "Service Bus dead letter incident",
   "publishedAt": "2026-05-20",
   "title": {
     "main": "The queue drained. <em>Nothing was consuming it.</em>",

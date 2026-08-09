@@ -1,7 +1,7 @@
 {
   "slug": "azure-queue-storage-image-upload",
   "topic": "Azure Queue Storage — moving image processing out of the upload request with a blob, a 182-byte message and a background worker.",
-  "seoTitle": "azure queue storage image upload",
+  "seoTitle": "Azure Queue Storage image upload",
   "publishedAt": "2026-06-25",
   "title": {
     "main": "The upload froze the app for <em>8 seconds.</em>",

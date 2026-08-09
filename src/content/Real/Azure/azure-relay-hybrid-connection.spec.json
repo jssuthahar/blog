@@ -1,7 +1,7 @@
 {
   "slug": "azure-relay-hybrid-connection",
   "topic": "Azure Relay Hybrid Connections — reaching an on-premises service from the cloud without opening a single inbound firewall port.",
-  "seoTitle": "azure relay hybrid connection",
+  "seoTitle": "Azure Relay Hybrid Connections",
   "publishedAt": "2026-06-27",
   "title": {
     "main": "Security said <em>no inbound ports.</em>",

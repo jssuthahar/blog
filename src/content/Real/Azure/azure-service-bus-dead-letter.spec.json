@@ -1,7 +1,7 @@
 {
   "slug": "azure-service-bus-dead-letter",
   "topic": "Azure Service Bus retry and dead-letter queue — what happens to a payment when the gateway times out, and where the message that can never succeed ends up.",
-  "seoTitle": "Azure Service Bus Dead Letter",
+  "seoTitle": "Azure Service Bus dead letter queue",
   "publishedAt": "2026-06-28",
   "title": {
     "main": "The gateway timed out. <em>Where did the payment go?</em>",

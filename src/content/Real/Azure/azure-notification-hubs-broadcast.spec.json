@@ -1,7 +1,7 @@
 {
   "slug": "azure-notification-hubs-broadcast",
   "topic": "Azure Notification Hubs — why pushing one message to a million phones is a platform problem, not a loop.",
-  "seoTitle": "Azure Notification Hubs Broadcast",
+  "seoTitle": "Azure Notification Hubs broadcast",
   "publishedAt": "2026-06-23",
   "title": {
     "main": "One push. <em>A million phones.</em>",

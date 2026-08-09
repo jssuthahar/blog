@@ -1,7 +1,7 @@
 {
   "slug": "azure-sync-vs-async-messaging",
   "topic": "Synchronous or asynchronous — the one question that decides it, and the price you pay for going async.",
-  "seoTitle": "azure sync vs async messaging",
+  "seoTitle": "Sync vs async messaging",
   "publishedAt": "2026-07-02",
   "title": {
     "main": "A call needs both people free. <em>A message does not.</em>",

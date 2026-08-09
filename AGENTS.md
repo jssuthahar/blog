@@ -20,7 +20,7 @@ Key places to inspect when making changes:
 
 - `src/content/blog/` — blog posts and frontmatter-driven content
 - `src/content/events/`, `src/content/speaking/`, `src/content/contributions/` — other Markdown collections
-- `src/content/Real/<Technology>/` — short videos (`.html` + `.spec.json` + `.md` per short); see [docs/SHORTS.md](docs/SHORTS.md)
+- `src/content/Real/<Technology>/` — short videos (`.html` + `.spec.json` + `.md` per short); see [tools/blog/docs/SHORTS.md](tools/blog/docs/SHORTS.md)
 - `src/content.config.ts` — collection schemas and validation rules
 - `src/lib/taxonomy.ts` — category/topic slugs and site taxonomy
 - `src/config.ts` — site-wide settings, feature flags, analytics, and comment integrations
@@ -33,7 +33,7 @@ Conventions agents should follow:
 
 - Prefer small, focused changes; do not refactor unrelated files.
 - When editing content, follow `WRITING.md` and run `npm run check` locally.
-- Ground article code samples in the reference project (MSDevBuild Eats Flutter food delivery app) rather than generic snippets — see [docs/REFERENCE-PROJECT.md](docs/REFERENCE-PROJECT.md).
+- Ground article code samples in the reference project (MSDevBuild Eats Flutter food delivery app) rather than generic snippets — see [tools/blog/docs/REFERENCE-PROJECT.md](tools/blog/docs/REFERENCE-PROJECT.md).
 - The build fails on invalid frontmatter or schema violations, so fix those before merging.
 - `src/data/` is a committed cache, not a source of truth; update it only by running the appropriate `npm run sync:*` command.
 - Use relative image paths for post images and `coverAlt` whenever `cover` is set.
@@ -45,8 +45,8 @@ Useful references in this repo:
 
 - Primary README: [README.md](README.md)
 - Writing guide and frontmatter rules: [WRITING.md](WRITING.md)
-- Publishing a short video: [docs/SHORTS.md](docs/SHORTS.md)
-- Reference project used in article samples: [docs/REFERENCE-PROJECT.md](docs/REFERENCE-PROJECT.md)
+- Publishing a short video: [tools/blog/docs/SHORTS.md](tools/blog/docs/SHORTS.md)
+- Reference project used in article samples: [tools/blog/docs/REFERENCE-PROJECT.md](tools/blog/docs/REFERENCE-PROJECT.md)
 - Content schema and collections: [src/content.config.ts](src/content.config.ts)
 - Topic/category source of truth: [src/lib/taxonomy.ts](src/lib/taxonomy.ts)
 - Site settings and feature flags: [src/config.ts](src/config.ts)

@@ -22,3 +22,14 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# private tooling — symlink to a separate checkout, never committed here
+/tools
+
+# Claude Code local config (agents and hooks live outside this repo)
+.claude/settings.local.json
+
+# Agents and project docs live in the private tooling repo, reached via tools/.
+# Ignored here so a file written to the old path never lands in a public commit.
+.claude/agents/
+/docs

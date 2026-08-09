@@ -327,7 +327,7 @@ const int = (f: any) => Number(f?.integerValue ?? 0);
  * private key required to sign a send can never ship in client code. This only
  * writes the message to Firestore as `pending`; the scheduled GitHub Action
  * (which holds the key as a secret) sends it to every subscriber within a few
- * minutes. See docs/PWA.md.
+ * minutes. See tools/blog/docs/PWA.md.
  */
 export async function queuePushNotification(input: {
   title: string;

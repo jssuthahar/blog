@@ -16,6 +16,12 @@ if [ -z "$changed" ]; then
   exit 0
 fi
 
+# The guard lives in a separate private checkout, symlinked in as tools/.
+# Anyone cloning this repo without it should still be able to push.
+if [ ! -e tools/guards/check-humanizer.mjs ]; then
+  exit 0
+fi
+
 echo "humanizer: checking src/content before push..."
 
 # Git hooks run in a bare shell without the interactive login PATH, so a
@@ -43,7 +49,7 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 
 # shellcheck disable=SC2086
-node scripts/check-humanizer.mjs $changed
+node tools/guards/check-humanizer.mjs $changed
 status=$?
 
 if [ "$status" -ne 0 ]; then

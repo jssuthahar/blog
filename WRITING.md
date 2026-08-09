@@ -198,7 +198,7 @@ implementation instead of isolated snippets.
 
 Put the three links near the top of the post in a `<Callout type="tip">`, use
 real file paths from the repo, and give the reader something to run. Full
-guidance, including when *not* to use it: [`docs/REFERENCE-PROJECT.md`](docs/REFERENCE-PROJECT.md).
+guidance, including when *not* to use it: [`tools/blog/docs/REFERENCE-PROJECT.md`](tools/blog/docs/REFERENCE-PROJECT.md).
 
 ---
 
@@ -269,5 +269,5 @@ Then commit and push to `main`. GitHub Actions builds and deploys automatically.
 
 ## 8. Full template
 
-Copy [`docs/post-template.mdx`](docs/post-template.mdx) into
+Copy [`tools/blog/docs/post-template.mdx`](tools/blog/docs/post-template.mdx) into
 `src/content/blog/`, rename it, and delete what you don't need.

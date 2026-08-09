@@ -6,7 +6,7 @@
 // Xerces message and no line number.
 //
 // Usage:
-//   node scripts/check-theme.mjs                       # checks docs/theme-Blog.xml
+//   node scripts/check-theme.mjs                       # checks tools/blog/docs/theme-Blog.xml
 //   node scripts/check-theme.mjs path/to/theme.xml     # checks a specific file
 //
 // Exit code: 0 = safe to upload, 1 = Blogger will reject it.
@@ -34,7 +34,10 @@ import { readFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { relative } from 'node:path';
 
-const DEFAULT_FILE = 'docs/theme-Blog.xml';
+// The theme lives with the rest of the blog's docs in the private tooling
+// checkout, symlinked in as tools/. Pass a path explicitly if you keep it
+// somewhere else.
+const DEFAULT_FILE = 'tools/blog/docs/theme-Blog.xml';
 
 /** The five entities XML predefines. Any other named entity is fatal. */
 const XML_ENTITIES = new Set(['amp', 'lt', 'gt', 'quot', 'apos']);

@@ -2,6 +2,11 @@
   "slug": "azure-availability-set",
   "pacing": "long",
   "topic": "Azure Availability Set — how fault domains, update domains and a load balancer keep an e-commerce site online while Azure patches the servers under it.",
+  "learn": [
+    "Why one VM cannot survive Azure patching the host under it",
+    "How an availability set spreads VMs across fault and update domains",
+    "What the load balancer health probe does during a reboot"
+  ],
   "seoTitle": "Azure Availability Set",
   "publishedAt": "2026-08-07",
   "title": {

@@ -1,6 +1,11 @@
 {
   "slug": "azure-service-bus-vs-queue-storage",
   "topic": "Service Bus or Queue Storage — the five questions that decide which Azure queue you should actually use.",
+  "learn": [
+    "The five questions that decide which Azure queue you need",
+    "Where Queue Storage stops: no topics, no sessions, 64 KB",
+    "Why the cheap queue is the right call for most background work"
+  ],
   "seoTitle": "Service Bus vs Queue Storage",
   "publishedAt": "2026-07-01",
   "title": {

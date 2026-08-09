@@ -2,6 +2,11 @@
   "slug": "azure-fault-domain",
   "pacing": "long",
   "topic": "Azure Fault Domain — how spreading VMs across separate physical racks keeps an e-commerce site online when a rack loses power.",
+  "learn": [
+    "What a rack shares — one power feed, one switch, one blast radius",
+    "How an availability set spreads VMs across fault domains for you",
+    "Why two VMs in the same fault domain is not redundancy"
+  ],
   "seoTitle": "Azure Fault Domain",
   "publishedAt": "2026-08-08",
   "title": {

@@ -164,7 +164,23 @@ const schema = [
             </a>
           </h3>
           <p class="mt-1 line-clamp-2 text-sm leading-relaxed text-muted">{short.sub}</p>
-          <p class="mt-1.5 text-xs text-muted">
+
+          <!-- What the thirty seconds actually leave you with. The headline is
+               written to stop a scroll, which is a different job from telling
+               somebody whether this is the short they need — so the card says
+               both, and this is the half you choose by. -->
+          {short.learn.length > 0 && (
+            <ul class="mt-2.5 space-y-1 text-xs leading-relaxed text-muted">
+              {short.learn.map((point) => (
+                <li class="flex gap-1.5">
+                  <span aria-hidden="true" style="color: var(--accent);">·</span>
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <p class="mt-2.5 text-xs text-muted">
             {CATEGORIES[short.category].label} · {short.stages.length} steps
           </p>
         </article>

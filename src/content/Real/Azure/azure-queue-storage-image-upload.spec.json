@@ -1,6 +1,11 @@
 {
   "slug": "azure-queue-storage-image-upload",
   "topic": "Azure Queue Storage — moving image processing out of the upload request with a blob, a 182-byte message and a background worker.",
+  "learn": [
+    "Why image processing inside the request exhausts the web tier",
+    "The claim check: put a blob path on the queue, not the file",
+    "How visibility timeout and DequeueCount handle a dead worker"
+  ],
   "seoTitle": "Azure Queue Storage image upload",
   "publishedAt": "2026-06-25",
   "title": {

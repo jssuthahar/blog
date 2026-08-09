@@ -1,6 +1,11 @@
 {
   "slug": "azure-sync-vs-async-messaging",
   "topic": "Synchronous or asynchronous — the one question that decides it, and the price you pay for going async.",
+  "learn": [
+    "How three chained dependencies become your own downtime",
+    "Why going async turns an outage into lag instead",
+    "The three jobs you inherit the moment you queue it"
+  ],
   "seoTitle": "Sync vs async messaging",
   "publishedAt": "2026-07-02",
   "title": {

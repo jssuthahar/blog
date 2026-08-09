@@ -1,6 +1,11 @@
 {
   "slug": "python-mutable-vs-immutable",
   "topic": "How mutable and immutable variables work in Python",
+  "learn": [
+    "Why b = a is a second name, not a copy",
+    "Which Python types change in place and which are replaced",
+    "How the mutable default argument bug gets written"
+  ],
   "seoTitle": "Python mutable vs immutable",
   "publishedAt": "2026-08-02",
   "title": {

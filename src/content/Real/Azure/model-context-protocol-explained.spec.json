@@ -1,6 +1,11 @@
 {
   "slug": "model-context-protocol-explained",
   "topic": "What the Model Context Protocol is and why AI tools need it",
+  "learn": [
+    "Why a model on its own cannot reach GitHub, SQL or Slack",
+    "How an MCP client and server carry one request down and back",
+    "Why M + N connectors beats M × N bespoke integrations"
+  ],
   "seoTitle": "MCP: Model Context Protocol",
   "publishedAt": "2026-08-05",
   "title": {

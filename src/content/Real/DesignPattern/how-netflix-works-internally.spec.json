@@ -1,6 +1,11 @@
 {
   "slug": "how-netflix-works-internally",
   "topic": "How Netflix works internally",
+  "learn": [
+    "Why the video almost never comes from Netflix’s own datacentres",
+    "How the control plane answers play with a ranked manifest",
+    "How Open Connect boxes inside your ISP are filled overnight"
+  ],
   "seoTitle": "How Netflix works internally",
   "publishedAt": "2026-08-02",
   "title": {

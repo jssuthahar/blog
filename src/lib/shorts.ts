@@ -43,6 +43,21 @@ export interface Short {
   category: CategorySlug;
   /** Plain-language subject, e.g. "How Netflix works internally". */
   topic: string;
+  /**
+   * What a viewer walks away knowing — three short lines, from `learn` in the
+   * spec.
+   *
+   * A short sells itself on a hook, and a hook is deliberately not an
+   * explanation: "Everyone confuses these two" says nothing about what the
+   * thirty seconds contain. This is the other half — the plain answer to "what
+   * do I get out of this one", on the hub card before you click and on the page
+   * before you press play. It is also the part an answer engine can quote,
+   * because it is the only place the short states its own scope in prose.
+   *
+   * Empty when a spec has none, and every surface treats it as optional: a
+   * short handed over without the field still publishes everywhere.
+   */
+  learn: string[];
   /** Headline with the short's own <em> emphasis kept. */
   titleHtml: string;
   /** Same headline as plain text — for <title>, OG tags and JSON-LD. */
@@ -449,6 +464,8 @@ const htmlModules = import.meta.glob<string>('../content/Real/*/*.html', {
 interface ShortSpec {
   slug: string;
   topic: string;
+  /** Three lines saying what the short teaches. See `Short.learn`. */
+  learn?: string[];
   /** Optional per-short <title> override. Add it when the pixel gate complains. */
   seoTitle?: string;
   /** Slug of the blog post this short introduces. Drives "Learn more" on /app. */
@@ -503,6 +520,7 @@ function loadShorts(): Short[] {
       folderLabel: humaniseFolder(folder),
       category: categoryForFolder(folder),
       topic: spec.topic,
+      learn: spec.learn ?? [],
       titleHtml: spec.title.main,
       title,
       sub: spec.title.sub,
@@ -566,6 +584,7 @@ export function shortSearchText(short: Short): string {
     short.topic,
     short.sub,
     short.folderLabel,
+    ...short.learn,
     ...short.stages.map((s) => `${s.title} ${s.desc}`),
     ...short.tags,
   ]

@@ -1,6 +1,11 @@
 {
   "slug": "azure-durable-functions-replay",
   "topic": "How Azure Durable Functions replay your orchestrator code",
+  "learn": [
+    "Why an orchestrator body re-executes from line one, many times",
+    "How completed activities are answered from the event history",
+    "Why DateTime.Now and Guid.NewGuid break a Durable Function"
+  ],
   "seoTitle": "How Durable Functions replay",
   "publishedAt": "2026-08-02",
   "title": {

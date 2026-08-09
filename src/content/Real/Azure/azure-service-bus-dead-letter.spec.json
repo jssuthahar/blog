@@ -1,6 +1,11 @@
 {
   "slug": "azure-service-bus-dead-letter",
   "topic": "Azure Service Bus retry and dead-letter queue — what happens to a payment when the gateway times out, and where the message that can never succeed ends up.",
+  "learn": [
+    "Why you never complete a message you cannot confirm",
+    "How delivery count and MaxDeliveryCount stop an endless retry",
+    "What lands in the dead-letter queue, and what to alert on"
+  ],
   "seoTitle": "Azure Service Bus dead letter queue",
   "publishedAt": "2026-06-28",
   "title": {

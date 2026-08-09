@@ -1,6 +1,11 @@
 {
   "slug": "azure-service-bus-vs-kafka",
   "topic": "Service Bus or Kafka — why \"we need Kafka\" is usually the wrong answer on Azure, and what the team actually needed.",
+  "learn": [
+    "The real difference between a broker and an append-only log",
+    "Why Kafka partitions put a ceiling on your consumer count",
+    "When the Event Hubs Kafka endpoint is the cheaper answer"
+  ],
   "seoTitle": "Azure Service Bus vs Kafka",
   "publishedAt": "2026-06-30",
   "title": {

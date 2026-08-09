@@ -1,6 +1,11 @@
 {
   "slug": "azure-dead-letter-incident",
   "topic": "A Service Bus incident — how EnableDeadLetteringOnMessageExpiration defaulting to false silently deleted real customer orders.",
+  "learn": [
+    "How a message TTL deletes orders with no error and no log line",
+    "Why a queue draining with no consumer is deletion, not recovery",
+    "The three queue properties and one alert that would have caught it"
+  ],
   "seoTitle": "Service Bus dead letter incident",
   "publishedAt": "2026-05-20",
   "title": {

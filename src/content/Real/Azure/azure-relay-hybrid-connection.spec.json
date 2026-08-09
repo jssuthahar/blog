@@ -1,6 +1,11 @@
 {
   "slug": "azure-relay-hybrid-connection",
   "topic": "Azure Relay Hybrid Connections — reaching an on-premises service from the cloud without opening a single inbound firewall port.",
+  "learn": [
+    "How the cloud reaches an on-prem service with no inbound port",
+    "Why the private side dials out to a rendezvous point instead",
+    "When Relay beats a VPN, and when a queue beats both"
+  ],
   "seoTitle": "Azure Relay Hybrid Connections",
   "publishedAt": "2026-06-27",
   "title": {

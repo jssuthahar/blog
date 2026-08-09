@@ -1,6 +1,11 @@
 {
   "slug": "azure-service-bus-flash-sale",
   "topic": "Azure Service Bus — how a queue in front of the order API stops a flash sale from dropping real customer orders.",
+  "learn": [
+    "What a flash sale does to an order API with nothing in front of it",
+    "How a queue decouples arrival rate from processing rate",
+    "Why an uncompleted message comes back without a retry loop"
+  ],
   "seoTitle": "Azure Service Bus flash sale",
   "publishedAt": "2026-06-29",
   "title": {

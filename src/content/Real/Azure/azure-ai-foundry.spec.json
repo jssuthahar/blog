@@ -1,6 +1,11 @@
 {
   "slug": "azure-ai-foundry",
   "topic": "What Azure AI Foundry is, why businesses adopt it, and what teams build with it",
+  "learn": [
+    "Why the demo works and the product still does not ship",
+    "How one Foundry project holds the model, your data and the agent",
+    "What to evaluate and filter before a release, not after"
+  ],
   "seoTitle": "What is Azure AI Foundry",
   "publishedAt": "2026-08-03",
   "title": {

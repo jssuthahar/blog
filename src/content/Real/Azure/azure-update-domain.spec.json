@@ -1,6 +1,11 @@
 {
   "slug": "azure-update-domain",
   "topic": "Azure Update Domain — how Azure reboots your VMs one group at a time for planned maintenance while a load balancer keeps a banking app online.",
+  "learn": [
+    "How Azure reboots hosts one update domain at a time",
+    "Why the load balancer always has a healthy VM to use",
+    "Update domain versus fault domain, in one line"
+  ],
   "pacing": "long",
   "seoTitle": "Azure Update Domain",
   "publishedAt": "2026-08-08",

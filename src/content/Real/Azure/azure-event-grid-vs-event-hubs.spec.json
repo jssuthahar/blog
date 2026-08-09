@@ -1,6 +1,11 @@
 {
   "slug": "azure-event-grid-vs-event-hubs",
   "topic": "Event Grid or Event Hubs — the mechanism difference behind two Azure services people confuse because both say \"event\".",
+  "learn": [
+    "The doorbell-or-tape question that settles which one you need",
+    "Push with retries versus pull with offsets and retention",
+    "Why a real pipeline usually ends up using both"
+  ],
   "seoTitle": "Azure Event Grid vs Event Hubs",
   "publishedAt": "2026-05-22",
   "title": {

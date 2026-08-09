@@ -1,6 +1,11 @@
 {
   "slug": "copilot-context-window",
   "topic": "Why LLMs are stateless, and how GitHub Copilot rebuilds your project context into a token-limited prompt on every request",
+  "learn": [
+    "Why the model holds nothing between two requests",
+    "How your editor rebuilds the whole prompt every time",
+    "What competes for the same fixed token budget"
+  ],
   "publishedAt": "2026-08-04",
   "article": "github-copilot-custom-instructions",
   "title": {

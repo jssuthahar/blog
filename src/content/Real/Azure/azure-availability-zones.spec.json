@@ -1,6 +1,11 @@
 {
   "slug": "azure-availability-zones",
   "topic": "Why a high-traffic shopping app needs Azure Availability Zones — the cost of a single-server outage, and how three physically separate zones in one region remove it",
+  "learn": [
+    "What a single-server outage actually costs a shopping app",
+    "How three zones in one region are physically separate buildings",
+    "Why sub-2 ms replication turns 99.9% into 99.99%"
+  ],
   "seoTitle": "Azure Availability Zones",
   "publishedAt": "2026-08-06",
   "title": {

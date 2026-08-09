@@ -1,6 +1,11 @@
 {
   "slug": "azure-pubsub-vs-point-to-point",
   "topic": "Point-to-point or publish/subscribe — why three teams on one Service Bus queue all end up with a third of the messages.",
+  "learn": [
+    "Why three teams on one queue each get a third of the messages",
+    "How competing consumers differ from real subscribers",
+    "What a subscription gives you that a second reader never will"
+  ],
   "seoTitle": "Point-to-point vs pub/sub messaging",
   "publishedAt": "2026-06-24",
   "title": {

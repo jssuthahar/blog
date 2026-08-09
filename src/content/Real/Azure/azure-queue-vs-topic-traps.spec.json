@@ -1,6 +1,11 @@
 {
   "slug": "azure-queue-vs-topic-traps",
   "topic": "Service Bus queue versus topic — the five things that go wrong months after you correctly chose the topic.",
+  "learn": [
+    "How the $Default rule keeps matching everything you filtered",
+    "Why one idle subscription fills the topic and pages the publisher",
+    "The five settings that prevent all of it, none of them code"
+  ],
   "seoTitle": "Service Bus queue vs topic traps",
   "publishedAt": "2026-06-26",
   "title": {

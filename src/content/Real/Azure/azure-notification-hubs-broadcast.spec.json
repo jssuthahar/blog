@@ -1,6 +1,11 @@
 {
   "slug": "azure-notification-hubs-broadcast",
   "topic": "Azure Notification Hubs — why pushing one message to a million phones is a platform problem, not a loop.",
+  "learn": [
+    "Why a loop over a million device tokens finishes too late",
+    "How one send becomes APNs, FCM and WNS payloads",
+    "How tag targeting replaces holding device tokens yourself"
+  ],
   "seoTitle": "Azure Notification Hubs broadcast",
   "publishedAt": "2026-06-23",
   "title": {

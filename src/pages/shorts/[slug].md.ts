@@ -44,7 +44,14 @@ export const GET: APIRoute = ({ props }) => {
     .map((stage, index) => `### ${index + 1}. ${stage.title}\n\n${stage.desc}`)
     .join('\n\n');
 
-  const body = `${header}## Understand it one step at a time
+  // Scope first, the same way the page states it: an assistant summarising this
+  // file should be able to say what the short covers without inferring it from
+  // sixteen step titles.
+  const learn = short.learn.length
+    ? `## What you'll learn\n\n${short.learn.map((point) => `- ${point}`).join('\n')}\n\n`
+    : '';
+
+  const body = `${header}${learn}## Understand it one step at a time
 
 ${steps}
 

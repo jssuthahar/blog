@@ -1,6 +1,6 @@
 import type { APIRoute, GetStaticPaths } from 'astro';
 import { SITE, AUTHOR } from '../../config';
-import { CATEGORIES, getPublishedPosts, postUrl, type Post } from '../../lib/posts';
+import { CATEGORIES, getPublishedPosts, postUrl, stripAuthorNotes, type Post } from '../../lib/posts';
 
 /**
  * Markdown twin of every post.
@@ -48,7 +48,7 @@ export const GET: APIRoute = ({ props }) => {
       data.faq.map(({ q, a }) => `### ${q}\n\n${a}`).join('\n\n')
     : '';
 
-  const body = `${frontmatter}${post.body ?? ''}${faq}\n`;
+  const body = `${frontmatter}${stripAuthorNotes(post.body ?? '')}${faq}\n`;
 
   return new Response(body, {
     headers: {

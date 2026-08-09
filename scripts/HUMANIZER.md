@@ -17,7 +17,27 @@ frontmatter and code blocks first (so code is never flagged), then looks for:
 
 Edit the arrays at the top of the script to add or remove terms.
 
+### Structural tells (warn)
+
+Vocabulary is the easy half. AI detectors don't read word lists — they score how
+*predictable* the writing is, so an article can be free of every banned word and
+still read as machine-written. These checks track the rhythm signals detectors
+actually measure:
+
+| Check | Threshold | Why |
+|---|---|---|
+| Sentence rhythm (burstiness) | CV > `0.6` | Humans swing between long explanations and short punches. Uniform sentence length is the strongest rhythm tell. |
+| Question headings | < 30% of headings | "What is X?" / "Why do I need Y?" stacked down a page is a generated-outline shape. |
+| Recycled transitions | < 3 per 1k words | "Let me…", "Here is the…", "In short" are fine occasionally, a tell when every section opens the same way. |
+| Table density | < 18 rows per 1k words | A ceiling guard against drift, **not** a push to delete tables — they earn their place and answer engines quote them. |
+| Screenshot present | ≥ 1 image | Published blog posts only. A screenshot of your real screen is the one artifact no model can fabricate. |
+
+Burstiness is skipped on posts under 15 sentences, where the statistic is noise.
+The screenshot check skips drafts and everything outside `src/content/blog`.
+
 Exit code: `0` = clean or warnings only · `1` = blocking hard tells found.
+Structural tells never block on their own; `--strict` promotes them (along with
+filler and density) to blocking.
 
 ## The three guards
 

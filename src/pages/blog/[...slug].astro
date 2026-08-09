@@ -36,6 +36,7 @@ import {
   readingTime,
   slugifyTag,
   seriesUrl,
+  stripAuthorNotes,
   type Post,
 } from '../../lib/posts';
 import { entitiesForTags } from '../../lib/taxonomy';
@@ -109,7 +110,7 @@ const schema: Record<string, unknown>[] = [
     mainEntityOfPage: { '@type': 'WebPage', '@id': new URL(path, SITE.url).href },
     articleSection: category.label,
     keywords: data.tags.join(', '),
-    wordCount: (post.body ?? '').split(/\s+/).filter(Boolean).length,
+    wordCount: stripAuthorNotes(post.body ?? '').split(/\s+/).filter(Boolean).length,
     inLanguage: SITE.lang,
     isPartOf: seriesNode
       ? [{ '@id': `${SITE.url}/#website` }, { '@id': seriesNode['@id'] }]
@@ -391,7 +392,7 @@ if (data.faq.length > 0) {
   <PostNav next={next} prev={prev} />
 
   <!-- Floating chat launcher; fixed-position, so it lives at the page root. -->
-  <ArticleChat faq={data.faq} body={post.body ?? ''} title={data.title} intro={data.highlight} />
+  <ArticleChat faq={data.faq} body={stripAuthorNotes(post.body ?? '')} title={data.title} intro={data.highlight} />
 
   <!-- Full-screen deck built from the article's own H2 sections on demand. -->
   <PresentationMode

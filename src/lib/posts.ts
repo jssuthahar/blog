@@ -298,6 +298,22 @@ export async function getNextRead(post: Post): Promise<{ next?: NextRead; prev?:
   return { next, prev };
 }
 
+/**
+ * Drop author-only notes from a raw post body.
+ *
+ * MDX `{/* … *\/}` and Markdown `<!-- … -->` comments never reach the rendered
+ * page, but `post.body` is the unrendered source. Anywhere we hand that source
+ * to something that reads it as article text — the Markdown twin for AI
+ * crawlers, the on-page chat — the notes have to come out first, or a
+ * screenshot TODO ends up quoted back as if it were part of the article.
+ */
+export function stripAuthorNotes(body: string): string {
+  return body
+    .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\n{3,}/g, '\n\n');
+}
+
 /** 200 wpm, rounded up, with code blocks discounted since they're scanned not read. */
 export function readingTime(body: string): number {
   const withoutCode = body.replace(/```[\s\S]*?```/g, ' ');

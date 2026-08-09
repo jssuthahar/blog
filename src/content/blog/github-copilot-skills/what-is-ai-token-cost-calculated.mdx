@@ -34,6 +34,8 @@ This article fixes that, and it is the one I should have read first. What a toke
 
 ## What is a token, exactly?
 
+{/* SCREENSHOT: your real usage or billing view — save as ./images/what-is-a-token-exactly.png, then replace this line with: ![What is a token, exactly](./images/what-is-a-token-exactly.png) */}
+
 A token is a fragment of text drawn from a fixed vocabulary that the model was trained with. Not a word. Not a character. A fragment.
 
 Modern models have vocabularies of roughly 100,000 to 200,000 entries. Every piece of text you send is chopped into pieces that exist in that vocabulary, and each piece is swapped for its ID number. The model never sees your letters. It sees a list of integers.
@@ -123,6 +125,8 @@ Your question is the smallest line in that table. This is why "write shorter pro
 Two of those rows are worth a special mention because they are silent. Tool definitions are sent on every request whether or not any tool gets used, so a pile of installed integrations is a standing charge on everything you do. And an always-on instructions file is exactly the same shape of cost, which is the real reason [custom instructions](../github-copilot-custom-instructions) should be tight rather than exhaustive.
 
 ## Context window and token budget are different things
+
+{/* SCREENSHOT: your real usage or billing view — save as ./images/context-window-and-token-budget-are-differ.png, then replace this line with: ![Context window and token budget are different things](./images/context-window-and-token-budget-are-differ.png) */}
 
 People mix these up constantly, so let me separate them.
 

@@ -34,6 +34,8 @@ This is Part 4 of my GitHub Copilot Skills series. If you want the theory of wha
 
 ## Why an Azure Copilot Skill is different: guardrails, not generated code
 
+{/* SCREENSHOT: the portal screen you used — save as ./images/why-an-azure-copilot-skill-is-different-gu.png, then replace this line with: ![Why an Azure Copilot Skill is different: guardrails, not generated code](./images/why-an-azure-copilot-skill-is-different-gu.png) */}
+
 Here is the shift that makes this part unlike the others. In the .NET and Flutter walkthroughs, the Skill taught Copilot to *generate* something — a CQRS feature, a Riverpod screen. The value was in the code it produced. An Azure Skill is mostly the opposite. Its value is in the code it refuses to produce.
 
 Think of it as a policy your AI will not violate. Provisioning a resource is easy; provisioning it *safely and cheaply* is a hundred small decisions where the convenient answer and the correct answer point in different directions. An Azure Copilot Skill encodes those decisions once, so Copilot picks the correct answer by default instead of the convenient one.
@@ -385,6 +387,8 @@ To prove the block directly, I sometimes ask it to "make the storage account pub
 **When the Skill does not fire**, the symptom is that you get the plain, insecure default and no checklist. The cause is almost always the description. If your task said "set up blob storage" and your trigger words were "storage account", the phrasing missed. Fix it by widening the description's trigger words, or, to confirm the body is sound, name the Skill once in your prompt ("use the azure-service-baseline skill"). If it produces the secured version when named, the body is fine and only the description needs work.
 
 ## Azure-specific gotchas the Skill should encode
+
+{/* SCREENSHOT: the portal screen you used — save as ./images/azure-specific-gotchas-the-skill-should-en.png, then replace this line with: ![Azure-specific gotchas the Skill should encode](./images/azure-specific-gotchas-the-skill-should-en.png) */}
 
 These are the four that cost real teams real hours. I bake each one into the Skill so Copilot carries the scar tissue I collected the hard way.
 

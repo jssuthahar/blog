@@ -32,6 +32,10 @@ Key places to inspect when making changes:
 Conventions agents should follow:
 
 - Prefer small, focused changes; do not refactor unrelated files.
+- Documentation and agent definitions do not live in this repo. They sit in a
+  separate checkout symlinked in as `tools/`. Write docs to `tools/blog/docs/`
+  and agents to `tools/agents/` — never recreate `docs/` or `.claude/agents/`
+  here, since both are gitignored and a file put there would never commit.
 - When editing content, follow `WRITING.md` and run `npm run check` locally.
 - Ground article code samples in the reference project (MSDevBuild Eats Flutter food delivery app) rather than generic snippets — see [tools/blog/docs/REFERENCE-PROJECT.md](tools/blog/docs/REFERENCE-PROJECT.md).
 - The build fails on invalid frontmatter or schema violations, so fix those before merging.

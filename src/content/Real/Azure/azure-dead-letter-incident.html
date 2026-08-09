@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The queue drained. Nothing was consuming it. — MSDevBuild</title>
+<meta name="description" content="One Service Bus default, six hours, and 4,318 orders that never existed.">
+<meta name="author" content="Suthahar">
+<meta name="theme-color" content="#0E1420">
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg-deep:#0E1420;
+  --bg-panel:#141B2B;
+  --bg-panel-2:#182238;
+  --border:#232C40;
+  --text-primary:#E8EDF5;
+  --text-dim:#8B95A7;
+  --accent-1:#3AA0FF;
+  --accent-2:#1959C9;
+  --accent-cyan:#22D3EE;
+  --success:#3fb950;
+  --warn:#F0A64A;
+  --danger:#F44A6A;
+
+  --editor-bg:#1e1e1e;
+  --editor-sidebar:#181818;
+  --titlebar:#2b2b2e;
+  --line-num:#4b5157;
+  --ghost:#6e7681;
+  --code-keyword:#ff7b72;
+  --code-func:#dcdcaa;
+  --code-str:#ce9178;
+  --code-plain:#d4d4d4;
+  --code-comment:#6a9955;
+
+  --font-ui:'Inter',-apple-system,'Segoe UI',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{
+  width:100%; height:100%; background:#05080F;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden; font-family:var(--font-ui);
+}
+#stage-wrap{ width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
+
+#canvas{
+  position:relative; width:1080px; height:1920px; flex-shrink:0;
+  transform-origin:center center;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(58,160,255,0.12), transparent 55%),
+    radial-gradient(circle at 15% 92%, rgba(25,89,201,0.16), transparent 45%),
+    var(--bg-deep);
+  border-radius:52px; overflow:hidden;
+  box-shadow:0 0 0 2px #1a2233, 0 40px 120px rgba(0,0,0,0.7);
+}
+#canvas::before{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size:54px 54px;
+}
+
+/* ===================== TITLE SCREEN (tap to start) ===================== */
+#title-screen{
+  position:absolute; inset:0; z-index:110; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px;
+  background:radial-gradient(circle at 50% 30%, rgba(58,160,255,0.22), transparent 60%), var(--bg-deep);
+  text-align:center; padding:0 90px;
+  opacity:1; transition:opacity .38s ease;
+}
+#title-screen.hide{ opacity:0; pointer-events:none; }
+#logo-mark{
+  width:132px; height:132px; border-radius:50%;
+  background-size:cover; background-position:center;
+  box-shadow:0 0 0 4px rgba(58,160,255,0.5), 0 0 70px 8px rgba(58,160,255,0.35);
+  border:2px solid rgba(255,255,255,0.15);
+  animation:msd-pulseRing 2.6s ease-in-out infinite;
+}
+#title-brand{ color:var(--accent-1); font-size:22px; font-weight:800; letter-spacing:5px; text-transform:uppercase; }
+#title-brand span{ color:var(--text-dim); font-weight:600; letter-spacing:2px; text-transform:none; }
+#title-main{ color:#fff; font-size:64px; font-weight:900; line-height:1.14; max-width:840px; }
+#title-main em{ font-style:normal; color:var(--accent-1); }
+#title-sub{ color:var(--text-dim); font-size:26px; font-weight:500; max-width:680px; line-height:1.5; }
+#title-pill{
+  margin-top:14px; padding:12px 26px; border-radius:100px;
+  border:1.5px solid rgba(58,160,255,0.4); color:var(--text-primary);
+  font-size:18px; font-weight:600; font-family:var(--font-mono);
+  display:flex; align-items:center; gap:10px;
+}
+#tap-hint{ color:var(--text-dim); font-size:18px; font-weight:600; margin-top:26px; opacity:.85; }
+#rec-hint{ color:var(--text-dim); font-size:16px; font-weight:500; margin-top:-16px; opacity:.6; }
+#rec-hint b{ color:var(--accent-1); font-family:var(--font-mono); }
+.live-dot{ width:8px; height:8px; border-radius:50%; background:var(--accent-cyan); animation:msd-tdot 1.2s infinite; }
+
+/* ===================== TOP BAR ===================== */
+#topbar{
+  position:absolute; top:44px; left:56px; right:56px; height:92px; z-index:20;
+  display:flex; align-items:center; gap:18px;
+}
+#topbar-avatar{
+  width:72px; height:72px; border-radius:50%; flex-shrink:0;
+  background-size:cover; background-position:center;
+  border:2px solid rgba(255,255,255,0.14);
+  box-shadow:0 0 0 3px rgba(58,160,255,0.42);
+}
+#topbar-text{ display:flex; flex-direction:column; gap:4px; }
+#topbar-name{ color:#fff; font-size:30px; font-weight:800; letter-spacing:-0.4px; line-height:1; }
+#topbar-tag{ color:var(--text-dim); font-size:17px; font-weight:600; letter-spacing:.4px; line-height:1; }
+#sound-toggle, #record-toggle{
+  width:62px; height:62px; border-radius:50%;
+  border:1.5px solid var(--border); background:var(--bg-panel);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  opacity:.35; transition:opacity .3s ease;
+}
+#sound-toggle svg{ width:30px; height:30px; }
+#record-toggle{ margin-left:auto; }
+#record-toggle svg{ width:28px; height:28px; }
+#sound-toggle{ margin-left:12px; }
+#record-toggle:hover{ opacity:.85; }
+/* The record button is a tool, not part of the reel — it must not appear in
+   the frames it is capturing. */
+#canvas.capturing #record-toggle{ opacity:0; pointer-events:none; }
+
+/* ===================== STAGE (agent-authored content lives here) ===== */
+/* Sits below the caption card: Reels and Shorts cover roughly the bottom 400px,
+   so the step number and title have to live above the animation, not under it. */
+#stage{
+  position:absolute; top:500px; left:44px; right:44px; height:1024px; z-index:10;
+}
+
+/* ===================== CAPTION CARD ===================== */
+#caption-wrap{
+  position:absolute; top:166px; left:56px; right:56px; min-height:244px; z-index:20;
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border); border-radius:32px; padding:34px 40px;
+  box-shadow:0 24px 70px rgba(0,0,0,0.45);
+}
+#caption-wrap.pulse{ animation:msd-capPulse .34s ease; }
+#stage-num{
+  color:var(--accent-1); font-family:var(--font-mono); font-size:19px;
+  font-weight:700; letter-spacing:3px; margin-bottom:14px;
+}
+#stage-title{ color:#fff; font-size:52px; font-weight:800; line-height:1.16; letter-spacing:-1px; }
+#stage-title .kw-hl{ color:var(--accent-1); }
+#stage-desc{ color:var(--text-dim); font-size:27px; font-weight:500; line-height:1.45; margin-top:14px; }
+
+/* ===================== STATUS BAR ===================== */
+#statusbar{
+  position:absolute; top:1540px; left:56px; right:56px; height:66px; z-index:20;
+  display:flex; align-items:center; gap:14px; padding:0 26px;
+  background:rgba(20,27,43,0.8); border:1.5px solid var(--border); border-radius:18px;
+}
+#status-icon{ width:26px; height:26px; flex-shrink:0; }
+#status-text{ color:var(--text-primary); font-family:var(--font-mono); font-size:21px; font-weight:600; }
+.thinking-wrap{ display:none; gap:7px; margin-left:6px; }
+.thinking-wrap.show{ display:flex; }
+.thinking-dot{ width:9px; height:9px; border-radius:50%; background:var(--accent-cyan); animation:msd-tdot 1.1s infinite; }
+.thinking-dot:nth-child(2){ animation-delay:.18s; }
+.thinking-dot:nth-child(3){ animation-delay:.36s; }
+
+/* ===================== PROGRESS TRACK ===================== */
+/* Directly under the top bar, with the caption card, so "step 3 of 8" survives
+   the platform chrome that eats the bottom of the frame. */
+#progress-track{
+  position:absolute; top:146px; left:56px; right:56px; height:8px; z-index:20;
+  display:flex; gap:7px;
+}
+#progress-track .seg{
+  flex:1; height:100%; border-radius:4px; background:var(--border); overflow:hidden;
+}
+#progress-track .seg-fill{
+  width:0%; height:100%; border-radius:4px;
+  background:linear-gradient(90deg, var(--accent-1), var(--accent-cyan));
+}
+#progress-track .seg.done .seg-fill{ width:100%; }
+#progress-track .seg.active .seg-fill{ animation:msd-fillseg linear forwards; animation-duration:var(--seg-dur,3000ms); }
+
+/* ===================== BOTTOM BRAND STRIP ===================== */
+#bottom-bar{
+  position:absolute; top:1640px; left:56px; right:56px; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+}
+#bottom-bar .b-left{ color:var(--text-dim); font-size:20px; font-weight:700; letter-spacing:1.4px; }
+#bottom-bar .b-left b{ color:var(--accent-1); }
+#bottom-bar .b-right{
+  color:var(--text-dim); font-family:var(--font-mono); font-size:19px; font-weight:600;
+  display:flex; align-items:center; gap:9px;
+}
+
+/* ===================== END CARD ===================== */
+#end-card{
+  position:absolute; inset:0; z-index:105; opacity:0; pointer-events:none;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+  background:radial-gradient(circle at 50% 30%, rgba(58,160,255,0.22), transparent 60%), var(--bg-deep);
+  text-align:center; padding:0 90px; transition:opacity .5s ease;
+}
+#end-card.show{ opacity:1; }
+#end-avatar{
+  width:120px; height:120px; border-radius:50%;
+  background-size:cover; background-position:center;
+  border:3px solid rgba(255,255,255,0.15);
+  box-shadow:0 0 0 4px rgba(58,160,255,0.5), 0 0 70px 8px rgba(58,160,255,0.3);
+}
+#end-check{
+  width:52px; height:52px; border-radius:50%; background:var(--success);
+  display:flex; align-items:center; justify-content:center;
+  margin-top:-42px; margin-left:70px; border:3px solid var(--bg-deep);
+}
+#end-check svg{ width:26px; height:26px; }
+#end-title{ color:#fff; font-size:44px; font-weight:800; line-height:1.2; margin-top:12px; }
+#end-sub{ color:var(--text-dim); font-size:23px; font-weight:500; max-width:660px; line-height:1.5; }
+#end-cta{
+  margin-top:14px; padding:16px 30px; border-radius:100px;
+  border:1.5px solid rgba(58,160,255,0.5); color:#fff;
+  font-size:20px; font-weight:700; font-family:var(--font-mono);
+  display:flex; align-items:center; gap:10px;
+  background:linear-gradient(90deg, rgba(58,160,255,0.16), rgba(34,211,238,0.1));
+}
+#end-tagline{ color:var(--text-dim); font-size:20px; font-weight:600; letter-spacing:1px; margin-top:6px; }
+
+/* Engagement row. Saves and follows are what actually move a reel, so the
+   brand card asks for them explicitly rather than only showing a URL. */
+#end-actions{ display:flex; gap:16px; margin-top:20px; }
+#end-actions .act{
+  display:flex; align-items:center; gap:11px; padding:15px 26px; border-radius:100px;
+  border:1.5px solid var(--border); background:rgba(20,27,43,0.75);
+  color:var(--text-primary); font-size:21px; font-weight:700;
+}
+#end-actions .act svg{ width:24px; height:24px; flex-shrink:0; }
+#end-actions .act.primary{
+  border-color:rgba(58,160,255,0.55); color:#fff;
+  background:linear-gradient(90deg, rgba(58,160,255,0.22), rgba(34,211,238,0.12));
+  animation:msd-breathe 2.4s ease-in-out infinite;
+}
+
+/* ===================== SHARED COMPONENTS FOR STAGE CONTENT =========== */
+/* The agent composes these rather than restyling from scratch, which keeps
+   every reel on-brand even when the visuals are topic-specific. */
+
+.msd-card{
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border); border-radius:26px;
+  box-shadow:0 18px 50px rgba(0,0,0,0.4);
+}
+.msd-card.accent{ border-color:rgba(58,160,255,0.55); box-shadow:0 0 0 1px rgba(58,160,255,0.3), 0 18px 60px rgba(58,160,255,0.18); }
+.msd-pill{
+  display:inline-flex; align-items:center; gap:9px; padding:10px 20px; border-radius:100px;
+  border:1.5px solid var(--border); background:rgba(20,27,43,0.7);
+  color:var(--text-primary); font-family:var(--font-mono); font-size:20px; font-weight:600;
+}
+.msd-pill.accent{ border-color:rgba(58,160,255,0.5); color:var(--accent-1); }
+.msd-chip{
+  display:inline-flex; align-items:center; padding:7px 15px; border-radius:9px;
+  background:rgba(58,160,255,0.14); border:1px solid rgba(58,160,255,0.3);
+  color:var(--accent-1); font-family:var(--font-mono); font-size:19px; font-weight:600;
+}
+.msd-label{ color:var(--text-dim); font-size:21px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; }
+.msd-h{ color:#fff; font-size:38px; font-weight:800; letter-spacing:-.6px; }
+.msd-sub{ color:var(--text-dim); font-size:23px; font-weight:500; line-height:1.4; }
+.msd-mono{ font-family:var(--font-mono); }
+.msd-num{ font-family:var(--font-mono); font-weight:700; color:var(--accent-1); font-variant-numeric:tabular-nums; }
+
+.msd-node{
+  display:flex; align-items:center; gap:18px; padding:22px 26px;
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border); border-radius:22px;
+}
+.msd-node .ic{
+  width:60px; height:60px; border-radius:16px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(58,160,255,0.12); color:var(--accent-1);
+}
+.msd-node .ic svg{ width:32px; height:32px; }
+.msd-node.hot{ border-color:var(--accent-1); box-shadow:0 0 0 1px var(--accent-1), 0 0 46px rgba(58,160,255,0.28); }
+.msd-node.hot .ic{ background:var(--accent-1); color:#0E1420; }
+
+/* Reveal utility: elements start hidden, driver/agent adds .show */
+.msd-reveal{ opacity:0; transform:translateY(18px); transition:opacity .28s ease, transform .28s cubic-bezier(.22,1,.36,1); }
+.msd-reveal.show{ opacity:1; transform:none; }
+
+/* ---- MOTION: the difference between a reel and a slideshow ------------- */
+/* A stage where nothing moves is a stage viewers swipe past. These keep the
+   composition alive between scripted events. */
+
+/* Spotlight: the element that owns this stage grows, everything else recedes.
+   Applied together they read as a camera push rather than a highlight. */
+.msd-focus{
+  transform:scale(1.06); z-index:5;
+  transition:transform .3s cubic-bezier(.22,1,.36,1), opacity .3s ease, filter .3s ease;
+}
+.msd-recede{ opacity:.34; filter:saturate(.5); transition:opacity .3s ease, filter .3s ease; }
+
+/* Continuous idle motion — subtle enough to ignore, enough to feel alive. */
+.msd-live{ animation:msd-float 3.4s ease-in-out infinite; }
+.msd-breathing{ animation:msd-breathe 2.2s ease-in-out infinite; }
+
+/* One-shot attention beats fired from stage code. */
+.msd-flash{ animation:msd-flash .42s ease-out; }
+.msd-punch{ animation:msd-punch .38s cubic-bezier(.22,1,.36,1); }
+.msd-shake{ animation:msd-shake .38s ease-in-out; }
+
+/* An active node should never sit perfectly still. */
+.msd-node.hot{ animation:msd-hotpulse 1.9s ease-in-out infinite; }
+
+/* Scanning sweep for anything being processed or searched. */
+.msd-scan{ position:relative; overflow:hidden; }
+.msd-scan::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(105deg, transparent 35%, rgba(58,160,255,0.22) 50%, transparent 65%);
+  background-size:260% 100%; animation:msd-sweep 1.5s linear infinite;
+}
+
+.msd-glow{ filter:drop-shadow(0 0 14px rgba(58,160,255,0.55)); }
+.msd-dim{ opacity:.35; transition:opacity .26s ease; }
+.msd-flow{ stroke-dasharray:10 14; animation:msd-dash 1.1s linear infinite; }
+
+/* A code editor mock — common enough across dev topics to belong in the kit. */
+.msd-editor{ background:var(--editor-bg); border-radius:20px; overflow:hidden; border:1.5px solid #000; }
+.msd-editor .bar{ height:52px; background:var(--titlebar); display:flex; align-items:center; padding:0 20px; gap:9px; }
+.msd-editor .bar i{ width:14px; height:14px; border-radius:50%; display:block; }
+.msd-editor .body{ padding:22px 24px; font-family:var(--font-mono); font-size:25px; line-height:1.65; color:var(--code-plain); }
+.msd-editor .ln{ display:inline-block; width:44px; color:var(--line-num); user-select:none; }
+.msd-editor .kw{ color:var(--code-keyword); }
+.msd-editor .fn{ color:var(--code-func); }
+.msd-editor .st{ color:var(--code-str); }
+.msd-editor .cm{ color:var(--code-comment); }
+.msd-editor .ghost{ color:var(--ghost); }
+.msd-editor .cursor{ display:inline-block; width:3px; height:26px; background:var(--accent-1); vertical-align:-4px; animation:msd-blink 1s step-end infinite; }
+
+.msd-particle{
+  position:absolute; width:11px; height:11px; border-radius:50%;
+  background:var(--accent-cyan); box-shadow:0 0 16px var(--accent-cyan); pointer-events:none;
+}
+
+/* ===================== KEYFRAMES ===================== */
+@keyframes msd-pulseRing{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.06);} }
+@keyframes msd-tdot{ 0%,80%,100%{opacity:.25; transform:scale(.8);} 40%{opacity:1; transform:scale(1.15);} }
+@keyframes msd-fillseg{ to{ width:100%; } }
+@keyframes msd-capPulse{ 0%{transform:scale(.978);} 55%{transform:scale(1.012);} 100%{transform:scale(1);} }
+@keyframes msd-blink{ 50%{opacity:0;} }
+@keyframes msd-dash{ to{ stroke-dashoffset:-48; } }
+@keyframes msd-fadeUp{ from{opacity:0; transform:translateY(26px);} to{opacity:1; transform:none;} }
+@keyframes msd-pop{ 0%{transform:scale(.86); opacity:0;} 60%{transform:scale(1.04);} 100%{transform:scale(1); opacity:1;} }
+@keyframes msd-float{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-12px);} }
+@keyframes msd-spin{ to{ transform:rotate(360deg); } }
+@keyframes msd-shimmer{ 0%{background-position:-500px 0;} 100%{background-position:500px 0;} }
+@keyframes msd-breathe{ 0%,100%{transform:scale(1); opacity:.75;} 50%{transform:scale(1.08); opacity:1;} }
+@keyframes msd-flash{ 0%{ box-shadow:0 0 0 0 rgba(58,160,255,.55); } 100%{ box-shadow:0 0 0 26px rgba(58,160,255,0); } }
+@keyframes msd-punch{ 0%{transform:scale(1);} 42%{transform:scale(1.09);} 100%{transform:scale(1);} }
+@keyframes msd-shake{ 0%,100%{transform:translateX(0);} 22%{transform:translateX(-9px);} 55%{transform:translateX(8px);} 80%{transform:translateX(-4px);} }
+@keyframes msd-hotpulse{ 0%,100%{ box-shadow:0 0 0 1px var(--accent-1), 0 0 30px rgba(58,160,255,.22); } 50%{ box-shadow:0 0 0 1px var(--accent-1), 0 0 60px rgba(58,160,255,.45); } }
+@keyframes msd-sweep{ to{ background-position:-260% 0; } }
+@keyframes msd-countup{ 0%{transform:translateY(14px); opacity:0;} 100%{transform:none; opacity:1;} }
+
+
+/* ===================== TOPIC-SPECIFIC STAGE STYLES ===================== */
+#stage .dx-scene{ position:relative; width:100%; height:100%; display:flex; flex-direction:column; gap:14px; }#stage .dx-top{
+  height:78px; flex-shrink:0; display:flex; align-items:center; gap:14px;
+  padding:0 22px; border-radius:20px; white-space:nowrap;
+  background:rgba(20,27,43,.78); border:1.5px solid var(--border);
+}#stage .dx-mark{
+  width:46px; height:46px; border-radius:13px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(58,160,255,.14); border:1.5px solid rgba(58,160,255,.42); color:var(--accent-1);
+}#stage .dx-mark svg{ width:25px; height:25px; }#stage .dx-app{
+  color:var(--text-primary); font-family:var(--font-mono); font-size:21px; font-weight:600;
+  overflow:hidden; text-overflow:ellipsis; min-width:0;
+}#stage .dx-time{ margin-left:auto; flex-shrink:0; }#stage .dx-time b{
+  color:#fff; font-family:var(--font-mono); font-size:30px; font-weight:700;
+  font-variant-numeric:tabular-nums;
+}#stage .dx-health{
+  flex-shrink:0; display:flex; align-items:center; gap:8px; padding:7px 14px; border-radius:100px;
+  border:1.5px solid rgba(63,185,80,.45); background:rgba(63,185,80,.1);
+  transition:border-color .3s ease, background .3s ease;
+}#stage .dx-health i{
+  width:10px; height:10px; border-radius:50%; background:var(--success);
+  box-shadow:0 0 12px var(--success); animation:msd-breathe 2s ease-in-out infinite;
+}#stage .dx-health b{ color:var(--success); font-family:var(--font-mono); font-size:18px; font-weight:700; }#stage .dx-health.warn{ border-color:rgba(240,166,74,.55); background:rgba(240,166,74,.12); }#stage .dx-health.warn i{ background:var(--warn); box-shadow:0 0 12px var(--warn); animation-duration:.6s; }#stage .dx-health.warn b{ color:var(--warn); }#stage .dx-health.bad{ border-color:rgba(244,74,106,.55); background:rgba(244,74,106,.12); }#stage .dx-health.bad i{ background:var(--danger); box-shadow:0 0 12px var(--danger); animation-duration:.45s; }#stage .dx-health.bad b{ color:var(--danger); }#stage .dx-body{ position:relative; flex:1; min-height:0; }#stage .dx-sc{
+  position:absolute; inset:0; opacity:0; transform:scale(.986); pointer-events:none;
+  transition:opacity .3s ease, transform .3s cubic-bezier(.22,1,.36,1);
+}#stage .dx-sc.on{ opacity:1; transform:none; }#stage .dx-sc.whip{ animation:dx-whip .44s cubic-bezier(.19,1,.22,1); }#stage .dx-inc{ display:flex; flex-direction:column; gap:14px; height:100%; }#stage .dx-chart{
+  position:relative; flex:1; min-height:0; display:flex; flex-direction:column; gap:12px;
+  padding:18px 22px 14px; border-radius:26px;
+  background:radial-gradient(circle at 50% 0%, rgba(58,160,255,.1), transparent 62%), rgba(20,27,43,.6);
+  border:2px solid rgba(58,160,255,.4);
+  transition:border-color .3s ease, box-shadow .3s ease;
+}#stage .dx-chart.bad{
+  border-color:rgba(244,74,106,.6); box-shadow:0 0 0 1px rgba(244,74,106,.22), 0 0 56px rgba(244,74,106,.16);
+}#stage .dx-chart-h{ display:flex; align-items:baseline; gap:14px; }#stage .dx-chart-n{ color:var(--text-dim); font-family:var(--font-mono); font-size:19px; font-weight:700; letter-spacing:1.4px; }#stage .dx-chart-v{ margin-left:auto; display:flex; align-items:baseline; gap:8px; white-space:nowrap; }#stage .dx-chart-v b{
+  color:#fff; font-family:var(--font-mono); font-size:34px; font-weight:800;
+  font-variant-numeric:tabular-nums; transition:color .3s ease;
+}#stage .dx-chart.bad .dx-chart-v b{ color:var(--danger); }#stage .dx-chart-v i{ color:var(--text-dim); font-size:18px; font-weight:600; font-style:normal; }#stage .dx-bars{
+  flex:1; min-height:0; display:flex; align-items:flex-end; gap:7px;
+  padding-bottom:2px; border-bottom:1.5px solid var(--border);
+}#stage .dx-bars i{
+  flex:1; display:block; height:4%; border-radius:6px 6px 2px 2px;
+  background:linear-gradient(180deg, var(--accent-cyan), rgba(34,211,238,.35));
+  transition:height .55s cubic-bezier(.22,1,.36,1), background .3s ease;
+}#stage .dx-bars i.hot{ background:linear-gradient(180deg,#F0A64A,rgba(240,166,74,.35)); }#stage .dx-bars i.gone{ background:linear-gradient(180deg,#F44A6A,rgba(244,74,106,.3)); }#stage .dx-axis{
+  display:flex; align-items:center; justify-content:space-between;
+  color:var(--text-dim); font-family:var(--font-mono); font-size:16px; font-weight:600;
+}#stage .dx-band{
+  position:absolute; top:66px; left:50%; transform:translateX(-50%); z-index:3;
+  padding:7px 15px; border-radius:100px; white-space:nowrap; opacity:0;
+  border:1.5px solid rgba(244,74,106,.6); background:#2a0d16; color:var(--danger);
+  font-family:var(--font-mono); font-size:16px; font-weight:800; letter-spacing:1.2px;
+  transition:opacity .3s ease;
+}#stage .dx-band.on{ opacity:1; animation:dx-alert 1s ease-in-out infinite; }#stage .dx-detail{
+  height:206px; flex-shrink:0; display:flex; flex-direction:column; gap:12px; justify-content:center;
+  padding:18px 22px; border-radius:24px;
+  background:rgba(20,27,43,.62); border:1.5px solid var(--border);
+  transition:border-color .3s ease, background .3s ease;
+}#stage .dx-detail.bad{ border-color:rgba(244,74,106,.55); background:rgba(244,74,106,.07); }#stage .dx-detail.ok{ border-color:rgba(63,185,80,.5); background:rgba(63,185,80,.07); }#stage .dx-d-h{ color:#fff; font-size:23px; font-weight:800; letter-spacing:-.3px; white-space:nowrap; }#stage .dx-d-body{ display:flex; flex-direction:column; gap:7px; }#stage .dx-d{
+  padding:9px 13px; border-radius:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  background:rgba(14,20,32,.72); border:1.5px solid var(--border); color:var(--text-dim);
+  font-family:var(--font-mono); font-size:17px; font-weight:600;
+  transition:background .3s ease, border-color .3s ease, color .3s ease, opacity .3s ease;
+}#stage .dx-d.ok{ border-color:rgba(63,185,80,.4); background:rgba(63,185,80,.09); color:#bff0c4; }#stage .dx-d.warn{ border-color:rgba(240,166,74,.45); background:rgba(240,166,74,.09); color:var(--warn); }#stage .dx-d.bad{ border-color:rgba(244,74,106,.5); background:rgba(244,74,106,.1); color:#ffd0d9; }#stage .dx-d.off{ opacity:.35; }#stage .dx-d-b{
+  align-self:flex-start; padding:7px 15px; border-radius:100px; white-space:nowrap;
+  border:1.5px solid var(--border); background:rgba(14,20,32,.7); color:var(--text-dim);
+  font-family:var(--font-mono); font-size:16px; font-weight:700;
+  transition:border-color .3s ease, background .3s ease, color .3s ease;
+}#stage .dx-d-b.bad{ border-color:rgba(244,74,106,.55); background:rgba(244,74,106,.14); color:var(--danger); }#stage .dx-d-b.ok{ border-color:rgba(63,185,80,.5); background:rgba(63,185,80,.14); color:var(--success); }#stage .dx-strip{
+  height:72px; flex-shrink:0; display:flex; align-items:center; gap:16px;
+  padding:0 22px; border-radius:20px;
+  background:rgba(20,27,43,.7); border:1.5px solid var(--border);
+  transition:border-color .3s ease, background .3s ease;
+}#stage .dx-strip b{
+  padding:6px 15px; border-radius:8px; flex-shrink:0;
+  background:rgba(58,160,255,.16); color:var(--accent-1);
+  font-family:var(--font-mono); font-size:18px; font-weight:800; letter-spacing:1.6px;
+}#stage .dx-strip span{ color:var(--text-primary); font-size:22px; font-weight:600; line-height:1.3; }#stage .dx-strip.bad{ border-color:rgba(244,74,106,.5); background:rgba(244,74,106,.1); }#stage .dx-strip.bad b{ background:rgba(244,74,106,.2); color:var(--danger); }#stage .dx-strip.good{ border-color:rgba(63,185,80,.45); background:rgba(63,185,80,.09); }#stage .dx-strip.good b{ background:rgba(63,185,80,.2); color:var(--success); }#stage .dx-fix{
+  height:100%; display:flex; flex-direction:column; justify-content:center; gap:20px;
+  padding:0 8px;
+}#stage .dx-fix-h{ display:flex; align-items:center; gap:14px; }#stage .dx-fix-ic{
+  width:56px; height:56px; border-radius:16px; flex-shrink:0; font-size:28px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(63,185,80,.14); border:1.5px solid rgba(63,185,80,.4);
+}#stage .dx-fix-n{ color:#fff; font-size:30px; font-weight:800; letter-spacing:-.4px; }#stage .dx-fix-code{ display:flex; flex-direction:column; gap:12px; }#stage .dx-f{
+  display:flex; align-items:center; gap:14px;
+  padding:18px 18px; border-radius:18px; white-space:nowrap; overflow:hidden;
+  background:rgba(14,20,32,.75); border:1.5px solid rgba(63,185,80,.35);
+  color:var(--text-primary); font-family:var(--font-mono); font-size:20px; font-weight:600;
+}#stage .dx-f i{
+  flex-shrink:0; width:28px; height:28px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(63,185,80,.18); color:var(--success);
+  font-style:normal; font-size:16px; font-weight:800;
+}#stage .dx-f b{
+  margin-left:auto; flex-shrink:0; padding:6px 13px; border-radius:9px;
+  background:rgba(139,149,167,.12); color:var(--text-dim);
+  font-size:16px; font-weight:700;
+}#stage .dx-f#dx-f-2{ border-color:rgba(244,74,106,.55); background:rgba(244,74,106,.08); }#stage .dx-f#dx-f-2 i{ background:rgba(244,74,106,.2); color:var(--danger); }#stage .dx-f#dx-f-2 b{ background:rgba(244,74,106,.18); color:var(--danger); }#stage .dx-fix-b{
+  padding:16px 18px; border-radius:16px;
+  background:rgba(20,27,43,.7); border:1.5px solid var(--border); color:var(--text-primary);
+  font-size:21px; font-weight:600;
+}#stage .dx-final{
+  height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+  text-align:center;
+}#stage .dx-badge{
+  width:130px; height:130px; border-radius:36px; font-size:58px;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(160deg, rgba(244,74,106,.26), rgba(240,166,74,.12));
+  border:2px solid rgba(244,74,106,.55);
+  box-shadow:0 0 0 1px rgba(244,74,106,.28), 0 0 80px rgba(244,74,106,.26);
+  animation:msd-breathe 2.4s ease-in-out infinite;
+}#stage .dx-badge-l{ color:var(--danger); font-family:var(--font-mono); font-size:17px; font-weight:800; letter-spacing:2px; }#stage .dx-fin-h{ color:#fff; font-size:66px; font-weight:900; line-height:1.12; letter-spacing:-2px; }#stage .dx-fin-h em{ font-style:normal; color:var(--accent-cyan); }#stage .dx-fin-row{ display:flex; flex-wrap:wrap; justify-content:center; gap:12px; }#stage .dx-fin-p{
+  padding:12px 20px; border-radius:100px; white-space:nowrap;
+  background:rgba(20,27,43,.8); border:1.5px solid rgba(58,160,255,.42); color:var(--text-primary);
+  font-size:21px; font-weight:700;
+}#stage .dx-save{
+  margin-top:8px; padding:18px 26px; border-radius:20px; max-width:860px;
+  background:linear-gradient(90deg, rgba(244,74,106,.16), rgba(58,160,255,.16));
+  border:1.5px solid rgba(58,160,255,.5); color:#fff;
+  font-size:25px; font-weight:700; line-height:1.35;
+}#stage .dx-save.ping{ animation:msd-punch .4s cubic-bezier(.22,1,.36,1); }@keyframes dx-alert{
+  0%,100%{ box-shadow:0 0 0 0 rgba(244,74,106,.4); }
+  50%{ box-shadow:0 0 0 10px rgba(244,74,106,0); }
+}@keyframes dx-whip{
+  0%{ transform:translateX(220px) scale(1.04); filter:blur(16px); opacity:0; }
+  55%{ filter:blur(3px); opacity:1; }
+  100%{ transform:none; filter:blur(0); opacity:1; }
+}
+
+</style>
+</head>
+<body>
+<div id="stage-wrap">
+  <div id="canvas">
+
+    <!-- ============ TITLE SCREEN ============ -->
+    <div id="title-screen">
+      <div id="logo-mark" style="background-image:url('data:image/jpeg;base64,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')"></div>
+      <div id="title-brand">MSDevBuild <span>— Multi-Stack Dev Build · by Suthahar</span></div>
+      <div id="title-main">The queue drained. <em>Nothing was consuming it.</em></div>
+      <div id="title-sub">One Service Bus default, six hours, and 4,318 orders that never existed.</div>
+      <div id="title-pill"><span class="live-dot"></span>10 stages · 29 sec · Azure</div>
+      <div id="tap-hint"><svg viewBox="0 0 24 24" fill="none" style="width:22px;height:22px;vertical-align:-5px;margin-right:6px"><path d="M9 11V6a2 2 0 1 1 4 0v5m0 0V9.5a1.8 1.8 0 1 1 3.6 0V11m0 0a1.8 1.8 0 1 1 3.6 0v3.5A6.5 6.5 0 0 1 13.7 21h-1.4a6 6 0 0 1-5.2-3l-2.4-4a1.8 1.8 0 0 1 2.9-2.1L9 13.5" stroke="#8B95A7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Tap anywhere to play</div>
+      <div id="rec-hint">or press <b>D</b> to record one loop and download it</div>
+    </div>
+
+    <!-- ============ TOP BAR ============ -->
+    <div id="topbar">
+      <div id="topbar-avatar" style="background-image:url('data:image/jpeg;base64,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')"></div>
+      <div id="topbar-text">
+        <div id="topbar-name">MSDevBuild</div>
+        <div id="topbar-tag">Multi-Stack Dev Build · by Suthahar</div>
+      </div>
+      <div id="record-toggle" title="Record one loop and download it (D)"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0 0 4-4m-4 4-4-4" stroke="#3AA0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="#3AA0FF" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div id="sound-toggle" title="Toggle sound (S)"><svg viewBox="0 0 24 24" fill="none"><path d="M11 5 6 9H3v6h3l5 4z" fill="#3AA0FF"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" stroke="#3AA0FF" stroke-width="2" stroke-linecap="round"/></svg></div>
+    </div>
+
+    <!-- ============ STAGE (topic-specific) ============ -->
+    <div id="stage">
+
+    <div class="dx-scene" id="dx-scene">
+
+      <!-- Persistent header: the incident clock and what we believed at the
+           time. Both are wrong for most of the reel. -->
+      <div class="dx-top" id="dx-top">
+        <span class="dx-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.5l3.5 2"/></svg>
+        </span>
+        <span class="dx-app" id="dx-app">orders-queue &middot; 14 March</span>
+        <span class="dx-time"><b id="dx-time-n">09:12</b></span>
+        <span class="dx-health" id="dx-health"><i></i><b id="dx-health-t">all green</b></span>
+      </div>
+
+      <div class="dx-body" id="dx-body">
+
+        <!-- ============ SCENE 1 · THE INCIDENT (stages 1-8) ============== -->
+        <div class="dx-sc" id="dx-sc-incident">
+          <div class="dx-inc">
+
+            <div class="dx-chart" id="dx-chart">
+              <div class="dx-chart-h">
+                <span class="dx-chart-n">queue depth</span>
+                <span class="dx-chart-v"><b id="dx-depth">0</b><i>messages</i></span>
+              </div>
+              <div class="dx-bars" id="dx-bars">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              </div>
+              <div class="dx-axis">
+                <span>09:00</span><span>10:30</span><span>12:00</span><span>13:30</span><span>16:00</span>
+              </div>
+              <div class="dx-band" id="dx-band">consumer down</div>
+            </div>
+
+            <div class="dx-detail" id="dx-detail">
+              <div class="dx-d-h" id="dx-d-h">deploy 4f21a9 &middot; orders-worker</div>
+              <div class="dx-d-body">
+                <span class="dx-d code" id="dx-d-1">rolling out 3 instances</span>
+                <span class="dx-d code" id="dx-d-2">health checks green</span>
+                <span class="dx-d code" id="dx-d-3">consumer connected</span>
+              </div>
+              <div class="dx-d-b" id="dx-d-b">nothing looks wrong yet</div>
+            </div>
+
+            <div class="dx-strip" id="dx-strip">
+              <b id="dx-strip-l">09:12</b>
+              <span id="dx-strip-t">A completely ordinary Tuesday deploy. This is the last calm frame.</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ============ SCENE 2 · THE FOUR LINES (stage 9) =============== -->
+        <div class="dx-sc" id="dx-sc-fix">
+          <div class="dx-fix">
+            <div class="dx-fix-h">
+              <span class="dx-fix-ic">🛠️</span>
+              <span class="dx-fix-n">what shipped the next morning</span>
+            </div>
+            <div class="dx-fix-code">
+              <span class="dx-f msd-reveal" id="dx-f-1"><i>1</i>DefaultMessageTimeToLive = 24:00:00<b>not one hour</b></span>
+              <span class="dx-f msd-reveal" id="dx-f-2"><i>2</i>EnableDeadLetteringOnMessageExpiration = true<b>the one I skipped</b></span>
+              <span class="dx-f msd-reveal" id="dx-f-3"><i>3</i>MaxDeliveryCount = 10<b>already fine</b></span>
+              <span class="dx-f msd-reveal" id="dx-f-4"><i>4</i>alert: DeadletteredMessages &gt; 0<b>so we find out, not them</b></span>
+            </div>
+            <div class="dx-fix-b">Three of these are properties on the queue. One is an alert rule.</div>
+          </div>
+        </div>
+
+        <!-- ============ SCENE 3 · THE PAYOFF (stage 10) ================== -->
+        <div class="dx-sc" id="dx-sc-final">
+          <div class="dx-final">
+            <div class="dx-badge" id="dx-badge">📭</div>
+            <div class="dx-badge-l">ENABLE DEAD-LETTERING ON EXPIRATION</div>
+            <div class="dx-fin-h">Defaults are<br><em>decisions.</em></div>
+            <div class="dx-fin-row">
+              <span class="dx-fin-p msd-reveal">TTL deletes, silently ⏱️</span>
+              <span class="dx-fin-p msd-reveal">Unless you flip this 🔁</span>
+              <span class="dx-fin-p msd-reveal">Then alert on it 🔔</span>
+            </div>
+            <div class="dx-save" id="dx-save">📌 Save this — somebody chose that default, and it was not you.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ============ CAPTION CARD ============ -->
+    <div id="caption-wrap">
+      <div id="stage-num">STEP 01 / 10</div>
+      <div id="stage-title"></div>
+      <div id="stage-desc"></div>
+    </div>
+
+    <!-- ============ STATUS BAR ============ -->
+    <div id="statusbar">
+      <svg id="status-icon" viewBox="0 0 24 24" fill="none"><svg viewBox="0 0 24 24" fill="none"><path d="M8 3 2 12l6 9M16 3l6 9-6 9" stroke="#3AA0FF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></svg>
+      <span id="status-text"></span>
+      <div class="thinking-wrap" id="thinking">
+        <div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div>
+      </div>
+    </div>
+
+    <!-- ============ PROGRESS + BRAND STRIP ============ -->
+    <div id="progress-track"></div>
+    <div id="bottom-bar">
+      <div class="b-left">MSDEVBUILD — <b>Multi-Stack Dev Build</b></div>
+      <div class="b-right"><span class="live-dot"></span>29s · loops</div>
+    </div>
+
+    <!-- ============ END CARD ============ -->
+    <div id="end-card">
+      <div id="end-avatar" style="background-image:url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wgARCADIAMgDASIAAhEBAxEB/8QAHQAAAQQDAQEAAAAAAAAAAAAAAAEFBgcDBAgCCf/EABYBAQEBAAAAAAAAAAAAAAAAAAABAv/aAAwDAQACEAMQAAAB6oAgAAEFDxS0dWVEl7VxAsQ6TuqFOr7d+eSn1O9cJdIluAgAsCBSgQgIKAAFYeTrA4sJM1et8Z/MmkZVydEshSWvdjSVW5O7AfUDNSN3ABACCilICQKi0AHLfPV2MA6uE/lERLdd25dBpkzQMrFKdOoJVd1QIiv0Y+YX0YSZoqCgCgCKhAAAFcd68mb1tR/ZXSG1uljQYWuQN5FW+XMhHojJdSuc/pn88vowm2AAKAAgEAAAtcs77e+w3w2eMpisulJFVusOlBoxwt91KjsrwSoo/u3jXrYsQVAVCFApAIABRFqgtfe1pZe0yJvSsZDJduoVArcqwdz1vkces2NYJelC9EpaIAqIsKIUIqCiKC+fRWsbsiv4lPuNbBFX+OVIdQ05Cq7Lhk1T2cTuBSeDqydTUb0bZtCKCKgoAioCiAKgeoXM4+V2y7zVHOl7+J3VUZZi2FLMFutBPWL14OjpVU1sAAAAoAgAACiKFfWFWRy9bfLtsl6Yom/Kzettvkwx/BE63IP4h53hb3z261LTFBAAFBAZB7KLp47DpvjtsLhrNtzDm37OuXV0JGnaPTPvaFVvE7bixzSk1hQZsIX30JwAH1RPnj0QdDDIHNXOWtiFxeQFQNvF7wm7bFPdPFneHR3K9xvjGNupuhWlC9GUkMAAAC59cN40wTL5ymsp7PB6DInjOY775/di3emeb8pfEdn7JER1JjExlrK0otXOo4t4gAKiinkNpAMYBk8AeM4GBQMiAdQWiEO+0EU9y6GmnlA0UAABQD//xAAwEAABBAEDAwMDAwMFAAAAAAACAQMEBQYAERIHEzAUISIQIDIVFkEjJDElMzRAQ//aAAgBAQABBQLwKu2rbqSzTW03q9ZO6sswuJKjbzBWt6lX0BKbrU2WqrPqS4c/6BEgDnXUI7N9RFFI1NXSQtfx/G22kJR1jnUSxx9rGOpFdkTvleeCM1nnUj9TEGkLUiQQuuGT6IKcFAtC2qjsKDrddq1HCmtcu35Or1yVfRKpbsyy7EKuZeH0L3OFhT0nQ4jEYB7E2O45jjaI/SgiSaMw0w87AldPM4/cTPk6xbvzKqsO6mO4k25Hq8KCOrdLHjJwREcD2IU3NtC1IjctOs7JdxeDmP2jtTOgyhmxPH1aecW8waMgw47e5NRuOpKKi7bq41tp1pN1H3eb1Ib1cxucYPYsNVSxnx9UkX9wYps0EMPkp6kGu/8ALXy1JT3d0pqunx5JPj96MgKD1UPCs8fVmOIW+KV/GM0faFle6b0PkKRtA1xN9hSL0fc1LiK0nrmzJ8U3tIyNXEROMfx9X3wSyoB7dPaTXNm7+2rihZ7Nfeg2SyROSKLLskaS1zWRCErXILVuVDnthCcKTGyL4S8RsUtMd8eZ0/6lFrB/0t0ma0ZWSzxq4lvIuYtM/JnFIZRlJTL0squI9Nlx8qnyZ620v1zcX43Nf+oWmDNAxU+OzHswqL/gSxV8XILPoIkF6ElVVegeto/IUM2Er94YxKz+4GqRhwnC7BkjNrgPIHvHmbKg1VAoRFDkHqn2td8txdBUnRCdZ5BDJttrmcYi0AuJqZsqWQc5OAx1SB48rZDvsJskE05WBhpwnJsk4yIUk2iW/isWU+TFNjVJN9WE5oPTvLxFzZHMbYGPReO6qisUeiP1+o7y6fVXkl5HDqxub8n3UzoVYmWkiaVflAsJT2EN9Zsv+k+/uVRiz96EWMEON5Mij8hjj75bJchUdW40U1p+o4vM0T+nm6Vti8ahHGxl92NZSD5CDXcdxiH6On8uQSmoNK1LBwMkNZdNj2JRYMXk3DF+6rucm0iGz6QJStUzcKwdlIupE0Kyt6YWzttiflz9kn8Pwy6MdMLzNo11MipKD9IbaRujjgT6I3qS7s2p8dZBbLJTpVXlAw/y5rl0CggyAKJMo8h9eLV020kEJl1GepbhnXfnx0sLVWlWwV3Vjcewe51OdWWPzsT6h1+UF4Z1lErGrbq9VQ9X3U65s9Puk9qZ+aEqHiav3xC/LabOwm6nRHn4ylJEraqWQyqcV+jTxsOUXV+0r0oOo9NffbY3cCoGz6uVcXVt1YuJup1g/Pe393fyFfiR8mxaJ88e71bUuuST0kNohMyYCRFSS2Ye2SV/Yf8Atoc6t8f1R9X4szUC7gWg5T1SeknLmuvvc9Kv1d9xAtkRd06asNHdpM2cKI/J0XIFVz27npXbSNsljGSfB+5HzTTUl0TVzcnfz+wfk2i7a/BemjDaUfJhpxRXaVshOAh6Qe6LR/05DJRnbyN6ay8B/a2vyNPcF31gVvxrZOTWFfb0Vyze1VpGIkAVTUllRM1F1Hm+SZNXd2H95psRf7ek+ippP8l9IU12DJfnRb2Bg2StQbPvoaSYqCrbQmMuC5HcIkNLeWxEbNpoiVNl+1z5B/5imk1tpfp/G2h+n4rhuVpeNFL+MZv4FHQ0zRxqniyZJyHN9Ls8P+Pt/8QAFBEBAAAAAAAAAAAAAAAAAAAAcP/aAAgBAwEBPwEp/8QAFBEBAAAAAAAAAAAAAAAAAAAAcP/aAAgBAgEBPwEp/8QAPxAAAQMCAwQGBQoGAwEAAAAAAQACAwQREiExEyJBURAwMmFxgQUUIEKRIzNDUlOhwdHh8GJjcoKisUBzsvH/2gAIAQEABj8C6meGQtqIwLNZFwPeU5kUUVGeF24ivla6Z7Dwa8gfBF7amRruYcbqwrDOB7s+8g30nRlp+0p9PgU2OCta2V2kcu6f+CXONgNSVJRUEgFAMjIPpD+SLsIkJ5XyW+SfFbmQ5excHNMG1dV02mymzt4FNpzelqnZBj9D4HrnyyuDI2C7nHgnejfRnzD8ny8X9w7lZti4auRG1c/vOavcBo/hsrne/uWKxseNkTcea94O6YNibS4xg8b5JuI71s7dbDTM7VS/PwH7CvonMazeOWJXL7y/Usg1kQx9yDpnWzzXzdyrgH4rS67ARLNEyWM4JYnYgeRXq1VhbWM0t7462gjxhrY2F+fj+iwNOGNupUcVPaHD7/FAukL3dwXZz71l7W0CiqIsnNOIeIUNQzNkrA8eB6wAWLWwt/H809/vOKHTr7GnRKfNMsvR5drsh1hZ9eIFNh48fFDoueg+HTn0SN4kK3EFUgsBaJuQ8OspajU7G1vAlCoLr7TsrxVh7OivbRYcQvyVwi1lgH2cox/CNOs9GgOaXbN+JvLkqP8A6mlGOFuMgXNwr+qS2/od+q2clM9nfZAvZg6CSi2Bgvwu03W5Dhjd72Cya/3hmbNQxdu2ajPHB+JVDPixP2QD7/Wtn1ldVl15YpHvB5AcFSYfsWf6Re6HaPPADVGsjowKIP2e0dln/v7k+dsUhbHYvLAH4b34ZHhwRbTuDw3UhNdJUZnUck/Zvu0ZrZx7WeYfRQtH+TjkEKSnDWl0gjaHa5/28FJTTRhz2GzsP7zW0cMKpYxlcOv5J7GfaX/xHWemQ89iOU+blRX+xZ/5QadLWspoHQuLZBvYdD5KSnponMpnOxYQbKSQRhksuqusjloUX0rGx4tdmcJU1UYHbZ97vBF/ii/BYlYXL0fI7slz2HzavScV7ta5tvv6z0s0ayRXHf8Au6pB/KaPuXei21x3q5s1YmvxOdpdWT21GTb8UNjIcxex0KvGS09y3yT4q4VA3S0oJ+9VNSfp5cvAdZTyO0III/fircGnJZo2QiYDgGbj3KCXEBhOiYRpbNNa1wDGuurU+8yPMIX4K9s0U6Qi4ComtNxsw6/jn1kb4y0Sx6Y9CsFQ5rpbXJZpr0WWziILycysYDnhpzjErm38gtnZ0GFtgO2s9nhv84Bn8UyKSzm/XanbBwJ42WHmrLaxzthja/C8OF7qKCPsRtDR1sUv9p6JjCbSP3boetT4ACg59LG931pBcp8xoaew5ZLOkiaLaNyV4CYsPA6FRljt1xs7o7lCOL/lD59dWVE9zHHGXZJksbsUbxia4cQpomi73DJMkkhZLUntOcLkLm36rhiRBdTAt1FkNjsCTxDbo427S+W+ttEwCK1vNaqerdmWjJvM8FE6ZxfLFI6MuPHj+PXekms1wB3wIKf6OkfkN6K/3j8UL5hXCzTgyPDfW2qN7u8Sixgw2WEI55ptM07rM3eKgLtZ3um/D8OudDMPWZZwWbBp4cb8kdk6z43brgsLtypHabz7wrSHChLTv2UB7JAzKJbVYu57QvlqXH/FGU5z4pGf1NV0Y4jc8XckLp7qSW9PcAwPzYbZeSbAAaastfZP4+B6raVdRHTs5yOsiyjjkrZOfYYixk/qcR92ny+/VNL3F7rXJPEprx7zQUHNJY8aEINq6Zz6dmsoGT+5BsEDYowLBWdMG+QTntrHCTwFkWzOx9zk/ZHZuOdhx7lY5HpbJG4se03Dm6hNjrWNr4hxOT/igzbeqVB+iny+B9m9ZVxQdznZ/BFtJFLWO59hqLYDHRM/lC7viUZaiZ88h96R1z0t+CaDwTY42l8jjYAcVR0cVM1ro4vlHHPP/wC3+C+VnsOQyRcXEnxVjvMV26jRFrl6y0bkna7ne01sFWXwj6Gbeb+iDPSFK+md9pFvN+GqBpaqKW/uh2fwT6f0afV4dNr75/JOc+Rz3HiT7IKt0TzStxCKHd7jcfqpNmztWtfgi92nJEcFYoH3Dqto3QqaLVxFx4+3kbK7XG/NXR9khZruUspG8+c591h+qYLbz1kswjZOjd2gnQS+SPLgVLlZr99vn1I9uxVRQZ7Vh2jcOpH7/wBqKZ8ZfHGew4WuFFVMBbjvunUZ2V26dG0Gq/FFj8+9YwLvhz8uPUjqI54XWewoTscGyN7cbjm1P9HPd8jMbxu5P5eawlYm6IjVOLBurfGEq7yDwsnYCRyurH2muQ6oEZFNpaiTBXMGv2o/NYOK59GK4xvyai5xJPRbSQceftf/xAApEAEAAgEDAwMFAAMBAAAAAAABABEhMUFRYXGBMJGhECCxwfDR4fFA/9oACAEBAAE/IfQDVEsWdLHdec+3vdi6sonnHmNXVz2bNS+u7oh5udFkm/lz8wHd2t+6/cx6eDm4zheywb/8AQDWigJlUnNc3u7XrxC4qsbLcazS37Zf8i2Dz40U36y6JzFqkRjFg6Ik6pT6PWs2xpLJa3drT1C/o9HDNAN5nPdtx4NvynRMoxft+CCwmimfvNk0KBfEBtmlATxE5bZZUpQ1sqZQI9hh+l1Lxd1CrV1daX5Sysa7aL3+x9Hkebtqe7ArcneCswWBtLyar4v8y8u4Z47ZPeJiWsNbhHATVdYxZrOYoKR1lLaDGCWyvgysYii6NMMyKJlgFvXPSX6gaVobLVvsYjZlPnEQpOpZ/uZz8kBL4X55TEACAqaxLjeUGjMvCWYULTGRy7tqU9yzzE5tD0LPUNKhLzu4orr1fiLucwVaOd5utlLI4WYa1Zmhr3jht6jM+msGk0Iyytc0bNwLEWB42+PQYfWsU/aZfiV8IDt/lzKVpKiihgKk0t8TfmY4Wk5ntUxoqY18MxXkE2BpzMJC6BjH0iNNNS72v3C1kkVVGn6hnnMAGRYztZ7xtyMpW06Qlg5xDdFoWPLMatJmCxyyzOv7mimNBRp6hPRuzosyu6HyS4cBTFw8bkqzoSrxiDB11S09iNJTl4lp3mXAOJfOsBC6x4LnIPyc+0GAmUYf9wI0cFJCp4xwPyTdgAW/t/UBNRo0eezEcGllV9sdPtxamYij82hSjFXTUmrdkTgXTcdiR0ZcQ98naXECwFRiyrS9SaxzbtK1o0dNZ1zN9Wb20zjfeO3SO08iY+EZKVW+I7alx0o/uLlYYODD+PU2xIHcP+xtOev7JQemiCYHgrLa9HmI1BbeamWVqBTDLvq5Zaht6y2pa4N4W6WdyIuOMxXreqWuq2194QraGGe/7Sf6I0j9TxcXp41Bf86RVa2PAIxhmu0rqdiG4p81D6CUsXxGFKQi0R6XB1BQcg9J5CxUwfPQI3MlHPAkEvTZ2GPy+32n33sMnKuoLBoHgkonRBWFeI5NgX81h3zJ4laTYXsIYpauWaXbPyR6XODEKqhKFHh7Bl16605Pz6loMq2zc12hQq5TvVV+00F5mQ8OqsxwqH89ptMkDYcocw5khKqzQVbhnTf5NqlTKoyadneOjzRAtGu76Eeps5RQbOpx1gEVcfAV6tQGC/zn7lNeGaQSNwbwxJzq9oBEqwE4iI1vP2GI7bgWHtMvN1r6AywJUCUW2JgdBlXYgV1X/gfFesdCZNSmleahXw9ATRmIlJOYFwb+SH6jXNBpWHa53lWZ3lUMFGtAkaGK6EqomloSpWrpC4M1b+B2ur6XGDo9nKnwTx61kiWVwp8DBNauNuX6d5a3kucErE31HclTVuWoQMymx2u0qgGEsmqozWXJly9sGnR4gH1WOBafAfPrA+pW3cpcVPmNq8usOGZQA8P9NpmqVvvLIocwI652l0J7l7VDWAfyGd5CBGeHWaq3A6dkGY3l2XwGADG6jUitLcxVdeb49J3xeLduZUVsFfkc/Eq+6i/11gzssdqO8dr711qn5GKqe8FuZvi5cPylWTw7HxMk08fuIYDZDI+JWFaJHwzZKDCdaOgINI7TT6Xf/JScjMDKNu7NfJK35xLvsP5giWZPs57EzvbUygg6L8jn4lp+xX5Q+AmrBhnvMHVWFylrdIToh2g3BD2pxiVM+t5O7SufndJrP0gfEqpvDqijuEeAOZfqU2F7Rwymv4b6+/2k8eVX0HPhU/skvsfMqOu6Ve6yR/3/ABX+MSUFt5Zd1lm/2PtFpr2iQupuqtUMdapHNSdYBt2zfmKpxmyBg+AxoZeEbExtea4Bz2d5P8eYlfaYmoo6QkYWy2SMPVdfcOwcy6gsdZkm7WjKANjXUUfzlhm0yDwBcG0oVpA3elUwYRbuTpeZu5ApEt3JQyy6Ff7WePvF0MEuaVvX2Eoy0eZnpmBwNoRRZ4Vuh11phLZ7zN5cwjjW12io+0Oku7NR9tGumkDaTDUB3jo2lmzebo7iwqau1+/H3GYtaS/JrOT6DEDMo+pMMzoMHZOHpD7dWUv2dYY8zRjQ+D37wwjXDF2BcSpNNI4O+YAsDRuLzLu6wAs14+3+4jBSaj91fGMcjLr3m6HVNJAmvxmiLMc51gqBDImJoJnWgbn5HnmqMGeAdYW/umdlkr+6xbsVOHduaiOwrQfhYlqcP2ad5//aAAwDAQACAAMAAAAQCCGEggswsE6cC2SwAQtx5c0+mwOo0BDWih8ocEAEy0QQ0mf9coQAKSYz797RZYkqAiWA87xdhgooaMUIoXPbDvbQMUMsM8Q/Idwpk88A88I0sI/B0Iw8w44Akku400s808Y8sMMgswQ88MM8wcwoE+7088o8gcA88ACDcgc88//EAB0RAAIDAAIDAAAAAAAAAAAAAAERABAwIEAhMVD/2gAIAQMBAT8Q6Siiy9QWeqKGqioYCnHBkeDyc8Q/HOp5f//EABwRAAEFAQEBAAAAAAAAAAAAAAEAESAwMRBAUP/aAAgBAgEBPxBPY1YmUJmGdek+vU3ChSPrZaZ//8QAKBABAAICAgEEAgIDAQEAAAAAAQARITFBUWEQcYGRIKGx8MHh8TDR/9oACAEBAAE/EPwfVLgtqiYUKVZUoAWCAhTnECIWmMAjzXxStY5izTXWaqaSs6p9sTLMHmlxkf3Kg3KCocJ/qGJaePtq8e4/aJMWwLeqtUcFzi5zqeRNPqNy4MS4Ffm4m46n5QItVcAHMUzrcBVZXNbAUKZI0SSumEtsWHfnXMUriKLbNFqU3CQoq0tH35lUBvulV7QIIKrvrip4qQmYB7aaMAX0gWDGl3saOr1rUUTTNDC7Aauu0PRxBWVFgc+i1Fsg/UWz0WsootGdanoJpfjhfMsBRwrmlYFsTHtYIs4X3ZVK3U2iLUUxpH7BihbUYpzTn3qXtDarwexahQaWCx3TBwBVVT2GUonoLXw2J9MVVXcbi3cOL7nbXMzQPDYi7ORHUsPV3Kaq7miDfoGoNx9CO5iobl6I8sQpwiXb6cYY/JHitWaU+t+8pSFZE58Nca6hN4QWC6bpXNHW4OnCqBlrpCO6yUpxu90VC0eW971CG4BQ27OpXvO1jTAVcatHgi0pKglcWkqSC02YqhGkHIkVGHcGFo0AbHAoFQCWNkGD3Fs9CM49CuYBUAlwl6pYmPL/AAH2nK/6gmvGWn6g1+VRfbVGkegk2reijhoqAhO2tZ9/+TGV4wV6DIZi9dQEAINED5IhuB1XmCV4FOeGV6U7BH2FqG6Q/YHN2D9CR9Qz6LR+DiBDG3IUKQJW7DV1QXd1FKbe+QwPbn5lOGQPaABEB7tynWFrVGNdMOCFqtwlRfl/MNM3/cEdIvSiPXuMB/iKJsO1lXMZTWs6zANbjkWCv0PzK5zyeR9qPzE3fpxBv05PwHDqGSU0EatiI8GH9HcwNJp4FPig+fiWlCO641KgQmLL/Up5yU4Uv5x9SinZb8IrUm0bONXCNOVhUCPR/wBJkpzu/wC+IbhaFxEGhDtxMxZYrVU7jtoIbTKHi/RdTcH0uDcW5c2PoVxUzXYNhp4vV+JU9sSrefl+lbhQDguNhWzDGkNJR/UOhiLvn+7mMgXmKEFXiXWw4xcqkUuroI7tJBpWyoiBTkmvgyBbi8WRlrEBQFMBbR4tjKg+rBqVKsmsQIKVQEG4gyWrV9MEosRjpf8AMf7BaZLyKfYbb9rLkhcRimyQV4Y68Kb37HJdfcPKwCiO8xNgjJxUYblBt+pSRXssgFB7t7xAQwrKu81c6UohvYZzswagX6NkHyOT2h3VHXIlTESA9qsLBlc3zR5jmJUCz1rEpqXiGJsmiWoc+KFHs+G8SqJctJu85u03KtFZ2v3KVv7qofUtZloOh5A1QFGptkSiecKXgZNeWzI8snmAJWaaulvMYy5IA6LLfE8+iWJShMG12gxBtKiqpagglGhKUAUcfy0LiSSfn44i5PcBaqxZEoFqWuw4O0F/YByB8K/SMcxuV36DFlYubxAr0N7yl2tH7EQEJrJjlgGlKIBuG/4V1U2hSUUixMVH47zN8LDAFKuoy9xIktlsyK283HVQstOYA1gr/tQDp2vKSpzFyWj8L2F8uFHcKeSkWPNMSzvhyVCksUGrD/JfiFBdboKp+g+orce4Nx9BqLcC5VczUIFYoFlgq+F9oViC+4VP4h08QDiBzNKHPNZNzYAlGVbfncpCJAo1hbjzK/UKv+ZxfQm14Jd5gwj2N8lSspoaYX7RkGlW5nWIioQEcxgjfDyp8YK+ZfGqzmovs4uGvS/QV6DUu4YPR23gpiq62ZfUQ5BccRr7IZXN/WP9wQehwOTn9/qNUNxuGy+9PnxEb1LxlB7NR0gVHsGYrpJ5gJmvdgw2AtoJg7Hdd+8IsxkMjBMBEebibob+JbTRKyAUp9sE2tDg/wAzPj0C4lehcfUL9BlJyawFLEFERTTziXgNwqKBAWgyo1qGApsZ8Vc6ApQAXn2ruW6vIvW6GUU//SoJb6767AmtjxmYmmgFB5CWquOdwkNu2Ei8CgGtJvrTdCMwyopsWwrl1ELBdIRea4urzCKKCI0B/mC1rxE4E3ACjWjKh5FZbOWFbWFvLj0GO/QfQxFuDXoUa9MsqIrh2+LB8kQtt3jMo1oy7TrVN1f3CP8AAjkQEgYUUrFIdEB/AxhKwaLq+9JqKyo2crZsY88S9cgK1zas9558x8XOlgbBhxunzKK0J2JxfXH3FwbIfYiUnM+UP4jFrPItf65X8Rz+YLKM6j7g2xbUX3NVVflH9muIiRxzN8HPbBTbu3owZU4u6bgwcmWL7DezuUDcrYr0pqo4ilGMG8hVLrcKtgEUaVpPf9wyVZKgOTHYL7mohZxoFKayWbgn3MHDpLNw4qyz7ewD8q/EjuZYGQIf9er4i9Wp7ZvgnT3eZSmdFtZ6qIbqGwZKKxc29hWYvNwxogROU3n9wrEJbnb2NHEYUOtYsOvf/M8Q8nf9qWoo5bXxHqZ0ZAQ8sm/PtMojbsL7Ziv/AFSXxIyZFvhbtjlHMyU1sB9X73u4fKJNAb/ycPaMuQioD35lLwp6AVogkaw3V6SNhfKsfSv3K+2LRt83nfbB6Oimz5SqiOiK07EZzH6A5O75/oQKBFr+4yOyHVotaDlHBaxO3WRxZJ1y0ioWmmqxf4G/xEPBT2+C2vBbHk0oZndd/jPuNppqROl2vgD1LzY/sSqdui3qZbTKuIWQnrmkA4RHHH7jSiTVgVVotZaYq8DVh7VbtJQAUKOIXSvSP5IeKcMTpr9paxBUPkDMG6FaCq+C9WNXV4iXxBUo2JBVY0xbVdwmLHpOgZGAMUv1jxIvKPmMYsB4xW+2WLqAkELEyP4Z18oFPhv4hnHGSH6wsxwJRg3nGfKJlxGyvFjGKHO7mQaSiKxeHb2XHnCYlam48HMTyGbCgDla+41dq9ZUtBMBt6C7HpzeheMB/ccw7AlfbEjqa5oeYUJHUa7QSodljIkdgNANBlfaPuPxpERpOSJU3GTwkUe+FliAss8qqH2ln6JAL2TeEIiaW1jvVxeK+RqWdRKfu1XMEt7au65iK7MW4OSYYUafeLmTaZ2lTcukvf8Af73FTZzFGvkZeFj/AN+fYDiHZbbXcLQLYcf9iKoNf7lw55MjL4E+QcxHofDmnY/4gsE6d8L7p8FESJSYR/F2vkhYHOFC88CxDkbwwht/QmbcLvuHrWLjbzLpcIEwOx7QeoMZxCLlFFlyvhadQreoA2KXoo+0itWL6HmCY0qvIXDOlCaHq5mJOKFnxFy6IAK8XtAoFIGBcfUexW0h4PyD3lJVTdbZdbXMCo2CvvBpub0Rg/pDrRomtSg5zmazSOXEoKJkAaIgR/NMNTriJTycGiNVZqosBmgoYil4PskVYHMoTnL49phlheVC3j/ea0wBmjCCz5+JQlo1cCveXuqYdeDEdE7gfwUZ6tW/yFghAPtOqrxAUcoH1AuWaYdvUsoaNSiYrEaCu4VXhq/eYMXOc6+A9yMJ0sJbQaUc728DD4RCxDcUritqgA8Ag7YWIO0otE398fB8yzBBGHLGxEsK4dwKWaBtfUucAcyUyUvUXtKuMLafTWOF9R+DqBSP4DU29xAQHi7ibIqnjy/6lDHRwbIUomK18TFYbrupVIPdqKN7iA502rivMapfiHg0eWMKwT4jhCELD2MwBjwht3UyG8jFIxtPRovdde8rm2GaUrK9eUUl1KKiwvdFuDo37y4wBUo/P9x9NwMObK/v9/QIQOkB+w4edMdAQaR4/Ax76dT/2Q==')"></div>
+      <div id="end-check"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.5 4.5L19 7.5" stroke="#0E1420" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div id="end-title">A TTL is a delete instruction</div>
+      <div id="end-sub">Set one without dead-lettering on expiration and the broker throws your messages away quietly.</div>
+      <div id="end-actions">
+        <div class="act primary"><svg viewBox="0 0 24 24" fill="none"><path d="M6 3.5h12a1 1 0 0 1 1 1v16l-7-4.4-7 4.4v-16a1 1 0 0 1 1-1z" stroke="#3AA0FF" stroke-width="2" stroke-linejoin="round"/></svg>Save this</div>
+        <div class="act"><svg viewBox="0 0 24 24" fill="none"><circle cx="10" cy="8" r="3.4" stroke="#8B95A7" stroke-width="2"/><path d="M3.6 20c1-3.4 3.5-5.2 6.4-5.2 1 0 2 .2 2.8.6" stroke="#8B95A7" stroke-width="2" stroke-linecap="round"/><path d="M17.5 14v6M14.5 17h6" stroke="#8B95A7" stroke-width="2" stroke-linecap="round"/></svg>Follow for more</div>
+      </div>
+      <div id="end-cta"><span class="live-dot"></span>Learn more at https://blog.msdevbuild.com/</div>
+      <div id="end-tagline">Multi-Stack Dev Build · by Suthahar</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+window.__MSD_SLUG__ = "azure-dead-letter-incident";
+window.__MSD_STAGES__ = [
+  {
+    title: "09:12 — the deploy goes out",
+    key: "the deploy",
+    desc: "Three instances of orders-worker, health checks green, consumer connected. An ordinary Tuesday.",
+    status: "14 March · deploy 4f21a9 · all green",
+    thinking: false,
+    durationMs: 2700,
+    run: function(MSD, $, $$){
+
+      var DX = window.__DX || (window.__DX = {});
+      // The chart is the story, so bar heights are data the stages set directly.
+      DX.bars = function(heights, cls){
+        var els = MSD.qa('#dx-bars i');
+        els.forEach(function(el, i){
+          el.style.height = (heights[i] == null ? 4 : heights[i]) + '%';
+          el.classList.remove('hot');
+          el.classList.remove('gone');
+          if(cls && cls[i]) el.classList.add(cls[i]);
+        });
+      };
+      DX.detail = function(head, lines, badge){
+        MSD.q('#dx-d-h').textContent = head;
+        for(var i = 0; i < 3; i++){
+          var el = MSD.q('#dx-d-' + (i + 1));
+          var row = lines[i];
+          el.className = 'dx-d ' + (row && row[1] ? row[1] : '');
+          el.textContent = row ? row[0] : '';
+          if(!row) el.classList.add('off');
+        }
+        var b = MSD.q('#dx-d-b');
+        b.textContent = badge[0];
+        b.className = 'dx-d-b ' + (badge[1] || '');
+      };
+
+      MSD.cls('.dx-sc', 'on', false);
+      MSD.cls('#dx-sc-incident', 'on', true);
+      MSD.q('#dx-app').textContent = 'orders-queue · 14 March';
+      MSD.q('#dx-time-n').textContent = '09:12';
+      MSD.cls('#dx-health', 'warn', false);
+      MSD.cls('#dx-health', 'bad', false);
+      MSD.q('#dx-health-t').textContent = 'all green';
+      MSD.cls('#dx-chart', 'bad', false);
+      MSD.cls('#dx-band', 'on', false);
+      MSD.cls('#dx-detail', 'bad', false);
+      MSD.cls('#dx-detail', 'ok', false);
+      MSD.q('#dx-depth').textContent = '0';
+      MSD.hide('.dx-f');
+      MSD.hide('.dx-fin-p');
+      MSD.cls('#dx-strip', 'bad', false);
+      MSD.cls('#dx-strip', 'good', false);
+      MSD.q('#dx-strip-l').textContent = '09:12';
+      MSD.q('#dx-strip-t').textContent = 'A completely ordinary Tuesday deploy. This is the last calm frame.';
+
+      DX.bars([6, 5, 7, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]);
+      DX.detail('deploy 4f21a9 · orders-worker',
+        [['rolling out 3 instances', 'ok'], ['health checks green', 'ok'], ['consumer connected', 'ok']],
+        ['nothing looks wrong yet', '']);
+
+      MSD.after(700, function(){ MSD.punch('#dx-detail', 1); MSD.sfx.blip(1); });
+      MSD.after(1700, function(){ MSD.q('#dx-depth').textContent = '31'; });
+      
+    }
+  },
+  {
+    title: "09:40 — the consumer stops",
+    key: "the consumer stops",
+    desc: "A serialisation bug in the new build. The handler throws on start-up and never receives anything.",
+    status: "09:40 · 0 consumers · depth climbing",
+    thinking: false,
+    durationMs: 2800,
+    run: function(MSD, $, $$){
+
+      var DX = window.__DX;
+
+      MSD.cls('.dx-sc', 'on', false);
+      MSD.cls('#dx-sc-incident', 'on', true);
+      MSD.cls('#dx-detail', 'ok', false);
+      MSD.q('#dx-time-n').textContent = '09:40';
+      MSD.cls('#dx-strip', 'good', false);
+      MSD.q('#dx-strip-l').textContent = '09:40';
+      MSD.q('#dx-strip-t').textContent = 'This part is fine. A queue absorbing a dead consumer is the whole point.';
+
+      DX.detail('orders-worker · crash loop',
+        [['JsonException on OrderV2', 'bad'], ['restart 1 · 2 · 3 …', 'bad'], ['active consumers: 0', 'bad']],
+        ['the queue is doing its job', '']);
+      MSD.cls('#dx-detail', 'bad', true);
+
+      MSD.after(300, function(){
+        MSD.cls('#dx-band', 'on', true);
+        MSD.cls('#dx-health', 'warn', true);
+        MSD.q('#dx-health-t').textContent = 'consumer down';
+        MSD.sfx.error();
+      });
+      MSD.after(800, function(){
+        DX.bars([6, 5, 7, 22, 41, 58, 74, 4, 4, 4, 4, 4, 4, 4],
+          [null, null, null, 'hot', 'hot', 'hot', 'hot']);
+        MSD.q('#dx-depth').textContent = '3,180';
+        MSD.sfx.blip(3);
+      });
+      MSD.after(1900, function(){
+        DX.bars([6, 5, 7, 22, 41, 58, 74, 92, 4, 4, 4, 4, 4, 4],
+          [null, null, null, 'hot', 'hot', 'hot', 'hot', 'hot']);
+        MSD.q('#dx-depth').textContent = '4,318';
+        MSD.q('#dx-time-n').textContent = '10:30';
+      });
+      
+    }
+  },
+  {
+    title: "10:41 — the queue starts draining",
+    key: "starts draining",
+    desc: "Depth begins falling. Nothing is consuming. No worker has come back. Read that twice.",
+    status: "10:41 · depth falling · 0 consumers",
+    thinking: true,
+    durationMs: 3000,
+    run: function(MSD, $, $$){
+
+      var DX = window.__DX;
+
+      MSD.cls('.dx-sc', 'on', false);
+      MSD.cls('#dx-sc-incident', 'on', true);
+      MSD.cls('#dx-band', 'on', true);
+      MSD.cls('#dx-detail', 'ok', false);
+      MSD.cls('#dx-detail', 'bad', true);
+      MSD.q('#dx-time-n').textContent = '10:41';
+      MSD.cls('#dx-health', 'warn', true);
+      MSD.q('#dx-health-t').textContent = 'consumer down';
+      MSD.cls('#dx-strip', 'good', false);
+      MSD.cls('#dx-strip', 'bad', true);
+      MSD.q('#dx-strip-l').textContent = '10:41';
+      MSD.q('#dx-strip-t').textContent = 'A queue going down while nothing reads it is the wrongest thing on this screen.';
+
+      DX.detail('orders-worker · still crash looping',
+        [['active consumers: 0', 'bad'], ['messages completed: 0', 'bad'], ['queue depth: falling', 'warn']],
+        ['so where are they going?', 'bad']);
+
+      MSD.after(600, function(){
+        DX.bars([6, 5, 7, 22, 41, 58, 74, 92, 68, 4, 4, 4, 4, 4],
+          [null, null, null, 'hot', 'hot', 'hot', 'hot', 'hot', 'gone']);
+        MSD.q('#dx-depth').textContent = '3,102';
+        MSD.cls('#dx-chart', 'bad', true);
+        MSD.sfx.error();
+      });
+      MSD.after(1500, function(){
+        DX.bars([6, 5, 7, 22, 41, 58, 74, 92, 68, 44, 26, 4, 4, 4],
+          [null, null, null, 'hot', 'hot', 'hot', 'hot', 'hot', 'gone', 'gone', 'gone']);
+        MSD.q('#dx-depth').textContent = '1,190';
+        MSD.q('#dx-time-n').textContent = '11:50';
+        MSD.sfx.error();
+      });
+      MSD.after(2400, function(){
+        DX.bars([6, 5, 7, 22, 41, 58, 74, 92, 68, 44, 26, 12, 6, 4],
+          [null, null, null, 'hot', 'hot', 'hot', 'hot', 'hot', 'gone', 'gone', 'gone', 'gone', 'gone']);
+        MSD.q('#dx-depth').textContent = '104';
+        MSD.shake('#dx-chart');
+        MSD.sfx.thud();
+      });
+      
+    }
+  },
+  {
+    title: "The messages are just gone",
+    key: "just gone",
+    desc: "No dead-letter entry. No exception. No log line. The graph looks like recovery — it is deletion.",
+    status: "DLQ 0 · errors 0 · orders missing",
+    thinking: false,
+    durationMs: 3000,
+    run: function(MSD, $, $$){
+
+      var DX = window.__DX;
+
+      MSD.cls('.dx-sc', 'on', false);
+      MSD.cls('#dx-sc-incident', 'on', true);
+      MSD.cls('#dx-band', 'on', true);
+      MSD.cls('#dx-chart', 'bad', true);
+      MSD.cls('#dx-detail', 'ok', false);
+      MSD.cls('#dx-detail', 'bad', true);
+      MSD.q('#dx-time-n').textContent = '12:15';
+      MSD.q('#dx-depth').textContent = '0';
+      MSD.cls('#dx-health', 'warn', false);
+      MSD.cls('#dx-health', 'bad', true);
+      MSD.q('#dx-health-t').textContent = 'looks recovered';
+      MSD.cls('#dx-strip', 'good', false);
+      MSD.cls('#dx-strip', 'bad', true);
+      MSD.q('#dx-strip-l').textContent = '12:15';
+      MSD.q('#dx-strip-t').textContent = 'Every dashboard we had said the incident was over.';
+
+      DX.bars([6, 5, 7, 22, 41, 58, 74, 92, 68, 44, 26, 12, 6, 4],
+        [null, null, null, 'hot', 'hot', 'hot', 'hot', 'hot', 'gone', 'gone', 'gone', 'gone', 'gone']);
+
+      MSD.after(400, function(){
+        DX.detail('where did 4,318 orders go?',
+          [['dead-letter queue: 0', 'bad'], null, null],
+          ['not dead-lettered', 'bad']);
+        MSD.sfx.error();
+      });
+      MSD.after(1200, function(){
+        DX.detail('where did 4,318 orders go?',
+          [['dead-letter queue: 0', 'bad'], ['exceptions logged: 0', 'bad'], null],
+          ['not failed either', 'bad']);
+        MSD.sfx.error();
+      });
+      MSD.after(2000, function(){
+        DX.detail('where did 4,318 orders go?',
+          [['dead-letter queue: 0', 'bad'], ['exceptions logged: 0', 'bad'], ['deleted by the broker', 'bad']],
+          ['expired, and dropped', 'bad']);
+        MSD.shake('#dx-detail');
+        MSD.sfx.thud();
+      });
+      
+    }
+  },
+  {
+    title: "The setting I skipped",
+    key: "setting I skipped",
+    desc: "Somebody set a one-hour TTL so stale orders would not pile up. That is the trap, and it is armed by a default.",
+    status: "TTL 01:00:00 · dead-lettering on expiration: false",
+    thinking: false,
+    durationMs: 3000,
+    run: function(MSD, $, $$){
+
+      var DX = window.__DX;
+
+      MSD.cls('.dx-sc', 'on', false);
+      MSD.cls('#dx-sc-incident', 'on', true);
+      MSD.cls('#dx-chart', 'bad', true);
+      MSD.cls('#dx-band', 'on', true);
+      MSD.cls('#dx-detail', 'ok', false);
+      MSD.cls('#dx-detail', 'bad', true);
+      MSD.q('#dx-time-n').textContent = '12:15';
+      MSD.cls('#dx-health', 'bad', true);
+      MSD.q('#dx-health-t').textContent = 'root cause';
+      MSD.cls('#dx-strip', 'good', false);
+      MSD.cls('#dx-strip', 'bad', true);
+      MSD.q('#dx-strip-l').textContent = 'CAUSE';
+      MSD.q('#dx-strip-t').textContent = 'A TTL is a delete instruction. Nobody reads it that way when they set it.';
+
+      MSD.after(400, function(){
+        DX.detail('orders-queue · properties',
+          [['DefaultMessageTimeToLive = 01:00:00', 'warn'], null, null],
+          ['set on purpose, a year ago', '']);
+        MSD.sfx.blip(2);
+      });
+      MSD.after(1300, function(){
+        DX.detail('orders-queue · properties',
+          [['DefaultMessageTimeToLive = 01:00:00', 'warn'],
+           ['EnableDeadLetteringOnMessageExpiration = false', 'bad'], null],
+          ['nobody set this. It is the default.', 'bad']);
+        MSD.punch('#dx-detail', 4);
+        MSD.sfx.error();
+      });
+      MSD.after(2300, function(){
+        DX.detail('orders-queue · properties',
+          [['DefaultMessageTimeToLive = 01:00:00', 'warn'],
+           ['EnableDeadLetteringOnMessageExpiration = false', 'bad'],
+           ['expired message → deleted, not dead-lettered', 'bad']],
+          ['TTL + default = silent deletion', 'bad']);
+        MSD.shake('#dx-detail');
+        MSD.sfx.thud();
+      });
+      
+    }
+  },
+  {
+    title: "With it on, they survive",
+    key: "they survive",
+    desc: "Same bug, same six hours, same TTL. The expired orders land in the dead-letter queue instead of nowhere.",
+    status: "DLQ 4,318 · TTLExpiredException · replayable",
+    thinking: false,
+    durationMs: 2900,
+    run: function(MSD, $, $$){
+
+      var DX = window.__DX;
+
+      MSD.cls('.dx-sc', 'on', false);
+      MSD.cls('#dx-sc-incident', 'on', true);
+      MSD.cls('#dx-band', 'on', true);
+      MSD.q('#dx-time-n').textContent = '12:15';
+      MSD.cls('#dx-strip', 'bad', false);
+      MSD.cls('#dx-strip', 'good', true);
+      MSD.q('#dx-strip-l').textContent = 'WHAT IF';
+      MSD.q('#dx-strip-t').textContent = 'One boolean is the difference between an incident and a backlog.';
+
+      MSD.after(400, function(){
+        MSD.cls('#dx-chart', 'bad', false);
+        MSD.cls('#dx-detail', 'bad', false);
+        MSD.cls('#dx-detail', 'ok', true);
+        DX.detail('the same day, with the flag on',
+          [['EnableDeadLetteringOnMessageExpiration = true', 'ok'],
+           ['dead-letter queue: 4,318', 'ok'],
+           ['DeadLetterReason: TTLExpiredException', 'ok']],
+          ['every order still there, replayable', 'ok']);
+        MSD.q('#dx-depth').textContent = '4,318';
+        MSD.cls('#dx-health', 'bad', false);
+        MSD.cls('#dx-health', 'warn', true);
+        MSD.q('#dx-health-t').textContent = 'backlog, not loss';
+        MSD.sfx.sparkle();
+      });
+      MSD.after(1800, function(){
+        DX.bars([6, 5, 7, 22, 41, 58, 74, 92, 92, 92, 92, 92, 92, 92],
+          [null, null, null, 'hot', 'hot', 'hot', 'hot', 'hot', 'hot', 'hot', 'hot', 'hot', 'hot', 'hot']);
+        MSD.q('#dx-strip-l').textContent = 'DIFFERENT';
+        MSD.q('#dx-strip-t').textContent = 'The graph stays ugly all day — and that is what you want it to do.';
+        MSD.sfx.blip(4);
+      });
+      
+    }
+  },
+  {
+    title: "We found out from customers",
+    key: "from customers",
+    desc: "Not from an alert. Support tickets at 16:20, four hours after the graph said everything was fine.",
+    status: "16:20 · 61 tickets · “where is my order?”",
+    thinking: false,
+    durationMs: 2900,
+    run: function(MSD, $, $$){
+
+      var DX = window.__DX;
+
+      MSD.cls('.dx-sc', 'on', false);
+      MSD.cls('#dx-sc-incident', 'on', true);
+      MSD.cls('#dx-band', 'on', false);
+      MSD.cls('#dx-detail', 'ok', false);
+      MSD.cls('#dx-detail', 'bad', true);
+      MSD.cls('#dx-chart', 'bad', true);
+      MSD.q('#dx-time-n').textContent = '16:20';
+      MSD.cls('#dx-health', 'warn', false);
+      MSD.cls('#dx-health', 'bad', true);
+      MSD.q('#dx-health-t').textContent = '61 tickets';
+      MSD.cls('#dx-strip', 'good', false);
+      MSD.cls('#dx-strip', 'bad', true);
+      MSD.q('#dx-strip-l').textContent = '16:20';
+      MSD.q('#dx-strip-t').textContent = 'Seven hours. The only monitoring that worked was people being annoyed.';
+
+      DX.bars([6, 5, 7, 22, 41, 58, 74, 92, 68, 44, 26, 12, 6, 4],
+        [null, null, null, 'hot', 'hot', 'hot', 'hot', 'hot', 'gone', 'gone', 'gone', 'gone', 'gone']);
+      MSD.q('#dx-depth').textContent = '0';
+
+      MSD.after(400, function(){
+        DX.detail('support · “where is my order?”',
+          [['61 tickets, 4 hours', 'bad'], null, null],
+          ['no alert ever fired', 'bad']);
+        MSD.sfx.error();
+      });
+      MSD.after(1300, function(){
+        DX.detail('support · “where is my order?”',
+          [['61 tickets, 4 hours', 'bad'],
+           ['4,318 orders paid for, never shipped', 'bad'],
+           ['no record on the queue at all', 'bad']],
+          ['a refund run, and an apology email', 'bad']);
+        MSD.shake('#dx-detail');
+        MSD.sfx.thud();
+      });
+      MSD.after(2300, function(){
+        MSD.q('#dx-strip-l').textContent = 'COST';
+        MSD.q('#dx-strip-t').textContent = 'The engineering fix took ten minutes. The refunds took a week.';
+      });
+      
+    }
+  },
+  {
+    title: "Three things failed",
+    key: "Three things",
+    desc: "The bug was one. The one-hour TTL was two. The default nobody read was three — and only three was silent.",
+    status: "postmortem · 3 contributing causes",
+    thinking: false,
+    durationMs: 2900,
+    run: function(MSD, $, $$){
+
+      var DX = window.__DX;
+
+      MSD.cls('.dx-sc', 'on', false);
+      MSD.cls('#dx-sc-incident', 'on', true);
+      MSD.cls('#dx-band', 'on', false);
+      MSD.cls('#dx-chart', 'bad', true);
+      MSD.cls('#dx-detail', 'ok', false);
+      MSD.cls('#dx-detail', 'bad', true);
+      MSD.q('#dx-time-n').textContent = '17:00';
+      MSD.cls('#dx-health', 'bad', true);
+      MSD.q('#dx-health-t').textContent = 'postmortem';
+      MSD.cls('#dx-strip', 'good', false);
+      MSD.cls('#dx-strip', 'bad', true);
+      MSD.q('#dx-strip-l').textContent = 'HONEST';
+      MSD.q('#dx-strip-t').textContent = 'Two of these we caused. One of them was waiting for us in the defaults.';
+
+      MSD.after(400, function(){
+        DX.detail('what actually went wrong',
+          [['1 · a serialisation bug shipped', 'warn'], null, null],
+          ['loud, and caught in minutes', '']);
+        MSD.sfx.blip(1);
+      });
+      MSD.after(1100, function(){
+        DX.detail('what actually went wrong',
+          [['1 · a serialisation bug shipped', 'warn'],
+           ['2 · a one-hour TTL nobody revisited', 'warn'], null],
+          ['reasonable, until it was not', '']);
+        MSD.sfx.blip(3);
+      });
+      MSD.after(1900, function(){
+        DX.detail('what actually went wrong',
+          [['1 · a serialisation bug shipped', 'warn'],
+           ['2 · a one-hour TTL nobody revisited', 'warn'],
+           ['3 · a default that deletes on expiry', 'bad']],
+          ['only the third one was silent', 'bad']);
+        MSD.punch('#dx-detail', 5);
+        MSD.sfx.thud();
+      });
+      
+    }
+  },
+  {
+    title: "The four-line fix",
+    key: "four-line fix",
+    desc: "Three properties on the queue and one alert rule. Ten minutes of work, and none of it is application code.",
+    status: "TTL · dead-letter on expiry · retries · alert",
+    thinking: false,
+    durationMs: 3200,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.dx-sc', 'on', false);
+      MSD.cls('#dx-sc-fix', 'on', true);
+      MSD.cls('#dx-sc-fix', 'whip', false);
+      MSD.after(20, function(){ MSD.cls('#dx-sc-fix', 'whip', true); MSD.sfx.swipe(); });
+
+      MSD.q('#dx-app').textContent = 'orders-queue · 15 March';
+      MSD.q('#dx-time-n').textContent = '09:00';
+      MSD.cls('#dx-health', 'bad', false);
+      MSD.cls('#dx-health', 'warn', false);
+      MSD.q('#dx-health-t').textContent = 'fixed';
+
+      MSD.hide('.dx-f');
+      MSD.after(300, function(){ MSD.show('.dx-f', 240); });
+      MSD.after(1900, function(){ MSD.punch('#dx-f-2', 4); MSD.sfx.error(); });
+      MSD.after(2700, function(){ MSD.punch('#dx-f-4', 5); MSD.sfx.sparkle(); });
+      
+    }
+  },
+  {
+    title: "Defaults are decisions",
+    key: "are decisions",
+    desc: "Somebody chose that default, and it was not you. Read the properties on anything holding your data.",
+    status: "Azure Service Bus · read the defaults",
+    thinking: false,
+    durationMs: 2500,
+    run: function(MSD, $, $$){
+
+      MSD.cls('.dx-sc', 'on', false);
+      MSD.cls('#dx-sc-final', 'on', true);
+      MSD.q('#dx-app').textContent = 'orders-queue · 0 lost since';
+      MSD.q('#dx-health-t').textContent = 'fixed';
+
+      MSD.hide('.dx-fin-p');
+      MSD.after(150, function(){ MSD.punch('#dx-badge', 1); MSD.sfx.chime(); });
+      MSD.after(450, function(){ MSD.show('.dx-fin-p', 170); });
+      MSD.after(1400, function(){ MSD.cls('#dx-save', 'ping', true); MSD.sfx.sparkle(); });
+      MSD.after(2050, function(){ MSD.cls('#dx-save', 'ping', false); MSD.punch('#dx-badge', 4); });
+      
+    }
+  }
+];
+</script>
+<script>
+
+(function(){
+  'use strict';
+
+  var canvas = document.getElementById('canvas');
+  var stageEl = document.getElementById('stage');
+  var STAGE_HTML_SNAPSHOT = stageEl.innerHTML;
+
+  /* ---------------------------------------------------------------- fit -- */
+  function fit(){
+    var scale = Math.min(window.innerWidth / 1080, window.innerHeight / 1920);
+    canvas.style.transform = 'scale(' + scale + ')';
+  }
+  window.addEventListener('resize', fit); fit();
+
+  /* -------------------------------------------------------------- audio -- */
+  // Two independent audio layers:
+  //
+  //   soundOn  — the flow effects: whooshes on cuts, blips on reveals, chimes.
+  //              These are tied to the animation and read as craft.
+  //   musicOn  — the ambient bed. OFF by default and opt-in via "m", because a
+  //              synthesised pad drone reads as background hum rather than as
+  //              music. Real background music belongs on the editing timeline,
+  //              not in the reel.
+  //
+  // Both start off so a reel opened in a tab is silent until you ask for sound.
+  var actx = null, soundOn = false, musicOn = false;
+  var master = null, musicGain = null, musicStarted = false;
+
+  // Audio is a nice-to-have: if the browser blocks or lacks Web Audio, the reel
+  // must still play silently rather than die on the first stage.
+  function ensureAudio(){
+    try{
+      if(!actx){
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC) return;
+        actx = new AC();
+        master = actx.createGain();
+        master.gain.value = 0.9;
+        master.connect(actx.destination);
+      }
+      if(actx.state === 'suspended') actx.resume();
+    }catch(err){
+      actx = null;
+      console.warn('[MSDevBuild] audio unavailable, playing silently:', err);
+    }
+  }
+
+  function beep(o){
+    o = o || {};
+    if(!soundOn || !actx) return;
+    try{
+    var t0 = actx.currentTime + (o.delay || 0);
+    var osc = actx.createOscillator();
+    var g = actx.createGain();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(o.freq || 600, t0);
+    if(o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t0 + (o.dur || 0.08));
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(o.gain || 0.05, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (o.dur || 0.08));
+    osc.connect(g); g.connect(master);
+    osc.start(t0); osc.stop(t0 + (o.dur || 0.08) + 0.03);
+    }catch(err){ /* a dropped sound must never interrupt the animation */ }
+  }
+
+  function noiseBurst(dur, gain, sweepFrom, sweepTo){
+    if(!soundOn || !actx) return;
+    try{
+    var len = Math.floor(actx.sampleRate * dur);
+    var buf = actx.createBuffer(1, len, actx.sampleRate);
+    var data = buf.getChannelData(0);
+    for(var i=0;i<len;i++){ data[i] = (Math.random()*2-1) * (1 - i/len); }
+    var src = actx.createBufferSource(); src.buffer = buf;
+    var filter = actx.createBiquadFilter(); filter.type = 'bandpass';
+    var t0 = actx.currentTime;
+    filter.frequency.setValueAtTime(sweepFrom, t0);
+    filter.frequency.exponentialRampToValueAtTime(sweepTo, t0 + dur);
+    filter.Q.value = 1.1;
+    var g = actx.createGain();
+    // Ramp up rather than jumping to full gain — an instant onset is a click.
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(filter); filter.connect(g); g.connect(master);
+    src.start(t0);
+    }catch(err){ /* see beep() */ }
+  }
+
+  // Every pitched effect is quantised to a C major pentatonic scale. Pentatonic
+  // has no dissonant intervals, so effects fired in any order still sound
+  // musical — a run of reveals becomes a rising melodic phrase instead of a
+  // string of beeps. This is the single biggest reason the sound reads as
+  // designed rather than as UI noise.
+  var PENTA = [0, 2, 4, 7, 9];
+  var ROOT = 523.25; // C5
+
+  function scaleFreq(step){
+    step = Math.max(0, step | 0);
+    var octave = Math.floor(step / PENTA.length);
+    var semitone = PENTA[step % PENTA.length] + octave * 12;
+    return ROOT * Math.pow(2, semitone / 12);
+  }
+
+  /** Pitch sweep used for risers — builds anticipation into a payoff. */
+  function sweep(fromFreq, toFreq, dur, gain, type){
+    if(!soundOn || !actx) return;
+    try{
+      var t0 = actx.currentTime;
+      var osc = actx.createOscillator();
+      var g = actx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(fromFreq, t0);
+      osc.frequency.exponentialRampToValueAtTime(toFreq, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(gain, t0 + dur * 0.82);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g); g.connect(master);
+      osc.start(t0); osc.stop(t0 + dur + 0.05);
+    }catch(err){ /* see beep() */ }
+  }
+
+  var SFX = {
+    /** Ascending scale note. Pass the item index for a rising phrase. */
+    blip:  function(i){ beep({ freq: scaleFreq(i || 0), dur: 0.085, gain: 0.026 }); },
+    /** Same phrase an octave up — for secondary or lighter reveals. */
+    step:  function(i){ beep({ freq: scaleFreq((i || 0) + 5), dur: 0.07, gain: 0.02 }); },
+    tick:  function(){ beep({ freq: 1046, dur: 0.03, type: 'square', gain: 0.009 }); },
+    pop:   function(){ beep({ freq: 392, to: 784, dur: 0.12, gain: 0.03 }); },
+    /** Two-note snap for something locking into place. */
+    lock:  function(){ beep({ freq: 659.25, dur: 0.07, gain: 0.03 }); beep({ freq: 987.77, dur: 0.14, gain: 0.026, delay: 0.06 }); },
+    /** Short high blip for data movement — pair with MSD.particles. */
+    data:  function(i){ beep({ freq: scaleFreq((i || 0) + 8), dur: 0.045, gain: 0.014 }); },
+    chime: function(){ beep({ freq: 784, dur: 0.2, gain: 0.03 }); beep({ freq: 1046.5, dur: 0.3, gain: 0.028, delay: 0.11 }); },
+    ding:  function(){ beep({ freq: 587.33, dur: 0.12, gain: 0.032 }); beep({ freq: 880, dur: 0.28, gain: 0.03, delay: 0.1 }); },
+    /** Resolving three-note phrase for a completed idea. */
+    resolve: function(){
+      beep({ freq: 659.25, dur: 0.12, gain: 0.028 });
+      beep({ freq: 783.99, dur: 0.14, gain: 0.028, delay: 0.1 });
+      beep({ freq: 1046.5, dur: 0.34, gain: 0.03, delay: 0.21 });
+    },
+    whoosh:function(up){ noiseBurst(0.42, 0.045, up ? 320 : 2400, up ? 2600 : 300); },
+    swipe: function(){ noiseBurst(0.22, 0.035, 1800, 420); },
+    /** Rising tone that builds tension. Duration in ms, default ~1s. */
+    riser: function(ms){ sweep(220, 1320, (ms || 1000) / 1000, 0.028); },
+    /** Fast four-note arpeggio — satisfying reward for a reveal landing. */
+    sparkle: function(){
+      for(var i = 0; i < 4; i++){
+        beep({ freq: scaleFreq(i + 4), dur: 0.09, gain: 0.019, delay: i * 0.055 });
+      }
+    },
+    /** Soft focus sound — pairs with MSD.focus, feels like a camera settling. */
+    focus: function(){ beep({ freq: 440, to: 660, dur: 0.16, gain: 0.02 }); },
+    thud:  function(){ beep({ freq: 150, to: 48, dur: 0.34, gain: 0.07 }); },
+    error: function(){ beep({ freq: 300, to: 170, dur: 0.2, type: 'sawtooth', gain: 0.03 }); }
+  };
+
+  /* Generative bed: A-minor pad + arpeggio + soft pulse. Deliberately quiet so
+     it sits under narration if voiceover is added in post. */
+  var CHORDS = [[220,261.63,329.63],[174.61,220,261.63],[196,246.94,293.66],[164.81,220,261.63]];
+  var arpStep = 0, chordIndex = 0, musicTimer = null;
+  var MUSIC_LEVEL = 0.028;   // deliberately low — this is a bed, not a track
+  var ARP_MS = 720;          // slower than a click track, so it stays ignorable
+
+  // Built lazily, and only once sound is actually enabled. Oscillators have no
+  // stop time, so creating this graph while muted would keep the OS audio
+  // daemon busy for the life of the tab for no audible benefit.
+  function startMusic(){
+    if(musicStarted || !actx || !musicOn) return;
+    musicStarted = true;
+    try{
+    musicGain = actx.createGain();
+    musicGain.gain.value = musicOn ? MUSIC_LEVEL : 0;
+    // Roll off the highs so the bed sits behind the effects instead of hissing,
+    // and route through master so one control governs everything.
+    var musicTone = actx.createBiquadFilter();
+    musicTone.type = 'lowpass';
+    musicTone.frequency.value = 1400;
+    musicGain.connect(musicTone);
+    musicTone.connect(master || actx.destination);
+
+    // Sustained pad with per-voice LFO breathing.
+    [110, 164.81, 130.81].forEach(function(freq, idx){
+      var osc = actx.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq;
+      var g = actx.createGain(); g.gain.value = 0.4;
+      osc.connect(g); g.connect(musicGain); osc.start();
+      var lfo = actx.createOscillator(); lfo.type = 'sine';
+      lfo.frequency.value = 0.06 + idx * 0.015;
+      var lg = actx.createGain(); lg.gain.value = 0.28;
+      lfo.connect(lg); lg.connect(g.gain); lfo.start();
+    });
+
+    // Arpeggio + pulse, advanced on a timer rather than a sample-accurate
+    // scheduler — at this tempo the drift is inaudible.
+    musicTimer = setInterval(function(){
+      if(!actx || !musicGain) return;
+      var chord = CHORDS[chordIndex % CHORDS.length];
+      var note = chord[arpStep % chord.length] * 2;
+      var t0 = actx.currentTime;
+      var osc = actx.createOscillator(); osc.type = 'sine'; osc.frequency.value = note;
+      var g = actx.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.07, t0 + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6);
+      osc.connect(g); g.connect(musicGain);
+      osc.start(t0); osc.stop(t0 + 0.65);
+
+      if(arpStep % 8 === 0){
+        var k = actx.createOscillator(); var kg = actx.createGain();
+        k.frequency.setValueAtTime(110, t0);
+        k.frequency.exponentialRampToValueAtTime(45, t0 + 0.16);
+        kg.gain.setValueAtTime(0.0001, t0);
+        kg.gain.exponentialRampToValueAtTime(0.28, t0 + 0.012);
+        kg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.28);
+        k.connect(kg); kg.connect(musicGain);
+        k.start(t0); k.stop(t0 + 0.3);
+      }
+      arpStep++;
+      if(arpStep % 16 === 0) chordIndex++;
+    }, ARP_MS);
+    }catch(err){
+      console.warn('[MSDevBuild] music bed unavailable:', err);
+    }
+  }
+
+  function updateGains(){
+    if(musicGain && actx) musicGain.gain.linearRampToValueAtTime(musicOn ? MUSIC_LEVEL : 0, actx.currentTime + 0.4);
+  }
+
+  // The visible toggle governs the flow effects only — that is the sound most
+  // people want. The ambient bed is deliberately keyboard-only.
+  var soundToggle = document.getElementById('sound-toggle');
+  function paintToggle(){ soundToggle.style.opacity = soundOn ? '1' : '0.35'; }
+  soundToggle.addEventListener('click', function(e){
+    e.stopPropagation();
+    ensureAudio(); soundOn = !soundOn; paintToggle();
+  });
+
+  function toggleMusic(){
+    ensureAudio(); musicOn = !musicOn;
+    if(musicOn) startMusic();
+    updateGains();
+  }
+
+  /* ----------------------------------------------------- MSD helper API -- */
+  var stageTimers = [];
+
+  /**
+   * Re-applies a one-shot animation class. Removing the class and forcing a
+   * reflow is what lets the same beat fire twice in a stage — without it the
+   * browser sees no change and the animation never replays.
+   */
+  function retrigger(sel, cls){
+    var els = canvas.querySelectorAll(sel);
+    for(var i = 0; i < els.length; i++){
+      els[i].classList.remove(cls);
+      void els[i].offsetWidth;
+      els[i].classList.add(cls);
+    }
+  }
+
+  function clearStageTimers(){
+    stageTimers.forEach(function(t){ clearTimeout(t); clearInterval(t); });
+    stageTimers = [];
+    // Particles schedule their own removal on a stage timer, so cancelling
+    // those timers would otherwise strand any particle still in flight.
+    var stray = canvas.querySelectorAll('.msd-particle');
+    for(var i = 0; i < stray.length; i++){
+      if(stray[i].parentNode) stray[i].parentNode.removeChild(stray[i]);
+    }
+  }
+
+  var MSD = {
+    /** First match inside the canvas. */
+    q: function(sel){ return canvas.querySelector(sel); },
+    /** All matches inside the canvas, as a real array. */
+    qa: function(sel){ return Array.prototype.slice.call(canvas.querySelectorAll(sel)); },
+
+    /** Reveals .msd-reveal elements one after another, with a blip each. */
+    show: function(sel, stagger, silent){
+      var els = MSD.qa(sel); stagger = stagger == null ? 65 : stagger;
+      els.forEach(function(el, i){
+        MSD.after(i * stagger, function(){
+          el.classList.add('show');
+          if(!silent) SFX.blip(i);
+        });
+      });
+      return els.length;
+    },
+    hide: function(sel){ MSD.qa(sel).forEach(function(el){ el.classList.remove('show'); }); },
+
+    /** Toggles a class on every match. */
+    cls: function(sel, cls, on){
+      MSD.qa(sel).forEach(function(el){ el.classList.toggle(cls, on !== false); });
+    },
+
+    /** Typewriter. Appends into the element, one character at a time. */
+    type: function(sel, text, speed, done){
+      var el = typeof sel === 'string' ? MSD.q(sel) : sel;
+      if(!el) return;
+      speed = speed || 42; el.textContent = '';
+      for(var i = 0; i < text.length; i++){
+        (function(i){
+          MSD.after(i * speed, function(){
+            el.textContent = text.slice(0, i + 1);
+            if(i % 5 === 0) SFX.tick();
+            if(i === text.length - 1 && done) done();
+          });
+        })(i);
+      }
+    },
+
+    /** Counts a number up into an element. */
+    count: function(sel, to, ms, opts){
+      var el = typeof sel === 'string' ? MSD.q(sel) : sel;
+      if(!el) return;
+      opts = opts || {}; ms = ms || 1200;
+      var steps = Math.max(1, Math.round(ms / 40)), i = 0;
+      var id = setInterval(function(){
+        i++;
+        var p = i / steps, eased = 1 - Math.pow(1 - p, 3);
+        var v = to * eased;
+        el.textContent = (opts.prefix || '') + v.toFixed(opts.decimals || 0) + (opts.suffix || '');
+        if(i >= steps){ clearInterval(id); el.textContent = (opts.prefix || '') + to.toFixed(opts.decimals || 0) + (opts.suffix || ''); }
+      }, 40);
+      stageTimers.push(id);
+    },
+
+    /** Emits glowing particles from one point to another inside a host. */
+    particles: function(hostSel, opts){
+      var host = typeof hostSel === 'string' ? MSD.q(hostSel) : hostSel;
+      if(!host) return;
+      opts = opts || {};
+      var n = opts.count || 8, dur = opts.duration || 1200;
+      var from = opts.from || { x: 50, y: 90 }, to = opts.to || { x: 50, y: 10 };
+      for(var i = 0; i < n; i++){
+        (function(i){
+          MSD.after(i * (dur / n / 1.6), function(){
+            var p = document.createElement('div');
+            p.className = 'msd-particle';
+            var jitter = (Math.random() - 0.5) * (opts.spread || 16);
+            p.style.left = 'calc(' + from.x + '% + ' + jitter + 'px)';
+            p.style.top = from.y + '%';
+            p.style.transition = 'left ' + dur + 'ms cubic-bezier(.4,0,.2,1), top ' + dur + 'ms cubic-bezier(.4,0,.2,1), opacity ' + dur + 'ms ease';
+            host.appendChild(p);
+            requestAnimationFrame(function(){
+              p.style.left = 'calc(' + to.x + '% + ' + jitter + 'px)';
+              p.style.top = to.y + '%';
+              p.style.opacity = '0';
+            });
+            MSD.after(dur + 120, function(){ if(p.parentNode) p.parentNode.removeChild(p); });
+          });
+        })(i);
+      }
+    },
+
+    /**
+     * Spotlight. Grows the subject and recedes everything in "othersSel", which
+     * reads as a camera push. One call is usually the difference between a
+     * stage that feels directed and one that feels like a slide.
+     */
+    focus: function(sel, othersSel){
+      MSD.qa('.msd-focus').forEach(function(el){ el.classList.remove('msd-focus'); el.style.transform = ''; });
+      MSD.qa('.msd-recede').forEach(function(el){ el.classList.remove('msd-recede'); });
+      if(othersSel) MSD.qa(othersSel).forEach(function(el){ el.classList.add('msd-recede'); });
+      MSD.qa(sel).forEach(function(el){
+        el.classList.remove('msd-recede');
+        el.classList.add('msd-focus');
+        el.style.transform = 'scale(1.06)';
+      });
+      SFX.focus();
+    },
+    /** Clears any spotlight. */
+    unfocus: function(){
+      MSD.qa('.msd-focus, .msd-recede').forEach(function(el){
+        el.classList.remove('msd-focus'); el.classList.remove('msd-recede');
+        el.style.transform = '';
+      });
+    },
+
+    /** One-shot attention beats. Re-triggerable — the class is removed first. */
+    // Each beat carries its own sound, so motion and audio never drift apart.
+    flash: function(sel){ retrigger(sel, 'msd-flash'); SFX.pop(); },
+    punch: function(sel, i){ retrigger(sel, 'msd-punch'); SFX.blip(i || 0); },
+    shake: function(sel){ retrigger(sel, 'msd-shake'); SFX.error(); },
+
+    /**
+     * Continuous particle stream for the life of the stage. Prefer this over
+     * a one-shot MSD.particles when something is flowing the whole time —
+     * constant motion is what stops a stage feeling static.
+     */
+    stream: function(hostSel, opts){
+      opts = opts || {};
+      var gap = opts.gap || 620;
+      var pulse = 0;
+      MSD.particles(hostSel, opts);
+      if(opts.silent !== true) SFX.data(0);
+      return MSD.every(gap, function(){
+        MSD.particles(hostSel, opts);
+        pulse++;
+        if(opts.silent !== true) SFX.data(pulse % 4);
+      });
+    },
+
+    /** Stage-scoped timers — cleared automatically when the stage changes. */
+    after: function(ms, fn){ var id = setTimeout(fn, ms); stageTimers.push(id); return id; },
+    every: function(ms, fn){ var id = setInterval(fn, ms); stageTimers.push(id); return id; },
+
+    sfx: SFX,
+    stage: 0
+  };
+  window.MSD = MSD;
+
+  /* ---------------------------------------------------------- sequencer -- */
+  var STAGES = window.__MSD_STAGES__ || [];
+  var END_CARD_MS = 2600;
+
+  var track = document.getElementById('progress-track');
+  var segs = STAGES.map(function(){
+    var seg = document.createElement('div'); seg.className = 'seg';
+    var fill = document.createElement('div'); fill.className = 'seg-fill';
+    seg.appendChild(fill); track.appendChild(seg);
+    return seg;
+  });
+
+  var elNum = document.getElementById('stage-num');
+  var elTitle = document.getElementById('stage-title');
+  var elDesc = document.getElementById('stage-desc');
+  var elStatus = document.getElementById('status-text');
+  var elThinking = document.getElementById('thinking');
+  var capCard = document.getElementById('caption-wrap');
+  var endCard = document.getElementById('end-card');
+
+  var cur = -1, seqTimer = null, running = false;
+
+  function escapeHtml(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function paintCaption(s, index){
+    elNum.textContent = 'STEP ' + String(index + 1).padStart(2, '0') + ' / ' + String(STAGES.length).padStart(2, '0');
+    var safe = escapeHtml(s.title);
+    if(s.key){
+      var safeKey = escapeHtml(s.key);
+      safe = safe.replace(safeKey, '<span class="kw-hl">' + safeKey + '</span>');
+    }
+    elTitle.innerHTML = safe;
+    elDesc.textContent = s.desc;
+    elStatus.textContent = s.status;
+    elThinking.classList.toggle('show', !!s.thinking);
+    capCard.classList.remove('pulse'); void capCard.offsetWidth; capCard.classList.add('pulse');
+  }
+
+  function paintTrack(index){
+    segs.forEach(function(seg, i){
+      seg.classList.remove('active');
+      seg.classList.toggle('done', i < index);
+      if(i === index){
+        seg.querySelector('.seg-fill').style.setProperty('--seg-dur', STAGES[i].durationMs + 'ms');
+        seg.classList.add('active');
+      }
+    });
+  }
+
+  function goto(index){
+    clearStageTimers();
+    cur = index; MSD.stage = index;
+    var s = STAGES[index];
+    paintCaption(s, index);
+    paintTrack(index);
+
+    // The transition note climbs the scale stage by stage, so the reel is
+    // audibly "going somewhere" — a cheap but strong reason to keep watching.
+    SFX.whoosh(true);
+    if(index === 0) SFX.thud(); else SFX.blip(index);
+
+    // Build tension across the last stage so the payoff lands instead of
+    // just arriving. Most drop-off happens right before the end.
+    if(index === STAGES.length - 1 && s.durationMs > 1400){
+      var riserMs = Math.min(1100, Math.round(s.durationMs * 0.45));
+      MSD.after(s.durationMs - riserMs, function(){ SFX.riser(riserMs); });
+    }
+
+    if(typeof s.run === 'function'){
+      // A thrown error in one stage must not kill the whole reel.
+      try { s.run(MSD, MSD.q, MSD.qa); }
+      catch(err){ console.error('[MSDevBuild] stage ' + index + ' failed:', err); }
+    }
+
+    seqTimer = setTimeout(function(){
+      if(index + 1 < STAGES.length) goto(index + 1);
+      else finish();
+    }, s.durationMs);
+  }
+
+  function finish(){
+    clearStageTimers();
+    endCard.classList.add('show');
+    // Resolving phrase over the brand card: the audio equivalent of closing
+    // the loop, which is what makes a viewer feel the reel was complete.
+    SFX.thud();
+    SFX.resolve();
+    seqTimer = setTimeout(function(){
+      endCard.classList.remove('show');
+      // Restore the stage to its authored markup so every loop is identical.
+      stageEl.innerHTML = STAGE_HTML_SNAPSHOT;
+      goto(0);
+    }, END_CARD_MS);
+  }
+
+  function start(){
+    if(running) return;
+    running = true;
+    ensureAudio(); paintToggle();
+    document.getElementById('title-screen').classList.add('hide');
+    setTimeout(function(){ goto(0); }, 240);
+  }
+
+  /** Jumps back to stage one from anywhere, including the title screen. */
+  function restart(){
+    clearTimeout(seqTimer); clearStageTimers();
+    endCard.classList.remove('show');
+    stageEl.innerHTML = STAGE_HTML_SNAPSHOT;
+    running = true;
+    document.getElementById('title-screen').classList.add('hide');
+    goto(0);
+  }
+
+  document.getElementById('title-screen').addEventListener('click', start);
+
+  /* ------------------------------------------------------------- capture -- */
+  // The reel is DOM and CSS, not a <canvas>, so there is no stream to grab
+  // directly. Recording the tab through the Screen Capture API is the only way
+  // to produce a file in the browser without shipping a DOM rasteriser, and it
+  // has the side benefit of capturing the Web Audio effects as tab audio.
+  var recordBtn = document.getElementById('record-toggle');
+  var capturing = false;
+
+  function pickMime(){
+    var candidates = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+      'video/mp4'
+    ];
+    for(var i = 0; i < candidates.length; i++){
+      if(window.MediaRecorder && MediaRecorder.isTypeSupported(candidates[i])) return candidates[i];
+    }
+    return '';
+  }
+
+  /** One full pass: every stage plus the end card. */
+  function loopMs(){
+    var total = 0;
+    for(var i = 0; i < STAGES.length; i++) total += STAGES[i].durationMs;
+    return total + END_CARD_MS;
+  }
+
+  function saveBlob(blob, extension){
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = (window.__MSD_SLUG__ || 'msdevbuild-reel') + '.' + extension;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+  }
+
+  function startCapture(){
+    if(capturing) return;
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia || !window.MediaRecorder){
+      window.alert('This browser cannot record the reel.\n\nUse Chrome or Edge on desktop, or screen-record the tab yourself.');
+      return;
+    }
+
+    var mime = pickMime();
+
+    navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: 60 },
+      audio: true,
+      preferCurrentTab: true
+    }).then(function(stream){
+      capturing = true;
+      canvas.classList.add('capturing');
+
+      // A silent recording is a wasted one, and tab audio is captured for free.
+      ensureAudio(); soundOn = true; paintToggle();
+
+      var chunks = [];
+      var recorder = new MediaRecorder(
+        stream,
+        mime ? { mimeType: mime, videoBitsPerSecond: 12000000 } : {}
+      );
+      var stopTimer = null;
+
+      recorder.ondataavailable = function(e){ if(e.data && e.data.size) chunks.push(e.data); };
+      recorder.onstop = function(){
+        stream.getTracks().forEach(function(track){ track.stop(); });
+        capturing = false;
+        canvas.classList.remove('capturing');
+        if(!chunks.length) return;
+        var type = chunks[0].type || mime || 'video/webm';
+        saveBlob(new Blob(chunks, { type: type }), type.indexOf('mp4') > -1 ? 'mp4' : 'webm');
+      };
+
+      function finish(){
+        clearTimeout(stopTimer);
+        if(recorder.state !== 'inactive') recorder.stop();
+      }
+      // "Stop sharing" in the browser's own bar should still save the clip.
+      stream.getVideoTracks().forEach(function(track){
+        track.addEventListener('ended', finish);
+      });
+
+      // Let the picker dialog finish dismissing, then roll: the recording opens
+      // on stage one instead of on a half-faded dialog.
+      setTimeout(function(){
+        recorder.start();
+        setTimeout(restart, 260);
+        stopTimer = setTimeout(finish, 260 + loopMs() + 600);
+      }, 700);
+    }).catch(function(){
+      // Cancelling the picker is a normal outcome, not an error worth shouting.
+    });
+  }
+
+  recordBtn.addEventListener('click', function(e){ e.stopPropagation(); startCapture(); });
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === ' '){ e.preventDefault(); start(); }
+    if(e.key === 's' || e.key === 'S'){ ensureAudio(); soundOn = !soundOn; paintToggle(); }
+    if(e.key === 'm' || e.key === 'M'){ toggleMusic(); }
+    if(e.key === 'r' || e.key === 'R'){ restart(); }
+    if(e.key === 'd' || e.key === 'D'){ startCapture(); }
+  });
+})();
+
+</script>
+</body>
+</html>

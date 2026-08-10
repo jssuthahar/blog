@@ -42,7 +42,7 @@ Not the total time. A turn with one tool call still takes the same five or six s
 | What the user sees while waiting | Spinner | Text, then a status line during the tool call |
 | Perceived as | Slow or broken | Working |
 
-The second row is why this is a UX change rather than a performance one. Be honest about that when someone asks you to "make the agent faster": this makes it feel faster, and the fix for actually faster is in [Part 10](../azure-ai-foundry-agent-testing-production-monitoring).
+The second row is why this is a UX change rather than a performance one. Be honest about that when someone asks you to "make the agent faster": this makes it feel faster. Actually faster is a different job, and it starts with measuring which tool call is eating the four seconds.
 
 ## The streaming run loop
 
@@ -254,11 +254,11 @@ That `close` override is not boilerplate. Without it, leaving the chat screen mi
 
 **Cancellation actually reaches the server.** When the user leaves the screen, the Dart subscription cancels, the socket closes, and `CancellationToken` fires in ASP.NET Core. Confirm it: an abandoned turn that keeps running is a turn you keep paying for.
 
-**Streaming hides slow tools.** Text is appearing, so nobody complains, and a tool that has quietly degraded to three seconds goes unnoticed. Keep the per-tool duration logging from [Part 10](../azure-ai-foundry-agent-testing-production-monitoring) and alert on it, because the UI has stopped telling you.
+**Streaming hides slow tools.** Text is appearing, so nobody complains, and a tool that has quietly degraded to three seconds goes unnoticed. Log the duration of every tool call and alert on it, because the UI has stopped telling you.
 
 **Test on a real network.** Simulator streaming is flawless and tells you nothing. A train tunnel is the actual test case, and it is why the blocking endpoint stays as a fallback.
 
-[Part 10 covers testing and production](../azure-ai-foundry-agent-testing-production-monitoring), including why these streaming paths are tested through the blocking endpoint rather than against a live model.
+That fallback is also how these paths get tested. Asserting on a token stream from a live model is a flaky test; asserting on the same tool rounds through the blocking endpoint is not.
 
 ## Key takeaways
 

@@ -1,5 +1,5 @@
 ---
-title: 'Function Tools in ASP.NET Core: Wiring an Azure AI Foundry Agent to Your API'
+title: 'Function Tools in ASP.NET Core: Wiring a Microsoft Foundry (Azure AI Foundry) Agent to Your API'
 seoTitle: 'Azure AI Foundry Function Tools in .NET'
 description: 'Designing the tool catalogue, declaring function tools in C#, and the run loop that executes them — with the limits that stop it looping.'
 highlight: "Tool descriptions are the routing logic, not documentation. The single change that fixed most wrong-tool calls was adding a sentence saying when the tool does not apply. Cap the tool rounds, return structured errors instead of throwing, and trim tool output to the fields the answer actually needs."
@@ -53,7 +53,7 @@ I gave the first version too many tools, watched it pick the wrong one repeatedl
 
 Three rules produced that table, and I would carry all three to any other agent.
 
-**No tool takes an identity parameter.** Not `userId`, not `restaurantId`, not `riderId`. If the model cannot pass it, the model cannot get it wrong, and no amount of clever prompting by a hostile user can make it get it wrong either. This is important enough that [Part 6 is mostly about it](../azure-ai-foundry-agent-security-jwt-roles).
+**No tool takes an identity parameter.** Not `userId`, not `restaurantId`, not `riderId`. If the model cannot pass it, the model cannot get it wrong, and no amount of clever prompting by a hostile user can make it get it wrong either. Identity comes from the JWT on the request, never from the conversation.
 
 **Read tools are generous, write tools are narrow.** `search_menu` can be called freely. `create_order` runs only after the customer has confirmed in the UI.
 
@@ -290,7 +290,7 @@ public async Task<ActionResult<AgentReply>> Ask(
 }
 ```
 
-That is the entire public surface: one POST, a message, an optional conversation ID. How `CallerContext.FromClaims` works, and why it matters more than anything else in this article, is [Part 6](../azure-ai-foundry-agent-security-jwt-roles). If you want the layout underneath this controller, [structuring a Minimal API project](../minimal-api-project-structure) is the shape I use.
+That is the entire public surface: one POST, a message, an optional conversation ID. `CallerContext.FromClaims` reads the validated JWT and nothing else, which is why identity never appears in a tool schema — that mechanism deserves its own article and gets one next. If you want the layout underneath this controller, [structuring a Minimal API project](../minimal-api-project-structure) is the shape I use.
 
 ## Key takeaways
 

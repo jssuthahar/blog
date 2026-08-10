@@ -1,5 +1,5 @@
 ---
-title: 'Agent Security: JWT Identity, Roles and Prompt Injection in Azure AI Foundry'
+title: 'Agent Security: JWT Identity, Roles and Prompt Injection in Microsoft Foundry (Azure AI Foundry)'
 seoTitle: 'Securing an Azure AI Foundry Agent'
 description: 'Two identities, role-scoped tools, and why no tool should ever accept a user ID — plus the prompt injection defences that actually hold.'
 highlight: "Never put a user, restaurant or rider ID in a tool parameter schema. The model can only pass what you let it pass. Resolve identity from the validated JWT inside the executor, and design so that even a fully compromised model cannot reach another user's data."
@@ -219,7 +219,7 @@ public async Task Track_delivery_rejects_an_order_owned_by_someone_else()
 
 The second one is the ownership check, and note what it returns: `not_found`, not `not_permitted`. Telling an attacker that an order exists but is not theirs is a small leak, and there is no reason to give it away.
 
-[Part 8 connects the Flutter app](../flutter-ai-agent-chat-client-azure-foundry), including the confirmation step that keeps `create_order` under human control.
+That is the server side finished. What is left on the client is the confirmation step that keeps `create_order` under human control, and that belongs with the Flutter app.
 
 ## Key takeaways
 

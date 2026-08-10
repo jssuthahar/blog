@@ -1,5 +1,5 @@
 ---
-title: 'Testing, Monitoring and Running an Azure AI Foundry Agent in Production'
+title: 'Testing, Monitoring and Running a Microsoft Foundry (Azure AI Foundry) Agent in Production'
 seoTitle: 'Azure AI Foundry Agent in Production'
 description: 'Tests that are not flaky, tracing that answers what the agent did, and the token costs that only show up once real traffic arrives.'
 highlight: "Assert on the tool call, not on the prose. Model output varies between runs, so a test that checks wording is a flaky test. Check that the right tool was called with the right arguments using a recording executor, and you get a fast suite that catches real regressions."
@@ -206,7 +206,7 @@ Three documentation habits that paid off: the tool table lives in the API README
 
 At this point the feature is live, watched and affordable, which is where most agent projects should stop.
 
-Two problems arrive later, and both are about scale rather than correctness. When a second application wants the same tools, declaring the schemas again in another agent is how they drift apart, and [Part 11 replaces that with MCP](../mcp-model-context-protocol-azure-ai-foundry-agents). When the tool list grows past what one agent can route accurately, [Part 12 splits it into specialists with handoff orchestration](../multi-agent-handoff-orchestration-azure-ai-foundry).
+Two problems arrive later, and both are about scale rather than correctness. When a second application wants the same tools, declaring the schemas again in another agent is how they drift apart, and MCP is the answer to that one. When the tool list grows past what one agent can route accurately, splitting it into specialists with handoff orchestration is the answer to the other. Both are worth their own articles, and neither is a problem you have on day one.
 
 If you want the retrieval side of the same problem, grounding a model in documents it was never trained on, [building a RAG pipeline in .NET](../azure-openai-rag-dotnet) is the companion piece. Retrieval reads; an agent acts, and acting is what changes the security model.
 

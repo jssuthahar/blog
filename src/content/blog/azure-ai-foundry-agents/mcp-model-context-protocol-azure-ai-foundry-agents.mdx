@@ -1,5 +1,5 @@
 ---
-title: 'What Is MCP? Connecting Azure AI Foundry Agents to Model Context Protocol Servers'
+title: 'What Is MCP? Connecting Microsoft Foundry (Azure AI Foundry) Agents to MCP Servers'
 seoTitle: 'MCP with Azure AI Foundry Agents'
 description: 'Consuming remote MCP servers from a Foundry agent, publishing your own tools through a Toolbox, and the approval policy that keeps it safe.'
 highlight: "A function tool belongs to one agent. An MCP server is a tool layer that any agent or client can plug into. The switch is worth making when a second consumer appears, and the approval policy is the control that matters: keep it on always for any server you did not write."
@@ -218,7 +218,7 @@ For a single application with a single agent, plain function tools are simpler a
 
 The trigger to switch is the second consumer, not the tenth tool. When somebody asks "can the support console do that too", that is the day.
 
-[Part 12 takes the other route to the same scaling problem](../multi-agent-handoff-orchestration-azure-ai-foundry): not sharing tools between agents, but splitting one agent into several.
+There is another route to the same scaling problem, and it is the last one in this series: not sharing tools between agents, but splitting one agent into several.
 
 ## Key takeaways
 

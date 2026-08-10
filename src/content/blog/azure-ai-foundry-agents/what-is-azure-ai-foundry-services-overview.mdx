@@ -1,5 +1,5 @@
 ---
-title: 'What Is Azure AI Foundry? The Services, and When You Actually Need Them'
+title: 'What Is Microsoft Foundry (Azure AI Foundry)? The Services, and When You Actually Need Them'
 seoTitle: 'What Is Azure AI Foundry?'
 description: 'A plain tour of Microsoft Foundry for developers: the resource, projects, models, agents, tools, and when Azure OpenAI on its own is enough.'
 highlight: "Foundry is one Azure resource that gives you a model catalogue, a managed agent runtime, a shared tool layer and the tracing around all of it, behind a single project endpoint. If you only need chat completions or embeddings, Azure OpenAI on its own is still the right answer and costs you less to reason about."
@@ -32,7 +32,7 @@ The first serious conversation I had about this platform went badly, because thr
 This part is the map. What Foundry is, which services live inside it, what each one is for, and when you should not use it at all. No code. The rest of the series builds a real feature on top, and this is the vocabulary it assumes.
 
 <Callout type="note" title="The name changed">
-Azure AI Foundry was renamed **Microsoft Foundry** during 2026, and the agent runtime is **Foundry Agent Service**. The older portal and 1.x SDKs are now documented separately as **Foundry classic**. Titles in this series say "Azure AI Foundry" because that is what people still search for, but the content follows the current platform.
+Azure AI Foundry was renamed **Microsoft Foundry** during 2026, and the agent runtime is **Foundry Agent Service**. The older portal and 1.x SDKs are now documented separately as **Foundry classic**. Titles in this series carry both names, because the old one is still what most people type into a search box. Everything below follows the current platform.
 </Callout>
 
 ## What is Azure AI Foundry, in one paragraph?
@@ -65,11 +65,11 @@ Microsoft's own summary of the runtime is the [Agent Service overview](https://l
 
 Three of these deserve more than a table row.
 
-**Tools** are the reason agents are interesting. Some run on Microsoft's side (file search, code interpreter, web search). Some are yours: a **function tool** is a schema describing a method in your API, and when the model wants it called, your code runs it. [Part 5 builds nine of them.](../azure-ai-foundry-function-tools-aspnet-core)
+**Tools** are the reason agents are interesting. Some run on Microsoft's side (file search, code interpreter, web search). Some are yours: a **function tool** is a schema describing a method in your API, and when the model wants it called, your code runs it. The agent in this series ends up with nine of them.
 
 **Memory** comes in more than one flavour. Session memory is the conversation you are in. User memory carries preferences across sessions. Procedural memory, newer, lets an agent improve at a repeated workflow. Most applications start and end with session memory, and that is fine.
 
-**Observability** is the one people skip and regret. An agent makes decisions you did not write, so "what did it do" is a question you will ask weekly. Tracing answers it. [Part 10 covers the setup.](../azure-ai-foundry-agent-testing-production-monitoring)
+**Observability** is the one people skip and regret. An agent makes decisions you did not write, so "what did it do" is a question you will ask weekly. Tracing answers it, and wiring it to Application Insights is a day-one job rather than a launch-week one.
 
 ## What kinds of agent can you build?
 
@@ -97,9 +97,9 @@ This series uses a prompt agent, with the tool code running in an ASP.NET Core A
 
 Two terms that get thrown around, worth placing on the map now.
 
-**MCP**, the Model Context Protocol, is a standard way to describe a set of tools so that any agent or client can use them. A function tool belongs to one agent definition. An MCP server is a tool layer that many agents, and other clients entirely, can plug into. Foundry can consume remote MCP servers, and a Toolbox can publish your tools as one. [Part 11 covers it in full.](../mcp-model-context-protocol-azure-ai-foundry-agents)
+**MCP**, the Model Context Protocol, is a standard way to describe a set of tools so that any agent or client can use them. A function tool belongs to one agent definition. An MCP server is a tool layer that many agents, and other clients entirely, can plug into. Foundry can consume remote MCP servers, and a Toolbox can publish your tools as one.
 
-**Multi-agent** means several specialised agents instead of one that does everything. Once an agent has more than roughly nine tools, routing accuracy drops, and splitting by domain works better than adding a tenth tool. Foundry (new) has no "connected agents" feature; the orchestration patterns live in Microsoft Agent Framework instead, and handoff is the one that matches a support-style conversation. [Part 12 builds it.](../multi-agent-handoff-orchestration-azure-ai-foundry)
+**Multi-agent** means several specialised agents instead of one that does everything. Once an agent has more than roughly nine tools, routing accuracy drops, and splitting by domain works better than adding a tenth tool. Foundry (new) has no "connected agents" feature; the orchestration patterns live in Microsoft Agent Framework instead, and handoff is the one that matches a support-style conversation.
 
 Neither is a starting point. Both are answers to a problem you can only have once a single agent is working.
 
@@ -136,9 +136,9 @@ Not a price list, a shape, because the shape is what surprises people.
 
 You pay for **inference** per token, and an agent turn is usually two or three model calls rather than one, because a tool call means going back to the model with the result. You pay for **tools** that run on Microsoft's side, such as file search over a vector store. A hosted agent adds **container compute**. Prompt agents add nothing for the runtime itself.
 
-The practical consequence: token cost in an agent is dominated by what your tools return, not by what the user typed. [Part 10 has the numbers from this app](../azure-ai-foundry-agent-testing-production-monitoring), and trimming one tool response halved the cost of the most common turn.
+The practical consequence: token cost in an agent is dominated by what your tools return, not by what the user typed. In this app, trimming a single tool response halved the cost of the most common turn, and no answer got worse.
 
-[Part 2 starts the real work](../azure-ai-foundry-ai-agent-food-delivery-app): the business problem in a running food delivery app, and the architecture that put an agent in front of it.
+That is the map. The rest of the series builds a real feature on top of it, starting with the business problem in a running food delivery app and the architecture that put an agent in front of it.
 
 ## Key takeaways
 

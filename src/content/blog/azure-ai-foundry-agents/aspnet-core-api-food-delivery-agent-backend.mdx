@@ -37,7 +37,7 @@ The domain comes from **MSDevBuild Eats**: [source](https://github.com/jssuthaha
 
 ## What does the API actually need to expose?
 
-Not everything. Work backwards from the nine tools in [Part 5](../azure-ai-foundry-function-tools-aspnet-core) and you get a short list.
+Not everything. Work backwards from the nine tools the agent ends up with and you get a short list.
 
 | Service method | Backs which tool | Returns |
 | --- | --- | --- |
@@ -188,7 +188,7 @@ public static class DishMapping
 }
 ```
 
-Two projections over one service call. [Part 10 has the measurement](../azure-ai-foundry-agent-testing-production-monitoring), but the short version is that returning `DishResponse` to the model instead of `DishSummary` roughly doubled the cost of the most common turn and improved no answer.
+Two projections over one service call. I measured this later against real traffic: returning `DishResponse` to the model instead of `DishSummary` roughly doubled the cost of the most common turn and improved no answer.
 
 ## The endpoints
 
@@ -220,7 +220,7 @@ builder.Services.AddSingleton<IEatsDataSource, DemoDataSource>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPartnerService, PartnerService>();
-builder.Services.AddAuthentication().AddJwtBearer();   // configured in Part 7
+builder.Services.AddAuthentication().AddJwtBearer();   // Firebase config comes later
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
@@ -268,9 +268,9 @@ public async Task Spicy_under_20_excludes_mild_and_expensive_dishes()
 }
 ```
 
-When something goes wrong three parts from now, the first question is always "is it the agent or the API". A green test at this layer answers it in seconds instead of an afternoon.
+Once an agent is in front of this, the first question when something goes wrong is always "is it the agent or the API". A green test at this layer answers it in seconds instead of an afternoon.
 
-[Part 4 sets up the Foundry project](../azure-ai-foundry-project-setup-first-agent) and creates the agent that will eventually call all of this.
+With the API running and tested, the next job is the Foundry project and an agent that can eventually call all of it.
 
 ## Key takeaways
 

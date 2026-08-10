@@ -1,6 +1,6 @@
 {
   "slug": "azure-ordering-concurrency-sessions",
-  "topic": "Why messages are processed out of order when the queue delivered them in order — consumer concurrency, not the broker — and why SessionId is a partition-key decision rather than a FIFO checkbox.",
+  "topic": "Why messages are processed out of order when the queue delivered them in order (consumer concurrency, not the broker), and why SessionId is a partition-key decision rather than a FIFO checkbox.",
   "pacing": "long",
   "title": {
     "main": "The queue was in order. <em>Your workers were not.</em>",

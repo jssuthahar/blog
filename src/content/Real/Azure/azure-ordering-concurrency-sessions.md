@@ -1,6 +1,6 @@
 # The queue was in order. Your workers were not.
 
-Topic: Why messages are processed out of order when the queue delivered them in order — consumer concurrency, not the broker — and why SessionId is a partition-key decision rather than a FIFO checkbox.
+Topic: Why messages are processed out of order when the queue delivered them in order (consumer concurrency, not the broker), and why SessionId is a partition-key decision rather than a FIFO checkbox.
 Runtime: ~48s across 12 stages (1080x1920)
 SEO title: Service Bus message ordering explained
 Published: 2026-08-11

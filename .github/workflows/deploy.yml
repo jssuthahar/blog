@@ -50,6 +50,14 @@ jobs:
         run: npm run sync:testimonials
         continue-on-error: true
 
+      # Picks up anything published on the main site since the last deploy.
+      # Non-fatal for the same reason as the testimonials sync: a slow Blogger
+      # feed must not block a release, and the script leaves the committed
+      # cache untouched when the fetch fails.
+      - name: Refresh the article index
+        run: npm run sync:articles
+        continue-on-error: true
+
       - name: Type check
         run: npx astro check
 

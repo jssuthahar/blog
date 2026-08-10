@@ -3,13 +3,13 @@ title: 'What Is Microsoft Foundry (Azure AI Foundry)? The Services, and When You
 seoTitle: 'What Is Azure AI Foundry?'
 description: 'A plain tour of Microsoft Foundry for developers: the resource, projects, models, agents, tools, and when Azure OpenAI on its own is enough.'
 highlight: "Foundry is one Azure resource that gives you a model catalogue, a managed agent runtime, a shared tool layer and the tracing around all of it, behind a single project endpoint. If you only need chat completions or embeddings, Azure OpenAI on its own is still the right answer and costs you less to reason about."
-publishedAt: 2026-08-19
+publishedAt: 2026-05-01
 category: azure
 categories: ['ai']
 tags: ['Azure AI Foundry', 'Microsoft Foundry', 'AI Agents', 'Azure OpenAI', 'MCP', 'Architecture']
 series: 'azure-ai-foundry-agents'
 seriesOrder: 1
-draft: true
+draft: false
 faq:
   - q: 'What is Azure AI Foundry?'
     a: 'It is Microsoft''s platform for building and running AI applications on Azure, renamed Microsoft Foundry during 2026. One Azure resource gives you a model catalogue, a managed agent runtime, a shared tool layer, evaluation and tracing, all reachable through a single project endpoint.'
@@ -45,13 +45,27 @@ https://<resource-name>.services.ai.azure.com/api/projects/<project-name>
 
 That endpoint is the practical answer to "where is Foundry". Models, agents, conversations, tools and traces are all reachable through it, with Microsoft Entra ID deciding who may do what.
 
+In the Azure portal, all of this starts from one blade:
+
+![Microsoft Foundry overview blade in the Azure portal, with Create a Foundry Resource and Manage AI Resources cards and a left navigation listing Foundry, AI Hubs, Azure OpenAI, AI Search and Classic AI services](./images/MicrosoftFoundry.png)
+
+Two things on that screen are worth noticing before you click anything. **Create a Foundry Resource** is the one that gives you the platform; the other entries in the left navigation are the individual services you can still use on their own. And **Classic AI services** is where the previous generation now lives, which matters later when a sample you find online does not match the SDK you installed.
+
+Once a resource exists, its **Keys and Endpoint** page shows you the other half of the address:
+
+![The Keys and Endpoint page of a Foundry resource in the Azure portal, showing Key 1, Key 2, the region, and the Foundry API endpoint under tabs for Foundry, OpenAI and AI Services](./images/FoundaryURL.png)
+
+Note what that page gives you and what it does not. The API endpoint there belongs to the **resource** — `https://your-resource.services.ai.azure.com/`. The project endpoint is that same host with `/api/projects/your-project` on the end, and it is the one your code uses. The three tabs are worth a look too, because the same resource answers on a Foundry, an OpenAI and an AI Services address depending on which SDK is calling it.
+
+The two keys on that page are real and they work. This series does not use them. Every call goes through Microsoft Entra ID instead, because a key cannot tell you which customer is asking, and in an app where one user must never see another user's orders, that is the only question that matters.
+
 The mental model that helped me most: **Azure OpenAI is an endpoint, Foundry is a platform.** If you want a model to answer a prompt, you want an endpoint. If you want something that reasons, calls your systems, remembers a conversation, gets versioned, gets traced and gets evaluated, you want the platform.
 
 ## What services are inside it?
 
 | Service | What it gives you | When you reach for it |
 | --- | --- | --- |
-| **Model catalogue** | Models from OpenAI, Meta, DeepSeek, Anthropic and others, deployed into your project | Always. Everything else needs a model |
+| **Model catalogue** | Models from OpenAI, Anthropic, DeepSeek, xAI, Mistral, Microsoft and others, deployed into your project | Always. Everything else needs a model |
 | **Responses API** | One endpoint for model calls plus platform tools, on the project endpoint | Whenever you call a model or an agent |
 | **Agent Runtime** | Runs agents, manages conversations and tool calls, scales them | You want an agent without hosting one |
 | **Tools** | File search, code interpreter, web search, memory, MCP servers, and your own functions | The moment the model needs data or actions |
@@ -62,6 +76,12 @@ The mental model that helped me most: **Azure OpenAI is an endpoint, Foundry is 
 | **Publishing** | Versioned agents, stable endpoints, distribution to Teams and Microsoft 365 Copilot | The agent has users outside your app |
 
 Microsoft's own summary of the runtime is the [Agent Service overview](https://learn.microsoft.com/en-us/azure/foundry/agents/overview), and the endpoint and package matrix lives in the [SDK overview](https://learn.microsoft.com/en-us/azure/foundry/how-to/develop/sdk-overview). Both are worth a skim before you commit to an approach, because this platform moves.
+
+The catalogue is where that table stops being abstract:
+
+![The Microsoft Foundry portal model catalogue showing 196 models filtered to those available in the project, with cards for GPT, Claude, DeepSeek, Grok, Kimi, Qwen, Mistral and Microsoft MAI models alongside filters for collection, source, supported features and region](./images/ModlCatalog.png)
+
+Nearly two hundred models in one project, from vendors who compete with each other, behind one endpoint and one bill. That is the part people underestimate about Foundry, and it is why the "which model" argument is worth having later rather than earlier — swapping one for another is a configuration change, not a migration. Note the left navigation too: **Models**, **Agents**, **Tools**, **Services**. Those four are the platform, and the rest of this series lives in the first three.
 
 Three of these deserve more than a table row.
 

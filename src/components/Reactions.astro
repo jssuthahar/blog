@@ -1,5 +1,6 @@
 ---
 import { FIREBASE } from '../config';
+import { reactionBaselines } from '../lib/baseline';
 
 interface Props {
   slug: string;
@@ -15,6 +16,8 @@ const REACTIONS = [
   { key: 'celebrate', emoji: '🎉', label: 'Celebrate' },
   { key: 'insightful', emoji: '💡', label: 'Insightful' },
 ] as const;
+
+const baseCounts = reactionBaselines(slug, REACTIONS.map((r) => r.key));
 ---
 
 {enabled && (
@@ -29,7 +32,7 @@ const REACTIONS = [
           class="react-btn inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1.5 text-sm transition-colors hover:bg-subtle disabled:opacity-70"
         >
           <span class="text-base leading-none">{r.emoji}</span>
-          <span data-count={r.key} class="tabular-nums text-muted">0</span>
+          <span data-count={r.key} class="tabular-nums text-muted">{baseCounts[r.key]}</span>
         </button>
       ))}
     </div>
@@ -48,14 +51,15 @@ const REACTIONS = [
 </style>
 
 {enabled && (
-  <script is:inline define:vars={{ projectId: FIREBASE.projectId }}>
+  <script is:inline define:vars={{ projectId: FIREBASE.projectId, BASE_COUNTS: baseCounts }}>
     (() => {
       const BASE = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
 
-      // Displayed starting count per reaction. The Firestore counters begin at
-      // 0/1 (the rules require create count == 1); this baseline is added on
-      // read so each reaction shows 2 and climbs from there as readers react.
-      const BASE_COUNT = 2;
+      // BASE_COUNTS holds this article's own starting count per reaction, from
+      // lib/baseline.ts. The Firestore counters begin at 0/1 (the rules require
+      // create count == 1), so a baseline is added on read and the live
+      // reactions climb from there. EngagementRail.astro reads the same values,
+      // so the rail and the block below the article always agree.
 
       const format = (n) =>
         n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
@@ -80,7 +84,7 @@ const REACTIONS = [
           const fields = doc?.fields ?? {};
           buttons.forEach((btn) => {
             const key = btn.dataset.react;
-            paint(key, BASE_COUNT + Number(fields[key]?.integerValue ?? 0));
+            paint(key, BASE_COUNTS[key] + Number(fields[key]?.integerValue ?? 0));
             if (localStorage.getItem(`reacted:${slug}:${key}`) !== null) {
               btn.dataset.reacted = '';
             }
@@ -129,7 +133,7 @@ const REACTIONS = [
               // Re-read so the shown number reflects everyone, not just us.
               const doc = await fetch(docPath).then((r) => (r.ok ? r.json() : null));
               const raw = doc?.fields?.[key]?.integerValue;
-              paint(key, raw != null ? BASE_COUNT + Number(raw) : optimistic + 1);
+              paint(key, raw != null ? BASE_COUNTS[key] + Number(raw) : optimistic + 1);
             } catch {
               // Roll back the guard so a genuine failure can be retried.
               localStorage.removeItem(guard);

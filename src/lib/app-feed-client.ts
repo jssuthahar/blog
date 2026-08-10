@@ -29,14 +29,14 @@ import {
   toggleBookmark,
   type ArticleMeta,
 } from './reading-history';
+import { reactionBaseline, viewBaseline } from './baseline';
 
 const BASE = `https://firestore.googleapis.com/v1/projects/${FIREBASE.projectId}/databases/(default)/documents`;
 const counters = FIREBASE.projectId.length > 0;
 
-// Baselines match ViewCounter.astro and Reactions.astro, so an item never shows
-// one number in the feed and a different one on its own page.
-const VIEW_BASE = 422;
-const REACT_BASE = 2;
+// Baselines come from lib/baseline.ts — the same per-slug numbers
+// ViewCounter.astro and Reactions.astro use, so an item never shows one number
+// in the feed and a different one on its own page.
 
 /**
  * How long an item has to hold the screen before it counts as a view.
@@ -236,15 +236,18 @@ export function initAppFeed(): void {
     if (!counters || !slug || item.dataset.counted === '') return;
     item.dataset.counted = '';
 
+    const viewBase = viewBaseline(slug);
+    const likeBase = reactionBaseline(slug, 'like');
+
     const views = item.querySelector('[data-feed-views]');
     if (views) {
       try {
         const doc = await fetch(`${BASE}/views/${encodeURIComponent(slug)}`).then((r) =>
           r.ok ? r.json() : null,
         );
-        views.textContent = format(VIEW_BASE + Number(doc?.fields?.count?.integerValue ?? 0));
+        views.textContent = format(viewBase + Number(doc?.fields?.count?.integerValue ?? 0));
       } catch {
-        views.textContent = format(VIEW_BASE);
+        views.textContent = format(viewBase);
       }
     }
 
@@ -254,9 +257,9 @@ export function initAppFeed(): void {
         const doc = await fetch(`${BASE}/reactions/${encodeURIComponent(slug)}`).then((r) =>
           r.ok ? r.json() : null,
         );
-        likes.textContent = format(REACT_BASE + Number(doc?.fields?.like?.integerValue ?? 0));
+        likes.textContent = format(likeBase + Number(doc?.fields?.like?.integerValue ?? 0));
       } catch {
-        likes.textContent = format(REACT_BASE);
+        likes.textContent = format(likeBase);
       }
       if (localStorage.getItem(`reacted:${slug}:like`) !== null) {
         item.querySelector('[data-feed-like]')?.setAttribute('aria-pressed', 'true');
@@ -265,9 +268,10 @@ export function initAppFeed(): void {
   }
 
   /**
-   * Records a view, once per item per browser session — the same rule and the
-   * same document ViewCounter.astro uses, so opening an article from the feed
-   * and opening it from search are one view, not two.
+   * Records a view on the same document ViewCounter.astro writes to, but only
+   * once per item per browser session: a card here is counted when it scrolls
+   * past, so counting every pass would turn one scroll up and down into a dozen
+   * views. The article page itself counts every load.
    */
   async function countView(item: HTMLElement): Promise<void> {
     const slug = item.dataset.slug;
@@ -316,7 +320,8 @@ export function initAppFeed(): void {
     btn.setAttribute('aria-pressed', 'true');
 
     const out = item.querySelector('[data-feed-likes]');
-    const shown = Number(String(out?.textContent).replace(/k$/, '000')) || REACT_BASE;
+    const shown =
+      Number(String(out?.textContent).replace(/k$/, '000')) || reactionBaseline(slug, 'like');
     if (out) out.textContent = format(shown + 1);
 
     try {

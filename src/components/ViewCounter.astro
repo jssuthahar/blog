@@ -1,5 +1,6 @@
 ---
 import { FIREBASE } from '../config';
+import { viewBaseline } from '../lib/baseline';
 
 interface Props {
   slug: string;
@@ -9,6 +10,7 @@ interface Props {
 
 const { slug, readOnly = false } = Astro.props;
 const enabled = FIREBASE.projectId.length > 0;
+const baseCount = viewBaseline(slug);
 ---
 
 {enabled && (
@@ -27,14 +29,14 @@ const enabled = FIREBASE.projectId.length > 0;
 )}
 
 {enabled && (
-  <script is:inline define:vars={{ projectId: FIREBASE.projectId }}>
+  <script is:inline define:vars={{ projectId: FIREBASE.projectId, BASE_COUNT: baseCount }}>
     (() => {
       const BASE = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
 
-      // Displayed starting count. The Firestore counter itself begins at 0/1
-      // (the rules require create count == 1); this baseline is added on read
-      // so a fresh article shows 422 and climbs from there as views come in.
-      const BASE_COUNT = 422;
+      // BASE_COUNT is this article's own starting count, derived from its slug
+      // in lib/baseline.ts. The Firestore counter begins at 0/1 (the rules
+      // require create count == 1), so the baseline is added on read and the
+      // live views climb from there.
 
       const format = (n) =>
         n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
@@ -48,15 +50,12 @@ const enabled = FIREBASE.projectId.length > 0;
         const output = el.querySelector('[data-view-count]');
         const docPath = `${BASE}/views/${encodeURIComponent(slug)}`;
 
-        // One view per post per browser session, so a refresh does not inflate counts.
-        const sessionKey = `viewed:${slug}`;
-        const alreadyViewed = sessionStorage.getItem(sessionKey) !== null;
-        const shouldIncrement = !alreadyViewed && el.dataset.readOnly === undefined;
+        // Every page load counts, including a refresh in the same browser.
+        // Listing pages pass readOnly, so only the article page ever writes.
+        const shouldIncrement = el.dataset.readOnly === undefined;
 
         try {
           if (shouldIncrement) {
-            sessionStorage.setItem(sessionKey, '1');
-
             // updateTransforms upserts: it creates the doc if missing, then increments.
             const res = await fetch(`${BASE}:commit`, {
               method: 'POST',

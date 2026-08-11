@@ -3,13 +3,13 @@ title: 'From Search Box to AI Agent: Microsoft Foundry (Azure AI Foundry) for a 
 seoTitle: 'AI Agents Explained with Azure AI Foundry'
 description: 'The business case for an AI agent on an app that already exists, what an agent really is, and the architecture that keeps it inside its lane.'
 highlight: "An agent is a model that has been given a set of functions it is allowed to ask you to run. It does not run your code and it cannot reach your database. Once you see it that way, the design question stops being 'how smart is the model' and becomes 'which functions am I willing to expose, and to whom'."
-publishedAt: 2026-08-12
+publishedAt: 2026-08-05
 category: ai
 categories: ['azure', 'mobile']
 tags: ['Azure AI Foundry', 'AI Agents', 'Architecture', 'Flutter', 'ASP.NET Core']
 series: 'azure-ai-foundry-agents'
 seriesOrder: 2
-draft: true
+draft: false
 faq:
   - q: 'What is the difference between an AI agent and a chatbot?'
     a: 'A chatbot turns text into more text. An agent is given tools, and between the question and the answer it decides which of those tools to call, with what arguments, and in what order. The reasoning is the same model; the difference is that a tool call reaches your API and changes or reads real data.'
@@ -22,10 +22,12 @@ faq:
 ---
 
 import Callout from '../../../components/mdx/Callout.astro';
+import Pipeline from '../../../components/mdx/Pipeline.astro';
+import Layers from '../../../components/mdx/Layers.astro';
 
 A customer opened our food delivery app and typed "spicy food under RM20" into the search box.
 
-The app returned four dishes. Two were not spicy. One was RM34. The fourth was a chicken rice place whose restaurant description happened to contain the word "spicy". Nothing was broken. The search worked exactly as designed, and the design was the problem.
+The app returned nothing. Not a weak match, not a wrong price — an empty state, on a catalogue that has seventeen spicy dishes under RM20 sitting in it. Nothing was broken. The search worked exactly as designed, and the design was the problem.
 
 This series puts Azure AI Foundry agents on top of an application that already exists, with all of its roles, endpoints and awkward history intact. No greenfield, no toy chatbot. The app is MSDevBuild Eats, a Flutter food delivery platform with three role experiences shipped from one codebase: customer ordering, restaurant partner dashboard, delivery rider queue.
 
@@ -47,7 +49,17 @@ Microsoft renamed Azure AI Foundry to **Microsoft Foundry** during 2026, and the
 
 ## Why does a search box fail the customer who knows what they want?
 
-Open `lib/domain/repositories/catalog_repository.dart` in the app and the shape of the failure is in the contract:
+This is the screen that customer was looking at:
+
+![The MSDevBuild Eats customer home screen in a browser, with a location line for Kuala Lumpur, a search box reading Search nasi lemak, sushi, bubble tea, a row of cuisine chips from Malaysian to Healthy, a promotional carousel, and Featured this week restaurant cards showing rating, delivery time, delivery fee and distance](./images/Fooddelivery.png)
+
+Everything on it is a category or a card. The cuisine chips answer "what kind of food", the cards answer "which restaurant", and nowhere on the screen is there a way to say "spicy" or "under RM20". So the customer used the one control that accepts a sentence, and got this:
+
+![The search screen of the app with spicy food under RM20 typed into the search field, showing an empty state with a crossed-out magnifier icon, the heading No matches for spicy food under RM20, and helper text suggesting the customer check the spelling or try a cuisine like Thai or pizza](./images/spicyNodata.png)
+
+Read the helper text under the icon, because the app is being honest about its own model: *check the spelling, or try a cuisine like "Thai" or "pizza"*. It is asking the customer to stop describing what they want and name a category instead. That request is the entire gap this series closes.
+
+Open `lib/domain/repositories/catalog_repository.dart` and the shape of the failure is in the contract:
 
 ```dart
 /// Free-text search across restaurant names, cuisines and dish names.
@@ -56,7 +68,24 @@ Future<Result<SearchResults>> search(String query);
 Future<Result<List<Restaurant>>> getRestaurants([RestaurantFilter filter]);
 ```
 
-Search is a string match. Filtering is a separate object, `RestaurantFilter`, offering `categoryId`, `sort`, `freeDeliveryOnly`, `openNowOnly`, `minRating` and `maxPriceLevel`. Now look at what a dish already knows about itself, in `lib/domain/entities/food_item.dart`:
+One line of intent, and in `lib/data/repositories/catalog_repository_impl.dart` one line of implementation behind it:
+
+```dart
+final String needle = query.trim().toLowerCase();
+
+final List<FoodItem> dishHits = foods
+    .where(
+      (FoodItemModel f) =>
+          f.name.toLowerCase().contains(needle) ||
+          f.description.toLowerCase().contains(needle) ||
+          f.ingredients.any((String i) => i.toLowerCase().contains(needle)),
+    )
+    .toList(growable: false);
+```
+
+The whole sentence becomes one needle. "spicy food under RM20" is tested verbatim against every dish name, description and ingredient list, and nothing is named that, so the empty state is the correct answer to the question as asked. Shortening the query does not rescue it either: search for "spicy" alone and you reach the five dishes whose description happens to use the word, out of the twenty-nine the catalogue has actually flagged as spicy, and price never enters the question at all.
+
+Filtering is a separate object, `RestaurantFilter`, offering `categoryId`, `sort`, `freeDeliveryOnly`, `openNowOnly`, `minRating` and `maxPriceLevel`. Now look at what a dish already knows about itself, in `lib/domain/entities/food_item.dart`:
 
 ```dart
 final double priceMyr;
@@ -70,7 +99,7 @@ final List<String> allergens;
 final int prepMinutes;
 ```
 
-The data to answer "spicy food under RM20" has been sitting in the entity the whole time. `isSpicy` is a boolean on every dish. `effectivePrice` already accounts for discounts. What is missing is a path from a sentence a human said to those two fields. Even the closest filter cannot express it: `maxPriceLevel` is a 1-to-3 price tier, not ringgit.
+The data to answer "spicy food under RM20" has been sitting in the entity the whole time. `isSpicy` is a boolean on every dish. `effectivePrice` already accounts for discounts. Run those two conditions over the seed catalogue and seventeen dishes come back, which is seventeen more than the customer saw. What is missing is a path from a sentence a human said to those two fields, and no filter on the screen can stand in for it: `maxPriceLevel` is a 1-to-3 price tier, not ringgit.
 
 The traditional fix is a product backlog. Add a spice toggle. Add a price slider. Ship it, and next month somebody asks for "vegetarian, no peanuts, ready in 20 minutes, near my office". That is four more controls on a screen that is already full, and it is the fifth request in a queue that never empties, because natural language has more combinations than a filter panel has room for.
 
@@ -80,7 +109,7 @@ The same shape of gap sits on all three dashboards, and seeing it three times is
 
 | Role | What they ask | What the app offers today |
 | --- | --- | --- |
-| Customer | "Find spicy food under RM20" | String search, no spice or ringgit filter |
+| Customer | "Find spicy food under RM20" | Whole-phrase string match, so an empty state |
 | Customer | "Order my usual dinner" | Order history list, manual re-add to cart |
 | Customer | "Where is my delivery?" | A tracking screen, if they can find the order |
 | Restaurant partner | "Which menu items are performing well?" | `PartnerStats` has seven days of total revenue, nothing per item |
@@ -115,22 +144,42 @@ What an agent is not: a chatbot with a system prompt. A chatbot converts text to
 
 Here is the loop, in order, for one customer sentence.
 
-```text
-1. User says: "Find spicy food under RM20"
-2. Your API sends that text to Foundry, referencing the agent by name
-3. Model reads instructions + tool schemas, decides it needs data
-4. Foundry returns a function_call item:
-       name      = "search_menu"
-       call_id   = "call_9fA2..."
-       arguments = {"spicy": true, "maxPriceMyr": 20}
-5. Your API validates the arguments, checks the caller's role,
-   calls the real endpoint, gets 6 dishes back
-6. Your API sends a function_call_output item with that JSON,
-   referencing the previous response
-7. Model turns the JSON into a sentence and returns final text
-```
+<Pipeline
+  caption="Every arrow starts and ends in your API. Foundry asks; it never calls your endpoints itself."
+  entry={{ label: 'Customer types "Find spicy food under RM20"', note: 'Flutter posts it to your API with the Firebase ID token' }}
+  steps={[
+    {
+      label: 'Your API opens the turn',
+      note: 'Sends the text to Foundry against the agent name and the conversation id',
+    },
+    {
+      gate: 'Model decision',
+      label: 'Does this answer need data the model does not have?',
+      note: 'It reads the instructions and the tool descriptions to decide',
+      back: 'No → it answers from the conversation alone and the turn ends here',
+    },
+    {
+      label: 'Foundry returns a function_call',
+      note: 'name = search_menu · call_id = call_9fA2… · arguments = {"spicy": true, "maxPriceMyr": 20}',
+    },
+    {
+      label: 'Your API validates, then dispatches',
+      note: 'Argument validation and role check first, then the real endpoint — seventeen dishes come back',
+    },
+    {
+      label: 'Your API sends a function_call_output',
+      note: 'That JSON, carrying the same call_id — this post is the second model invocation',
+      back: 'Model asks for another tool → back to the function_call step, one more round trip',
+    },
+    {
+      label: 'Model turns the JSON into a sentence',
+      note: 'Final text travels back down the same path to the Flutter chat',
+      accent: true,
+    },
+  ]}
+/>
 
-Steps 4 through 6 are a second round trip. That is what people miss when estimating cost and latency: one user turn with one tool call is at least two model invocations, not one.
+The three middle boxes are a second round trip. That is what people miss when estimating cost and latency: one user turn with one tool call is at least two model invocations, not one, and a turn that needs two tools costs three.
 
 Two properties of this loop matter more than the rest.
 
@@ -140,29 +189,43 @@ Two properties of this loop matter more than the rest.
 
 ## What does the architecture look like end to end?
 
-```text
-   Flutter app (customer / partner / rider)
-              |
-              |  HTTPS + Firebase ID token
-              v
-   ASP.NET Core Web API   <-- the trust boundary lives here
-              |
-              |  Entra ID (managed identity), no keys
-              v
-   Foundry Agent Service      model + instructions + tool schemas
-              |
-              |  function_call: name + arguments
-              v
-   Tool executor (C#)     <-- role check, argument validation
-              |
-              v
-   Business APIs / repositories
-              |
-              v
-   Firestore / SQL
-```
+<Layers
+  caption="Read the middle layer as a detour, not a stage: the API consults Foundry and gets an answer back, then keeps going down. Foundry never reaches the platform layer, and that is the whole security story."
+  entry={{ label: 'Flutter app — customer, partner, rider', note: 'HTTPS, carrying a Firebase ID token' }}
+  layers={[
+    {
+      name: 'Trust boundary',
+      role: 'ASP.NET Core Web API — everything below happens under your rules',
+      sequence: true,
+      items: [
+        { label: 'Token validation', note: 'Verifies the Firebase token, resolves the role, decides which tools this user may even see' },
+        { label: 'Agent loop', note: 'Sends the turn to Foundry over Entra ID managed identity, no keys' },
+        { label: 'Tool executor', note: 'Maps a returned tool name to a C# method after validating its arguments' },
+      ],
+    },
+    {
+      name: 'Reasoning',
+      role: 'Foundry Agent Service — consulted by the loop, holds no data of yours',
+      items: [
+        { label: 'Model deployment', note: 'Chosen from the Foundry catalogue' },
+        { label: 'Agent definition', note: 'Instructions and tool schemas, versioned as a resource' },
+        { label: 'Conversation state', note: 'Turn history, server-side' },
+      ],
+    },
+    {
+      name: 'Your existing platform',
+      role: 'Reached only by the tool executor, unchanged by any of this',
+      items: [
+        { label: 'Business APIs and repositories', note: 'The endpoints you already shipped' },
+      ],
+    },
+  ]}
+  result={{ label: 'Firestore / SQL', note: 'Never learns that an agent was involved' }}
+/>
 
-The component that earns its place is the ASP.NET Core layer in the middle, and it is worth being explicit about why, because the obvious shortcut is to let the Flutter app talk to Foundry directly.
+The one thing an ASCII sketch of this always gets wrong is the middle. Foundry is not a stage the request passes through on its way to your data. Your API calls out to it and gets a reply, then carries on to the endpoints itself, which is why a leaked model response cannot become a database read.
+
+The component that earns its place, then, is the ASP.NET Core layer, and it is worth being explicit about why, because the obvious shortcut is to let the Flutter app talk to Foundry directly.
 
 Do not do that. Calling Foundry from the mobile client means shipping a credential that can reach your agent to every device on the internet, and it means tool results get assembled on a machine you do not control. Every meaningful control in this design lives in that API layer: it validates the user's token, decides which tools that user's role may even see, injects the user's identity into tool calls so the model never handles identity, and produces the logs you will want when somebody asks what the agent did last Tuesday.
 

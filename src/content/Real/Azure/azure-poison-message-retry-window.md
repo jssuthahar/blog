@@ -3,7 +3,7 @@
 Topic: Why an 18-minute dependency outage dead-letters every message in the queue — MaxDeliveryCount is an attempt count, not a retry window, and Service Bus has no backoff between redeliveries.
 Runtime: ~48s across 12 stages (1080x1920)
 SEO title: Service Bus retry and dead-letter trap
-Published: 2026-08-11
+Published: 2026-08-09
 
 ## What you will learn
 

@@ -7,7 +7,7 @@
     "How the mutable default argument bug gets written"
   ],
   "seoTitle": "Python mutable vs immutable",
-  "publishedAt": "2026-08-02",
+  "publishedAt": "2026-07-30",
   "title": {
     "main": "In Python, a name is a <em>sticker</em>, not a box",
     "sub": "Two names can sit on one object. Whether it can change is what makes lists and strings behave differently.",

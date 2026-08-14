@@ -103,6 +103,16 @@ export interface Short {
    * publish and still appear everywhere else; they just stay out of the log.
    */
   publishedAt?: Date;
+  /**
+   * When the short was last re-cut, from `updatedAt` in the spec.
+   *
+   * Same field the blog posts carry, for the same reason: freshness is a
+   * ranking signal, and a short whose steps were rewritten deserves to say so
+   * rather than reading as a year-old file. Optional and never defaulted — a
+   * short that has not changed since it went out has no update to show, and
+   * `dateModified` falls back to `publishedAt`.
+   */
+  updatedAt?: Date;
   /** The player HTML, prepared for embedding. See `prepareForEmbed`. */
   embedHtml: string;
 }
@@ -168,16 +178,20 @@ function stripTags(html: string): string {
 }
 
 /**
- * Reads `publishedAt` off a spec.
+ * Reads a date field off a spec.
  *
  * A malformed date warns and is dropped rather than becoming an Invalid Date
  * that silently poisons the sort and prints "NaN" into the contribution record.
  */
-function parseDate(value: string | undefined, source: string): Date | undefined {
+function parseDate(
+  value: string | undefined,
+  source: string,
+  field: 'publishedAt' | 'updatedAt' = 'publishedAt',
+): Date | undefined {
   if (!value) return undefined;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    console.warn(`[shorts] ${source}: publishedAt "${value}" is not a valid date — ignored`);
+    console.warn(`[shorts] ${source}: ${field} "${value}" is not a valid date — ignored`);
     return undefined;
   }
   return date;
@@ -472,6 +486,8 @@ interface ShortSpec {
   article?: string;
   /** ISO date the short was published. Required for it to count on /contributions. */
   publishedAt?: string;
+  /** ISO date the short was last re-cut. Optional — only set it if it changed. */
+  updatedAt?: string;
   title: { main: string; sub: string; pill: string };
   stages: ShortStage[];
   end: { title: string; sub: string };
@@ -534,6 +550,7 @@ function loadShorts(): Short[] {
       seconds,
       articleSlug: spec.article,
       publishedAt: parseDate(spec.publishedAt, specPath),
+      updatedAt: parseDate(spec.updatedAt, specPath, 'updatedAt'),
       embedHtml: prepareForEmbed(html, `${folder}/${stem}.html`),
     });
   }

@@ -23,6 +23,7 @@ import Newsletter from '../../components/Newsletter.astro';
 import ShareRow from '../../components/ShareRow.astro';
 import Reactions from '../../components/Reactions.astro';
 import ReaderTools from '../../components/ReaderTools.astro';
+import ViewCounter from '../../components/ViewCounter.astro';
 import PresentationMode from '../../components/PresentationMode.astro';
 import { AUTHOR } from '../../config';
 import { SITE, ADSENSE_SLOT_IN_ARTICLE, ADSENSE_SLOT_MULTIPLEX } from '../../config';
@@ -65,6 +66,13 @@ const schema = [
     description: short.sub,
     totalTime: `PT${short.seconds}S`,
     inLanguage: SITE.lang,
+    // Only emitted when the short is dated. An undated short still publishes
+    // (see `Short.publishedAt`), and a guessed date in structured data is worse
+    // than none — it is the field Google trusts to say how fresh this is.
+    ...(short.publishedAt && {
+      datePublished: short.publishedAt.toISOString(),
+      dateModified: (short.updatedAt ?? short.publishedAt).toISOString(),
+    }),
     author: { '@id': `${SITE.url}/#person` },
     publisher: { '@id': `${SITE.url}/#person` },
     isPartOf: { '@id': `${SITE.url}/#website` },
@@ -188,6 +196,17 @@ const schema = [
         <span>{short.stages.length} steps</span>
         <span>{short.seconds} seconds</span>
         {short.publishedAt && <time datetime={short.publishedAt.toISOString()}>{formatDate(short.publishedAt)}</time>}
+        {short.updatedAt && (
+          <span class="text-accent">Updated {formatDate(short.updatedAt)}</span>
+        )}
+        <!--
+          The same counter an article carries, on the same Firestore document
+          the app feed already writes for this short — hence the `short-`
+          prefix, which is also the key Reactions and ReaderTools use here.
+          Get that prefix wrong and a short would count views twice, under two
+          names, and agree with nothing.
+        -->
+        <ViewCounter slug={`short-${short.slug}`} />
       </Fragment>
     </ReaderTools>
 

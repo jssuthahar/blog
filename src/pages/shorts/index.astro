@@ -25,7 +25,7 @@ import {
   shortUrl,
   getShorts,
 } from '../../lib/shorts';
-import { CATEGORIES } from '../../lib/posts';
+import { CATEGORIES, formatDate } from '../../lib/posts';
 
 const shorts = getShorts();
 const categories = shortCategories(shorts);
@@ -180,8 +180,22 @@ const schema = [
             </ul>
           )}
 
-          <p class="mt-2.5 text-xs text-muted">
-            {CATEGORIES[short.category].label} · {short.stages.length} steps
+          <!-- Category, length and date, the way a post card carries them. The
+               date is the half that was missing: a hub that grows by a batch a
+               week reads as one undated pile without it, and a short published
+               yesterday looks no newer than one from May. -->
+          <p class="mt-2.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted">
+            <span>{CATEGORIES[short.category].label}</span>
+            <span aria-hidden="true">·</span>
+            <span>{short.stages.length} steps</span>
+            {short.publishedAt && (
+              <>
+                <span aria-hidden="true">·</span>
+                <time datetime={short.publishedAt.toISOString()}>
+                  {formatDate(short.publishedAt)}
+                </time>
+              </>
+            )}
           </p>
         </article>
       ))}

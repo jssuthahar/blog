@@ -31,6 +31,10 @@ export const GET: APIRoute = ({ props }) => {
     `- **Topic:** ${short.topic}`,
     `- **Author:** ${AUTHOR.name} (${AUTHOR.alternateName})`,
     `- **Category:** ${CATEGORIES[short.category].label} · ${short.folderLabel}`,
+    // Same two lines the article twin carries. An assistant quoting a short has
+    // no other way to tell how old the answer it is repeating is.
+    short.publishedAt ? `- **Published:** ${short.publishedAt.toISOString().slice(0, 10)}` : null,
+    short.updatedAt ? `- **Updated:** ${short.updatedAt.toISOString().slice(0, 10)}` : null,
     short.tags.length ? `- **Tags:** ${short.tags.join(', ')}` : null,
     `- **Canonical URL:** ${url}`,
     '',

@@ -27,12 +27,14 @@ faq:
 
 import Callout from '../../../components/mdx/Callout.astro';
 
-[Part 4](../azure-ai-foundry-project-setup-first-agent) left us with an agent that talks well and can do nothing. This part gives it hands.
+The last test in [Part 4](../azure-ai-foundry-project-setup-first-agent) was typing "how much is nasi lemak?" into the playground and watching the agent decline to answer. That was the correct behaviour and a small victory: the instructions held, and it refused to invent a price.
 
-Everything here runs in ASP.NET Core, because that is where the tool code has to live: your API already knows how to authenticate a caller, validate a request and write a log line, and a tool that skips all three is a liability. The agent calls your API. Your API does not become the agent.
+It is also completely useless to a customer. The price is sitting in the SQL Server table from [Part 3](../aspnet-core-api-food-delivery-agent-backend), one `WHERE` clause away, and the agent has no way to reach it.
+
+This part closes that gap. Everything here runs in ASP.NET Core, because that is where the tool code has to live: your API already knows how to authenticate a caller, validate a request and write a log line, and a tool that skips all three is a liability. The agent calls your API. Your API does not become the agent.
 
 <Callout type="tip" title="The app these tools wrap">
-The endpoints below wrap the repositories in **MSDevBuild Eats**, the Flutter food delivery app used throughout this series: [source](https://github.com/jssuthahar/food-delivery-app) · [live web](https://jssuthahar.github.io/food-delivery-app/) · [Android build](https://appdistribution.firebase.dev/i/00432c5aa60de58b).
+The endpoints below wrap the services built in Part 3 for **MSDevBuild Eats**, the Flutter food delivery app used throughout this series: [source](https://github.com/jssuthahar/food-delivery-app) · [live web](https://jssuthahar.github.io/food-delivery-app/) · [Android build](https://appdistribution.firebase.dev/i/00432c5aa60de58b).
 </Callout>
 
 ## Which tools should the agent get?
@@ -51,15 +53,17 @@ I gave the first version too many tools, watched it pick the wrong one repeatedl
 | `get_pending_orders` | Partner | none | Orders awaiting confirmation, oldest first |
 | `get_rider_queue` | Rider | none | Assigned orders with pickup and drop distances |
 
+Nine tools, nine service methods from Part 3. That is not a coincidence, it is the design: each tool is a thin wrapper over a method that already works and already has a test.
+
 Three rules produced that table, and I would carry all three to any other agent.
 
 **No tool takes an identity parameter.** Not `userId`, not `restaurantId`, not `riderId`. If the model cannot pass it, the model cannot get it wrong, and no amount of clever prompting by a hostile user can make it get it wrong either. Identity comes from the JWT on the request, never from the conversation.
 
 **Read tools are generous, write tools are narrow.** `search_menu` can be called freely. `create_order` runs only after the customer has confirmed in the UI.
 
-**Tool output is trimmed to what the answer needs.** `search_menu` returns eight dishes with six fields each, not the full `FoodItem` with allergens, ingredients and image URLs. Every extra field is tokens on every call, and one more thing the model can misquote.
+**Tool output is trimmed to what the answer needs.** `search_menu` returns eight dishes with six fields each, not the full dish record with allergens, ingredients and image URLs. Every extra field is tokens on every call, and one more thing the model can misquote.
 
-## How do you declare a function tool in C#?
+## Step 1 — Declare a function tool in C#
 
 A function tool is a name, a description the model reads, and a JSON Schema for the arguments.
 
@@ -89,7 +93,15 @@ public static class EatsTools
 }
 ```
 
-Register them on the agent definition from [Part 4](../azure-ai-foundry-project-setup-first-agent):
+Two mistakes I made on the first attempt are worth stealing.
+
+The description originally read "Searches the menu". Three words, and they told the model nothing about when *not* to use it, so it cheerfully called `search_menu` for "where is my delivery" and then apologised for finding no dishes. Adding the sentence that begins "Do not use for" cut that failure to near zero. Descriptions are routing rules.
+
+I also left `strictModeEnabled` off, which meant the model occasionally sent `maxPriceMyr` as the string `"20"` instead of the number `20`, and the parse blew up somewhere far away from the cause. Turning strict mode on made schema conformance the service's problem instead of mine. One flag, one class of bug gone.
+
+## Step 2 — Register the tools on the agent definition
+
+Same definition as Part 4, now with a `Tools` collection:
 
 ```csharp
 var definition = new DeclarativeAgentDefinition(model: config["Foundry:ModelDeployment"])
@@ -104,13 +116,11 @@ var definition = new DeclarativeAgentDefinition(model: config["Foundry:ModelDepl
 };
 ```
 
-Two mistakes I made on the first attempt are worth stealing.
+Run the provisioner and you get a new agent version. Open it in the portal and the nine tools are listed on the agent — visible, but not editable there, and not runnable from the playground.
 
-The description originally read "Searches the menu", which told the model nothing about when *not* to use it, so it cheerfully called `search_menu` for "where is my delivery". The sentence beginning "Do not use for" cut that failure to near zero. Write descriptions as routing rules, because that is what they are.
+{/* SCREENSHOT: the portal screen you used — save as ./images/agent-version-with-nine-tools.png, then replace this line with: ![The new agent version in the Foundry portal listing all nine function tools](./images/agent-version-with-nine-tools.png) */}
 
-I also left `strictModeEnabled` off, which meant the model occasionally sent `maxPriceMyr` as the string `"20"` instead of the number `20`. Turning strict mode on made schema conformance the service's problem instead of mine.
-
-## Wiring the client into DI
+## Step 3 — Wire the client into DI
 
 ```csharp
 // Program.cs
@@ -127,9 +137,9 @@ builder.Services.AddScoped<IToolExecutor, ToolExecutor>();
 builder.Services.AddScoped<AgentConversationService>();
 ```
 
-`AIProjectClient` is thread-safe and expensive to build, so it is a singleton. The executor is scoped because it resolves per-request services, including the caller's identity.
+`AIProjectClient` is thread-safe and expensive to build, so it is a singleton. The executor is scoped because it resolves per-request services, including the caller's identity and the `EatsDbContext` behind it.
 
-## The run loop
+## Step 4 — The run loop
 
 This is the heart of the integration. It sends the user's message, handles any function calls, and loops until the model produces text.
 
@@ -194,7 +204,7 @@ public sealed class AgentConversationService(
 
 Three details in there are load-bearing.
 
-`MaxToolRounds` is not decoration. In the first week in staging, a badly worded tool description sent the model into a loop calling `search_restaurant` with slightly different arguments seven times for one question. Each round is a paid model call. Cap it, log when you hit the cap, and treat hitting the cap as a bug in a tool description rather than a bug in the model.
+`MaxToolRounds` is not decoration. In the first week in staging a badly worded tool description sent the model into a loop, calling `search_restaurant` with very slightly different arguments seven times over for a single question that a human would have answered from the first result. Each round is a paid model call. Cap it, log when you hit the cap, and treat hitting the cap as a bug in a tool description rather than a bug in the model.
 
 A single response can contain several `function_call` items at once, so the loop handles all of them in one round before replying. Serialising them into separate rounds would work and would cost more.
 
@@ -202,7 +212,7 @@ A single response can contain several `function_call` items at once, so the loop
 Foundry expires a run ten minutes after creation, so tool outputs must be submitted inside that window. A tool that blocks on a slow downstream call can lose the whole turn. Anything slow should return a status immediately and be polled separately.
 </Callout>
 
-## The executor
+## Step 5 — The executor
 
 The executor maps a tool name to a method, and it is where the checks live.
 
@@ -241,9 +251,13 @@ public async Task<string> ExecuteAsync(
 
 Read that `switch` carefully. Every identity value comes from `caller`, built from the validated token. Nothing that decides *whose* data this is came out of `json.RootElement`. The model picks the verb; the server picks the noun.
 
-The catch block returns an error string instead of throwing. That was a deliberate change after an early version where a null reference in one tool killed the run and the customer got a spinner that never resolved. Handing the model a structured error lets it say "I could not check that order, please try again" and stay in the conversation.
+## What happens when a tool throws?
 
-## Validating what the model sent you
+The run dies. The customer watches a spinner that never resolves, and nothing on the screen ever explains why, because the failure happened three layers away in a tool the user does not know exists. I know this because an early version did exactly that, from a single null reference inside one handler.
+
+That is why the catch block returns a string instead of rethrowing. Handing the model a structured error lets it say "I could not check that order, please try again" and stay in the conversation. An exception is a crash. A JSON error object is something the agent can talk about.
+
+## Step 6 — Validate what the model sent you
 
 Each handler validates its own arguments, and it is ordinary defensive code:
 
@@ -272,9 +286,9 @@ private async Task<string> SearchMenuAsync(JsonElement args, CancellationToken c
 
 `Math.Clamp` on a number the model produced from user text is not paranoia. It is the same reason you clamp a page size on a public endpoint: the value travelled through something you do not control before it reached you.
 
-Notice also what `SearchDishesAsync` is. It is not a new query written for the agent, it is the same catalogue call the app's own search screen uses. Tools that wrap existing endpoints inherit the authorization, validation and logging you already reviewed. Tools that reach past them into the database are a second data path with none of it, and it will be the one nobody remembers to audit.
+Notice also what `SearchDishesAsync` is. It is not a new query written for the agent, it is the same catalogue call the app's own search screen uses, with the same unit test behind it. Tools that wrap existing endpoints inherit the authorization, validation and logging you already reviewed. Tools that reach past them into the database are a second data path with none of it, and it will be the one nobody remembers to audit.
 
-## The endpoint
+## Step 7 — The endpoint
 
 ```csharp
 [Authorize]
@@ -291,6 +305,25 @@ public async Task<ActionResult<AgentReply>> Ask(
 ```
 
 That is the entire public surface: one POST, a message, an optional conversation ID. `CallerContext.FromClaims` reads the validated JWT and nothing else, which is why identity never appears in a tool schema — that mechanism deserves its own article and gets one next. If you want the layout underneath this controller, [structuring a Minimal API project](../minimal-api-project-structure) is the shape I use.
+
+## Step 8 — Watch a real turn
+
+Back to Postman, but a different request this time. `POST /api/assistant/ask` with a body:
+
+```json
+{ "message": "how much is nasi lemak?" }
+```
+
+The reply comes back with a price in it, and your log shows why:
+
+```text
+info: Agent tool search_menu for Customer user uid_8ac31
+info: Executed HTTP GET /api/catalog/dishes  →  3 rows  (11 ms)
+```
+
+The same question that got a refusal in the playground now gets an answer, and every number in it came out of SQL Server by way of a service method that had a passing test before any of this existed. Nothing about the model changed between those two runs. It got hands.
+
+{/* SCREENSHOT: the actual output on your screen — save as ./images/assistant-ask-tool-call-log.png, then replace this line with: ![The assistant endpoint response next to the log line showing search_menu executing](./images/assistant-ask-tool-call-log.png) */}
 
 ## Key takeaways
 

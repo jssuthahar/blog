@@ -25,7 +25,9 @@ faq:
 
 import Callout from '../../../components/mdx/Callout.astro';
 
-[Part 6](../azure-ai-foundry-agent-security-jwt-roles) finished the server side. This part is the Dart, and it is deliberately unremarkable Dart: the agent lives behind a repository interface like everything else, so nothing in the widget tree knows an AI model exists.
+Everything so far has been answered by a tool. Postman, curl, a log line, a passing test. A customer has seen none of it.
+
+[Part 7](../firebase-auth-aspnet-core-azure-deploy-managed-identity) put the API in Azure with a real token and a managed identity, which means there is now a URL a phone can call. This part is the Dart on the other end of it, and it is deliberately unremarkable Dart: the agent lives behind a repository interface like everything else, so nothing in the widget tree knows an AI model exists.
 
 <Callout type="tip" title="The app this plugs into">
 **MSDevBuild Eats** is a Flutter food delivery app with three role experiences in one codebase, clean architecture, BLoC, and `Result<T>` across the repository boundary. It runs with no API keys.
@@ -39,7 +41,7 @@ Open `lib/features/search/` beside this article and the conventions below stop b
 
 ## What has to be added to the app?
 
-The app currently talks to a seeded demo backend or Firestore, selected by `AppConfig.backend`. It has no HTTP client for a custom API, so this is genuinely new code. It follows the repository's existing conventions rather than inventing new ones.
+The app currently reads everything through its own repository layer, with the source chosen by `AppConfig.backend`. It has no HTTP client for a custom API at all, so this is genuinely new code. It follows the repository's existing conventions rather than inventing new ones.
 
 ```yaml
 dependencies:
@@ -48,7 +50,7 @@ dependencies:
 
 One package. If your app already has `dio`, use that instead; nothing here depends on the client.
 
-## The domain contract
+## Step 1 — The domain contract
 
 A contract in `lib/domain/repositories/assistant_repository.dart`, pure Dart, no Flutter import:
 
@@ -67,7 +69,7 @@ abstract interface class AssistantRepository {
 
 `Result<T>` is the app's existing sealed type, `Success` or `FailureResult`, chosen so failure handling is part of the signature and the presentation layer cannot forget an error path. The assistant gets no special treatment.
 
-## The implementation
+## Step 2 — The implementation
 
 In `lib/data/repositories/assistant_repository_impl.dart`. `guard` is the app's existing helper that converts any thrown `AppException` into a `Failure`, so exception-to-failure mapping stays in exactly one place:
 
@@ -122,7 +124,7 @@ That 45 second timeout is not generous, it is realistic. An agent turn with two 
 
 `apiBaseUrl` is a new field on `AppConfig`, which is already the app's single place for this kind of setting.
 
-## The Cubit
+## Step 3 — The Cubit
 
 The conversation ID is the only state that has to survive between turns. The transcript lives server-side in Foundry, so the client holds one string.
 
@@ -205,9 +207,13 @@ if (message.proposal != null)
 
 The model asks, the human confirms, the API acts. This is not only a safety property; it is also the difference between an assistant people trust with money and one they use twice.
 
+{/* SCREENSHOT: the editor or terminal at this step — save as ./images/order-proposal-confirm-card.png, then replace this line with: ![The order proposal card with a confirm button, so the model never places the order itself](./images/order-proposal-confirm-card.png) */}
+
 ## What it looks like once it is connected
 
 Edited from real staging transcripts, one per role.
+
+{/* SCREENSHOT: the actual output on your screen — save as ./images/flutter-assistant-chat-screen.png, then replace this line with: ![The assistant chat screen in MSDevBuild Eats answering the spicy under RM20 question](./images/flutter-assistant-chat-screen.png) */}
 
 **Customer, searching**
 
@@ -235,9 +241,9 @@ Edited from real staging transcripts, one per role.
 
 The rider answer is the one that changed my mind about the value of all this. `getOrdersForRider()` returns a list sorted by newest first. Nobody had built prioritisation, and nobody was going to. The agent produced one from fields that already existed, because a prompt plus a tool returning status and distance is a smaller thing to build than a screen.
 
-## Testing the Flutter side
+## Step 4 — Test the Flutter side
 
-No test here needs a model, a network call or an API key, because the agent is behind an interface. This is the same `bloc_test` and `mocktail` setup the rest of the app uses.
+No test here needs a model, a network call or an API key, because the agent is behind an interface. It is the same discipline the service tests in [Part 3](../aspnet-core-api-food-delivery-agent-backend) used on the server, applied on the client. This is the same `bloc_test` and `mocktail` setup the rest of the app uses.
 
 ```dart
 class _FakeAssistantRepository extends Mock implements AssistantRepository {}

@@ -33,6 +33,8 @@ That was the first real sign of the ceiling. Both tools deal with orders. Both d
 
 The answer was not a tenth tool. It was three agents.
 
+{/* SCREENSHOT: the actual output on your screen — save as ./images/wrong-tool-partner-question-trace.png, then replace this line with: ![The trace showing a partner question routed to track_delivery instead of get_pending_orders](./images/wrong-tool-partner-question-trace.png) */}
+
 ## When is one agent no longer enough?
 
 The signal is routing accuracy falling as the tool list grows, and it arrives earlier than you expect. On a small model, in this app, the practical ceiling was around nine tools, and it degraded fastest where two tools sat in the same domain but served different roles.
@@ -61,7 +63,7 @@ Handoff is what a food delivery assistant needs. A conversation starts as "where
 If you find tutorials describing **connected agents** in Foundry, they are describing the classic platform. Foundry (new) does not have that feature; orchestration lives in Agent Framework instead. Group chat is the closest replacement for the collaborative behaviour connected agents provided.
 </Callout>
 
-## Building handoff in C#
+## Step 1 — Building handoff in C#
 
 Two packages beyond what [Part 5](../azure-ai-foundry-function-tools-aspnet-core) already uses:
 
@@ -129,7 +131,7 @@ var workflow = AgentWorkflowBuilder.CreateHandoffBuilderWith(triage)
 
 Triage routes to either specialist, and either specialist can return to triage when the subject changes. Notice what is missing: `ordering` cannot hand directly to `delivery`. Everything goes back through triage, which gives one place to log and one place to reason about.
 
-## Running a turn
+## Step 2 — Running a turn
 
 ```csharp
 List<ChatMessage> messages = [new(ChatRole.User, userMessage)];

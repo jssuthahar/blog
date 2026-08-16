@@ -27,9 +27,15 @@ import Callout from '../../../components/mdx/Callout.astro';
 
 The Flutter client in [Part 8](../flutter-ai-agent-chat-client-azure-foundry) works, and the first time I handed it to someone who had not built it, they tapped send, waited about four seconds, and tapped send again.
 
-Nothing was broken. The agent was calling `search_menu` and would have answered a moment later. But a spinner communicates "working" and says nothing about whether working is going well, and four seconds is long enough to doubt it.
+Nothing was broken. The agent was calling `search_menu` and would have answered a moment later, with a perfectly good list of three dishes that it had already fetched from SQL Server by the time the second tap landed. But a spinner communicates "working" and says nothing at all about whether working is going well. Four seconds is long enough to doubt it.
 
-Streaming fixes that, and it costs one afternoon.
+Streaming fixes that. It costs one afternoon.
+
+The four-second wait is the same one [Part 2](../azure-ai-foundry-ai-agent-food-delivery-app) predicted when it drew the architecture: a tool call means two model round trips, and the customer pays for both in patience.
+
+The test you are aiming for is simple enough to do by hand. `curl -N` the endpoint, and watch words arrive one at a time instead of all at once, four seconds late. The run loop underneath is the one from [Part 5](../azure-ai-foundry-function-tools-aspnet-core), rewritten to yield as it goes.
+
+{/* SCREENSHOT: the actual output on your screen — save as ./images/curl-sse-stream-arriving.png, then replace this line with: ![curl -N showing server-sent events arriving token by token from the assistant endpoint](./images/curl-sse-stream-arriving.png) */}
 
 ## What does streaming actually change?
 
@@ -44,7 +50,7 @@ Not the total time. A turn with one tool call still takes the same five or six s
 
 The second row is why this is a UX change rather than a performance one. Be honest about that when someone asks you to "make the agent faster": this makes it feel faster. Actually faster is a different job, and it starts with measuring which tool call is eating the four seconds.
 
-## The streaming run loop
+## Step 1 — The streaming run loop
 
 The blocking loop from [Part 5](../azure-ai-foundry-function-tools-aspnet-core) becomes a streaming one with the same shape. Same `previousResponseId`, same `inputItems`, same tool rounds. What changes is that you consume updates instead of waiting for a result.
 
@@ -120,7 +126,9 @@ Three things worth noticing.
 
 **The round cap survives.** All the reasoning from [Part 5](../azure-ai-foundry-function-tools-aspnet-core) applies unchanged: a loop here is a paid loop, and streaming makes it less visible because text keeps appearing.
 
-## The SSE endpoint
+## Step 2 — The SSE endpoint
+
+The route sits in the same group as everything else; the layout is the one from [structuring a Minimal API project](../minimal-api-project-structure).
 
 Server-sent events, not WebSockets. The traffic only goes one way, SSE is plain HTTP so proxies and App Service handle it without special configuration, and browsers and Dart clients both reconnect on their own. The wire format is tiny and worth knowing from [the SSE specification on MDN](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events): lines prefixed `data:`, separated by a blank line.
 
@@ -167,7 +175,9 @@ public sealed record AgentChunk(string Type, string? Text = null, string? Conver
 
 Keep the blocking `/api/assistant/ask` endpoint too. It is what your integration tests use, and it is a working fallback when a network eats the stream.
 
-## Consuming SSE in Flutter
+{/* SCREENSHOT: the actual output on your screen — save as ./images/flutter-streaming-reply-mid-sentence.png, then replace this line with: ![The Flutter chat screen rendering a streamed reply mid-sentence](./images/flutter-streaming-reply-mid-sentence.png) */}
+
+## Step 3 — Consuming SSE in Flutter
 
 No new package. `http` can already do this, because `Client.send` returns a `StreamedResponse`.
 

@@ -31,7 +31,7 @@ By the time the food delivery assistant had been live for a month, three other t
 
 The internal operations team wanted a support console that could look up an order. A developer wanted `search_menu` available inside their editor while debugging. And there was a plan, never delivered, for a partner-facing bot that answered restaurant questions. Each one would have meant declaring the same schemas again, in another agent definition, drifting from the first the moment somebody renamed a field.
 
-That is the problem MCP solves.
+That is the problem MCP solves. One server. One set of schemas, and as many callers as you like.
 
 ## What is MCP, and how is it different from a function tool?
 
@@ -52,7 +52,7 @@ agent C ── search_menu             Copilot ──┘
 
 Foundry works in both directions. It can **consume** remote MCP servers as tools, and a **Toolbox** can **publish** your tools on an MCP endpoint for others to consume. The reference for the settings below is the [MCP tool documentation](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/model-context-protocol).
 
-## Consuming a remote MCP server
+## Step 1 — Consuming a remote MCP server
 
 <Callout type="warning" title="This part needs the prerelease packages">
 The MCP approval and Toolbox types are not in the stable 2.0.x packages that [Part 4](../azure-ai-foundry-project-setup-first-agent) pins. Everything below needs `--version 2.1.0-beta.4` on `Azure.AI.Projects`, `Azure.AI.Projects.Agents` and `Azure.AI.Extensions.OpenAI`. That is worth knowing before you promise this to anyone: it is preview surface and the shape can still change.
@@ -159,7 +159,9 @@ The pattern that worked for us: read tools on `never`, everything that writes on
 
 You can also narrow what the agent sees at all, with the tool's allowed-tools list. If a server exposes forty tools and you need three, take three. Fewer tools means better routing and less surface.
 
-## Publishing your own tools
+{/* SCREENSHOT: the actual output on your screen — save as ./images/mcp-server-tools-listed.png, then replace this line with: ![The MCP server responding with its tool list](./images/mcp-server-tools-listed.png) */}
+
+## Step 2 — Publishing your own tools
 
 The other direction, and the place I had the wrong idea for a while.
 
@@ -200,7 +202,7 @@ Two properties still make the toolbox worth the extra concept.
 Some servers are one-click. In the Foundry portal, **Add Tools** → **Catalog** lists entries such as the Azure DevOps MCP Server. You connect your organisation, choose which of its tools to expose, and validate it in the playground before any code changes. Worth checking the catalogue before you write a connection by hand.
 </Callout>
 
-## What does MCP change about security?
+## What MCP changes about security
 
 Everything from [Part 6](../azure-ai-foundry-agent-security-jwt-roles) still applies, and two new things arrive.
 

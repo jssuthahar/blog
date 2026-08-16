@@ -27,11 +27,11 @@ import Callout from '../../../components/mdx/Callout.astro';
 
 [Part 6](../azure-ai-foundry-agent-security-jwt-roles) said the user's identity arrives as a Firebase ID token, your API validates it, and the role comes from claims. One sentence, and behind it a day I would rather you did not repeat.
 
-This part is that day: the exact token configuration, where roles come from, and how to deploy the whole thing to Azure without a single secret.
+This part is that day: the exact token configuration, where roles come from, and how to deploy the whole thing to Azure without a single secret. Not one.
 
 ## How do you validate a Firebase ID token in ASP.NET Core?
 
-Firebase issues standard OIDC-signed JWTs, so the built-in handler works. The values are unusual enough to trip everyone once.
+Firebase issues standard OIDC-signed JWTs, so the built-in handler works. No custom middleware. The values it expects, though, are unusual enough to trip everyone exactly once.
 
 ```bash
 dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
@@ -80,11 +80,11 @@ options.Events = new JwtBearerEvents
 };
 ```
 
-Turn that on while wiring it up. The exception message names the actual mismatch, which the 401 does not.
+Turn that on while wiring it up. The exception message names the actual mismatch — the expected audience against the one that arrived, or a signature that did not verify — where the bare 401 going back to your client names nothing at all.
 
 ## Where do the roles come from?
 
-Not from the request. Not from a Firestore profile document the client can write. From **custom claims**, which are set server-side with the Firebase Admin SDK and then baked into the ID token itself.
+Not from the request. Not from a profile row the client is able to write to. From **custom claims**, which are set server-side with the Firebase Admin SDK and then baked into the ID token itself.
 
 The app's `UserRole` enum has three values, and partner accounts also carry a `managedRestaurantId`. Setting them, once, from an admin tool:
 
@@ -96,7 +96,7 @@ await admin.auth().setCustomUserClaims(uid, {
 });
 ```
 
-The user refreshes their ID token and the claims are in it. In ASP.NET Core they are ordinary claims, which is exactly what `CallerContext.FromClaims` from [Part 6](../azure-ai-foundry-agent-security-jwt-roles) was reading:
+The user refreshes their ID token and the claims are in it. That is the whole mechanism. In ASP.NET Core they are ordinary claims, which is exactly what `CallerContext.FromClaims` from [Part 6](../azure-ai-foundry-agent-security-jwt-roles) was reading:
 
 ```csharp
 public static CallerContext FromClaims(ClaimsPrincipal user) => new(
@@ -108,13 +108,13 @@ public static CallerContext FromClaims(ClaimsPrincipal user) => new(
 
 Firebase puts the subject in both `sub` and `user_id`, and the JWT handler maps `sub` to `ClaimTypes.NameIdentifier`, so checking both is cheap insurance.
 
-Two properties make this the right place for roles. The claim is inside a signed token, so a client cannot forge it. And it costs no database read per request, which matters when every agent turn is already several seconds.
+Two properties make this the right place for roles. The claim sits inside a signed token, so a client cannot forge it without Google's private key. And it costs no database read per request, which matters when an agent turn already spends several seconds waiting on a model and you would rather not add a round trip to SQL Server for something that changes twice a year.
 
 The trade-off: a role change does not take effect until the token refreshes, up to an hour. For a food delivery app, where a customer does not become a restaurant partner mid-session, that is fine. If it is not fine for you, check a revocation list on sensitive operations rather than abandoning claims.
 
 ## Getting a real token to test with
 
-You cannot test any of this without a token. The quickest route, no app build required:
+You cannot test any of this without a token. The quickest route needs no app build at all:
 
 ```bash
 curl -X POST \
@@ -124,20 +124,22 @@ curl -X POST \
   | jq -r .idToken
 ```
 
-Save it as `$TOKEN` and every curl in this series works. Decode it at any JWT viewer to confirm `aud`, `iss` and your custom claims are actually present, which answers "is it the token or the API" before you start debugging the API.
+Save it as `$TOKEN` and every curl and Postman request in this series works. Decode it at any JWT viewer to confirm `aud`, `iss` and your custom claims are actually present, which answers "is it the token or the API" before you start debugging the API.
+
+{/* SCREENSHOT: the actual output on your screen — save as ./images/decoded-firebase-token-claims.png, then replace this line with: ![The decoded Firebase ID token showing aud, iss and the custom role claim](./images/decoded-firebase-token-claims.png) */}
 
 ## Deploying with no secrets
 
 The API needs to reach Foundry. It must not hold a key to do it.
 
-**1. Create the App Service and turn on a managed identity.**
+### Step 1 — Create the App Service and turn on a managed identity
 
 ```bash
 az webapp create \
   --resource-group rg-msdevbuild-eats \
   --plan asp-eats \
   --name eats-agent-api \
-  --runtime "DOTNETCORE:8.0"
+  --runtime "DOTNETCORE:10.0"
 
 az webapp identity assign \
   --resource-group rg-msdevbuild-eats \
@@ -146,7 +148,9 @@ az webapp identity assign \
 
 That prints a `principalId`. Keep it.
 
-**2. Give that identity access to the Foundry project.** This is the step [Part 4](../azure-ai-foundry-project-setup-first-agent) promised and did not show:
+### Step 2 — Give that identity access to the Foundry project
+
+This is the step [Part 4](../azure-ai-foundry-project-setup-first-agent) promised and did not show:
 
 ```bash
 az role assignment create \
@@ -157,7 +161,9 @@ az role assignment create \
 
 If the role name is rejected, your tenant may still show the pre-2026 name **Azure AI User**. Same permissions, older label.
 
-**3. Set the non-secret configuration.**
+{/* SCREENSHOT: the portal screen you used — save as ./images/managed-identity-foundry-user-role.png, then replace this line with: ![The App Service managed identity holding the Foundry User role on the project](./images/managed-identity-foundry-user-role.png) */}
+
+### Step 3 — Set the non-secret configuration
 
 ```bash
 az webapp config appsettings set \
@@ -167,12 +173,15 @@ az webapp config appsettings set \
     Foundry__ProjectEndpoint="https://msdevbuild-ai.services.ai.azure.com/api/projects/eats" \
     Foundry__ModelDeployment="gpt-4.1-mini" \
     Foundry__AgentName="eats-assistant" \
-    Firebase__ProjectId="msdevbuild-eats"
+    Firebase__ProjectId="msdevbuild-eats" \
+    ConnectionStrings__Eats="Server=tcp:eats-sql.database.windows.net,1433;Database=MSDevBuildEats;Authentication=Active Directory Default;Encrypt=True"
 ```
 
 Every one of those is safe in a config store, a screenshot or a support ticket. That is the point.
 
-**4. Prefer the specific credential in production.**
+Look closely at the connection string. `Authentication=Active Directory Default` and no password: the same managed identity that reaches Foundry also opens SQL Server, once you have run `CREATE USER [eats-agent-api] FROM EXTERNAL PROVIDER` against the database and granted it `db_datareader` and `db_datawriter`. The `Eats!Local2026` password from Part 3 belongs on your laptop and nowhere else.
+
+### Step 4 — Prefer the specific credential in production
 
 ```csharp
 TokenCredential credential = builder.Environment.IsDevelopment()
@@ -209,7 +218,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
       - run: dotnet test src/MSDevBuildEats.Api.Tests --configuration Release
       - run: dotnet publish src/MSDevBuildEats.Api -c Release -o ./publish
@@ -226,7 +235,7 @@ jobs:
           package: ./publish
 ```
 
-Those three `secrets` values are identifiers, not credentials: the federated trust is configured on the Azure side against this repository and branch. Nothing in the repository can be replayed from somewhere else.
+Those three `secrets` values are identifiers, not credentials. The federated trust is configured on the Azure side against this exact repository and branch, so even if somebody read all three off a screen they could not use them from anywhere else. Nothing here can be replayed.
 
 The `dotnet test` step runs the executor tests from [Part 6](../azure-ai-foundry-agent-security-jwt-roles), which need no model and take seconds. Role enforcement is the property most worth blocking a deploy on.
 
@@ -243,6 +252,10 @@ curl -X POST https://eats-agent-api.azurewebsites.net/api/assistant/ask \
 
 Three checks in order: the app is up, the endpoint rejects anonymous callers, and a real token gets a real answer. The middle one is the one people skip and it is the one that catches a misconfigured `RequireAuthorization`.
 
+You want `200`, `401`, then a reply with a dish name in it. Anything else and the table below is where to start.
+
+{/* SCREENSHOT: the actual output on your screen — save as ./images/smoke-test-200-401-answer.png, then replace this line with: ![The three smoke test calls returning 200, 401 and a real agent answer](./images/smoke-test-200-401-answer.png) */}
+
 ## When it returns 401 anyway
 
 | Symptom | Cause | Fix |
@@ -253,9 +266,9 @@ Three checks in order: the app is up, the endpoint rejects anonymous callers, an
 | Authenticated but role is always customer | Custom claims never set, or token not refreshed | Set claims with the Admin SDK, force a refresh |
 | Foundry call fails with 403 | Managed identity has no role on the project | Assign Foundry User to the principal ID |
 
-Every row is one I hit. The last two took the longest, because both produce a system that works and quietly does the wrong thing.
+Every row is one I hit. The last two took the longest, and for the same reason: both of them produce a system that starts, responds, logs nothing alarming, and quietly does the wrong thing for as long as you let it.
 
-The API is deployed, authenticated and holding a managed identity that Foundry trusts. The client that talks to it is next.
+The API is deployed. It authenticates real users, holds a managed identity that both Foundry and SQL Server trust, and stores no secret anywhere in the repository or the app configuration. The client that talks to it is next.
 
 ## Key takeaways
 

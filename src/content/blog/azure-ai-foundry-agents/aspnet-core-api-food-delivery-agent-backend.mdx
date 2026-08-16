@@ -1,38 +1,42 @@
 ---
-title: 'Building the ASP.NET Core Backend API for a Food Delivery AI Agent'
-seoTitle: 'ASP.NET Core API for an AI Agent'
-description: 'The service layer an agent calls: endpoints, DTOs trimmed for token cost, and a data source you can run today without Firestore.'
-highlight: "Build the API before the agent, and test it with curl before a model ever sees it. Every tool in the next parts is a thin wrapper over one method here, so a bug at this layer looks like an AI problem later — which is the most expensive kind of bug to chase."
+title: 'Building the ASP.NET Core and SQL Server Backend API for a Food Delivery AI Agent in Microsoft Foundry'
+seoTitle: 'ASP.NET Core + SQL Server AI Agent API'
+description: 'Step by step: a .NET Minimal API over SQL Server, tested in Postman, then handed to a Microsoft Foundry agent that turns a sentence into that same call.'
 publishedAt: 2026-08-13
 category: web
 categories: ['azure', 'ai']
-tags: ['ASP.NET Core', 'Minimal APIs', 'C#', 'Firestore', 'AI Agents', 'REST API']
+tags: ['ASP.NET Core', 'SQL Server', 'EF Core', 'Minimal APIs', 'C#', 'AI Agents']
 series: 'azure-ai-foundry-agents'
 seriesOrder: 3
 draft: true
 faq:
   - q: 'Does an AI agent need its own backend API?'
-    a: 'It needs something to call. If your app talks straight to a database from the client, as many Flutter and Firebase apps do, there is no server-side place to put tool code, authorization or logging. That server is the missing piece, not the agent.'
-  - q: 'Should agent tools call the database directly?'
-    a: 'No. Put a service layer in between and have both the app endpoints and the agent tools call it. One implementation of a business rule, tested once, used by both callers. A tool with its own query is a second copy that drifts.'
+    a: 'It needs something to call. If your app reads its data straight from the client, there is no server-side place to put tool code, authorization or logging. That server is the missing piece, not the agent.'
+  - q: 'What does a Microsoft Foundry agent actually call?'
+    a: 'Your own endpoint. You describe the call once as a function tool with a name, a description and a JSON schema for its arguments. The model chooses the arguments, your code makes the HTTP or service call, and the JSON you return is what the model reads before answering.'
+  - q: 'Why SQL Server for an agent backend?'
+    a: 'Every question the agent answers is a filtered query over structured rows: spicy dishes under RM20, orders awaiting confirmation, revenue per menu item. SQL Server does that in one statement, and you can run it locally with LocalDB or one Docker command.'
   - q: 'How small should an API response for an AI agent be?'
     a: 'Small enough to answer the question and no larger. Eight results with six fields each is a reasonable shape. Every extra field costs tokens on every call and gives the model another value to misquote.'
-  - q: 'Can I build this without setting up Firestore?'
-    a: 'Yes. Put the data access behind an interface with a seeded in-memory implementation, exactly as the reference Flutter app does with its demo backend. You can run the whole series and swap in Firestore later without touching the endpoints or the tools.'
-  - q: 'What is the difference between the app endpoints and the agent tools?'
-    a: 'Shape, not substance. App endpoints return full objects for rendering a screen. Agent tools return a trimmed projection for a model to read. Both call the same service method, so the business logic never forks.'
+  - q: 'How do I run SQL Server for this on a Mac?'
+    a: 'Run the official container: docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=..." -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest. The connection string is the only thing that differs from LocalDB on Windows.'
+highlight: "Build the URL before the agent, and test it in Postman before a model ever sees it. A Foundry agent is a caller: it picks the parameters you would have typed and reads the JSON you would have read. If the URL is wrong, the failure arrives dressed as an AI problem, which is the most expensive kind of bug to chase."
 ---
 
 import Callout from '../../../components/mdx/Callout.astro';
 
-[Part 2](../azure-ai-foundry-ai-agent-food-delivery-app) drew an architecture with an ASP.NET Core API sitting between the Flutter app and Foundry, and called it the trust boundary. Then I went looking for that API in the reference project and it does not exist.
+Picture the least glamorous moment in this whole series. Postman is open against the ASP.NET Core API of a food delivery app. There is a URL in the address bar with a few query parameters stuck on the end, a token in the headers tab, and a Send button. You click it, and JSON comes back: three dishes, spicy, none over RM20.
 
-That is not sloppiness in the sample app, it is the normal state of a Flutter and Firebase project. `AppConfig.backend` picks between a seeded in-memory demo source and Firestore, and the app talks to whichever one directly. There is no server in the middle because nothing needed one.
+That is the system working. Everything the customer wanted was already in the database, and the answer took eleven milliseconds. The only problem is who did the work. **A person had to know that the parameter is called `maxPrice` and not `priceLimit`, that `spicy` takes a boolean, and that the whole thing hangs off `/api/catalog/dishes`.** Customers do not know any of that. They know how to type "something spicy under twenty ringgit".
 
-An agent needs one. So this part builds it, before any Foundry code, because every tool in the next parts is a thin wrapper over a method written here.
+Now put a Microsoft Foundry agent in front of that same URL. You describe the call once, in a schema, and hand it over. The customer types the sentence, the model picks `maxPrice=20` and `spicy=true`, your code sends exactly the request you just sent by hand, the same JSON comes back, and the agent turns it into a reply with the dish names in it.
+
+Postman → URL → Foundry → response. The middle two are yours, and the URL is the one that has to exist first.
+
+Which is where the reference project has a hole. [Part 2](../azure-ai-foundry-ai-agent-food-delivery-app) drew an architecture with an ASP.NET Core API sitting between the Flutter app and Foundry, and called it the trust boundary. Then I went looking for that API in the sample app and it does not exist — the app reads its menu directly from the client, so there is no server, and nothing for Foundry to call. This part builds it, and you can type along: a .NET Minimal API, a real SQL Server database, EF Core migrations, seed data, a Postman request that works, and then the agent on the end of it.
 
 <Callout type="tip" title="What we are wrapping">
-The domain comes from **MSDevBuild Eats**: [source](https://github.com/jssuthahar/food-delivery-app) · [live web](https://jssuthahar.github.io/food-delivery-app/) · [Android build](https://appdistribution.firebase.dev/i/00432c5aa60de58b). Open `lib/domain/entities/` alongside this and the C# records below will look familiar, because they are the same model.
+The domain comes from **MSDevBuild Eats**: [source](https://github.com/jssuthahar/food-delivery-app) · [live web](https://jssuthahar.github.io/food-delivery-app/) · [Android build](https://appdistribution.firebase.dev/i/00432c5aa60de58b). Open `lib/domain/entities/` alongside this and the C# below will look familiar, because it is the same model.
 </Callout>
 
 ## What does the API actually need to expose?
@@ -51,57 +55,116 @@ Not everything. Work backwards from the nine tools the agent ends up with and yo
 | `GetPendingOrdersAsync` | `get_pending_orders` | Orders awaiting confirmation |
 | `GetRiderQueueAsync` | `get_rider_queue` | Assigned orders with distances |
 
-Nine methods. Note what they are not: they are not CRUD over your tables. Each one answers a question a human asked, which is why they map cleanly onto tools later.
+Nine methods. Note what they are not: they are not CRUD over your tables. Each one answers a question a human asked, which is why they map cleanly onto tools.
 
-## How should the project be laid out?
+The walkthrough below builds the catalogue slice completely, from empty folder to Foundry reply, because once one vertical slice works the other eight are the same moves.
+
+## Why SQL Server for an agent backend?
+
+Look at what the agent gets asked. Spicy dishes under RM20. Orders still awaiting confirmation. Revenue per menu item this week. Those are filtered, sorted and aggregated queries over structured rows, which is the shape relational databases were built for. One `WHERE` clause per question, an index behind it, and a response in single-digit milliseconds.
+
+It is also the store you can stand up in one command on any machine, which matters when the point is to follow along.
+
+## What you need before the first command
+
+- .NET 10 SDK, or any recent LTS. `dotnet --version` should print something.
+- SQL Server. Windows developers already have LocalDB with Visual Studio; on macOS or Linux, Docker.
+- A way to look at tables: SQL Server Management Studio, Azure Data Studio, or the VS Code mssql extension.
+- Postman, or curl and `jq` if you prefer the terminal.
+- For the last step only, a Microsoft Foundry project with a model deployed.
+
+## Step 1 — Create the project
+
+```bash
+dotnet new webapi -n MSDevBuildEats.Api
+cd MSDevBuildEats.Api
+dotnet run
+```
+
+If a browser opens on Swagger with the weather forecast sample, the toolchain is fine. Delete that endpoint now, it will only confuse things later.
+
+The layout we are building towards:
 
 ```text
 MSDevBuildEats.Api/
 ├─ Program.cs
-├─ Endpoints/
-│  ├─ CatalogEndpoints.cs
-│  ├─ OrderEndpoints.cs
-│  └─ PartnerEndpoints.cs
-├─ Services/
-│  ├─ ICatalogService.cs      # the nine methods live behind these
-│  ├─ IOrderService.cs
-│  └─ IPartnerService.cs
+├─ Domain/            # entities: Dish, Restaurant, Order
 ├─ Data/
-│  ├─ IEatsDataSource.cs      # swap point: demo or Firestore
-│  ├─ DemoDataSource.cs       # seeded, runs with zero configuration
-│  └─ FirestoreDataSource.cs
-├─ Contracts/                 # DTOs, including the trimmed agent projections
-└─ Agents/                    # empty for now; Parts 4 and 5 fill it
+│  ├─ EatsDbContext.cs
+│  └─ EatsSeeder.cs
+├─ Services/          # the nine methods live behind these interfaces
+├─ Contracts/         # DTOs, including the trimmed agent projections
+├─ Endpoints/         # route groups, one file per area
+└─ Agents/            # the Foundry wiring, at the end of this part
 ```
 
-The `IEatsDataSource` seam mirrors the Flutter app's own `AppConfig.backend` switch, and for the same reason: you can run the entire series with no Firestore project, no service account and no billing. If the sample app can do that, so can the API.
+Why the groups are split this way is covered in [structuring a Minimal API project](../minimal-api-project-structure), so I will not repeat it. Microsoft's reference for the surface itself is the [Minimal APIs overview](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/overview).
 
-The endpoint grouping and the reasons behind it are covered in [structuring a Minimal API project](../minimal-api-project-structure), so I will not repeat that here. Microsoft's own reference for route groups and the rest of the surface is the [Minimal APIs overview](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/overview).
+## Step 2 — Get a SQL Server you can run today
 
-## The domain, in C#
+Pick whichever row matches your machine.
 
-Records mirroring the Dart entities. Only the fields the API actually uses:
+| Option | Command or setup | Connection string host |
+| --- | --- | --- |
+| LocalDB (Windows) | Ships with Visual Studio | `(localdb)\mssqllocaldb` |
+| Docker (macOS, Linux, Windows) | `docker run` below | `localhost,1433` |
+| Azure SQL free tier | Create in the portal | `yourserver.database.windows.net` |
+
+The container, if you need it:
+
+```bash
+docker run \
+  -e "ACCEPT_EULA=Y" \
+  -e "MSSQL_SA_PASSWORD=Eats!Local2026" \
+  -p 1433:1433 --name eats-sql \
+  -d mcr.microsoft.com/mssql/server:2022-latest
+
+docker ps          # eats-sql should be Up
+```
+
+Connect with your tool of choice before writing any C#. Two minutes here saves an hour of blaming EF Core for a firewall.
+
+{/* SCREENSHOT: the actual output on your screen — save as ./images/sql-server-connected-first-time.png, then replace this line with: ![SQL Server running and connected for the first time](./images/sql-server-connected-first-time.png) */}
+
+## Step 3 — Model the domain in C#
+
+Two entities carry the catalogue. Only the fields the API actually uses:
 
 ```csharp
-public sealed record Dish(
-    string Id,
-    string RestaurantId,
-    string RestaurantName,
-    string Name,
-    string Description,
-    decimal PriceMyr,
-    decimal? DiscountPriceMyr,
-    bool IsVegetarian,
-    bool IsSpicy,
-    int SpiceLevel,
-    IReadOnlyList<string> Allergens,
-    int PrepMinutes,
-    bool IsAvailable)
+public class Restaurant
 {
-    // Mirrors FoodItem.effectivePrice in the Flutter app. Keep these in sync,
-    // or the agent will quote a price the checkout screen disagrees with.
-    public decimal EffectivePrice =>
-        DiscountPriceMyr is { } d && d < PriceMyr ? d : PriceMyr;
+    public string Id { get; set; } = default!;
+    public string Name { get; set; } = default!;
+    public string Cuisine { get; set; } = default!;
+    public double Rating { get; set; }
+    public bool IsOpen { get; set; }
+    public List<Dish> Dishes { get; set; } = [];
+}
+
+public class Dish
+{
+    public string Id { get; set; } = default!;
+    public string RestaurantId { get; set; } = default!;
+    public Restaurant Restaurant { get; set; } = default!;
+
+    public string Name { get; set; } = default!;
+    public string Description { get; set; } = "";
+    public string? ImageUrl { get; set; }
+    public decimal PriceMyr { get; set; }
+    public decimal? DiscountPriceMyr { get; set; }
+
+    public bool IsVegetarian { get; set; }
+    public bool IsSpicy { get; set; }
+    public int SpiceLevel { get; set; }
+    public int PrepMinutes { get; set; }
+    public bool IsPopular { get; set; }
+    public bool IsAvailable { get; set; } = true;
+
+    // Written by SQL Server, not by C# — see the next step.
+    public decimal EffectivePrice { get; private set; }
+
+    [NotMapped]
+    public string RestaurantName => Restaurant?.Name ?? "";
 }
 
 public enum OrderStatus
@@ -110,11 +173,163 @@ public enum OrderStatus
 }
 ```
 
-That comment is not decorative. The single worst bug in the first version of this system was the API using `PriceMyr` while the app used `effectivePrice`, so the agent quoted RM18.50 for a dish that cost RM14.90 at checkout. Nobody noticed for a week because both numbers looked plausible.
+`EffectivePrice` deserves the odd setter. In the Flutter app it is a getter on `FoodItem`: the discount price when there is one, otherwise the list price. The single worst bug in the first version of this system was the API filtering on `PriceMyr` while the app displayed the discounted value, so the agent quoted RM18.50 for a dish that cost RM14.90 at checkout. Nobody noticed for a week because both numbers looked plausible.
 
-## The service layer
+A computed C# property would not have fixed it either, because EF Core cannot translate one into SQL. Filter on it and you get a runtime exception, or worse, the whole table pulled into memory first. So the rule becomes: one definition, stored in the database, used by every query.
 
-The nine methods. This is what tools call, and what the app's own endpoints call:
+## Step 4 — The DbContext
+
+```bash
+dotnet add package Microsoft.EntityFrameworkCore.SqlServer
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet tool install --global dotnet-ef
+```
+
+```csharp
+public class EatsDbContext(DbContextOptions<EatsDbContext> options) : DbContext(options)
+{
+    public DbSet<Restaurant> Restaurants => Set<Restaurant>();
+    public DbSet<Dish> Dishes => Set<Dish>();
+
+    protected override void OnModelCreating(ModelBuilder b)
+    {
+        b.Entity<Restaurant>(e =>
+        {
+            e.Property(r => r.Id).HasMaxLength(40);
+            e.Property(r => r.Name).HasMaxLength(120).IsRequired();
+            e.Property(r => r.Cuisine).HasMaxLength(60);
+        });
+
+        b.Entity<Dish>(e =>
+        {
+            e.Property(d => d.Id).HasMaxLength(40);
+            e.Property(d => d.Name).HasMaxLength(120).IsRequired();
+            e.Property(d => d.Description).HasMaxLength(600);
+
+            // Money is decimal(10,2). Leave it to convention and you get
+            // decimal(18,2) at best, a silent rounding bug at worst.
+            e.Property(d => d.PriceMyr).HasPrecision(10, 2);
+            e.Property(d => d.DiscountPriceMyr).HasPrecision(10, 2);
+
+            // One definition of price, enforced by the database.
+            e.Property(d => d.EffectivePrice)
+             .HasPrecision(10, 2)
+             .HasComputedColumnSql(
+                 "CASE WHEN [DiscountPriceMyr] IS NOT NULL AND [DiscountPriceMyr] < [PriceMyr] " +
+                 "THEN [DiscountPriceMyr] ELSE [PriceMyr] END", stored: true);
+
+            // The agent's most common query, in index form.
+            e.HasIndex(d => new { d.IsAvailable, d.IsSpicy, d.EffectivePrice });
+
+            e.HasOne(d => d.Restaurant)
+             .WithMany(r => r.Dishes)
+             .HasForeignKey(d => d.RestaurantId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+    }
+}
+```
+
+A stored computed column is indexable, which is the whole reason for `stored: true`. The index on those three columns is not premature: "available, spicy, under twenty ringgit" is the single query this system runs most.
+
+## Step 5 — The connection string, without putting it in Git
+
+```bash
+dotnet user-secrets init
+dotnet user-secrets set "ConnectionStrings:Eats" \
+  "Server=localhost,1433;Database=MSDevBuildEats;User Id=sa;Password=Eats!Local2026;TrustServerCertificate=True"
+```
+
+On Windows with LocalDB:
+
+```bash
+dotnet user-secrets set "ConnectionStrings:Eats" \
+  "Server=(localdb)\mssqllocaldb;Database=MSDevBuildEats;Trusted_Connection=True;TrustServerCertificate=True"
+```
+
+Then in `Program.cs`:
+
+```csharp
+builder.Services.AddDbContext<EatsDbContext>(o =>
+    o.UseSqlServer(builder.Configuration.GetConnectionString("Eats")));
+```
+
+`TrustServerCertificate=True` is for your laptop and the local container only. In Azure the connection uses a real certificate, and the credentials come from managed identity rather than a password. That is a whole topic of its own, and this series gets to it.
+
+## Step 6 — Create the database with a migration
+
+```bash
+dotnet ef migrations add InitialCreate
+dotnet ef database update
+```
+
+The first command writes `Migrations/…_InitialCreate.cs`. Read it before running the second one. It is generated code you are about to run against a database, and skimming it is how you catch a `decimal(18,2)` you did not intend or a cascade you did not mean.
+
+Then refresh your SQL tool. `Restaurants` and `Dishes` exist, and `EffectivePrice` shows as a computed column.
+
+{/* SCREENSHOT: the actual output on your screen — save as ./images/ef-core-migration-created-tables.png, then replace this line with: ![The EF Core migration output and the new tables in SQL Server](./images/ef-core-migration-created-tables.png) */}
+
+## Step 7 — Seed the menu
+
+Empty tables make every later step ambiguous. Seed the same dishes the Flutter app ships with, so the numbers in your API match the numbers on the phone screen.
+
+```csharp
+public static class EatsSeeder
+{
+    public static async Task SeedAsync(EatsDbContext db, CancellationToken ct = default)
+    {
+        if (await db.Restaurants.AnyAsync(ct)) return;
+
+        var nasi = new Restaurant
+        {
+            Id = "r-nasi-lemak-house", Name = "Nasi Lemak House",
+            Cuisine = "Malaysian", Rating = 4.6, IsOpen = true
+        };
+
+        db.Restaurants.Add(nasi);
+        db.Dishes.AddRange(
+            new Dish
+            {
+                Id = "d-spicy-chicken-rice", RestaurantId = nasi.Id,
+                Name = "Spicy Chicken Rice",
+                Description = "Steamed rice, sambal chicken, cucumber",
+                PriceMyr = 14.00m, DiscountPriceMyr = 12.00m,
+                IsSpicy = true, SpiceLevel = 1, PrepMinutes = 15, IsPopular = true
+            },
+            new Dish
+            {
+                Id = "d-sambal-prawn-rice", RestaurantId = nasi.Id,
+                Name = "Sambal Prawn Fried Rice",
+                Description = "Wok-fried rice with prawns and sambal",
+                PriceMyr = 16.90m, IsSpicy = true, SpiceLevel = 2, PrepMinutes = 18
+            });
+        // The rest of the menu follows the same shape. Copy the items out of
+        // the Flutter app's demo data so both sides agree on names and prices.
+
+        await db.SaveChangesAsync(ct);
+    }
+}
+```
+
+Run it at startup while you are developing:
+
+```csharp
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<EatsDbContext>();
+    await db.Database.MigrateAsync();
+    if (app.Environment.IsDevelopment())
+        await EatsSeeder.SeedAsync(db);
+}
+```
+
+`SELECT Name, PriceMyr, DiscountPriceMyr, EffectivePrice FROM Dishes` is worth running by hand once. The discounted row should read 14.00, 12.00, 12.00. That last column was filled in by SQL Server, and nothing in C# can now disagree with it.
+
+{/* SCREENSHOT: the actual output on your screen — save as ./images/dishes-table-seeded-rows.png, then replace this line with: ![The seeded Dishes table with the computed EffectivePrice column](./images/dishes-table-seeded-rows.png) */}
+
+## Step 8 — The service layer
+
+This is what the endpoint calls, and later what the agent's tool handler calls. Same method, two callers.
 
 ```csharp
 public interface ICatalogService
@@ -133,39 +348,47 @@ public interface ICatalogService
 }
 ```
 
-An implementation over the demo source, deliberately boring:
+The implementation, deliberately boring:
 
 ```csharp
-public sealed class CatalogService(IEatsDataSource data) : ICatalogService
+public sealed class CatalogService(EatsDbContext db) : ICatalogService
 {
     public async Task<IReadOnlyList<Dish>> SearchDishesAsync(
         string query, decimal? maxPriceMyr, bool spicy, bool vegetarian,
         int take, CancellationToken ct)
     {
-        var dishes = await data.GetDishesAsync(ct);
-        var terms = query.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var q = db.Dishes
+            .AsNoTracking()
+            .Include(d => d.Restaurant)
+            .Where(d => d.IsAvailable);
 
-        return dishes
-            .Where(d => d.IsAvailable)
-            .Where(d => !spicy || d.IsSpicy)
-            .Where(d => !vegetarian || d.IsVegetarian)
-            .Where(d => maxPriceMyr is null || d.EffectivePrice <= maxPriceMyr)
-            .Where(d => terms.Length == 0 || terms.Any(t =>
-                d.Name.Contains(t, StringComparison.OrdinalIgnoreCase) ||
-                d.Description.Contains(t, StringComparison.OrdinalIgnoreCase)))
+        if (spicy) q = q.Where(d => d.IsSpicy);
+        if (vegetarian) q = q.Where(d => d.IsVegetarian);
+        if (maxPriceMyr is { } cap) q = q.Where(d => d.EffectivePrice <= cap);
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var like = $"%{query.Trim()}%";
+            q = q.Where(d => EF.Functions.Like(d.Name, like)
+                          || EF.Functions.Like(d.Description, like));
+        }
+
+        return await q
             .OrderByDescending(d => d.IsPopular)
             .ThenBy(d => d.EffectivePrice)
             .Take(Math.Clamp(take, 1, 20))
-            .ToList();
+            .ToListAsync(ct);
     }
 }
 ```
 
-This is the method that finally answers "spicy food under RM20", the question that started the series in [Part 2](../azure-ai-foundry-ai-agent-food-delivery-app). No model involved. The intelligence needed was a `where` clause the app never had.
+This is the method that finally answers "spicy food under RM20", the question that started the series in [Part 2](../azure-ai-foundry-ai-agent-food-delivery-app). No model involved yet. The intelligence needed was a `WHERE` clause the app never had.
 
-Which is the point worth pausing on: **the agent is not what makes this possible, it is what makes it reachable from a sentence.** If you find yourself unable to write the service method, an agent will not rescue you.
+Which is the point worth pausing on: **the agent is not what makes this possible, it is what makes it reachable from a sentence.** If you cannot write the service method, an agent will not rescue you.
 
-## DTOs: two shapes, one source
+Two SQL Server details hide in there. `Like` on a default collation is case-insensitive, so "SAMBAL" and "sambal" both match without any `ToLower()` — convenient, and a trap if you ever move the data somewhere case-sensitive. And `Math.Clamp` on `take` puts a ceiling on the row count before a model, or a curious user, asks for ten thousand.
+
+## Step 9 — Two DTO shapes from one call
 
 The app wants a full object to render a card. The model wants six fields it can read cheaply.
 
@@ -174,7 +397,7 @@ The app wants a full object to render a card. The model wants six fields it can 
 public sealed record DishResponse(
     string Id, string Name, string RestaurantName, string Description,
     decimal Price, decimal? WasPrice, int SpiceLevel, bool IsVegetarian,
-    IReadOnlyList<string> Allergens, int PrepMinutes, string? ImageUrl);
+    int PrepMinutes, string? ImageUrl);
 
 // For the agent: only what an answer needs.
 public sealed record DishSummary(
@@ -183,6 +406,12 @@ public sealed record DishSummary(
 
 public static class DishMapping
 {
+    public static DishResponse ToResponse(this Dish d) =>
+        new(d.Id, d.Name, d.RestaurantName, d.Description,
+            d.EffectivePrice,
+            d.DiscountPriceMyr is not null ? d.PriceMyr : null,
+            d.SpiceLevel, d.IsVegetarian, d.PrepMinutes, d.ImageUrl);
+
     public static DishSummary ToSummary(this Dish d) =>
         new(d.Id, d.Name, d.RestaurantName, d.EffectivePrice, d.SpiceLevel, d.PrepMinutes);
 }
@@ -190,7 +419,7 @@ public static class DishMapping
 
 Two projections over one service call. I measured this later against real traffic: returning `DishResponse` to the model instead of `DishSummary` roughly doubled the cost of the most common turn and improved no answer.
 
-## The endpoints
+## Step 10 — The endpoints and Program.cs
 
 ```csharp
 public static class CatalogEndpoints
@@ -216,11 +445,14 @@ public static class CatalogEndpoints
 // Program.cs
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSingleton<IEatsDataSource, DemoDataSource>();
+builder.Services.AddDbContext<EatsDbContext>(o =>
+    o.UseSqlServer(builder.Configuration.GetConnectionString("Eats")));
+
 builder.Services.AddScoped<ICatalogService, CatalogService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPartnerService, PartnerService>();
-builder.Services.AddAuthentication().AddJwtBearer();   // Firebase config comes later
+
+builder.Services.AddAuthentication().AddJwtBearer();
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
@@ -230,19 +462,23 @@ app.MapPartner();
 app.Run();
 ```
 
-<Callout type="note" title="Swapping in Firestore later">
-`FirestoreDataSource` implements the same interface using the `Google.Cloud.Firestore` package: create a `FirestoreDb`, query a collection, convert snapshots to your records. Nothing above changes, because the endpoints and services only know `IEatsDataSource`. Do this when you have real data, not while you are learning the agent layer.
-</Callout>
+`RequireAuthorization()` on the group means every route inside it needs a token, including the ones you add at 11pm without thinking about auth. The token setup itself is in [securing a .NET Minimal API with JWT](../secure-minimal-api-jwt-dotnet); wiring it to the app's sign-in comes later in this series.
 
-## Test it before any model sees it
-
-This is the discipline that saves the most time later. Every one of these must work with curl first:
+## Step 11 — The Postman request
 
 ```bash
-# The question that started the series
-curl "https://localhost:7043/api/catalog/dishes?q=&spicy=true&maxPrice=20" \
-  -H "Authorization: Bearer $TOKEN" | jq '.[] | {name, price, spiceLevel}'
+dotnet run
 ```
+
+In Postman: **GET**, URL `https://localhost:7043/api/catalog/dishes`, three query parameters, and the token on the Authorization tab as a Bearer token.
+
+| Key | Value |
+| --- | --- |
+| `q` | *(leave empty)* |
+| `spicy` | `true` |
+| `maxPrice` | `20` |
+
+Send. The response body:
 
 ```json
 [
@@ -252,13 +488,29 @@ curl "https://localhost:7043/api/catalog/dishes?q=&spicy=true&maxPrice=20" \
 ]
 ```
 
-And a unit test per service method, with the demo source as the fixture:
+The same thing from a terminal, if you prefer:
+
+```bash
+curl "https://localhost:7043/api/catalog/dishes?spicy=true&maxPrice=20" \
+  -H "Authorization: Bearer $TOKEN" | jq '.[] | {name, price, spiceLevel}'
+```
+
+Price 12.00 on the first row, not 14.00. That is the computed column doing its job all the way through to JSON.
+
+{/* SCREENSHOT: the actual output on your screen — save as ./images/postman-spicy-dishes-under-20.png, then replace this line with: ![The Postman request for spicy dishes under RM20 and the JSON response](./images/postman-spicy-dishes-under-20.png) */}
+
+<Callout type="note" title="When it does not work first time">
+`A network-related or instance-specific error` means the server is not reachable: check `docker ps` and the port. `Login failed for user 'sa'` is the password, and SQL Server rejects weak ones at container start, so check `docker logs eats-sql`. `Cannot open database ... requested by the login` means the migration has not run yet. A 401 in Postman is the token, not the database.
+</Callout>
+
+## Step 12 — One test per service method
 
 ```csharp
 [Fact]
 public async Task Spicy_under_20_excludes_mild_and_expensive_dishes()
 {
-    var service = new CatalogService(new DemoDataSource());
+    await using var db = TestDb.Create();       // migrates + seeds a scratch database
+    var service = new CatalogService(db);
 
     var results = await service.SearchDishesAsync("", maxPriceMyr: 20m, spicy: true);
 
@@ -268,15 +520,118 @@ public async Task Spicy_under_20_excludes_mild_and_expensive_dishes()
 }
 ```
 
-Once an agent is in front of this, the first question when something goes wrong is always "is it the agent or the API". A green test at this layer answers it in seconds instead of an afternoon.
+`TestDb.Create()` points at the same SQL Server with a throwaway database name, migrates it and seeds it. It is slower than an in-memory provider and worth it: an in-memory provider never runs your SQL, so it cannot see the computed column, the collation or the index. Those are exactly the things that break.
 
-With the API running and tested, the next job is the Foundry project and an agent that can eventually call all of it.
+## Step 13 — Hand the URL to Microsoft Foundry
+
+Now the part the Postman request was rehearsing. The agent needs the same three facts you had in your head while filling in that form: where the call goes, what the parameters are called, and when it is worth making. You give it those as a **function tool** — a name, a description, and a JSON schema.
+
+Add the Foundry packages:
+
+```bash
+dotnet add package Azure.AI.Projects --version 2.0.1
+dotnet add package Azure.AI.Projects.Agents --version 2.0.0
+dotnet add package Azure.Identity
+```
+
+Pin the versions. The 1.x line targets the older API and will not compile against any of this.
+
+The tool definition is the Postman form, written down:
+
+| What you did in Postman | What the tool definition says |
+| --- | --- |
+| Knew the route was `/api/catalog/dishes` | The handler, in your code |
+| Typed `maxPrice=20` | `maxPriceMyr`, a number |
+| Ticked `spicy=true` | `spicy`, a boolean |
+| Decided this URL answered the question | The tool `description` |
+
+```csharp
+public static readonly FunctionTool SearchMenu = ResponseTool.CreateFunctionTool(
+    functionName: "search_menu",
+    functionDescription:
+        "Finds dishes across all restaurants. Use for any request about food, cuisine, " +
+        "spice, dietary needs or a price ceiling in Malaysian Ringgit. " +
+        "Do not use for questions about an existing order.",
+    functionParameters: BinaryData.FromObjectAsJson(new
+    {
+        type = "object",
+        properties = new
+        {
+            query = new { type = "string", description = "Free text, e.g. 'nasi lemak'" },
+            maxPriceMyr = new { type = "number", description = "Price ceiling in RM" },
+            spicy = new { type = "boolean" },
+            vegetarian = new { type = "boolean" }
+        },
+        required = new[] { "query" },
+        additionalProperties = false
+    }),
+    strictModeEnabled: true);
+```
+
+That `functionDescription` carries real weight. It is the only thing the model reads when deciding whether this call is relevant, and the sentence starting "Do not use for" is what stops the agent calling your menu search to answer "where is my delivery".
+
+Point the client at your project and register the agent with the tool attached:
+
+```csharp
+var projectClient = new AIProjectClient(
+    endpoint: new Uri(config["Foundry:ProjectEndpoint"]!),   // from the project Overview page
+    tokenProvider: new DefaultAzureCredential());
+
+var definition = new DeclarativeAgentDefinition(model: config["Foundry:ModelDeployment"])
+{
+    Instructions = "You help customers of MSDevBuild Eats find food and track orders. "
+                 + "Quote only prices returned by tools. Never invent a dish.",
+    Tools = { EatsTools.SearchMenu }
+};
+
+await projectClient.AgentAdministrationClient.CreateAgentVersionAsync(
+    agentName: config["Foundry:AgentName"], options: new(definition));
+```
+
+When the model decides to call the tool, your application is the one that runs it. The handler is four lines, and every one of them you have already written and tested:
+
+```csharp
+private async Task<string> SearchMenuAsync(JsonElement args, CancellationToken ct)
+{
+    var dishes = await catalog.SearchDishesAsync(
+        args.GetProperty("query").GetString() ?? "",
+        args.TryGetProperty("maxPriceMyr", out var p) ? p.GetDecimal() : null,
+        spicy: args.TryGetProperty("spicy", out var s) && s.GetBoolean(),
+        vegetarian: args.TryGetProperty("vegetarian", out var v) && v.GetBoolean(),
+        take: 8, ct);
+
+    return JsonSerializer.Serialize(dishes.Select(d => d.ToSummary()));
+}
+```
+
+<Callout type="warning" title="The portal cannot define function tools">
+You can run an agent that has function tools in the Foundry portal, but you cannot add, remove or update function definitions there, and the playground will not execute them because no application is listening on the other end. The definition above belongs in code, which also puts your production instructions under version control.
+</Callout>
+
+Ask it "something spicy under twenty ringgit" and the round trip reads like this:
+
+```text
+customer  →  "anything spicy under twenty ringgit?"
+model     →  search_menu { "query": "", "maxPriceMyr": 20, "spicy": true }
+your code →  CatalogService.SearchDishesAsync(...)  →  SQL Server
+your code →  [{"name":"Spicy Chicken Rice","price":12.00,"spiceLevel":1}, …]
+agent     →  "Three spicy options under RM20. Spicy Chicken Rice is RM12
+              and ready in 15 minutes…"
+```
+
+Line three is the request you sent in Postman. Line four is the response you read there, minus the fields a model does not need. Nothing new happened in the data layer at all — the agent only supplied the parameters and the sentence at each end.
+
+{/* SCREENSHOT: the actual output on your screen — save as ./images/foundry-agent-answering-from-api.png, then replace this line with: ![The Foundry agent answering the spicy under RM20 question from the API response](./images/foundry-agent-answering-from-api.png) */}
+
+That is also why the order of this part matters. When the agent replies with a price that is wrong, the first question is always "is it the agent or the API", and a Postman request plus a green test answers it in seconds instead of an afternoon.
+
+There is a lot more to say about the agent side: how the tool loop is driven, how arguments coming out of a model are validated, and what happens when it calls two tools at once. Those come next. The service layer underneath them is now real, tested and boring, which is exactly what you want holding up something as unpredictable as a language model.
 
 ## Key takeaways
 
-- A Flutter and Firebase app usually has no server. The agent needs one, and that is the real first task.
+- The URL comes first. A Foundry agent is a caller, and it can only be as good as the endpoint it calls.
+- Test the exact call in Postman before a model sees it, so a wrong answer later has one fewer suspect.
 - Work backwards from the tools you want. Nine question-shaped service methods beat a generic CRUD API.
-- Put data access behind an interface with a seeded in-memory implementation so the series runs with zero setup.
-- Keep price and status logic identical to the mobile app, or the agent will quote numbers checkout disagrees with.
+- Store price logic as a computed column so C#, SQL and the mobile app can never disagree about what a dish costs.
 - Project two DTO shapes from one service call: full for the app, trimmed for the model.
-- Make every endpoint work with curl, and every service method pass a test, before a model is involved.
+- A function tool is your Postman form written as a schema, and its `description` is what decides whether the model calls it at all.

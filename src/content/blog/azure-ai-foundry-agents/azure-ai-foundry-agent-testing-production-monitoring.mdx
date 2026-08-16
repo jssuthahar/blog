@@ -25,6 +25,10 @@ faq:
 
 import Callout from '../../../components/mdx/Callout.astro';
 
+A customer typed "where is my delivery", and the answer took eleven seconds and cost more than the delivery fee.
+
+Nothing had broken. The tool descriptions had drifted just enough that the model was making three calls where one would do, and there was no dashboard anywhere that would have told me, because I had not built one.
+
 The previous parts of this series built the agent. This one is about the two months after it shipped, which is where I learned most of what I would now do differently.
 
 [Part 8](../flutter-ai-agent-chat-client-azure-foundry) got the Flutter client talking to it. Everything below assumes that is running.
@@ -91,9 +95,11 @@ The tests that run on every commit are the ones with no model in them at all: th
 Every time a real user found a phrasing that routed wrong, it went into a list with the expected tool. That list became the routing test suite, and it is better than anything I invented up front, because I do not think like a hungry customer at 8pm.
 </Callout>
 
-## What does observability look like?
+## What observability looks like in practice
 
 **Tracing is the feature you will use daily.** Connect an Application Insights resource to the Foundry project and enable [agent tracing](https://learn.microsoft.com/en-us/azure/foundry/agents/overview). You get every model call, every tool invocation, the arguments and the timing, which turns "the agent said something odd" from an unfalsifiable report into a trace you can open. I tried to run without it for two weeks and would not do that again.
+
+{/* SCREENSHOT: your real usage or billing view — save as ./images/foundry-agent-trace-app-insights.png, then replace this line with: ![An agent turn traced in Application Insights, showing the model call and each tool invocation with timings](./images/foundry-agent-trace-app-insights.png) */}
 
 **Log your side too, and log the right thing.**
 
@@ -109,7 +115,7 @@ logger.LogInformation(
     call.FunctionName, caller.Role, caller.UserId, sw.ElapsedMilliseconds, rounds);
 ```
 
-Tool name, role, user ID, duration, round count. Not the message text, which is customer data that accumulates fast.
+Tool name, role, user ID, duration, round count. Not the message text: that is customer data, it accumulates faster than you expect, and once it is in a log sink it falls under every retention promise you have made about the rest of your customer data.
 
 The four numbers worth putting on a dashboard from day one:
 
@@ -120,11 +126,15 @@ The four numbers worth putting on a dashboard from day one:
 | P95 turn latency | The number your client timeout has to respect |
 | Tokens per turn by tool | Where the money actually goes |
 
+{/* SCREENSHOT: your real usage or billing view — save as ./images/agent-metrics-dashboard.png, then replace this line with: ![The four agent metrics on one dashboard: tool calls per turn, round-cap hits, P95 latency and tokens per turn](./images/agent-metrics-dashboard.png) */}
+
 ## Where does the money go?
 
-Not where I expected.
+Not where I expected. Not close.
 
 **Tool output dominates.** A customer types 30 tokens. A `search_menu` result with eight full `FoodItem` objects is around 1,800. Trimming that response to six fields per dish cut the cost of the most common turn by roughly half, and cost me an afternoon. Measure before optimising the prompt, because the prompt is usually not where the money is.
+
+{/* SCREENSHOT: your real usage or billing view — save as ./images/foundry-cost-by-model-deployment.png, then replace this line with: ![The Foundry cost breakdown showing where the token spend actually lands](./images/foundry-cost-by-model-deployment.png) */}
 
 **Every tool call is a second model invocation.** One turn with one tool call is at least two calls. Two tools means three. This is why the round cap from [Part 5](../azure-ai-foundry-function-tools-aspnet-core) matters as a budget control and not only as a safety net.
 
@@ -139,15 +149,15 @@ if (LooksLikeTracking(request.Message))
 }
 ```
 
-That is fifteen lines of string matching that removed a meaningful share of turns and made those answers instant. It feels like cheating. It is not: the fastest agent call is the one you did not make.
+That is fifteen lines of string matching. It removed a meaningful share of turns and made those answers instant. It feels like cheating. It is not: the fastest agent call is the one you did not make.
 
 **Route models by path.** `gpt-4.1-mini` handles routing across nine tools well. The one place it struggled was multi-step reasoning on the partner analytics question, so that path uses a larger model and nothing else does. Splitting by path rather than upgrading everything kept the bill flat.
 
-**Rate limit per user.** An agent endpoint is a paid endpoint. Twenty turns per user per hour is well above anything a real customer has done and puts a ceiling on what an abusive script can spend.
+**Rate limit per user.** An agent endpoint is a paid endpoint. Twenty turns per user per hour sits well above anything a real customer has ever done in this app, and it puts a hard ceiling on what a script pointed at your assistant can spend before somebody notices.
 
 **Start a new conversation sometimes.** Context grows with every turn and you pay for it each time. The "new chat" button from [Part 8](../flutter-ai-agent-chat-client-azure-foundry) is a cost control.
 
-## What breaks under load?
+## What breaks under load
 
 **Runs expire after ten minutes.** A tool waiting on a slow downstream call can lose the entire turn. Anything slow returns a status immediately and gets polled separately.
 

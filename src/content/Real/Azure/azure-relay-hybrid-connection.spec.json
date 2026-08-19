@@ -9,7 +9,7 @@
   "seoTitle": "Azure Relay Hybrid Connections",
   "publishedAt": "2026-06-27",
   "title": {
-    "main": "Security said <em>no inbound ports.</em>",
+    "main": "Azure Relay: <em>No Inbound Ports Needed</em>",
     "sub": "How the cloud reaches a server it is not allowed to connect to.",
     "pill": "10 stages · 29 sec · Azure"
   },

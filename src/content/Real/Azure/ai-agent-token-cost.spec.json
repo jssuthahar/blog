@@ -3,7 +3,7 @@
   "topic": "Why an AI agent loop costs far more than it looks like it should — resent context, quadratic input growth, prompt caching, and the one line that silently switches caching off.",
   "pacing": "long",
   "title": {
-    "main": "The agent worked fine. <em>It cost $4,260.</em>",
+    "main": "Why Your AI Agent's <em>Token Bill Exploded</em>",
     "sub": "Nothing failed. The loop just paid for its own history, twelve times per task.",
     "pill": "12 stages · 48 sec · AI agents"
   },

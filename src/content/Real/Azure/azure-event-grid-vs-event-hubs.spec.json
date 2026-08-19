@@ -9,7 +9,7 @@
   "seoTitle": "Azure Event Grid vs Event Hubs",
   "publishedAt": "2026-05-22",
   "title": {
-    "main": "Everyone confuses <em>these two.</em>",
+    "main": "Event Grid vs <em>Event Hubs</em>",
     "sub": "One is a doorbell. The other is a tape you can rewind.",
     "pill": "10 stages · 29 sec · Azure"
   },

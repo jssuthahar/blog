@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:02,200
+Your API works. Anyone on earth can call it right now.
+
+2
+00:00:02,600 --> 00:00:05,000
+Turn off plain HTTP. Not a redirect — off.
+
+3
+00:00:05,400 --> 00:00:07,800
+Microsoft Entra ID validates the token. No token, no entry.
+
+4
+00:00:08,200 --> 00:00:10,600
+A different question. Her token is valid; her rows are still only hers.
+
+5
+00:00:11,000 --> 00:00:13,400
+Key Vault holds them. A managed identity fetches them. No password anywhere.
+
+6
+00:00:13,800 --> 00:00:16,200
+Application Insights and Defender for Cloud. You see the attempt.
+
+7
+00:00:16,600 --> 00:00:19,000
+The call dies at step 2, and step 5 tells you it happened.
+
+8
+00:00:19,400 --> 00:00:21,800
+HTTPS first is not optional. Monitoring last is fine.

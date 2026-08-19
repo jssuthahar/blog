@@ -565,10 +565,30 @@ function loadShorts(): Short[] {
 
 let cache: Short[] | null = null;
 
-/** Every short on the site. Parsed once per build. */
+/**
+ * A short is live when it carries no publish date, or its date has arrived.
+ *
+ * Mirrors `isLive()` in `lib/posts.ts` for the same reason: a batch of shorts
+ * scheduled a few days apart reads as an active publication, not a dump, and
+ * the daily scheduled deploy (`.github/workflows/deploy.yml`) is what promotes
+ * each one on its own date. A short with no `publishedAt` at all still counts
+ * as live — it just stays out of the dated /contributions log.
+ */
+function isLive(publishedAt: Date | undefined, now = Date.now()): boolean {
+  return !publishedAt || publishedAt.getTime() <= now;
+}
+
+/**
+ * Every short on the site. Parsed once per build.
+ *
+ * Dev shows everything, including future-dated shorts, so the whole queue is
+ * readable while writing — exactly like `getPublishedPosts()`. A production
+ * build drops anything not live yet; it is not merely hidden, it is not built,
+ * so a future-dated short has no reachable URL until its date arrives.
+ */
 export function getShorts(): Short[] {
   cache ??= loadShorts();
-  return cache;
+  return import.meta.env.DEV ? cache : cache.filter((s) => isLive(s.publishedAt));
 }
 
 export function getShort(slug: string): Short | undefined {

@@ -1,0 +1,3627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Same app. Two architectures. — MSDevBuild</title>
+<meta name="description" content="Both work on day one. Only one survives day two.">
+<meta name="author" content="Suthahar">
+<meta name="theme-color" content="#0E1420">
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg-deep:#0E1420;
+  --bg-panel:#141B2B;
+  --bg-panel-2:#182238;
+  --border:#232C40;
+  --text-primary:#E8EDF5;
+  --text-dim:#8B95A7;
+  --accent-1:#3AA0FF;
+  --accent-2:#1959C9;
+  --accent-cyan:#22D3EE;
+  --success:#3fb950;
+  --warn:#F0A64A;
+  --danger:#F44A6A;
+
+  --editor-bg:#1e1e1e;
+  --editor-sidebar:#181818;
+  --titlebar:#2b2b2e;
+  --line-num:#4b5157;
+  --ghost:#6e7681;
+  --code-keyword:#ff7b72;
+  --code-func:#dcdcaa;
+  --code-str:#ce9178;
+  --code-plain:#d4d4d4;
+  --code-comment:#6a9955;
+
+  --font-ui:'Inter',-apple-system,'Segoe UI',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{
+  width:100%; height:100%; background:#05080F;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden; font-family:var(--font-ui);
+}
+#stage-wrap{ width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
+
+#canvas{
+  position:relative; width:1080px; height:1920px; flex-shrink:0;
+  transform-origin:center center;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(58,160,255,0.12), transparent 55%),
+    radial-gradient(circle at 15% 92%, rgba(25,89,201,0.16), transparent 45%),
+    var(--bg-deep);
+  border-radius:52px; overflow:hidden;
+  box-shadow:0 0 0 2px #1a2233, 0 40px 120px rgba(0,0,0,0.7);
+}
+#canvas::before{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size:54px 54px;
+}
+
+/* ===================== TITLE SCREEN (tap to start) ===================== */
+#title-screen{
+  position:absolute; inset:0; z-index:110; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px;
+  background:radial-gradient(circle at 50% 30%, rgba(58,160,255,0.22), transparent 60%), var(--bg-deep);
+  text-align:center; padding:0 90px;
+  opacity:1; transition:opacity .38s ease;
+}
+#title-screen.hide{ opacity:0; pointer-events:none; }
+#logo-mark{
+  width:132px; height:132px; border-radius:50%;
+  background-size:cover; background-position:center;
+  box-shadow:0 0 0 4px rgba(58,160,255,0.5), 0 0 70px 8px rgba(58,160,255,0.35);
+  border:2px solid rgba(255,255,255,0.15);
+  animation:msd-pulseRing 2.6s ease-in-out infinite;
+}
+#title-brand{ color:var(--accent-1); font-size:22px; font-weight:800; letter-spacing:5px; text-transform:uppercase; }
+#title-brand span{ color:var(--text-dim); font-weight:600; letter-spacing:2px; text-transform:none; }
+#title-main{ color:#fff; font-size:64px; font-weight:900; line-height:1.14; max-width:840px; }
+#title-main em{ font-style:normal; color:var(--accent-1); }
+#title-sub{ color:var(--text-dim); font-size:26px; font-weight:500; max-width:680px; line-height:1.5; }
+#title-pill{
+  margin-top:14px; padding:12px 26px; border-radius:100px;
+  border:1.5px solid rgba(58,160,255,0.4); color:var(--text-primary);
+  font-size:18px; font-weight:600; font-family:var(--font-mono);
+  display:flex; align-items:center; gap:10px;
+}
+#tap-hint{ color:var(--text-dim); font-size:18px; font-weight:600; margin-top:26px; opacity:.85; }
+#rec-hint{ color:var(--text-dim); font-size:16px; font-weight:500; margin-top:-16px; opacity:.6; }
+#rec-hint b{ color:var(--accent-1); font-family:var(--font-mono); }
+.live-dot{ width:8px; height:8px; border-radius:50%; background:var(--accent-cyan); animation:msd-tdot 1.2s infinite; }
+
+/* ===================== TOP BAR ===================== */
+#topbar{
+  position:absolute; top:44px; left:56px; right:56px; height:92px; z-index:20;
+  display:flex; align-items:center; gap:18px;
+}
+#topbar-avatar{
+  width:72px; height:72px; border-radius:50%; flex-shrink:0;
+  background-size:cover; background-position:center;
+  border:2px solid rgba(255,255,255,0.14);
+  box-shadow:0 0 0 3px rgba(58,160,255,0.42);
+}
+#topbar-text{ display:flex; flex-direction:column; gap:4px; }
+#topbar-name{ color:#fff; font-size:30px; font-weight:800; letter-spacing:-0.4px; line-height:1; }
+#topbar-tag{ color:var(--text-dim); font-size:17px; font-weight:600; letter-spacing:.4px; line-height:1; }
+#sound-toggle, #record-toggle{
+  width:62px; height:62px; border-radius:50%;
+  border:1.5px solid var(--border); background:var(--bg-panel);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  opacity:.35; transition:opacity .3s ease;
+}
+#sound-toggle svg{ width:30px; height:30px; }
+#record-toggle{ margin-left:auto; }
+#record-toggle svg{ width:28px; height:28px; }
+#sound-toggle{ margin-left:12px; }
+#record-toggle:hover{ opacity:.85; }
+/* The toolbar is a tool, not part of the reel — none of it may survive into the
+   frames it is capturing. The speaker icon matters most: Reels and Shorts draw
+   their own mute control, so a second one baked into the video reads as a
+   screen recording of a web page rather than as a native clip.
+
+   Hidden with visibility, not opacity: both toggles carry a 300ms opacity
+   transition, so fading them would bake a third of a second of visible speaker
+   icon into the opening frames. visibility cuts instantly and, unlike
+   display:none, leaves the top bar's flex layout untouched. */
+#canvas.capturing #record-toggle,
+#canvas.capturing #sound-toggle,
+#canvas.capturing #rec-hint{ visibility:hidden; opacity:0; pointer-events:none; }
+/* Region Capture crops to the canvas's box, corners included, so the rounded
+   ones would let the page background bleed into the exported frame. A posted
+   reel is a plain rectangle — the phone rounds it, not us. */
+#canvas.capturing{ border-radius:0; box-shadow:none; }
+
+/* ===================== STAGE (agent-authored content lives here) ===== */
+/* Sits below the caption card: Reels and Shorts cover roughly the bottom 400px,
+   so the step number and title have to live above the animation, not under it. */
+#stage{
+  position:absolute; top:500px; left:44px; right:44px; height:1024px; z-index:10;
+}
+
+/* ===================== CAPTION CARD ===================== */
+#caption-wrap{
+  position:absolute; top:166px; left:56px; right:56px; min-height:244px; z-index:20;
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border); border-radius:32px; padding:34px 40px;
+  box-shadow:0 24px 70px rgba(0,0,0,0.45);
+}
+#caption-wrap.pulse{ animation:msd-capPulse .34s ease; }
+#stage-num{
+  color:var(--accent-1); font-family:var(--font-mono); font-size:19px;
+  font-weight:700; letter-spacing:3px; margin-bottom:14px;
+}
+#stage-title{ color:#fff; font-size:52px; font-weight:800; line-height:1.16; letter-spacing:-1px; }
+#stage-title .kw-hl{ color:var(--accent-1); }
+#stage-desc{ color:var(--text-dim); font-size:27px; font-weight:500; line-height:1.45; margin-top:14px; }
+
+/* ===================== STATUS BAR ===================== */
+#statusbar{
+  position:absolute; top:1540px; left:56px; right:56px; height:66px; z-index:20;
+  display:flex; align-items:center; gap:14px; padding:0 26px;
+  background:rgba(20,27,43,0.8); border:1.5px solid var(--border); border-radius:18px;
+}
+#status-icon{ width:26px; height:26px; flex-shrink:0; }
+#status-text{ color:var(--text-primary); font-family:var(--font-mono); font-size:21px; font-weight:600; }
+.thinking-wrap{ display:none; gap:7px; margin-left:6px; }
+.thinking-wrap.show{ display:flex; }
+.thinking-dot{ width:9px; height:9px; border-radius:50%; background:var(--accent-cyan); animation:msd-tdot 1.1s infinite; }
+.thinking-dot:nth-child(2){ animation-delay:.18s; }
+.thinking-dot:nth-child(3){ animation-delay:.36s; }
+
+/* ===================== PROGRESS TRACK ===================== */
+/* Directly under the top bar, with the caption card, so "step 3 of 8" survives
+   the platform chrome that eats the bottom of the frame. */
+#progress-track{
+  position:absolute; top:146px; left:56px; right:56px; height:8px; z-index:20;
+  display:flex; gap:7px;
+}
+#progress-track .seg{
+  flex:1; height:100%; border-radius:4px; background:var(--border); overflow:hidden;
+}
+#progress-track .seg-fill{
+  width:0%; height:100%; border-radius:4px;
+  background:linear-gradient(90deg, var(--accent-1), var(--accent-cyan));
+}
+#progress-track .seg.done .seg-fill{ width:100%; }
+#progress-track .seg.active .seg-fill{ animation:msd-fillseg linear forwards; animation-duration:var(--seg-dur,3000ms); }
+
+/* ===================== BOTTOM BRAND STRIP ===================== */
+#bottom-bar{
+  position:absolute; top:1640px; left:56px; right:56px; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+}
+#bottom-bar .b-left{ color:var(--text-dim); font-size:20px; font-weight:700; letter-spacing:1.4px; }
+#bottom-bar .b-left b{ color:var(--accent-1); }
+#bottom-bar .b-right{
+  color:var(--text-dim); font-family:var(--font-mono); font-size:19px; font-weight:600;
+  display:flex; align-items:center; gap:9px;
+}
+
+/* ===================== END CARD ===================== */
+#end-card{
+  position:absolute; inset:0; z-index:105; opacity:0; pointer-events:none;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+  background:radial-gradient(circle at 50% 30%, rgba(58,160,255,0.22), transparent 60%), var(--bg-deep);
+  text-align:center; padding:0 90px; transition:opacity .5s ease;
+}
+#end-card.show{ opacity:1; }
+#end-avatar{
+  width:120px; height:120px; border-radius:50%;
+  background-size:cover; background-position:center;
+  border:3px solid rgba(255,255,255,0.15);
+  box-shadow:0 0 0 4px rgba(58,160,255,0.5), 0 0 70px 8px rgba(58,160,255,0.3);
+}
+#end-check{
+  width:52px; height:52px; border-radius:50%; background:var(--success);
+  display:flex; align-items:center; justify-content:center;
+  margin-top:-42px; margin-left:70px; border:3px solid var(--bg-deep);
+}
+#end-check svg{ width:26px; height:26px; }
+#end-title{ color:#fff; font-size:44px; font-weight:800; line-height:1.2; margin-top:12px; }
+#end-sub{ color:var(--text-dim); font-size:23px; font-weight:500; max-width:660px; line-height:1.5; }
+#end-cta{
+  margin-top:14px; padding:16px 30px; border-radius:100px;
+  border:1.5px solid rgba(58,160,255,0.5); color:#fff;
+  font-size:20px; font-weight:700; font-family:var(--font-mono);
+  display:flex; align-items:center; gap:10px;
+  background:linear-gradient(90deg, rgba(58,160,255,0.16), rgba(34,211,238,0.1));
+}
+#end-tagline{ color:var(--text-dim); font-size:20px; font-weight:600; letter-spacing:1px; margin-top:6px; }
+
+/* Engagement row. Saves and follows are what actually move a reel, so the
+   brand card asks for them explicitly rather than only showing a URL. */
+#end-actions{ display:flex; gap:16px; margin-top:20px; }
+#end-actions .act{
+  display:flex; align-items:center; gap:11px; padding:15px 26px; border-radius:100px;
+  border:1.5px solid var(--border); background:rgba(20,27,43,0.75);
+  color:var(--text-primary); font-size:21px; font-weight:700;
+}
+#end-actions .act svg{ width:24px; height:24px; flex-shrink:0; }
+#end-actions .act.primary{
+  border-color:rgba(58,160,255,0.55); color:#fff;
+  background:linear-gradient(90deg, rgba(58,160,255,0.22), rgba(34,211,238,0.12));
+  animation:msd-breathe 2.4s ease-in-out infinite;
+}
+
+/* ===================== SHARED COMPONENTS FOR STAGE CONTENT =========== */
+/* The agent composes these rather than restyling from scratch, which keeps
+   every reel on-brand even when the visuals are topic-specific. */
+
+.msd-card{
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border); border-radius:26px;
+  box-shadow:0 18px 50px rgba(0,0,0,0.4);
+}
+.msd-card.accent{ border-color:rgba(58,160,255,0.55); box-shadow:0 0 0 1px rgba(58,160,255,0.3), 0 18px 60px rgba(58,160,255,0.18); }
+.msd-pill{
+  display:inline-flex; align-items:center; gap:9px; padding:10px 20px; border-radius:100px;
+  border:1.5px solid var(--border); background:rgba(20,27,43,0.7);
+  color:var(--text-primary); font-family:var(--font-mono); font-size:20px; font-weight:600;
+}
+.msd-pill.accent{ border-color:rgba(58,160,255,0.5); color:var(--accent-1); }
+.msd-chip{
+  display:inline-flex; align-items:center; padding:7px 15px; border-radius:9px;
+  background:rgba(58,160,255,0.14); border:1px solid rgba(58,160,255,0.3);
+  color:var(--accent-1); font-family:var(--font-mono); font-size:19px; font-weight:600;
+}
+.msd-label{ color:var(--text-dim); font-size:21px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; }
+.msd-h{ color:#fff; font-size:38px; font-weight:800; letter-spacing:-.6px; }
+.msd-sub{ color:var(--text-dim); font-size:23px; font-weight:500; line-height:1.4; }
+.msd-mono{ font-family:var(--font-mono); }
+.msd-num{ font-family:var(--font-mono); font-weight:700; color:var(--accent-1); font-variant-numeric:tabular-nums; }
+
+.msd-node{
+  display:flex; align-items:center; gap:18px; padding:22px 26px;
+  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border:1.5px solid var(--border); border-radius:22px;
+}
+.msd-node .ic{
+  width:60px; height:60px; border-radius:16px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(58,160,255,0.12); color:var(--accent-1);
+}
+.msd-node .ic svg{ width:32px; height:32px; }
+.msd-node.hot{ border-color:var(--accent-1); box-shadow:0 0 0 1px var(--accent-1), 0 0 46px rgba(58,160,255,0.28); }
+.msd-node.hot .ic{ background:var(--accent-1); color:#0E1420; }
+
+/* Reveal utility: elements start hidden, driver/agent adds .show */
+.msd-reveal{ opacity:0; transform:translateY(18px); transition:opacity .28s ease, transform .28s cubic-bezier(.22,1,.36,1); }
+.msd-reveal.show{ opacity:1; transform:none; }
+
+/* ---- MOTION: the difference between a reel and a slideshow ------------- */
+/* A stage where nothing moves is a stage viewers swipe past. These keep the
+   composition alive between scripted events. */
+
+/* Spotlight: the element that owns this stage grows, everything else recedes.
+   Applied together they read as a camera push rather than a highlight. */
+.msd-focus{
+  transform:scale(1.06); z-index:5;
+  transition:transform .3s cubic-bezier(.22,1,.36,1), opacity .3s ease, filter .3s ease;
+}
+.msd-recede{ opacity:.34; filter:saturate(.5); transition:opacity .3s ease, filter .3s ease; }
+
+/* Continuous idle motion — subtle enough to ignore, enough to feel alive. */
+.msd-live{ animation:msd-float 3.4s ease-in-out infinite; }
+.msd-breathing{ animation:msd-breathe 2.2s ease-in-out infinite; }
+
+/* One-shot attention beats fired from stage code. */
+.msd-flash{ animation:msd-flash .42s ease-out; }
+.msd-punch{ animation:msd-punch .38s cubic-bezier(.22,1,.36,1); }
+.msd-shake{ animation:msd-shake .38s ease-in-out; }
+
+/* An active node should never sit perfectly still. */
+.msd-node.hot{ animation:msd-hotpulse 1.9s ease-in-out infinite; }
+
+/* Scanning sweep for anything being processed or searched. */
+.msd-scan{ position:relative; overflow:hidden; }
+.msd-scan::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(105deg, transparent 35%, rgba(58,160,255,0.22) 50%, transparent 65%);
+  background-size:260% 100%; animation:msd-sweep 1.5s linear infinite;
+}
+
+.msd-glow{ filter:drop-shadow(0 0 14px rgba(58,160,255,0.55)); }
+.msd-dim{ opacity:.35; transition:opacity .26s ease; }
+.msd-flow{ stroke-dasharray:10 14; animation:msd-dash 1.1s linear infinite; }
+
+/* A code editor mock — common enough across dev topics to belong in the kit. */
+.msd-editor{ background:var(--editor-bg); border-radius:20px; overflow:hidden; border:1.5px solid #000; }
+.msd-editor .bar{ height:52px; background:var(--titlebar); display:flex; align-items:center; padding:0 20px; gap:9px; }
+.msd-editor .bar i{ width:14px; height:14px; border-radius:50%; display:block; }
+.msd-editor .body{ padding:22px 24px; font-family:var(--font-mono); font-size:25px; line-height:1.65; color:var(--code-plain); }
+.msd-editor .ln{ display:inline-block; width:44px; color:var(--line-num); user-select:none; }
+.msd-editor .kw{ color:var(--code-keyword); }
+.msd-editor .fn{ color:var(--code-func); }
+.msd-editor .st{ color:var(--code-str); }
+.msd-editor .cm{ color:var(--code-comment); }
+.msd-editor .ghost{ color:var(--ghost); }
+.msd-editor .cursor{ display:inline-block; width:3px; height:26px; background:var(--accent-1); vertical-align:-4px; animation:msd-blink 1s step-end infinite; }
+
+.msd-particle{
+  position:absolute; width:11px; height:11px; border-radius:50%;
+  background:var(--accent-cyan); box-shadow:0 0 16px var(--accent-cyan); pointer-events:none;
+}
+
+/* ===================== KEYFRAMES ===================== */
+@keyframes msd-pulseRing{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.06);} }
+@keyframes msd-tdot{ 0%,80%,100%{opacity:.25; transform:scale(.8);} 40%{opacity:1; transform:scale(1.15);} }
+@keyframes msd-fillseg{ to{ width:100%; } }
+@keyframes msd-capPulse{ 0%{transform:scale(.978);} 55%{transform:scale(1.012);} 100%{transform:scale(1);} }
+@keyframes msd-blink{ 50%{opacity:0;} }
+@keyframes msd-dash{ to{ stroke-dashoffset:-48; } }
+@keyframes msd-fadeUp{ from{opacity:0; transform:translateY(26px);} to{opacity:1; transform:none;} }
+@keyframes msd-pop{ 0%{transform:scale(.86); opacity:0;} 60%{transform:scale(1.04);} 100%{transform:scale(1); opacity:1;} }
+@keyframes msd-float{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-12px);} }
+@keyframes msd-spin{ to{ transform:rotate(360deg); } }
+@keyframes msd-shimmer{ 0%{background-position:-500px 0;} 100%{background-position:500px 0;} }
+@keyframes msd-breathe{ 0%,100%{transform:scale(1); opacity:.75;} 50%{transform:scale(1.08); opacity:1;} }
+@keyframes msd-flash{ 0%{ box-shadow:0 0 0 0 rgba(58,160,255,.55); } 100%{ box-shadow:0 0 0 26px rgba(58,160,255,0); } }
+@keyframes msd-punch{ 0%{transform:scale(1);} 42%{transform:scale(1.09);} 100%{transform:scale(1);} }
+@keyframes msd-shake{ 0%,100%{transform:translateX(0);} 22%{transform:translateX(-9px);} 55%{transform:translateX(8px);} 80%{transform:translateX(-4px);} }
+@keyframes msd-hotpulse{ 0%,100%{ box-shadow:0 0 0 1px var(--accent-1), 0 0 30px rgba(58,160,255,.22); } 50%{ box-shadow:0 0 0 1px var(--accent-1), 0 0 60px rgba(58,160,255,.45); } }
+@keyframes msd-sweep{ to{ background-position:-260% 0; } }
+@keyframes msd-countup{ 0%{transform:translateY(14px); opacity:0;} 100%{transform:none; opacity:1;} }
+
+
+/* ===================== TOPIC-SPECIFIC STAGE STYLES ===================== */
+#stage .ba-scene{
+  position:relative; width:100%; height:100%;
+  display:flex; flex-direction:column; gap:18px;
+}#stage .ba-pills{ height:84px; flex-shrink:0; display:flex; gap:16px; justify-content:center; align-items:center; }#stage .ba-pill{
+  display:flex; align-items:baseline; gap:12px; padding:14px 26px; border-radius:100px;
+  border:1.5px solid rgba(139,149,167,.34); background:transparent;
+  transition:border-color .3s ease, box-shadow .3s ease;
+}#stage .ba-pill.bad{ border-color:rgba(244,74,106,.7); box-shadow:0 0 34px rgba(244,74,106,.16); }#stage .ba-pill.good{ border-color:rgba(63,185,80,.65); box-shadow:0 0 30px rgba(63,185,80,.14); }#stage .ba-pill-l{ color:var(--text-dim); font-family:var(--font-mono); font-size:21px; font-weight:700; letter-spacing:2px; white-space:nowrap; }#stage .ba-pill-v{
+  color:var(--warn); font-family:var(--font-mono); font-size:36px; font-weight:800; letter-spacing:-1px;
+  white-space:nowrap; transition:color .3s ease;
+}#stage .ba-pill.bad .ba-pill-v{ color:var(--danger); }#stage .ba-pill.good .ba-pill-v{ color:var(--success); }#stage .ba-pill-u{ color:var(--text-dim); font-family:var(--font-mono); font-size:21px; font-weight:600; white-space:nowrap; }#stage .ba-map{ position:relative; height:546px; flex-shrink:0; }#stage .ba-map.dim > .ba-node, #stage .ba-map.dim > .ba-wire, #stage .ba-map.dim > .ba-cut{ opacity:.07; }#stage .ba-node{
+  position:absolute; width:200px; margin-left:-100px;
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+  opacity:0; transform:scale(.9);
+  transition:opacity .35s ease, transform .35s cubic-bezier(.22,1,.36,1);
+}#stage .ba-node.on{ opacity:1; transform:none; }#stage .ba-n-app1{ left:165px; top:40px; color:var(--danger); }#stage .ba-n-db1{ left:827px; top:40px; color:var(--danger); }#stage .ba-n-app2{ left:112px; top:326px; color:var(--success); }#stage .ba-n-fd{ left:356px; top:326px; color:var(--accent-cyan); }#stage .ba-n-api{ left:600px; top:326px; color:var(--accent-1); }#stage .ba-n-db2{ left:844px; top:326px; color:var(--success); }#stage .ba-ico{
+  width:120px; height:120px; border-radius:26px; padding:24px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  border:2.5px solid currentColor;
+  transition:box-shadow .3s ease, background .3s ease;
+}#stage .ba-node.live .ba-ico{ box-shadow:0 0 46px -6px currentColor; background:rgba(255,255,255,.03); }#stage .ba-ico svg{ width:100%; height:100%; display:block; }#stage .ba-lab{
+  font-family:var(--font-mono); font-size:21px; font-weight:800; letter-spacing:1.4px;
+  white-space:nowrap; color:currentColor; text-align:center;
+}#stage .ba-cnt{
+  position:absolute; top:100%; left:0; right:0; margin-top:8px; text-align:center;
+  font-family:var(--font-mono); font-size:34px; font-weight:800; letter-spacing:-1px;
+  color:currentColor; white-space:nowrap;
+  opacity:0; transition:opacity .3s ease;
+}#stage .ba-cnt.on{ opacity:1; }#stage .ba-wire{ position:absolute; opacity:0; transition:opacity .3s ease, background .3s ease; }#stage .ba-wire.on{ opacity:1; }#stage .ba-wire.h{ height:2px; background:rgba(139,149,167,.3); }#stage .ba-wire.v{ width:2px;  background:rgba(139,149,167,.3); }#stage .ba-wire.hot.h, #stage .ba-wire.hot.v{ background:rgba(58,160,255,.55); }#stage .ba-wire.bad.h, #stage .ba-wire.bad.v{ background:rgba(244,74,106,.6); }#stage .ba-wire.ok.h, #stage .ba-wire.ok.v{ background:rgba(63,185,80,.55); }#stage .ba-wire.dead{ opacity:.22; }#stage #ba-w-bad{ left:225px; top:99px; width:542px; }#stage #ba-w-s1{ left:172px; top:385px; width:124px; }#stage #ba-w-s2{ left:416px; top:385px; width:124px; }#stage #ba-w-s3{ left:660px; top:385px; width:124px; }#stage .ba-wire i{
+  position:absolute; width:11px; height:11px; border-radius:50%;
+  background:var(--accent-1); box-shadow:0 0 12px var(--accent-1); opacity:0;
+}#stage .ba-wire.bad i{ background:var(--danger); box-shadow:0 0 12px var(--danger); }#stage .ba-wire.ok i{ background:var(--success); box-shadow:0 0 12px var(--success); }#stage .ba-wire.flow i{ opacity:1; }#stage .ba-wire.h i{ top:-5px; animation:ba-travel-h 1.5s linear infinite; }#stage .ba-wire.v i{ left:-5px; animation:ba-travel-v 1.5s linear infinite; }#stage .ba-wire.v.up i{ animation-name:ba-travel-v-up; }#stage .ba-wire i:nth-child(1){ animation-delay:0s; }#stage .ba-wire i:nth-child(2){ animation-delay:.375s; }#stage .ba-wire i:nth-child(3){ animation-delay:.75s; }#stage .ba-wire i:nth-child(4){ animation-delay:1.125s; }@keyframes ba-travel-h{ from{ left:0%; } to{ left:100%; } }@keyframes ba-travel-v{ from{ top:0%; }  to{ top:100%; } }@keyframes ba-travel-v-up{ from{ top:100%; } to{ top:0%; } }#stage .ba-cut{
+  position:absolute; margin-left:-26px; margin-top:-26px;
+  width:52px; height:52px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--bg-deep); border:2px solid var(--danger);
+  color:var(--danger); font-size:28px; font-weight:900;
+  opacity:0; transform:scale(.5);
+  transition:opacity .3s ease, transform .3s cubic-bezier(.22,1,.36,1);
+}#stage .ba-cut.on{ opacity:1; transform:none; }#stage #ba-x-bad{ left:496px; top:100px; }#stage .ba-payoff{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:14px;
+  opacity:0; pointer-events:none; transition:opacity .35s ease;
+}#stage .ba-payoff.on{ opacity:1; }#stage .ba-po-nums{ display:flex; align-items:center; gap:30px; }#stage .ba-po-a, #stage .ba-po-b{
+  font-family:var(--font-mono); font-size:88px; font-weight:800; letter-spacing:-3px; white-space:nowrap;
+}#stage .ba-po-nums.sm .ba-po-a, #stage .ba-po-nums.sm .ba-po-b{ font-size:58px; letter-spacing:-2px; }#stage .ba-po-a{ color:var(--danger); }#stage .ba-po-b{ color:var(--success); }#stage .ba-po-ar{ color:var(--text-dim); font-size:50px; font-weight:700; }#stage .ba-po-h{ color:#fff; font-size:38px; font-weight:800; letter-spacing:-.8px; text-align:center; }#stage .ba-po-s{ color:var(--text-dim); font-family:var(--font-mono); font-size:25px; font-weight:600; text-align:center; }#stage .ba-code{
+  height:340px; flex-shrink:0; display:flex; flex-direction:column;
+  border-radius:22px; overflow:hidden;
+  background:rgba(10,15,25,.72); border:1.5px solid var(--border);
+  transition:border-color .3s ease, box-shadow .3s ease;
+}#stage .ba-code.bad{ border-color:rgba(244,74,106,.55); box-shadow:0 0 44px rgba(244,74,106,.12); }#stage .ba-code.good{ border-color:rgba(63,185,80,.5); box-shadow:0 0 40px rgba(63,185,80,.11); }#stage .ba-code-h{
+  flex-shrink:0; height:56px; display:flex; align-items:center; padding:0 26px;
+  border-bottom:1.5px solid var(--border);
+  color:var(--text-dim); font-family:var(--font-mono); font-size:22px; font-weight:700; letter-spacing:.6px;
+  white-space:nowrap; overflow:hidden;
+}#stage .ba-code-b{ flex:1; min-height:0; padding:14px 0; display:flex; flex-direction:column; }#stage .ba-ln{
+  height:52px; flex-shrink:0; display:block;
+  padding:0 26px; border-left:4px solid transparent;
+  font-family:var(--font-mono); font-size:25px; font-weight:600; line-height:52px;
+  white-space:pre; overflow:hidden; color:var(--code-plain);
+  transition:background .25s ease, border-color .25s ease, opacity .25s ease;
+}#stage .ba-ln.active{ background:rgba(58,160,255,.1); border-left-color:var(--accent-1); }#stage .ba-ln.hit{ background:rgba(244,74,106,.1); border-left-color:var(--danger); }#stage .ba-ln.gone{ opacity:.3; text-decoration:line-through; text-decoration-color:rgba(244,74,106,.7); }#stage .ba-ln .k{ color:var(--code-keyword); }#stage .ba-ln .f{ color:var(--code-func); }#stage .ba-ln .s{ color:var(--code-str); }#stage .ba-ln .c{ color:var(--code-comment); }#stage .ba-ln .r{ color:var(--danger); }#stage .ba-ln .g{ color:var(--success); }
+
+</style>
+</head>
+<body>
+<div id="stage-wrap">
+  <div id="canvas">
+
+    <!-- ============ TITLE SCREEN ============ -->
+    <div id="title-screen">
+      <div id="logo-mark" style="background-image:url('data:image/jpeg;base64,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')"></div>
+      <div id="title-brand">MSDevBuild <span>— Multi-Stack Dev Build · by Suthahar</span></div>
+      <div id="title-main">Same app. <em>Two architectures.</em></div>
+      <div id="title-sub">Both work on day one. Only one survives day two.</div>
+      <div id="title-pill"><span class="live-dot"></span>8 steps · 22 sec · Security</div>
+      <div id="tap-hint"><svg viewBox="0 0 24 24" fill="none" style="width:22px;height:22px;vertical-align:-5px;margin-right:6px"><path d="M9 11V6a2 2 0 1 1 4 0v5m0 0V9.5a1.8 1.8 0 1 1 3.6 0V11m0 0a1.8 1.8 0 1 1 3.6 0v3.5A6.5 6.5 0 0 1 13.7 21h-1.4a6 6 0 0 1-5.2-3l-2.4-4a1.8 1.8 0 0 1 2.9-2.1L9 13.5" stroke="#8B95A7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Tap anywhere to play</div>
+      <div id="rec-hint">or press <b>D</b> to record one loop and download it</div>
+    </div>
+
+    <!-- ============ TOP BAR ============ -->
+    <div id="topbar">
+      <div id="topbar-avatar" style="background-image:url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wgARCADIAMgDASIAAhEBAxEB/8QAHQAAAQQDAQEAAAAAAAAAAAAAAAEFBgcDBAgCCf/EABYBAQEBAAAAAAAAAAAAAAAAAAABAv/aAAwDAQACEAMQAAAB6oAgAAEFDxS0dWVEl7VxAsQ6TuqFOr7d+eSn1O9cJdIluAgAsCBSgQgIKAAFYeTrA4sJM1et8Z/MmkZVydEshSWvdjSVW5O7AfUDNSN3ABACCilICQKi0AHLfPV2MA6uE/lERLdd25dBpkzQMrFKdOoJVd1QIiv0Y+YX0YSZoqCgCgCKhAAAFcd68mb1tR/ZXSG1uljQYWuQN5FW+XMhHojJdSuc/pn88vowm2AAKAAgEAAAtcs77e+w3w2eMpisulJFVusOlBoxwt91KjsrwSoo/u3jXrYsQVAVCFApAIABRFqgtfe1pZe0yJvSsZDJduoVArcqwdz1vkces2NYJelC9EpaIAqIsKIUIqCiKC+fRWsbsiv4lPuNbBFX+OVIdQ05Cq7Lhk1T2cTuBSeDqydTUb0bZtCKCKgoAioCiAKgeoXM4+V2y7zVHOl7+J3VUZZi2FLMFutBPWL14OjpVU1sAAAAoAgAACiKFfWFWRy9bfLtsl6Yom/Kzettvkwx/BE63IP4h53hb3z261LTFBAAFBAZB7KLp47DpvjtsLhrNtzDm37OuXV0JGnaPTPvaFVvE7bixzSk1hQZsIX30JwAH1RPnj0QdDDIHNXOWtiFxeQFQNvF7wm7bFPdPFneHR3K9xvjGNupuhWlC9GUkMAAAC59cN40wTL5ymsp7PB6DInjOY775/di3emeb8pfEdn7JER1JjExlrK0otXOo4t4gAKiinkNpAMYBk8AeM4GBQMiAdQWiEO+0EU9y6GmnlA0UAABQD//xAAwEAABBAEDAwMDAwMFAAAAAAACAQMEBQYAERIHEzAUISIQIDIVFkEjJDElMzRAQ//aAAgBAQABBQLwKu2rbqSzTW03q9ZO6sswuJKjbzBWt6lX0BKbrU2WqrPqS4c/6BEgDnXUI7N9RFFI1NXSQtfx/G22kJR1jnUSxx9rGOpFdkTvleeCM1nnUj9TEGkLUiQQuuGT6IKcFAtC2qjsKDrddq1HCmtcu35Or1yVfRKpbsyy7EKuZeH0L3OFhT0nQ4jEYB7E2O45jjaI/SgiSaMw0w87AldPM4/cTPk6xbvzKqsO6mO4k25Hq8KCOrdLHjJwREcD2IU3NtC1IjctOs7JdxeDmP2jtTOgyhmxPH1aecW8waMgw47e5NRuOpKKi7bq41tp1pN1H3eb1Ib1cxucYPYsNVSxnx9UkX9wYps0EMPkp6kGu/8ALXy1JT3d0pqunx5JPj96MgKD1UPCs8fVmOIW+KV/GM0faFle6b0PkKRtA1xN9hSL0fc1LiK0nrmzJ8U3tIyNXEROMfx9X3wSyoB7dPaTXNm7+2rihZ7Nfeg2SyROSKLLskaS1zWRCErXILVuVDnthCcKTGyL4S8RsUtMd8eZ0/6lFrB/0t0ma0ZWSzxq4lvIuYtM/JnFIZRlJTL0squI9Nlx8qnyZ620v1zcX43Nf+oWmDNAxU+OzHswqL/gSxV8XILPoIkF6ElVVegeto/IUM2Er94YxKz+4GqRhwnC7BkjNrgPIHvHmbKg1VAoRFDkHqn2td8txdBUnRCdZ5BDJttrmcYi0AuJqZsqWQc5OAx1SB48rZDvsJskE05WBhpwnJsk4yIUk2iW/isWU+TFNjVJN9WE5oPTvLxFzZHMbYGPReO6qisUeiP1+o7y6fVXkl5HDqxub8n3UzoVYmWkiaVflAsJT2EN9Zsv+k+/uVRiz96EWMEON5Mij8hjj75bJchUdW40U1p+o4vM0T+nm6Vti8ahHGxl92NZSD5CDXcdxiH6On8uQSmoNK1LBwMkNZdNj2JRYMXk3DF+6rucm0iGz6QJStUzcKwdlIupE0Kyt6YWzttiflz9kn8Pwy6MdMLzNo11MipKD9IbaRujjgT6I3qS7s2p8dZBbLJTpVXlAw/y5rl0CggyAKJMo8h9eLV020kEJl1GepbhnXfnx0sLVWlWwV3Vjcewe51OdWWPzsT6h1+UF4Z1lErGrbq9VQ9X3U65s9Puk9qZ+aEqHiav3xC/LabOwm6nRHn4ylJEraqWQyqcV+jTxsOUXV+0r0oOo9NffbY3cCoGz6uVcXVt1YuJup1g/Pe393fyFfiR8mxaJ88e71bUuuST0kNohMyYCRFSS2Ye2SV/Yf8Atoc6t8f1R9X4szUC7gWg5T1SeknLmuvvc9Kv1d9xAtkRd06asNHdpM2cKI/J0XIFVz27npXbSNsljGSfB+5HzTTUl0TVzcnfz+wfk2i7a/BemjDaUfJhpxRXaVshOAh6Qe6LR/05DJRnbyN6ay8B/a2vyNPcF31gVvxrZOTWFfb0Vyze1VpGIkAVTUllRM1F1Hm+SZNXd2H95psRf7ek+ippP8l9IU12DJfnRb2Bg2StQbPvoaSYqCrbQmMuC5HcIkNLeWxEbNpoiVNl+1z5B/5imk1tpfp/G2h+n4rhuVpeNFL+MZv4FHQ0zRxqniyZJyHN9Ls8P+Pt/8QAFBEBAAAAAAAAAAAAAAAAAAAAcP/aAAgBAwEBPwEp/8QAFBEBAAAAAAAAAAAAAAAAAAAAcP/aAAgBAgEBPwEp/8QAPxAAAQMCAwQGBQoGAwEAAAAAAQACAwQREiExEyJBURAwMmFxgQUUIEKRIzNDUlOhwdHh8GJjcoKisUBzsvH/2gAIAQEABj8C6meGQtqIwLNZFwPeU5kUUVGeF24ivla6Z7Dwa8gfBF7amRruYcbqwrDOB7s+8g30nRlp+0p9PgU2OCta2V2kcu6f+CXONgNSVJRUEgFAMjIPpD+SLsIkJ5XyW+SfFbmQ5excHNMG1dV02mymzt4FNpzelqnZBj9D4HrnyyuDI2C7nHgnejfRnzD8ny8X9w7lZti4auRG1c/vOavcBo/hsrne/uWKxseNkTcea94O6YNibS4xg8b5JuI71s7dbDTM7VS/PwH7CvonMazeOWJXL7y/Usg1kQx9yDpnWzzXzdyrgH4rS67ARLNEyWM4JYnYgeRXq1VhbWM0t7462gjxhrY2F+fj+iwNOGNupUcVPaHD7/FAukL3dwXZz71l7W0CiqIsnNOIeIUNQzNkrA8eB6wAWLWwt/H809/vOKHTr7GnRKfNMsvR5drsh1hZ9eIFNh48fFDoueg+HTn0SN4kK3EFUgsBaJuQ8OspajU7G1vAlCoLr7TsrxVh7OivbRYcQvyVwi1lgH2cox/CNOs9GgOaXbN+JvLkqP8A6mlGOFuMgXNwr+qS2/od+q2clM9nfZAvZg6CSi2Bgvwu03W5Dhjd72Cya/3hmbNQxdu2ajPHB+JVDPixP2QD7/Wtn1ldVl15YpHvB5AcFSYfsWf6Re6HaPPADVGsjowKIP2e0dln/v7k+dsUhbHYvLAH4b34ZHhwRbTuDw3UhNdJUZnUck/Zvu0ZrZx7WeYfRQtH+TjkEKSnDWl0gjaHa5/28FJTTRhz2GzsP7zW0cMKpYxlcOv5J7GfaX/xHWemQ89iOU+blRX+xZ/5QadLWspoHQuLZBvYdD5KSnponMpnOxYQbKSQRhksuqusjloUX0rGx4tdmcJU1UYHbZ97vBF/ii/BYlYXL0fI7slz2HzavScV7ta5tvv6z0s0ayRXHf8Au6pB/KaPuXei21x3q5s1YmvxOdpdWT21GTb8UNjIcxex0KvGS09y3yT4q4VA3S0oJ+9VNSfp5cvAdZTyO0III/fircGnJZo2QiYDgGbj3KCXEBhOiYRpbNNa1wDGuurU+8yPMIX4K9s0U6Qi4ComtNxsw6/jn1kb4y0Sx6Y9CsFQ5rpbXJZpr0WWziILycysYDnhpzjErm38gtnZ0GFtgO2s9nhv84Bn8UyKSzm/XanbBwJ42WHmrLaxzthja/C8OF7qKCPsRtDR1sUv9p6JjCbSP3boetT4ACg59LG931pBcp8xoaew5ZLOkiaLaNyV4CYsPA6FRljt1xs7o7lCOL/lD59dWVE9zHHGXZJksbsUbxia4cQpomi73DJMkkhZLUntOcLkLm36rhiRBdTAt1FkNjsCTxDbo427S+W+ttEwCK1vNaqerdmWjJvM8FE6ZxfLFI6MuPHj+PXekms1wB3wIKf6OkfkN6K/3j8UL5hXCzTgyPDfW2qN7u8Sixgw2WEI55ptM07rM3eKgLtZ3um/D8OudDMPWZZwWbBp4cb8kdk6z43brgsLtypHabz7wrSHChLTv2UB7JAzKJbVYu57QvlqXH/FGU5z4pGf1NV0Y4jc8XckLp7qSW9PcAwPzYbZeSbAAaastfZP4+B6raVdRHTs5yOsiyjjkrZOfYYixk/qcR92ny+/VNL3F7rXJPEprx7zQUHNJY8aEINq6Zz6dmsoGT+5BsEDYowLBWdMG+QTntrHCTwFkWzOx9zk/ZHZuOdhx7lY5HpbJG4se03Dm6hNjrWNr4hxOT/igzbeqVB+iny+B9m9ZVxQdznZ/BFtJFLWO59hqLYDHRM/lC7viUZaiZ88h96R1z0t+CaDwTY42l8jjYAcVR0cVM1ro4vlHHPP/wC3+C+VnsOQyRcXEnxVjvMV26jRFrl6y0bkna7ne01sFWXwj6Gbeb+iDPSFK+md9pFvN+GqBpaqKW/uh2fwT6f0afV4dNr75/JOc+Rz3HiT7IKt0TzStxCKHd7jcfqpNmztWtfgi92nJEcFYoH3Dqto3QqaLVxFx4+3kbK7XG/NXR9khZruUspG8+c591h+qYLbz1kswjZOjd2gnQS+SPLgVLlZr99vn1I9uxVRQZ7Vh2jcOpH7/wBqKZ8ZfHGew4WuFFVMBbjvunUZ2V26dG0Gq/FFj8+9YwLvhz8uPUjqI54XWewoTscGyN7cbjm1P9HPd8jMbxu5P5eawlYm6IjVOLBurfGEq7yDwsnYCRyurH2muQ6oEZFNpaiTBXMGv2o/NYOK59GK4xvyai5xJPRbSQceftf/xAApEAEAAgEDAwMFAAMBAAAAAAABABEhMUFRYXGBMJGhECCxwfDR4fFA/9oACAEBAAE/IfQDVEsWdLHdec+3vdi6sonnHmNXVz2bNS+u7oh5udFkm/lz8wHd2t+6/cx6eDm4zheywb/8AQDWigJlUnNc3u7XrxC4qsbLcazS37Zf8i2Dz40U36y6JzFqkRjFg6Ik6pT6PWs2xpLJa3drT1C/o9HDNAN5nPdtx4NvynRMoxft+CCwmimfvNk0KBfEBtmlATxE5bZZUpQ1sqZQI9hh+l1Lxd1CrV1daX5Sysa7aL3+x9Hkebtqe7ArcneCswWBtLyar4v8y8u4Z47ZPeJiWsNbhHATVdYxZrOYoKR1lLaDGCWyvgysYii6NMMyKJlgFvXPSX6gaVobLVvsYjZlPnEQpOpZ/uZz8kBL4X55TEACAqaxLjeUGjMvCWYULTGRy7tqU9yzzE5tD0LPUNKhLzu4orr1fiLucwVaOd5utlLI4WYa1Zmhr3jht6jM+msGk0Iyytc0bNwLEWB42+PQYfWsU/aZfiV8IDt/lzKVpKiihgKk0t8TfmY4Wk5ntUxoqY18MxXkE2BpzMJC6BjH0iNNNS72v3C1kkVVGn6hnnMAGRYztZ7xtyMpW06Qlg5xDdFoWPLMatJmCxyyzOv7mimNBRp6hPRuzosyu6HyS4cBTFw8bkqzoSrxiDB11S09iNJTl4lp3mXAOJfOsBC6x4LnIPyc+0GAmUYf9wI0cFJCp4xwPyTdgAW/t/UBNRo0eezEcGllV9sdPtxamYij82hSjFXTUmrdkTgXTcdiR0ZcQ98naXECwFRiyrS9SaxzbtK1o0dNZ1zN9Wb20zjfeO3SO08iY+EZKVW+I7alx0o/uLlYYODD+PU2xIHcP+xtOev7JQemiCYHgrLa9HmI1BbeamWVqBTDLvq5Zaht6y2pa4N4W6WdyIuOMxXreqWuq2194QraGGe/7Sf6I0j9TxcXp41Bf86RVa2PAIxhmu0rqdiG4p81D6CUsXxGFKQi0R6XB1BQcg9J5CxUwfPQI3MlHPAkEvTZ2GPy+32n33sMnKuoLBoHgkonRBWFeI5NgX81h3zJ4laTYXsIYpauWaXbPyR6XODEKqhKFHh7Bl16605Pz6loMq2zc12hQq5TvVV+00F5mQ8OqsxwqH89ptMkDYcocw5khKqzQVbhnTf5NqlTKoyadneOjzRAtGu76Eeps5RQbOpx1gEVcfAV6tQGC/zn7lNeGaQSNwbwxJzq9oBEqwE4iI1vP2GI7bgWHtMvN1r6AywJUCUW2JgdBlXYgV1X/gfFesdCZNSmleahXw9ATRmIlJOYFwb+SH6jXNBpWHa53lWZ3lUMFGtAkaGK6EqomloSpWrpC4M1b+B2ur6XGDo9nKnwTx61kiWVwp8DBNauNuX6d5a3kucErE31HclTVuWoQMymx2u0qgGEsmqozWXJly9sGnR4gH1WOBafAfPrA+pW3cpcVPmNq8usOGZQA8P9NpmqVvvLIocwI652l0J7l7VDWAfyGd5CBGeHWaq3A6dkGY3l2XwGADG6jUitLcxVdeb49J3xeLduZUVsFfkc/Eq+6i/11gzssdqO8dr711qn5GKqe8FuZvi5cPylWTw7HxMk08fuIYDZDI+JWFaJHwzZKDCdaOgINI7TT6Xf/JScjMDKNu7NfJK35xLvsP5giWZPs57EzvbUygg6L8jn4lp+xX5Q+AmrBhnvMHVWFylrdIToh2g3BD2pxiVM+t5O7SufndJrP0gfEqpvDqijuEeAOZfqU2F7Rwymv4b6+/2k8eVX0HPhU/skvsfMqOu6Ve6yR/3/ABX+MSUFt5Zd1lm/2PtFpr2iQupuqtUMdapHNSdYBt2zfmKpxmyBg+AxoZeEbExtea4Bz2d5P8eYlfaYmoo6QkYWy2SMPVdfcOwcy6gsdZkm7WjKANjXUUfzlhm0yDwBcG0oVpA3elUwYRbuTpeZu5ApEt3JQyy6Ff7WePvF0MEuaVvX2Eoy0eZnpmBwNoRRZ4Vuh11phLZ7zN5cwjjW12io+0Oku7NR9tGumkDaTDUB3jo2lmzebo7iwqau1+/H3GYtaS/JrOT6DEDMo+pMMzoMHZOHpD7dWUv2dYY8zRjQ+D37wwjXDF2BcSpNNI4O+YAsDRuLzLu6wAs14+3+4jBSaj91fGMcjLr3m6HVNJAmvxmiLMc51gqBDImJoJnWgbn5HnmqMGeAdYW/umdlkr+6xbsVOHduaiOwrQfhYlqcP2ad5//aAAwDAQACAAMAAAAQCCGEggswsE6cC2SwAQtx5c0+mwOo0BDWih8ocEAEy0QQ0mf9coQAKSYz797RZYkqAiWA87xdhgooaMUIoXPbDvbQMUMsM8Q/Idwpk88A88I0sI/B0Iw8w44Akku400s808Y8sMMgswQ88MM8wcwoE+7088o8gcA88ACDcgc88//EAB0RAAIDAAIDAAAAAAAAAAAAAAERABAwIEAhMVD/2gAIAQMBAT8Q6Siiy9QWeqKGqioYCnHBkeDyc8Q/HOp5f//EABwRAAEFAQEBAAAAAAAAAAAAAAEAESAwMRBAUP/aAAgBAgEBPxBPY1YmUJmGdek+vU3ChSPrZaZ//8QAKBABAAICAgEEAgIDAQEAAAAAAQARITFBUWEQcYGRIKGx8MHh8TDR/9oACAEBAAE/EPwfVLgtqiYUKVZUoAWCAhTnECIWmMAjzXxStY5izTXWaqaSs6p9sTLMHmlxkf3Kg3KCocJ/qGJaePtq8e4/aJMWwLeqtUcFzi5zqeRNPqNy4MS4Ffm4m46n5QItVcAHMUzrcBVZXNbAUKZI0SSumEtsWHfnXMUriKLbNFqU3CQoq0tH35lUBvulV7QIIKrvrip4qQmYB7aaMAX0gWDGl3saOr1rUUTTNDC7Aauu0PRxBWVFgc+i1Fsg/UWz0WsootGdanoJpfjhfMsBRwrmlYFsTHtYIs4X3ZVK3U2iLUUxpH7BihbUYpzTn3qXtDarwexahQaWCx3TBwBVVT2GUonoLXw2J9MVVXcbi3cOL7nbXMzQPDYi7ORHUsPV3Kaq7miDfoGoNx9CO5iobl6I8sQpwiXb6cYY/JHitWaU+t+8pSFZE58Nca6hN4QWC6bpXNHW4OnCqBlrpCO6yUpxu90VC0eW971CG4BQ27OpXvO1jTAVcatHgi0pKglcWkqSC02YqhGkHIkVGHcGFo0AbHAoFQCWNkGD3Fs9CM49CuYBUAlwl6pYmPL/AAH2nK/6gmvGWn6g1+VRfbVGkegk2reijhoqAhO2tZ9/+TGV4wV6DIZi9dQEAINED5IhuB1XmCV4FOeGV6U7BH2FqG6Q/YHN2D9CR9Qz6LR+DiBDG3IUKQJW7DV1QXd1FKbe+QwPbn5lOGQPaABEB7tynWFrVGNdMOCFqtwlRfl/MNM3/cEdIvSiPXuMB/iKJsO1lXMZTWs6zANbjkWCv0PzK5zyeR9qPzE3fpxBv05PwHDqGSU0EatiI8GH9HcwNJp4FPig+fiWlCO641KgQmLL/Up5yU4Uv5x9SinZb8IrUm0bONXCNOVhUCPR/wBJkpzu/wC+IbhaFxEGhDtxMxZYrVU7jtoIbTKHi/RdTcH0uDcW5c2PoVxUzXYNhp4vV+JU9sSrefl+lbhQDguNhWzDGkNJR/UOhiLvn+7mMgXmKEFXiXWw4xcqkUuroI7tJBpWyoiBTkmvgyBbi8WRlrEBQFMBbR4tjKg+rBqVKsmsQIKVQEG4gyWrV9MEosRjpf8AMf7BaZLyKfYbb9rLkhcRimyQV4Y68Kb37HJdfcPKwCiO8xNgjJxUYblBt+pSRXssgFB7t7xAQwrKu81c6UohvYZzswagX6NkHyOT2h3VHXIlTESA9qsLBlc3zR5jmJUCz1rEpqXiGJsmiWoc+KFHs+G8SqJctJu85u03KtFZ2v3KVv7qofUtZloOh5A1QFGptkSiecKXgZNeWzI8snmAJWaaulvMYy5IA6LLfE8+iWJShMG12gxBtKiqpagglGhKUAUcfy0LiSSfn44i5PcBaqxZEoFqWuw4O0F/YByB8K/SMcxuV36DFlYubxAr0N7yl2tH7EQEJrJjlgGlKIBuG/4V1U2hSUUixMVH47zN8LDAFKuoy9xIktlsyK283HVQstOYA1gr/tQDp2vKSpzFyWj8L2F8uFHcKeSkWPNMSzvhyVCksUGrD/JfiFBdboKp+g+orce4Nx9BqLcC5VczUIFYoFlgq+F9oViC+4VP4h08QDiBzNKHPNZNzYAlGVbfncpCJAo1hbjzK/UKv+ZxfQm14Jd5gwj2N8lSspoaYX7RkGlW5nWIioQEcxgjfDyp8YK+ZfGqzmovs4uGvS/QV6DUu4YPR23gpiq62ZfUQ5BccRr7IZXN/WP9wQehwOTn9/qNUNxuGy+9PnxEb1LxlB7NR0gVHsGYrpJ5gJmvdgw2AtoJg7Hdd+8IsxkMjBMBEebibob+JbTRKyAUp9sE2tDg/wAzPj0C4lehcfUL9BlJyawFLEFERTTziXgNwqKBAWgyo1qGApsZ8Vc6ApQAXn2ruW6vIvW6GUU//SoJb6767AmtjxmYmmgFB5CWquOdwkNu2Ei8CgGtJvrTdCMwyopsWwrl1ELBdIRea4urzCKKCI0B/mC1rxE4E3ACjWjKh5FZbOWFbWFvLj0GO/QfQxFuDXoUa9MsqIrh2+LB8kQtt3jMo1oy7TrVN1f3CP8AAjkQEgYUUrFIdEB/AxhKwaLq+9JqKyo2crZsY88S9cgK1zas9558x8XOlgbBhxunzKK0J2JxfXH3FwbIfYiUnM+UP4jFrPItf65X8Rz+YLKM6j7g2xbUX3NVVflH9muIiRxzN8HPbBTbu3owZU4u6bgwcmWL7DezuUDcrYr0pqo4ilGMG8hVLrcKtgEUaVpPf9wyVZKgOTHYL7mohZxoFKayWbgn3MHDpLNw4qyz7ewD8q/EjuZYGQIf9er4i9Wp7ZvgnT3eZSmdFtZ6qIbqGwZKKxc29hWYvNwxogROU3n9wrEJbnb2NHEYUOtYsOvf/M8Q8nf9qWoo5bXxHqZ0ZAQ8sm/PtMojbsL7Ziv/AFSXxIyZFvhbtjlHMyU1sB9X73u4fKJNAb/ycPaMuQioD35lLwp6AVogkaw3V6SNhfKsfSv3K+2LRt83nfbB6Oimz5SqiOiK07EZzH6A5O75/oQKBFr+4yOyHVotaDlHBaxO3WRxZJ1y0ioWmmqxf4G/xEPBT2+C2vBbHk0oZndd/jPuNppqROl2vgD1LzY/sSqdui3qZbTKuIWQnrmkA4RHHH7jSiTVgVVotZaYq8DVh7VbtJQAUKOIXSvSP5IeKcMTpr9paxBUPkDMG6FaCq+C9WNXV4iXxBUo2JBVY0xbVdwmLHpOgZGAMUv1jxIvKPmMYsB4xW+2WLqAkELEyP4Z18oFPhv4hnHGSH6wsxwJRg3nGfKJlxGyvFjGKHO7mQaSiKxeHb2XHnCYlam48HMTyGbCgDla+41dq9ZUtBMBt6C7HpzeheMB/ccw7AlfbEjqa5oeYUJHUa7QSodljIkdgNANBlfaPuPxpERpOSJU3GTwkUe+FliAss8qqH2ln6JAL2TeEIiaW1jvVxeK+RqWdRKfu1XMEt7au65iK7MW4OSYYUafeLmTaZ2lTcukvf8Af73FTZzFGvkZeFj/AN+fYDiHZbbXcLQLYcf9iKoNf7lw55MjL4E+QcxHofDmnY/4gsE6d8L7p8FESJSYR/F2vkhYHOFC88CxDkbwwht/QmbcLvuHrWLjbzLpcIEwOx7QeoMZxCLlFFlyvhadQreoA2KXoo+0itWL6HmCY0qvIXDOlCaHq5mJOKFnxFy6IAK8XtAoFIGBcfUexW0h4PyD3lJVTdbZdbXMCo2CvvBpub0Rg/pDrRomtSg5zmazSOXEoKJkAaIgR/NMNTriJTycGiNVZqosBmgoYil4PskVYHMoTnL49phlheVC3j/ea0wBmjCCz5+JQlo1cCveXuqYdeDEdE7gfwUZ6tW/yFghAPtOqrxAUcoH1AuWaYdvUsoaNSiYrEaCu4VXhq/eYMXOc6+A9yMJ0sJbQaUc728DD4RCxDcUritqgA8Ag7YWIO0otE398fB8yzBBGHLGxEsK4dwKWaBtfUucAcyUyUvUXtKuMLafTWOF9R+DqBSP4DU29xAQHi7ibIqnjy/6lDHRwbIUomK18TFYbrupVIPdqKN7iA502rivMapfiHg0eWMKwT4jhCELD2MwBjwht3UyG8jFIxtPRovdde8rm2GaUrK9eUUl1KKiwvdFuDo37y4wBUo/P9x9NwMObK/v9/QIQOkB+w4edMdAQaR4/Ax76dT/2Q==')"></div>
+      <div id="topbar-text">
+        <div id="topbar-name">MSDevBuild</div>
+        <div id="topbar-tag">Multi-Stack Dev Build · by Suthahar</div>
+      </div>
+      <div id="record-toggle" title="Record one loop and download it as MP4 (D)"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0 0 4-4m-4 4-4-4" stroke="#3AA0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="#3AA0FF" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div id="sound-toggle" title="Toggle sound (S)"><svg viewBox="0 0 24 24" fill="none"><path d="M11 5 6 9H3v6h3l5 4z" fill="#3AA0FF"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" stroke="#3AA0FF" stroke-width="2" stroke-linecap="round"/></svg></div>
+    </div>
+
+    <!-- ============ STAGE (topic-specific) ============ -->
+    <div id="stage">
+
+    <div class="ba-scene" id="ba-scene">
+
+      <div class="ba-pills">
+        <div class="ba-pill" id="ba-pill-1">
+          <span class="ba-pill-l" id="ba-pill-l-1">INSECURE</span>
+          <span class="ba-pill-v" id="ba-pill-v-1">ships</span>
+          <span class="ba-pill-u" id="ba-pill-u-1"></span>
+        </div>
+        <div class="ba-pill" id="ba-pill-2">
+          <span class="ba-pill-l" id="ba-pill-l-2">SECURE</span>
+          <span class="ba-pill-v" id="ba-pill-v-2">ships</span>
+          <span class="ba-pill-u" id="ba-pill-u-2"></span>
+        </div>
+      </div>
+
+      <div class="ba-map" id="ba-map">
+        <div class="ba-wire h" id="ba-w-bad"><i></i><i></i><i></i><i></i></div>
+        <div class="ba-wire h" id="ba-w-s1"><i></i><i></i><i></i><i></i></div>
+        <div class="ba-wire h" id="ba-w-s2"><i></i><i></i><i></i><i></i></div>
+        <div class="ba-wire h" id="ba-w-s3"><i></i><i></i><i></i><i></i></div>
+        <div class="ba-cut" id="ba-x-bad">✕</div>
+        <div class="ba-node ba-n-app1" id="ba-n-app1">
+          <span class="ba-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10.5 18.5h3"/></svg></span>
+          <span class="ba-lab" id="ba-l-app1">APP</span>
+          <span class="ba-cnt" id="ba-c-app1"></span>
+        </div>
+        <div class="ba-node ba-n-db1" id="ba-n-db1">
+          <span class="ba-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="7.5" ry="3"/><path d="M4.5 5.5v13c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-13"/><path d="M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"/></svg></span>
+          <span class="ba-lab" id="ba-l-db1">AZURE SQL</span>
+          <span class="ba-cnt" id="ba-c-db1"></span>
+        </div>
+        <div class="ba-node ba-n-app2" id="ba-n-app2">
+          <span class="ba-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10.5 18.5h3"/></svg></span>
+          <span class="ba-lab" id="ba-l-app2">APP</span>
+          <span class="ba-cnt" id="ba-c-app2"></span>
+        </div>
+        <div class="ba-node ba-n-fd" id="ba-n-fd">
+          <span class="ba-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4.5 5.5v6c0 4.6 3.1 8.6 7.5 10 4.4-1.4 7.5-5.4 7.5-10v-6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+          <span class="ba-lab" id="ba-l-fd">FRONT DOOR</span>
+          <span class="ba-cnt" id="ba-c-fd"></span>
+        </div>
+        <div class="ba-node ba-n-api" id="ba-n-api">
+          <span class="ba-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="1.6"/><rect x="3" y="14" width="18" height="6" rx="1.6"/><path d="M7 7h.01M7 17h.01"/><path d="M11 7h5M11 17h5"/></svg></span>
+          <span class="ba-lab" id="ba-l-api">YOUR API</span>
+          <span class="ba-cnt" id="ba-c-api"></span>
+        </div>
+        <div class="ba-node ba-n-db2" id="ba-n-db2">
+          <span class="ba-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="7.5" ry="3"/><path d="M4.5 5.5v13c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-13"/><path d="M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"/></svg></span>
+          <span class="ba-lab" id="ba-l-db2">AZURE SQL</span>
+          <span class="ba-cnt" id="ba-c-db2"></span>
+        </div>
+
+        <div class="ba-payoff" id="ba-payoff">
+          <div class="ba-po-nums">
+            <span class="ba-po-a" id="ba-po-a">9 sec</span>
+            <span class="ba-po-ar">→</span>
+            <span class="ba-po-b" id="ba-po-b">never</span>
+          </div>
+          <div class="ba-po-h" id="ba-po-h">to reach your customer data</div>
+          <div class="ba-po-s" id="ba-po-s">the same app, two architectures</div>
+        </div>
+
+      </div>
+
+      <div class="ba-code" id="ba-code">
+        <div class="ba-code-h" id="ba-code-h">the same feature, both ways</div>
+        <div class="ba-code-b">
+          <div class="ba-ln" id="ba-ln-1"></div>
+          <div class="ba-ln" id="ba-ln-2"></div>
+          <div class="ba-ln" id="ba-ln-3"></div>
+          <div class="ba-ln" id="ba-ln-4"></div>
+          <div class="ba-ln" id="ba-ln-5"></div>
+        </div>
+      </div>
+
+    </div>
+
+    </div>
+
+    <!-- ============ CAPTION CARD ============ -->
+    <div id="caption-wrap">
+      <div id="stage-num">STEP 01 / 08</div>
+      <div id="stage-title"></div>
+      <div id="stage-desc"></div>
+    </div>
+
+    <!-- ============ STATUS BAR ============ -->
+    <div id="statusbar">
+      <svg id="status-icon" viewBox="0 0 24 24" fill="none"><svg viewBox="0 0 24 24" fill="none"><path d="M8 3 2 12l6 9M16 3l6 9-6 9" stroke="#3AA0FF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></svg>
+      <span id="status-text"></span>
+      <div class="thinking-wrap" id="thinking">
+        <div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div>
+      </div>
+    </div>
+
+    <!-- ============ PROGRESS + BRAND STRIP ============ -->
+    <div id="progress-track"></div>
+    <div id="bottom-bar">
+      <div class="b-left">MSDEVBUILD — <b>Multi-Stack Dev Build</b></div>
+      <div class="b-right"><span class="live-dot"></span>22s · loops</div>
+    </div>
+
+    <!-- ============ END CARD ============ -->
+    <div id="end-card">
+      <div id="end-avatar" style="background-image:url('data:image/jpeg;base64,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')"></div>
+      <div id="end-check"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.5 4.5L19 7.5" stroke="#0E1420" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div id="end-title">Both work. Only one survives.</div>
+      <div id="end-sub">The insecure one is not slower or buggier — it just cannot be fixed without a new app release.</div>
+      <div id="end-actions">
+        <div class="act primary"><svg viewBox="0 0 24 24" fill="none"><path d="M6 3.5h12a1 1 0 0 1 1 1v16l-7-4.4-7 4.4v-16a1 1 0 0 1 1-1z" stroke="#3AA0FF" stroke-width="2" stroke-linejoin="round"/></svg>Save this</div>
+        <div class="act"><svg viewBox="0 0 24 24" fill="none"><circle cx="10" cy="8" r="3.4" stroke="#8B95A7" stroke-width="2"/><path d="M3.6 20c1-3.4 3.5-5.2 6.4-5.2 1 0 2 .2 2.8.6" stroke="#8B95A7" stroke-width="2" stroke-linecap="round"/><path d="M17.5 14v6M14.5 17h6" stroke="#8B95A7" stroke-width="2" stroke-linecap="round"/></svg>Follow for more</div>
+      </div>
+      <div id="end-cta"><span class="live-dot"></span>Learn more at https://blog.msdevbuild.com/</div>
+      <div id="end-tagline">Multi-Stack Dev Build · by Suthahar</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+"use strict";
+var Mp4Muxer = (() => {
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    }
+    return to;
+  };
+  var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+  var __accessCheck = (obj, member, msg) => {
+    if (!member.has(obj))
+      throw TypeError("Cannot " + msg);
+  };
+  var __privateGet = (obj, member, getter) => {
+    __accessCheck(obj, member, "read from private field");
+    return getter ? getter.call(obj) : member.get(obj);
+  };
+  var __privateAdd = (obj, member, value) => {
+    if (member.has(obj))
+      throw TypeError("Cannot add the same private member more than once");
+    member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+  };
+  var __privateSet = (obj, member, value, setter) => {
+    __accessCheck(obj, member, "write to private field");
+    setter ? setter.call(obj, value) : member.set(obj, value);
+    return value;
+  };
+  var __privateWrapper = (obj, member, setter, getter) => ({
+    set _(value) {
+      __privateSet(obj, member, value, setter);
+    },
+    get _() {
+      return __privateGet(obj, member, getter);
+    }
+  });
+  var __privateMethod = (obj, member, method) => {
+    __accessCheck(obj, member, "access private method");
+    return method;
+  };
+
+  // src/index.ts
+  var src_exports = {};
+  __export(src_exports, {
+    ArrayBufferTarget: () => ArrayBufferTarget,
+    FileSystemWritableFileStreamTarget: () => FileSystemWritableFileStreamTarget,
+    Muxer: () => Muxer,
+    StreamTarget: () => StreamTarget
+  });
+
+  // src/misc.ts
+  var bytes = new Uint8Array(8);
+  var view = new DataView(bytes.buffer);
+  var u8 = (value) => {
+    return [(value % 256 + 256) % 256];
+  };
+  var u16 = (value) => {
+    view.setUint16(0, value, false);
+    return [bytes[0], bytes[1]];
+  };
+  var i16 = (value) => {
+    view.setInt16(0, value, false);
+    return [bytes[0], bytes[1]];
+  };
+  var u24 = (value) => {
+    view.setUint32(0, value, false);
+    return [bytes[1], bytes[2], bytes[3]];
+  };
+  var u32 = (value) => {
+    view.setUint32(0, value, false);
+    return [bytes[0], bytes[1], bytes[2], bytes[3]];
+  };
+  var i32 = (value) => {
+    view.setInt32(0, value, false);
+    return [bytes[0], bytes[1], bytes[2], bytes[3]];
+  };
+  var u64 = (value) => {
+    view.setUint32(0, Math.floor(value / 2 ** 32), false);
+    view.setUint32(4, value, false);
+    return [bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]];
+  };
+  var fixed_8_8 = (value) => {
+    view.setInt16(0, 2 ** 8 * value, false);
+    return [bytes[0], bytes[1]];
+  };
+  var fixed_16_16 = (value) => {
+    view.setInt32(0, 2 ** 16 * value, false);
+    return [bytes[0], bytes[1], bytes[2], bytes[3]];
+  };
+  var fixed_2_30 = (value) => {
+    view.setInt32(0, 2 ** 30 * value, false);
+    return [bytes[0], bytes[1], bytes[2], bytes[3]];
+  };
+  var ascii = (text, nullTerminated = false) => {
+    let bytes2 = Array(text.length).fill(null).map((_, i) => text.charCodeAt(i));
+    if (nullTerminated)
+      bytes2.push(0);
+    return bytes2;
+  };
+  var last = (arr) => {
+    return arr && arr[arr.length - 1];
+  };
+  var lastPresentedSample = (samples) => {
+    let result = void 0;
+    for (let sample of samples) {
+      if (!result || sample.presentationTimestamp > result.presentationTimestamp) {
+        result = sample;
+      }
+    }
+    return result;
+  };
+  var intoTimescale = (timeInSeconds, timescale, round = true) => {
+    let value = timeInSeconds * timescale;
+    return round ? Math.round(value) : value;
+  };
+  var rotationMatrix = (rotationInDegrees) => {
+    let theta = rotationInDegrees * (Math.PI / 180);
+    let cosTheta = Math.cos(theta);
+    let sinTheta = Math.sin(theta);
+    return [
+      cosTheta,
+      sinTheta,
+      0,
+      -sinTheta,
+      cosTheta,
+      0,
+      0,
+      0,
+      1
+    ];
+  };
+  var IDENTITY_MATRIX = rotationMatrix(0);
+  var matrixToBytes = (matrix) => {
+    return [
+      fixed_16_16(matrix[0]),
+      fixed_16_16(matrix[1]),
+      fixed_2_30(matrix[2]),
+      fixed_16_16(matrix[3]),
+      fixed_16_16(matrix[4]),
+      fixed_2_30(matrix[5]),
+      fixed_16_16(matrix[6]),
+      fixed_16_16(matrix[7]),
+      fixed_2_30(matrix[8])
+    ];
+  };
+  var deepClone = (x) => {
+    if (!x)
+      return x;
+    if (typeof x !== "object")
+      return x;
+    if (Array.isArray(x))
+      return x.map(deepClone);
+    return Object.fromEntries(Object.entries(x).map(([key, value]) => [key, deepClone(value)]));
+  };
+  var isU32 = (value) => {
+    return value >= 0 && value < 2 ** 32;
+  };
+
+  // src/box.ts
+  var box = (type, contents, children) => ({
+    type,
+    contents: contents && new Uint8Array(contents.flat(10)),
+    children
+  });
+  var fullBox = (type, version, flags, contents, children) => box(
+    type,
+    [u8(version), u24(flags), contents ?? []],
+    children
+  );
+  var ftyp = (details) => {
+    let minorVersion = 512;
+    if (details.fragmented)
+      return box("ftyp", [
+        ascii("iso5"),
+        // Major brand
+        u32(minorVersion),
+        // Minor version
+        // Compatible brands
+        ascii("iso5"),
+        ascii("iso6"),
+        ascii("mp41")
+      ]);
+    return box("ftyp", [
+      ascii("isom"),
+      // Major brand
+      u32(minorVersion),
+      // Minor version
+      // Compatible brands
+      ascii("isom"),
+      details.holdsAvc ? ascii("avc1") : [],
+      ascii("mp41")
+    ]);
+  };
+  var mdat = (reserveLargeSize) => ({ type: "mdat", largeSize: reserveLargeSize });
+  var free = (size) => ({ type: "free", size });
+  var moov = (tracks, creationTime, fragmented = false) => box("moov", null, [
+    mvhd(creationTime, tracks),
+    ...tracks.map((x) => trak(x, creationTime)),
+    fragmented ? mvex(tracks) : null
+  ]);
+  var mvhd = (creationTime, tracks) => {
+    let duration = intoTimescale(Math.max(
+      0,
+      ...tracks.filter((x) => x.samples.length > 0).map((x) => {
+        const lastSample = lastPresentedSample(x.samples);
+        return lastSample.presentationTimestamp + lastSample.duration;
+      })
+    ), GLOBAL_TIMESCALE);
+    let nextTrackId = Math.max(...tracks.map((x) => x.id)) + 1;
+    let needsU64 = !isU32(creationTime) || !isU32(duration);
+    let u32OrU64 = needsU64 ? u64 : u32;
+    return fullBox("mvhd", +needsU64, 0, [
+      u32OrU64(creationTime),
+      // Creation time
+      u32OrU64(creationTime),
+      // Modification time
+      u32(GLOBAL_TIMESCALE),
+      // Timescale
+      u32OrU64(duration),
+      // Duration
+      fixed_16_16(1),
+      // Preferred rate
+      fixed_8_8(1),
+      // Preferred volume
+      Array(10).fill(0),
+      // Reserved
+      matrixToBytes(IDENTITY_MATRIX),
+      // Matrix
+      Array(24).fill(0),
+      // Pre-defined
+      u32(nextTrackId)
+      // Next track ID
+    ]);
+  };
+  var trak = (track, creationTime) => box("trak", null, [
+    tkhd(track, creationTime),
+    mdia(track, creationTime)
+  ]);
+  var tkhd = (track, creationTime) => {
+    let lastSample = lastPresentedSample(track.samples);
+    let durationInGlobalTimescale = intoTimescale(
+      lastSample ? lastSample.presentationTimestamp + lastSample.duration : 0,
+      GLOBAL_TIMESCALE
+    );
+    let needsU64 = !isU32(creationTime) || !isU32(durationInGlobalTimescale);
+    let u32OrU64 = needsU64 ? u64 : u32;
+    let matrix;
+    if (track.info.type === "video") {
+      matrix = typeof track.info.rotation === "number" ? rotationMatrix(track.info.rotation) : track.info.rotation;
+    } else {
+      matrix = IDENTITY_MATRIX;
+    }
+    return fullBox("tkhd", +needsU64, 3, [
+      u32OrU64(creationTime),
+      // Creation time
+      u32OrU64(creationTime),
+      // Modification time
+      u32(track.id),
+      // Track ID
+      u32(0),
+      // Reserved
+      u32OrU64(durationInGlobalTimescale),
+      // Duration
+      Array(8).fill(0),
+      // Reserved
+      u16(0),
+      // Layer
+      u16(0),
+      // Alternate group
+      fixed_8_8(track.info.type === "audio" ? 1 : 0),
+      // Volume
+      u16(0),
+      // Reserved
+      matrixToBytes(matrix),
+      // Matrix
+      fixed_16_16(track.info.type === "video" ? track.info.width : 0),
+      // Track width
+      fixed_16_16(track.info.type === "video" ? track.info.height : 0)
+      // Track height
+    ]);
+  };
+  var mdia = (track, creationTime) => box("mdia", null, [
+    mdhd(track, creationTime),
+    hdlr(track.info.type === "video" ? "vide" : "soun"),
+    minf(track)
+  ]);
+  var mdhd = (track, creationTime) => {
+    let lastSample = lastPresentedSample(track.samples);
+    let localDuration = intoTimescale(
+      lastSample ? lastSample.presentationTimestamp + lastSample.duration : 0,
+      track.timescale
+    );
+    let needsU64 = !isU32(creationTime) || !isU32(localDuration);
+    let u32OrU64 = needsU64 ? u64 : u32;
+    return fullBox("mdhd", +needsU64, 0, [
+      u32OrU64(creationTime),
+      // Creation time
+      u32OrU64(creationTime),
+      // Modification time
+      u32(track.timescale),
+      // Timescale
+      u32OrU64(localDuration),
+      // Duration
+      u16(21956),
+      // Language ("und", undetermined)
+      u16(0)
+      // Quality
+    ]);
+  };
+  var hdlr = (componentSubtype) => fullBox("hdlr", 0, 0, [
+    ascii("mhlr"),
+    // Component type
+    ascii(componentSubtype),
+    // Component subtype
+    u32(0),
+    // Component manufacturer
+    u32(0),
+    // Component flags
+    u32(0),
+    // Component flags mask
+    ascii("mp4-muxer-hdlr", true)
+    // Component name
+  ]);
+  var minf = (track) => box("minf", null, [
+    track.info.type === "video" ? vmhd() : smhd(),
+    dinf(),
+    stbl(track)
+  ]);
+  var vmhd = () => fullBox("vmhd", 0, 1, [
+    u16(0),
+    // Graphics mode
+    u16(0),
+    // Opcolor R
+    u16(0),
+    // Opcolor G
+    u16(0)
+    // Opcolor B
+  ]);
+  var smhd = () => fullBox("smhd", 0, 0, [
+    u16(0),
+    // Balance
+    u16(0)
+    // Reserved
+  ]);
+  var dinf = () => box("dinf", null, [
+    dref()
+  ]);
+  var dref = () => fullBox("dref", 0, 0, [
+    u32(1)
+    // Entry count
+  ], [
+    url()
+  ]);
+  var url = () => fullBox("url ", 0, 1);
+  var stbl = (track) => {
+    const needsCtts = track.compositionTimeOffsetTable.length > 1 || track.compositionTimeOffsetTable.some((x) => x.sampleCompositionTimeOffset !== 0);
+    return box("stbl", null, [
+      stsd(track),
+      stts(track),
+      stss(track),
+      stsc(track),
+      stsz(track),
+      stco(track),
+      needsCtts ? ctts(track) : null
+    ]);
+  };
+  var stsd = (track) => fullBox("stsd", 0, 0, [
+    u32(1)
+    // Entry count
+  ], [
+    track.info.type === "video" ? videoSampleDescription(
+      VIDEO_CODEC_TO_BOX_NAME[track.info.codec],
+      track
+    ) : soundSampleDescription(
+      AUDIO_CODEC_TO_BOX_NAME[track.info.codec],
+      track
+    )
+  ]);
+  var videoSampleDescription = (compressionType, track) => box(compressionType, [
+    Array(6).fill(0),
+    // Reserved
+    u16(1),
+    // Data reference index
+    u16(0),
+    // Pre-defined
+    u16(0),
+    // Reserved
+    Array(12).fill(0),
+    // Pre-defined
+    u16(track.info.width),
+    // Width
+    u16(track.info.height),
+    // Height
+    u32(4718592),
+    // Horizontal resolution
+    u32(4718592),
+    // Vertical resolution
+    u32(0),
+    // Reserved
+    u16(1),
+    // Frame count
+    Array(32).fill(0),
+    // Compressor name
+    u16(24),
+    // Depth
+    i16(65535)
+    // Pre-defined
+  ], [
+    VIDEO_CODEC_TO_CONFIGURATION_BOX[track.info.codec](track),
+    track.info.decoderConfig.colorSpace ? colr(track) : null
+  ]);
+  var COLOR_PRIMARIES_MAP = {
+    "bt709": 1,
+    // ITU-R BT.709
+    "bt470bg": 5,
+    // ITU-R BT.470BG
+    "smpte170m": 6
+    // ITU-R BT.601 525 - SMPTE 170M
+  };
+  var TRANSFER_CHARACTERISTICS_MAP = {
+    "bt709": 1,
+    // ITU-R BT.709
+    "smpte170m": 6,
+    // SMPTE 170M
+    "iec61966-2-1": 13
+    // IEC 61966-2-1
+  };
+  var MATRIX_COEFFICIENTS_MAP = {
+    "rgb": 0,
+    // Identity
+    "bt709": 1,
+    // ITU-R BT.709
+    "bt470bg": 5,
+    // ITU-R BT.470BG
+    "smpte170m": 6
+    // SMPTE 170M
+  };
+  var colr = (track) => box("colr", [
+    ascii("nclx"),
+    // Colour type
+    u16(COLOR_PRIMARIES_MAP[track.info.decoderConfig.colorSpace.primaries]),
+    // Colour primaries
+    u16(TRANSFER_CHARACTERISTICS_MAP[track.info.decoderConfig.colorSpace.transfer]),
+    // Transfer characteristics
+    u16(MATRIX_COEFFICIENTS_MAP[track.info.decoderConfig.colorSpace.matrix]),
+    // Matrix coefficients
+    u8((track.info.decoderConfig.colorSpace.fullRange ? 1 : 0) << 7)
+    // Full range flag
+  ]);
+  var avcC = (track) => track.info.decoderConfig && box("avcC", [
+    // For AVC, description is an AVCDecoderConfigurationRecord, so nothing else to do here
+    ...new Uint8Array(track.info.decoderConfig.description)
+  ]);
+  var hvcC = (track) => track.info.decoderConfig && box("hvcC", [
+    // For HEVC, description is a HEVCDecoderConfigurationRecord, so nothing else to do here
+    ...new Uint8Array(track.info.decoderConfig.description)
+  ]);
+  var vpcC = (track) => {
+    if (!track.info.decoderConfig) {
+      return null;
+    }
+    let decoderConfig = track.info.decoderConfig;
+    if (!decoderConfig.colorSpace) {
+      throw new Error(`'colorSpace' is required in the decoder config for VP9.`);
+    }
+    let parts = decoderConfig.codec.split(".");
+    let profile = Number(parts[1]);
+    let level = Number(parts[2]);
+    let bitDepth = Number(parts[3]);
+    let chromaSubsampling = 0;
+    let thirdByte = (bitDepth << 4) + (chromaSubsampling << 1) + Number(decoderConfig.colorSpace.fullRange);
+    let colourPrimaries = 2;
+    let transferCharacteristics = 2;
+    let matrixCoefficients = 2;
+    return fullBox("vpcC", 1, 0, [
+      u8(profile),
+      // Profile
+      u8(level),
+      // Level
+      u8(thirdByte),
+      // Bit depth, chroma subsampling, full range
+      u8(colourPrimaries),
+      // Colour primaries
+      u8(transferCharacteristics),
+      // Transfer characteristics
+      u8(matrixCoefficients),
+      // Matrix coefficients
+      u16(0)
+      // Codec initialization data size
+    ]);
+  };
+  var av1C = () => {
+    let marker = 1;
+    let version = 1;
+    let firstByte = (marker << 7) + version;
+    return box("av1C", [
+      firstByte,
+      0,
+      0,
+      0
+    ]);
+  };
+  var soundSampleDescription = (compressionType, track) => box(compressionType, [
+    Array(6).fill(0),
+    // Reserved
+    u16(1),
+    // Data reference index
+    u16(0),
+    // Version
+    u16(0),
+    // Revision level
+    u32(0),
+    // Vendor
+    u16(track.info.numberOfChannels),
+    // Number of channels
+    u16(16),
+    // Sample size (bits)
+    u16(0),
+    // Compression ID
+    u16(0),
+    // Packet size
+    fixed_16_16(track.info.sampleRate)
+    // Sample rate
+  ], [
+    AUDIO_CODEC_TO_CONFIGURATION_BOX[track.info.codec](track)
+  ]);
+  var esds = (track) => {
+    let description = new Uint8Array(track.info.decoderConfig.description);
+    return fullBox("esds", 0, 0, [
+      // https://stackoverflow.com/a/54803118
+      u32(58753152),
+      // TAG(3) = Object Descriptor ([2])
+      u8(32 + description.byteLength),
+      // length of this OD (which includes the next 2 tags)
+      u16(1),
+      // ES_ID = 1
+      u8(0),
+      // flags etc = 0
+      u32(75530368),
+      // TAG(4) = ES Descriptor ([2]) embedded in above OD
+      u8(18 + description.byteLength),
+      // length of this ESD
+      u8(64),
+      // MPEG-4 Audio
+      u8(21),
+      // stream type(6bits)=5 audio, flags(2bits)=1
+      u24(0),
+      // 24bit buffer size
+      u32(130071),
+      // max bitrate
+      u32(130071),
+      // avg bitrate
+      u32(92307584),
+      // TAG(5) = ASC ([2],[3]) embedded in above OD
+      u8(description.byteLength),
+      // length
+      ...description,
+      u32(109084800),
+      // TAG(6)
+      u8(1),
+      // length
+      u8(2)
+      // data
+    ]);
+  };
+  var dOps = (track) => {
+    let preskip = 3840;
+    let gain = 0;
+    const description = track.info.decoderConfig?.description;
+    if (description) {
+      if (description.byteLength < 18) {
+        throw new TypeError("Invalid decoder description provided for Opus; must be at least 18 bytes long.");
+      }
+      const view2 = ArrayBuffer.isView(description) ? new DataView(description.buffer, description.byteOffset, description.byteLength) : new DataView(description);
+      preskip = view2.getUint16(10, true);
+      gain = view2.getInt16(14, true);
+    }
+    return box("dOps", [
+      u8(0),
+      // Version
+      u8(track.info.numberOfChannels),
+      // OutputChannelCount
+      u16(preskip),
+      u32(track.info.sampleRate),
+      // InputSampleRate
+      fixed_8_8(gain),
+      // OutputGain
+      u8(0)
+      // ChannelMappingFamily
+    ]);
+  };
+  var stts = (track) => {
+    return fullBox("stts", 0, 0, [
+      u32(track.timeToSampleTable.length),
+      // Number of entries
+      track.timeToSampleTable.map((x) => [
+        // Time-to-sample table
+        u32(x.sampleCount),
+        // Sample count
+        u32(x.sampleDelta)
+        // Sample duration
+      ])
+    ]);
+  };
+  var stss = (track) => {
+    if (track.samples.every((x) => x.type === "key"))
+      return null;
+    let keySamples = [...track.samples.entries()].filter(([, sample]) => sample.type === "key");
+    return fullBox("stss", 0, 0, [
+      u32(keySamples.length),
+      // Number of entries
+      keySamples.map(([index]) => u32(index + 1))
+      // Sync sample table
+    ]);
+  };
+  var stsc = (track) => {
+    return fullBox("stsc", 0, 0, [
+      u32(track.compactlyCodedChunkTable.length),
+      // Number of entries
+      track.compactlyCodedChunkTable.map((x) => [
+        // Sample-to-chunk table
+        u32(x.firstChunk),
+        // First chunk
+        u32(x.samplesPerChunk),
+        // Samples per chunk
+        u32(1)
+        // Sample description index
+      ])
+    ]);
+  };
+  var stsz = (track) => fullBox("stsz", 0, 0, [
+    u32(0),
+    // Sample size (0 means non-constant size)
+    u32(track.samples.length),
+    // Number of entries
+    track.samples.map((x) => u32(x.size))
+    // Sample size table
+  ]);
+  var stco = (track) => {
+    if (track.finalizedChunks.length > 0 && last(track.finalizedChunks).offset >= 2 ** 32) {
+      return fullBox("co64", 0, 0, [
+        u32(track.finalizedChunks.length),
+        // Number of entries
+        track.finalizedChunks.map((x) => u64(x.offset))
+        // Chunk offset table
+      ]);
+    }
+    return fullBox("stco", 0, 0, [
+      u32(track.finalizedChunks.length),
+      // Number of entries
+      track.finalizedChunks.map((x) => u32(x.offset))
+      // Chunk offset table
+    ]);
+  };
+  var ctts = (track) => {
+    return fullBox("ctts", 0, 0, [
+      u32(track.compositionTimeOffsetTable.length),
+      // Number of entries
+      track.compositionTimeOffsetTable.map((x) => [
+        // Time-to-sample table
+        u32(x.sampleCount),
+        // Sample count
+        u32(x.sampleCompositionTimeOffset)
+        // Sample offset
+      ])
+    ]);
+  };
+  var mvex = (tracks) => {
+    return box("mvex", null, tracks.map(trex));
+  };
+  var trex = (track) => {
+    return fullBox("trex", 0, 0, [
+      u32(track.id),
+      // Track ID
+      u32(1),
+      // Default sample description index
+      u32(0),
+      // Default sample duration
+      u32(0),
+      // Default sample size
+      u32(0)
+      // Default sample flags
+    ]);
+  };
+  var moof = (sequenceNumber, tracks) => {
+    return box("moof", null, [
+      mfhd(sequenceNumber),
+      ...tracks.map(traf)
+    ]);
+  };
+  var mfhd = (sequenceNumber) => {
+    return fullBox("mfhd", 0, 0, [
+      u32(sequenceNumber)
+      // Sequence number
+    ]);
+  };
+  var fragmentSampleFlags = (sample) => {
+    let byte1 = 0;
+    let byte2 = 0;
+    let byte3 = 0;
+    let byte4 = 0;
+    let sampleIsDifferenceSample = sample.type === "delta";
+    byte2 |= +sampleIsDifferenceSample;
+    if (sampleIsDifferenceSample) {
+      byte1 |= 1;
+    } else {
+      byte1 |= 2;
+    }
+    return byte1 << 24 | byte2 << 16 | byte3 << 8 | byte4;
+  };
+  var traf = (track) => {
+    return box("traf", null, [
+      tfhd(track),
+      tfdt(track),
+      trun(track)
+    ]);
+  };
+  var tfhd = (track) => {
+    let tfFlags = 0;
+    tfFlags |= 8;
+    tfFlags |= 16;
+    tfFlags |= 32;
+    tfFlags |= 131072;
+    let referenceSample = track.currentChunk.samples[1] ?? track.currentChunk.samples[0];
+    let referenceSampleInfo = {
+      duration: referenceSample.timescaleUnitsToNextSample,
+      size: referenceSample.size,
+      flags: fragmentSampleFlags(referenceSample)
+    };
+    return fullBox("tfhd", 0, tfFlags, [
+      u32(track.id),
+      // Track ID
+      u32(referenceSampleInfo.duration),
+      // Default sample duration
+      u32(referenceSampleInfo.size),
+      // Default sample size
+      u32(referenceSampleInfo.flags)
+      // Default sample flags
+    ]);
+  };
+  var tfdt = (track) => {
+    return fullBox("tfdt", 1, 0, [
+      u64(intoTimescale(track.currentChunk.startTimestamp, track.timescale))
+      // Base Media Decode Time
+    ]);
+  };
+  var trun = (track) => {
+    let allSampleDurations = track.currentChunk.samples.map((x) => x.timescaleUnitsToNextSample);
+    let allSampleSizes = track.currentChunk.samples.map((x) => x.size);
+    let allSampleFlags = track.currentChunk.samples.map(fragmentSampleFlags);
+    let allSampleCompositionTimeOffsets = track.currentChunk.samples.map((x) => intoTimescale(x.presentationTimestamp - x.decodeTimestamp, track.timescale));
+    let uniqueSampleDurations = new Set(allSampleDurations);
+    let uniqueSampleSizes = new Set(allSampleSizes);
+    let uniqueSampleFlags = new Set(allSampleFlags);
+    let uniqueSampleCompositionTimeOffsets = new Set(allSampleCompositionTimeOffsets);
+    let firstSampleFlagsPresent = uniqueSampleFlags.size === 2 && allSampleFlags[0] !== allSampleFlags[1];
+    let sampleDurationPresent = uniqueSampleDurations.size > 1;
+    let sampleSizePresent = uniqueSampleSizes.size > 1;
+    let sampleFlagsPresent = !firstSampleFlagsPresent && uniqueSampleFlags.size > 1;
+    let sampleCompositionTimeOffsetsPresent = uniqueSampleCompositionTimeOffsets.size > 1 || [...uniqueSampleCompositionTimeOffsets].some((x) => x !== 0);
+    let flags = 0;
+    flags |= 1;
+    flags |= 4 * +firstSampleFlagsPresent;
+    flags |= 256 * +sampleDurationPresent;
+    flags |= 512 * +sampleSizePresent;
+    flags |= 1024 * +sampleFlagsPresent;
+    flags |= 2048 * +sampleCompositionTimeOffsetsPresent;
+    return fullBox("trun", 1, flags, [
+      u32(track.currentChunk.samples.length),
+      // Sample count
+      u32(track.currentChunk.offset - track.currentChunk.moofOffset || 0),
+      // Data offset
+      firstSampleFlagsPresent ? u32(allSampleFlags[0]) : [],
+      track.currentChunk.samples.map((_, i) => [
+        sampleDurationPresent ? u32(allSampleDurations[i]) : [],
+        // Sample duration
+        sampleSizePresent ? u32(allSampleSizes[i]) : [],
+        // Sample size
+        sampleFlagsPresent ? u32(allSampleFlags[i]) : [],
+        // Sample flags
+        // Sample composition time offsets
+        sampleCompositionTimeOffsetsPresent ? i32(allSampleCompositionTimeOffsets[i]) : []
+      ])
+    ]);
+  };
+  var mfra = (tracks) => {
+    return box("mfra", null, [
+      ...tracks.map(tfra),
+      mfro()
+    ]);
+  };
+  var tfra = (track, trackIndex) => {
+    let version = 1;
+    return fullBox("tfra", version, 0, [
+      u32(track.id),
+      // Track ID
+      u32(63),
+      // This specifies that traf number, trun number and sample number are 32-bit ints
+      u32(track.finalizedChunks.length),
+      // Number of entries
+      track.finalizedChunks.map((chunk) => [
+        u64(intoTimescale(chunk.startTimestamp, track.timescale)),
+        // Time
+        u64(chunk.moofOffset),
+        // moof offset
+        u32(trackIndex + 1),
+        // traf number
+        u32(1),
+        // trun number
+        u32(1)
+        // Sample number
+      ])
+    ]);
+  };
+  var mfro = () => {
+    return fullBox("mfro", 0, 0, [
+      // This value needs to be overwritten manually from the outside, where the actual size of the enclosing mfra box
+      // is known
+      u32(0)
+      // Size
+    ]);
+  };
+  var VIDEO_CODEC_TO_BOX_NAME = {
+    "avc": "avc1",
+    "hevc": "hvc1",
+    "vp9": "vp09",
+    "av1": "av01"
+  };
+  var VIDEO_CODEC_TO_CONFIGURATION_BOX = {
+    "avc": avcC,
+    "hevc": hvcC,
+    "vp9": vpcC,
+    "av1": av1C
+  };
+  var AUDIO_CODEC_TO_BOX_NAME = {
+    "aac": "mp4a",
+    "opus": "Opus"
+  };
+  var AUDIO_CODEC_TO_CONFIGURATION_BOX = {
+    "aac": esds,
+    "opus": dOps
+  };
+
+  // src/target.ts
+  var isTarget = Symbol("isTarget");
+  var Target = class {
+  };
+  isTarget;
+  var ArrayBufferTarget = class extends Target {
+    constructor() {
+      super(...arguments);
+      this.buffer = null;
+    }
+  };
+  var StreamTarget = class extends Target {
+    constructor(options) {
+      super();
+      this.options = options;
+      if (typeof options !== "object") {
+        throw new TypeError("StreamTarget requires an options object to be passed to its constructor.");
+      }
+      if (options.onData) {
+        if (typeof options.onData !== "function") {
+          throw new TypeError("options.onData, when provided, must be a function.");
+        }
+        if (options.onData.length < 2) {
+          throw new TypeError(
+            "options.onData, when provided, must be a function that takes in at least two arguments (data and position). Ignoring the position argument, which specifies the byte offset at which the data is to be written, can lead to broken outputs."
+          );
+        }
+      }
+      if (options.chunked !== void 0 && typeof options.chunked !== "boolean") {
+        throw new TypeError("options.chunked, when provided, must be a boolean.");
+      }
+      if (options.chunkSize !== void 0 && (!Number.isInteger(options.chunkSize) || options.chunkSize < 1024)) {
+        throw new TypeError("options.chunkSize, when provided, must be an integer and not smaller than 1024.");
+      }
+    }
+  };
+  var FileSystemWritableFileStreamTarget = class extends Target {
+    constructor(stream, options) {
+      super();
+      this.stream = stream;
+      this.options = options;
+      if (!(stream instanceof FileSystemWritableFileStream)) {
+        throw new TypeError("FileSystemWritableFileStreamTarget requires a FileSystemWritableFileStream instance.");
+      }
+      if (options !== void 0 && typeof options !== "object") {
+        throw new TypeError("FileSystemWritableFileStreamTarget's options, when provided, must be an object.");
+      }
+      if (options) {
+        if (options.chunkSize !== void 0 && (!Number.isInteger(options.chunkSize) || options.chunkSize <= 0)) {
+          throw new TypeError("options.chunkSize, when provided, must be a positive integer");
+        }
+      }
+    }
+  };
+
+  // src/writer.ts
+  var _helper, _helperView;
+  var Writer = class {
+    constructor() {
+      this.pos = 0;
+      __privateAdd(this, _helper, new Uint8Array(8));
+      __privateAdd(this, _helperView, new DataView(__privateGet(this, _helper).buffer));
+      /**
+       * Stores the position from the start of the file to where boxes elements have been written. This is used to
+       * rewrite/edit elements that were already added before, and to measure sizes of things.
+       */
+      this.offsets = /* @__PURE__ */ new WeakMap();
+    }
+    /** Sets the current position for future writes to a new one. */
+    seek(newPos) {
+      this.pos = newPos;
+    }
+    writeU32(value) {
+      __privateGet(this, _helperView).setUint32(0, value, false);
+      this.write(__privateGet(this, _helper).subarray(0, 4));
+    }
+    writeU64(value) {
+      __privateGet(this, _helperView).setUint32(0, Math.floor(value / 2 ** 32), false);
+      __privateGet(this, _helperView).setUint32(4, value, false);
+      this.write(__privateGet(this, _helper).subarray(0, 8));
+    }
+    writeAscii(text) {
+      for (let i = 0; i < text.length; i++) {
+        __privateGet(this, _helperView).setUint8(i % 8, text.charCodeAt(i));
+        if (i % 8 === 7)
+          this.write(__privateGet(this, _helper));
+      }
+      if (text.length % 8 !== 0) {
+        this.write(__privateGet(this, _helper).subarray(0, text.length % 8));
+      }
+    }
+    writeBox(box2) {
+      this.offsets.set(box2, this.pos);
+      if (box2.contents && !box2.children) {
+        this.writeBoxHeader(box2, box2.size ?? box2.contents.byteLength + 8);
+        this.write(box2.contents);
+      } else {
+        let startPos = this.pos;
+        this.writeBoxHeader(box2, 0);
+        if (box2.contents)
+          this.write(box2.contents);
+        if (box2.children) {
+          for (let child of box2.children)
+            if (child)
+              this.writeBox(child);
+        }
+        let endPos = this.pos;
+        let size = box2.size ?? endPos - startPos;
+        this.seek(startPos);
+        this.writeBoxHeader(box2, size);
+        this.seek(endPos);
+      }
+    }
+    writeBoxHeader(box2, size) {
+      this.writeU32(box2.largeSize ? 1 : size);
+      this.writeAscii(box2.type);
+      if (box2.largeSize)
+        this.writeU64(size);
+    }
+    measureBoxHeader(box2) {
+      return 8 + (box2.largeSize ? 8 : 0);
+    }
+    patchBox(box2) {
+      let endPos = this.pos;
+      this.seek(this.offsets.get(box2));
+      this.writeBox(box2);
+      this.seek(endPos);
+    }
+    measureBox(box2) {
+      if (box2.contents && !box2.children) {
+        let headerSize = this.measureBoxHeader(box2);
+        return headerSize + box2.contents.byteLength;
+      } else {
+        let result = this.measureBoxHeader(box2);
+        if (box2.contents)
+          result += box2.contents.byteLength;
+        if (box2.children) {
+          for (let child of box2.children)
+            if (child)
+              result += this.measureBox(child);
+        }
+        return result;
+      }
+    }
+  };
+  _helper = new WeakMap();
+  _helperView = new WeakMap();
+  var _target, _buffer, _bytes, _maxPos, _ensureSize, ensureSize_fn;
+  var ArrayBufferTargetWriter = class extends Writer {
+    constructor(target) {
+      super();
+      __privateAdd(this, _ensureSize);
+      __privateAdd(this, _target, void 0);
+      __privateAdd(this, _buffer, new ArrayBuffer(2 ** 16));
+      __privateAdd(this, _bytes, new Uint8Array(__privateGet(this, _buffer)));
+      __privateAdd(this, _maxPos, 0);
+      __privateSet(this, _target, target);
+    }
+    write(data) {
+      __privateMethod(this, _ensureSize, ensureSize_fn).call(this, this.pos + data.byteLength);
+      __privateGet(this, _bytes).set(data, this.pos);
+      this.pos += data.byteLength;
+      __privateSet(this, _maxPos, Math.max(__privateGet(this, _maxPos), this.pos));
+    }
+    finalize() {
+      __privateMethod(this, _ensureSize, ensureSize_fn).call(this, this.pos);
+      __privateGet(this, _target).buffer = __privateGet(this, _buffer).slice(0, Math.max(__privateGet(this, _maxPos), this.pos));
+    }
+  };
+  _target = new WeakMap();
+  _buffer = new WeakMap();
+  _bytes = new WeakMap();
+  _maxPos = new WeakMap();
+  _ensureSize = new WeakSet();
+  ensureSize_fn = function(size) {
+    let newLength = __privateGet(this, _buffer).byteLength;
+    while (newLength < size)
+      newLength *= 2;
+    if (newLength === __privateGet(this, _buffer).byteLength)
+      return;
+    let newBuffer = new ArrayBuffer(newLength);
+    let newBytes = new Uint8Array(newBuffer);
+    newBytes.set(__privateGet(this, _bytes), 0);
+    __privateSet(this, _buffer, newBuffer);
+    __privateSet(this, _bytes, newBytes);
+  };
+  var DEFAULT_CHUNK_SIZE = 2 ** 24;
+  var MAX_CHUNKS_AT_ONCE = 2;
+  var _target2, _sections, _chunked, _chunkSize, _chunks, _writeDataIntoChunks, writeDataIntoChunks_fn, _insertSectionIntoChunk, insertSectionIntoChunk_fn, _createChunk, createChunk_fn, _flushChunks, flushChunks_fn;
+  var StreamTargetWriter = class extends Writer {
+    constructor(target) {
+      super();
+      __privateAdd(this, _writeDataIntoChunks);
+      __privateAdd(this, _insertSectionIntoChunk);
+      __privateAdd(this, _createChunk);
+      __privateAdd(this, _flushChunks);
+      __privateAdd(this, _target2, void 0);
+      __privateAdd(this, _sections, []);
+      __privateAdd(this, _chunked, void 0);
+      __privateAdd(this, _chunkSize, void 0);
+      /**
+       * The data is divided up into fixed-size chunks, whose contents are first filled in RAM and then flushed out.
+       * A chunk is flushed if all of its contents have been written.
+       */
+      __privateAdd(this, _chunks, []);
+      __privateSet(this, _target2, target);
+      __privateSet(this, _chunked, target.options?.chunked ?? false);
+      __privateSet(this, _chunkSize, target.options?.chunkSize ?? DEFAULT_CHUNK_SIZE);
+    }
+    write(data) {
+      __privateGet(this, _sections).push({
+        data: data.slice(),
+        start: this.pos
+      });
+      this.pos += data.byteLength;
+    }
+    flush() {
+      if (__privateGet(this, _sections).length === 0)
+        return;
+      let chunks = [];
+      let sorted = [...__privateGet(this, _sections)].sort((a, b) => a.start - b.start);
+      chunks.push({
+        start: sorted[0].start,
+        size: sorted[0].data.byteLength
+      });
+      for (let i = 1; i < sorted.length; i++) {
+        let lastChunk = chunks[chunks.length - 1];
+        let section = sorted[i];
+        if (section.start <= lastChunk.start + lastChunk.size) {
+          lastChunk.size = Math.max(lastChunk.size, section.start + section.data.byteLength - lastChunk.start);
+        } else {
+          chunks.push({
+            start: section.start,
+            size: section.data.byteLength
+          });
+        }
+      }
+      for (let chunk of chunks) {
+        chunk.data = new Uint8Array(chunk.size);
+        for (let section of __privateGet(this, _sections)) {
+          if (chunk.start <= section.start && section.start < chunk.start + chunk.size) {
+            chunk.data.set(section.data, section.start - chunk.start);
+          }
+        }
+        if (__privateGet(this, _chunked)) {
+          __privateMethod(this, _writeDataIntoChunks, writeDataIntoChunks_fn).call(this, chunk.data, chunk.start);
+          __privateMethod(this, _flushChunks, flushChunks_fn).call(this);
+        } else {
+          __privateGet(this, _target2).options.onData?.(chunk.data, chunk.start);
+        }
+      }
+      __privateGet(this, _sections).length = 0;
+    }
+    finalize() {
+      if (__privateGet(this, _chunked)) {
+        __privateMethod(this, _flushChunks, flushChunks_fn).call(this, true);
+      }
+    }
+  };
+  _target2 = new WeakMap();
+  _sections = new WeakMap();
+  _chunked = new WeakMap();
+  _chunkSize = new WeakMap();
+  _chunks = new WeakMap();
+  _writeDataIntoChunks = new WeakSet();
+  writeDataIntoChunks_fn = function(data, position) {
+    let chunkIndex = __privateGet(this, _chunks).findIndex((x) => x.start <= position && position < x.start + __privateGet(this, _chunkSize));
+    if (chunkIndex === -1)
+      chunkIndex = __privateMethod(this, _createChunk, createChunk_fn).call(this, position);
+    let chunk = __privateGet(this, _chunks)[chunkIndex];
+    let relativePosition = position - chunk.start;
+    let toWrite = data.subarray(0, Math.min(__privateGet(this, _chunkSize) - relativePosition, data.byteLength));
+    chunk.data.set(toWrite, relativePosition);
+    let section = {
+      start: relativePosition,
+      end: relativePosition + toWrite.byteLength
+    };
+    __privateMethod(this, _insertSectionIntoChunk, insertSectionIntoChunk_fn).call(this, chunk, section);
+    if (chunk.written[0].start === 0 && chunk.written[0].end === __privateGet(this, _chunkSize)) {
+      chunk.shouldFlush = true;
+    }
+    if (__privateGet(this, _chunks).length > MAX_CHUNKS_AT_ONCE) {
+      for (let i = 0; i < __privateGet(this, _chunks).length - 1; i++) {
+        __privateGet(this, _chunks)[i].shouldFlush = true;
+      }
+      __privateMethod(this, _flushChunks, flushChunks_fn).call(this);
+    }
+    if (toWrite.byteLength < data.byteLength) {
+      __privateMethod(this, _writeDataIntoChunks, writeDataIntoChunks_fn).call(this, data.subarray(toWrite.byteLength), position + toWrite.byteLength);
+    }
+  };
+  _insertSectionIntoChunk = new WeakSet();
+  insertSectionIntoChunk_fn = function(chunk, section) {
+    let low = 0;
+    let high = chunk.written.length - 1;
+    let index = -1;
+    while (low <= high) {
+      let mid = Math.floor(low + (high - low + 1) / 2);
+      if (chunk.written[mid].start <= section.start) {
+        low = mid + 1;
+        index = mid;
+      } else {
+        high = mid - 1;
+      }
+    }
+    chunk.written.splice(index + 1, 0, section);
+    if (index === -1 || chunk.written[index].end < section.start)
+      index++;
+    while (index < chunk.written.length - 1 && chunk.written[index].end >= chunk.written[index + 1].start) {
+      chunk.written[index].end = Math.max(chunk.written[index].end, chunk.written[index + 1].end);
+      chunk.written.splice(index + 1, 1);
+    }
+  };
+  _createChunk = new WeakSet();
+  createChunk_fn = function(includesPosition) {
+    let start = Math.floor(includesPosition / __privateGet(this, _chunkSize)) * __privateGet(this, _chunkSize);
+    let chunk = {
+      start,
+      data: new Uint8Array(__privateGet(this, _chunkSize)),
+      written: [],
+      shouldFlush: false
+    };
+    __privateGet(this, _chunks).push(chunk);
+    __privateGet(this, _chunks).sort((a, b) => a.start - b.start);
+    return __privateGet(this, _chunks).indexOf(chunk);
+  };
+  _flushChunks = new WeakSet();
+  flushChunks_fn = function(force = false) {
+    for (let i = 0; i < __privateGet(this, _chunks).length; i++) {
+      let chunk = __privateGet(this, _chunks)[i];
+      if (!chunk.shouldFlush && !force)
+        continue;
+      for (let section of chunk.written) {
+        __privateGet(this, _target2).options.onData?.(
+          chunk.data.subarray(section.start, section.end),
+          chunk.start + section.start
+        );
+      }
+      __privateGet(this, _chunks).splice(i--, 1);
+    }
+  };
+  var FileSystemWritableFileStreamTargetWriter = class extends StreamTargetWriter {
+    constructor(target) {
+      super(new StreamTarget({
+        onData: (data, position) => target.stream.write({
+          type: "write",
+          data,
+          position
+        }),
+        chunked: true,
+        chunkSize: target.options?.chunkSize
+      }));
+    }
+  };
+
+  // src/muxer.ts
+  var GLOBAL_TIMESCALE = 1e3;
+  var SUPPORTED_VIDEO_CODECS = ["avc", "hevc", "vp9", "av1"];
+  var SUPPORTED_AUDIO_CODECS = ["aac", "opus"];
+  var TIMESTAMP_OFFSET = 2082844800;
+  var FIRST_TIMESTAMP_BEHAVIORS = ["strict", "offset", "cross-track-offset"];
+  var _options, _writer, _ftypSize, _mdat, _videoTrack, _audioTrack, _creationTime, _finalizedChunks, _nextFragmentNumber, _videoSampleQueue, _audioSampleQueue, _finalized, _validateOptions, validateOptions_fn, _writeHeader, writeHeader_fn, _computeMoovSizeUpperBound, computeMoovSizeUpperBound_fn, _prepareTracks, prepareTracks_fn, _generateMpeg4AudioSpecificConfig, generateMpeg4AudioSpecificConfig_fn, _createSampleForTrack, createSampleForTrack_fn, _addSampleToTrack, addSampleToTrack_fn, _validateTimestamp, validateTimestamp_fn, _finalizeCurrentChunk, finalizeCurrentChunk_fn, _finalizeFragment, finalizeFragment_fn, _maybeFlushStreamingTargetWriter, maybeFlushStreamingTargetWriter_fn, _ensureNotFinalized, ensureNotFinalized_fn;
+  var Muxer = class {
+    constructor(options) {
+      __privateAdd(this, _validateOptions);
+      __privateAdd(this, _writeHeader);
+      __privateAdd(this, _computeMoovSizeUpperBound);
+      __privateAdd(this, _prepareTracks);
+      // https://wiki.multimedia.cx/index.php/MPEG-4_Audio
+      __privateAdd(this, _generateMpeg4AudioSpecificConfig);
+      __privateAdd(this, _createSampleForTrack);
+      __privateAdd(this, _addSampleToTrack);
+      __privateAdd(this, _validateTimestamp);
+      __privateAdd(this, _finalizeCurrentChunk);
+      __privateAdd(this, _finalizeFragment);
+      __privateAdd(this, _maybeFlushStreamingTargetWriter);
+      __privateAdd(this, _ensureNotFinalized);
+      __privateAdd(this, _options, void 0);
+      __privateAdd(this, _writer, void 0);
+      __privateAdd(this, _ftypSize, void 0);
+      __privateAdd(this, _mdat, void 0);
+      __privateAdd(this, _videoTrack, null);
+      __privateAdd(this, _audioTrack, null);
+      __privateAdd(this, _creationTime, Math.floor(Date.now() / 1e3) + TIMESTAMP_OFFSET);
+      __privateAdd(this, _finalizedChunks, []);
+      // Fields for fragmented MP4:
+      __privateAdd(this, _nextFragmentNumber, 1);
+      __privateAdd(this, _videoSampleQueue, []);
+      __privateAdd(this, _audioSampleQueue, []);
+      __privateAdd(this, _finalized, false);
+      __privateMethod(this, _validateOptions, validateOptions_fn).call(this, options);
+      options.video = deepClone(options.video);
+      options.audio = deepClone(options.audio);
+      options.fastStart = deepClone(options.fastStart);
+      this.target = options.target;
+      __privateSet(this, _options, {
+        firstTimestampBehavior: "strict",
+        ...options
+      });
+      if (options.target instanceof ArrayBufferTarget) {
+        __privateSet(this, _writer, new ArrayBufferTargetWriter(options.target));
+      } else if (options.target instanceof StreamTarget) {
+        __privateSet(this, _writer, new StreamTargetWriter(options.target));
+      } else if (options.target instanceof FileSystemWritableFileStreamTarget) {
+        __privateSet(this, _writer, new FileSystemWritableFileStreamTargetWriter(options.target));
+      } else {
+        throw new Error(`Invalid target: ${options.target}`);
+      }
+      __privateMethod(this, _prepareTracks, prepareTracks_fn).call(this);
+      __privateMethod(this, _writeHeader, writeHeader_fn).call(this);
+    }
+    addVideoChunk(sample, meta, timestamp, compositionTimeOffset) {
+      if (!(sample instanceof EncodedVideoChunk)) {
+        throw new TypeError("addVideoChunk's first argument (sample) must be of type EncodedVideoChunk.");
+      }
+      if (meta && typeof meta !== "object") {
+        throw new TypeError("addVideoChunk's second argument (meta), when provided, must be an object.");
+      }
+      if (timestamp !== void 0 && (!Number.isFinite(timestamp) || timestamp < 0)) {
+        throw new TypeError(
+          "addVideoChunk's third argument (timestamp), when provided, must be a non-negative real number."
+        );
+      }
+      if (compositionTimeOffset !== void 0 && !Number.isFinite(compositionTimeOffset)) {
+        throw new TypeError(
+          "addVideoChunk's fourth argument (compositionTimeOffset), when provided, must be a real number."
+        );
+      }
+      let data = new Uint8Array(sample.byteLength);
+      sample.copyTo(data);
+      this.addVideoChunkRaw(
+        data,
+        sample.type,
+        timestamp ?? sample.timestamp,
+        sample.duration,
+        meta,
+        compositionTimeOffset
+      );
+    }
+    addVideoChunkRaw(data, type, timestamp, duration, meta, compositionTimeOffset) {
+      if (!(data instanceof Uint8Array)) {
+        throw new TypeError("addVideoChunkRaw's first argument (data) must be an instance of Uint8Array.");
+      }
+      if (type !== "key" && type !== "delta") {
+        throw new TypeError("addVideoChunkRaw's second argument (type) must be either 'key' or 'delta'.");
+      }
+      if (!Number.isFinite(timestamp) || timestamp < 0) {
+        throw new TypeError("addVideoChunkRaw's third argument (timestamp) must be a non-negative real number.");
+      }
+      if (!Number.isFinite(duration) || duration < 0) {
+        throw new TypeError("addVideoChunkRaw's fourth argument (duration) must be a non-negative real number.");
+      }
+      if (meta && typeof meta !== "object") {
+        throw new TypeError("addVideoChunkRaw's fifth argument (meta), when provided, must be an object.");
+      }
+      if (compositionTimeOffset !== void 0 && !Number.isFinite(compositionTimeOffset)) {
+        throw new TypeError(
+          "addVideoChunkRaw's sixth argument (compositionTimeOffset), when provided, must be a real number."
+        );
+      }
+      __privateMethod(this, _ensureNotFinalized, ensureNotFinalized_fn).call(this);
+      if (!__privateGet(this, _options).video)
+        throw new Error("No video track declared.");
+      if (typeof __privateGet(this, _options).fastStart === "object" && __privateGet(this, _videoTrack).samples.length === __privateGet(this, _options).fastStart.expectedVideoChunks) {
+        throw new Error(`Cannot add more video chunks than specified in 'fastStart' (${__privateGet(this, _options).fastStart.expectedVideoChunks}).`);
+      }
+      let videoSample = __privateMethod(this, _createSampleForTrack, createSampleForTrack_fn).call(this, __privateGet(this, _videoTrack), data, type, timestamp, duration, meta, compositionTimeOffset);
+      if (__privateGet(this, _options).fastStart === "fragmented" && __privateGet(this, _audioTrack)) {
+        while (__privateGet(this, _audioSampleQueue).length > 0 && __privateGet(this, _audioSampleQueue)[0].decodeTimestamp <= videoSample.decodeTimestamp) {
+          let audioSample = __privateGet(this, _audioSampleQueue).shift();
+          __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _audioTrack), audioSample);
+        }
+        if (videoSample.decodeTimestamp <= __privateGet(this, _audioTrack).lastDecodeTimestamp) {
+          __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _videoTrack), videoSample);
+        } else {
+          __privateGet(this, _videoSampleQueue).push(videoSample);
+        }
+      } else {
+        __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _videoTrack), videoSample);
+      }
+    }
+    addAudioChunk(sample, meta, timestamp) {
+      if (!(sample instanceof EncodedAudioChunk)) {
+        throw new TypeError("addAudioChunk's first argument (sample) must be of type EncodedAudioChunk.");
+      }
+      if (meta && typeof meta !== "object") {
+        throw new TypeError("addAudioChunk's second argument (meta), when provided, must be an object.");
+      }
+      if (timestamp !== void 0 && (!Number.isFinite(timestamp) || timestamp < 0)) {
+        throw new TypeError(
+          "addAudioChunk's third argument (timestamp), when provided, must be a non-negative real number."
+        );
+      }
+      let data = new Uint8Array(sample.byteLength);
+      sample.copyTo(data);
+      this.addAudioChunkRaw(data, sample.type, timestamp ?? sample.timestamp, sample.duration, meta);
+    }
+    addAudioChunkRaw(data, type, timestamp, duration, meta) {
+      if (!(data instanceof Uint8Array)) {
+        throw new TypeError("addAudioChunkRaw's first argument (data) must be an instance of Uint8Array.");
+      }
+      if (type !== "key" && type !== "delta") {
+        throw new TypeError("addAudioChunkRaw's second argument (type) must be either 'key' or 'delta'.");
+      }
+      if (!Number.isFinite(timestamp) || timestamp < 0) {
+        throw new TypeError("addAudioChunkRaw's third argument (timestamp) must be a non-negative real number.");
+      }
+      if (!Number.isFinite(duration) || duration < 0) {
+        throw new TypeError("addAudioChunkRaw's fourth argument (duration) must be a non-negative real number.");
+      }
+      if (meta && typeof meta !== "object") {
+        throw new TypeError("addAudioChunkRaw's fifth argument (meta), when provided, must be an object.");
+      }
+      __privateMethod(this, _ensureNotFinalized, ensureNotFinalized_fn).call(this);
+      if (!__privateGet(this, _options).audio)
+        throw new Error("No audio track declared.");
+      if (typeof __privateGet(this, _options).fastStart === "object" && __privateGet(this, _audioTrack).samples.length === __privateGet(this, _options).fastStart.expectedAudioChunks) {
+        throw new Error(`Cannot add more audio chunks than specified in 'fastStart' (${__privateGet(this, _options).fastStart.expectedAudioChunks}).`);
+      }
+      let audioSample = __privateMethod(this, _createSampleForTrack, createSampleForTrack_fn).call(this, __privateGet(this, _audioTrack), data, type, timestamp, duration, meta);
+      if (__privateGet(this, _options).fastStart === "fragmented" && __privateGet(this, _videoTrack)) {
+        while (__privateGet(this, _videoSampleQueue).length > 0 && __privateGet(this, _videoSampleQueue)[0].decodeTimestamp <= audioSample.decodeTimestamp) {
+          let videoSample = __privateGet(this, _videoSampleQueue).shift();
+          __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _videoTrack), videoSample);
+        }
+        if (audioSample.decodeTimestamp <= __privateGet(this, _videoTrack).lastDecodeTimestamp) {
+          __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _audioTrack), audioSample);
+        } else {
+          __privateGet(this, _audioSampleQueue).push(audioSample);
+        }
+      } else {
+        __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _audioTrack), audioSample);
+      }
+    }
+    /** Finalizes the file, making it ready for use. Must be called after all video and audio chunks have been added. */
+    finalize() {
+      if (__privateGet(this, _finalized)) {
+        throw new Error("Cannot finalize a muxer more than once.");
+      }
+      if (__privateGet(this, _options).fastStart === "fragmented") {
+        for (let videoSample of __privateGet(this, _videoSampleQueue))
+          __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _videoTrack), videoSample);
+        for (let audioSample of __privateGet(this, _audioSampleQueue))
+          __privateMethod(this, _addSampleToTrack, addSampleToTrack_fn).call(this, __privateGet(this, _audioTrack), audioSample);
+        __privateMethod(this, _finalizeFragment, finalizeFragment_fn).call(this, false);
+      } else {
+        if (__privateGet(this, _videoTrack))
+          __privateMethod(this, _finalizeCurrentChunk, finalizeCurrentChunk_fn).call(this, __privateGet(this, _videoTrack));
+        if (__privateGet(this, _audioTrack))
+          __privateMethod(this, _finalizeCurrentChunk, finalizeCurrentChunk_fn).call(this, __privateGet(this, _audioTrack));
+      }
+      let tracks = [__privateGet(this, _videoTrack), __privateGet(this, _audioTrack)].filter(Boolean);
+      if (__privateGet(this, _options).fastStart === "in-memory") {
+        let mdatSize;
+        for (let i = 0; i < 2; i++) {
+          let movieBox2 = moov(tracks, __privateGet(this, _creationTime));
+          let movieBoxSize = __privateGet(this, _writer).measureBox(movieBox2);
+          mdatSize = __privateGet(this, _writer).measureBox(__privateGet(this, _mdat));
+          let currentChunkPos = __privateGet(this, _writer).pos + movieBoxSize + mdatSize;
+          for (let chunk of __privateGet(this, _finalizedChunks)) {
+            chunk.offset = currentChunkPos;
+            for (let { data } of chunk.samples) {
+              currentChunkPos += data.byteLength;
+              mdatSize += data.byteLength;
+            }
+          }
+          if (currentChunkPos < 2 ** 32)
+            break;
+          if (mdatSize >= 2 ** 32)
+            __privateGet(this, _mdat).largeSize = true;
+        }
+        let movieBox = moov(tracks, __privateGet(this, _creationTime));
+        __privateGet(this, _writer).writeBox(movieBox);
+        __privateGet(this, _mdat).size = mdatSize;
+        __privateGet(this, _writer).writeBox(__privateGet(this, _mdat));
+        for (let chunk of __privateGet(this, _finalizedChunks)) {
+          for (let sample of chunk.samples) {
+            __privateGet(this, _writer).write(sample.data);
+            sample.data = null;
+          }
+        }
+      } else if (__privateGet(this, _options).fastStart === "fragmented") {
+        let startPos = __privateGet(this, _writer).pos;
+        let mfraBox = mfra(tracks);
+        __privateGet(this, _writer).writeBox(mfraBox);
+        let mfraBoxSize = __privateGet(this, _writer).pos - startPos;
+        __privateGet(this, _writer).seek(__privateGet(this, _writer).pos - 4);
+        __privateGet(this, _writer).writeU32(mfraBoxSize);
+      } else {
+        let mdatPos = __privateGet(this, _writer).offsets.get(__privateGet(this, _mdat));
+        let mdatSize = __privateGet(this, _writer).pos - mdatPos;
+        __privateGet(this, _mdat).size = mdatSize;
+        __privateGet(this, _mdat).largeSize = mdatSize >= 2 ** 32;
+        __privateGet(this, _writer).patchBox(__privateGet(this, _mdat));
+        let movieBox = moov(tracks, __privateGet(this, _creationTime));
+        if (typeof __privateGet(this, _options).fastStart === "object") {
+          __privateGet(this, _writer).seek(__privateGet(this, _ftypSize));
+          __privateGet(this, _writer).writeBox(movieBox);
+          let remainingBytes = mdatPos - __privateGet(this, _writer).pos;
+          __privateGet(this, _writer).writeBox(free(remainingBytes));
+        } else {
+          __privateGet(this, _writer).writeBox(movieBox);
+        }
+      }
+      __privateMethod(this, _maybeFlushStreamingTargetWriter, maybeFlushStreamingTargetWriter_fn).call(this);
+      __privateGet(this, _writer).finalize();
+      __privateSet(this, _finalized, true);
+    }
+  };
+  _options = new WeakMap();
+  _writer = new WeakMap();
+  _ftypSize = new WeakMap();
+  _mdat = new WeakMap();
+  _videoTrack = new WeakMap();
+  _audioTrack = new WeakMap();
+  _creationTime = new WeakMap();
+  _finalizedChunks = new WeakMap();
+  _nextFragmentNumber = new WeakMap();
+  _videoSampleQueue = new WeakMap();
+  _audioSampleQueue = new WeakMap();
+  _finalized = new WeakMap();
+  _validateOptions = new WeakSet();
+  validateOptions_fn = function(options) {
+    if (typeof options !== "object") {
+      throw new TypeError("The muxer requires an options object to be passed to its constructor.");
+    }
+    if (!(options.target instanceof Target)) {
+      throw new TypeError("The target must be provided and an instance of Target.");
+    }
+    if (options.video) {
+      if (!SUPPORTED_VIDEO_CODECS.includes(options.video.codec)) {
+        throw new TypeError(`Unsupported video codec: ${options.video.codec}`);
+      }
+      if (!Number.isInteger(options.video.width) || options.video.width <= 0) {
+        throw new TypeError(`Invalid video width: ${options.video.width}. Must be a positive integer.`);
+      }
+      if (!Number.isInteger(options.video.height) || options.video.height <= 0) {
+        throw new TypeError(`Invalid video height: ${options.video.height}. Must be a positive integer.`);
+      }
+      const videoRotation = options.video.rotation;
+      if (typeof videoRotation === "number" && ![0, 90, 180, 270].includes(videoRotation)) {
+        throw new TypeError(`Invalid video rotation: ${videoRotation}. Has to be 0, 90, 180 or 270.`);
+      } else if (Array.isArray(videoRotation) && (videoRotation.length !== 9 || videoRotation.some((value) => typeof value !== "number"))) {
+        throw new TypeError(`Invalid video transformation matrix: ${videoRotation.join()}`);
+      }
+      if (options.video.frameRate !== void 0 && (!Number.isInteger(options.video.frameRate) || options.video.frameRate <= 0)) {
+        throw new TypeError(
+          `Invalid video frame rate: ${options.video.frameRate}. Must be a positive integer.`
+        );
+      }
+    }
+    if (options.audio) {
+      if (!SUPPORTED_AUDIO_CODECS.includes(options.audio.codec)) {
+        throw new TypeError(`Unsupported audio codec: ${options.audio.codec}`);
+      }
+      if (!Number.isInteger(options.audio.numberOfChannels) || options.audio.numberOfChannels <= 0) {
+        throw new TypeError(
+          `Invalid number of audio channels: ${options.audio.numberOfChannels}. Must be a positive integer.`
+        );
+      }
+      if (!Number.isInteger(options.audio.sampleRate) || options.audio.sampleRate <= 0) {
+        throw new TypeError(
+          `Invalid audio sample rate: ${options.audio.sampleRate}. Must be a positive integer.`
+        );
+      }
+    }
+    if (options.firstTimestampBehavior && !FIRST_TIMESTAMP_BEHAVIORS.includes(options.firstTimestampBehavior)) {
+      throw new TypeError(`Invalid first timestamp behavior: ${options.firstTimestampBehavior}`);
+    }
+    if (typeof options.fastStart === "object") {
+      if (options.video) {
+        if (options.fastStart.expectedVideoChunks === void 0) {
+          throw new TypeError(`'fastStart' is an object but is missing property 'expectedVideoChunks'.`);
+        } else if (!Number.isInteger(options.fastStart.expectedVideoChunks) || options.fastStart.expectedVideoChunks < 0) {
+          throw new TypeError(`'expectedVideoChunks' must be a non-negative integer.`);
+        }
+      }
+      if (options.audio) {
+        if (options.fastStart.expectedAudioChunks === void 0) {
+          throw new TypeError(`'fastStart' is an object but is missing property 'expectedAudioChunks'.`);
+        } else if (!Number.isInteger(options.fastStart.expectedAudioChunks) || options.fastStart.expectedAudioChunks < 0) {
+          throw new TypeError(`'expectedAudioChunks' must be a non-negative integer.`);
+        }
+      }
+    } else if (![false, "in-memory", "fragmented"].includes(options.fastStart)) {
+      throw new TypeError(`'fastStart' option must be false, 'in-memory', 'fragmented' or an object.`);
+    }
+    if (options.minFragmentDuration !== void 0 && (!Number.isFinite(options.minFragmentDuration) || options.minFragmentDuration < 0)) {
+      throw new TypeError(`'minFragmentDuration' must be a non-negative number.`);
+    }
+  };
+  _writeHeader = new WeakSet();
+  writeHeader_fn = function() {
+    __privateGet(this, _writer).writeBox(ftyp({
+      holdsAvc: __privateGet(this, _options).video?.codec === "avc",
+      fragmented: __privateGet(this, _options).fastStart === "fragmented"
+    }));
+    __privateSet(this, _ftypSize, __privateGet(this, _writer).pos);
+    if (__privateGet(this, _options).fastStart === "in-memory") {
+      __privateSet(this, _mdat, mdat(false));
+    } else if (__privateGet(this, _options).fastStart === "fragmented") {
+    } else {
+      if (typeof __privateGet(this, _options).fastStart === "object") {
+        let moovSizeUpperBound = __privateMethod(this, _computeMoovSizeUpperBound, computeMoovSizeUpperBound_fn).call(this);
+        __privateGet(this, _writer).seek(__privateGet(this, _writer).pos + moovSizeUpperBound);
+      }
+      __privateSet(this, _mdat, mdat(true));
+      __privateGet(this, _writer).writeBox(__privateGet(this, _mdat));
+    }
+    __privateMethod(this, _maybeFlushStreamingTargetWriter, maybeFlushStreamingTargetWriter_fn).call(this);
+  };
+  _computeMoovSizeUpperBound = new WeakSet();
+  computeMoovSizeUpperBound_fn = function() {
+    if (typeof __privateGet(this, _options).fastStart !== "object")
+      return;
+    let upperBound = 0;
+    let sampleCounts = [
+      __privateGet(this, _options).fastStart.expectedVideoChunks,
+      __privateGet(this, _options).fastStart.expectedAudioChunks
+    ];
+    for (let n of sampleCounts) {
+      if (!n)
+        continue;
+      upperBound += (4 + 4) * Math.ceil(2 / 3 * n);
+      upperBound += 4 * n;
+      upperBound += (4 + 4 + 4) * Math.ceil(2 / 3 * n);
+      upperBound += 4 * n;
+      upperBound += 8 * n;
+    }
+    upperBound += 4096;
+    return upperBound;
+  };
+  _prepareTracks = new WeakSet();
+  prepareTracks_fn = function() {
+    if (__privateGet(this, _options).video) {
+      __privateSet(this, _videoTrack, {
+        id: 1,
+        info: {
+          type: "video",
+          codec: __privateGet(this, _options).video.codec,
+          width: __privateGet(this, _options).video.width,
+          height: __privateGet(this, _options).video.height,
+          rotation: __privateGet(this, _options).video.rotation ?? 0,
+          decoderConfig: null
+        },
+        // The fallback contains many common frame rates as factors
+        timescale: __privateGet(this, _options).video.frameRate ?? 57600,
+        samples: [],
+        finalizedChunks: [],
+        currentChunk: null,
+        firstDecodeTimestamp: void 0,
+        lastDecodeTimestamp: -1,
+        timeToSampleTable: [],
+        compositionTimeOffsetTable: [],
+        lastTimescaleUnits: null,
+        lastSample: null,
+        compactlyCodedChunkTable: []
+      });
+    }
+    if (__privateGet(this, _options).audio) {
+      __privateSet(this, _audioTrack, {
+        id: __privateGet(this, _options).video ? 2 : 1,
+        info: {
+          type: "audio",
+          codec: __privateGet(this, _options).audio.codec,
+          numberOfChannels: __privateGet(this, _options).audio.numberOfChannels,
+          sampleRate: __privateGet(this, _options).audio.sampleRate,
+          decoderConfig: null
+        },
+        timescale: __privateGet(this, _options).audio.sampleRate,
+        samples: [],
+        finalizedChunks: [],
+        currentChunk: null,
+        firstDecodeTimestamp: void 0,
+        lastDecodeTimestamp: -1,
+        timeToSampleTable: [],
+        compositionTimeOffsetTable: [],
+        lastTimescaleUnits: null,
+        lastSample: null,
+        compactlyCodedChunkTable: []
+      });
+      if (__privateGet(this, _options).audio.codec === "aac") {
+        let guessedCodecPrivate = __privateMethod(this, _generateMpeg4AudioSpecificConfig, generateMpeg4AudioSpecificConfig_fn).call(
+          this,
+          2,
+          // Object type for AAC-LC, since it's the most common
+          __privateGet(this, _options).audio.sampleRate,
+          __privateGet(this, _options).audio.numberOfChannels
+        );
+        __privateGet(this, _audioTrack).info.decoderConfig = {
+          codec: __privateGet(this, _options).audio.codec,
+          description: guessedCodecPrivate,
+          numberOfChannels: __privateGet(this, _options).audio.numberOfChannels,
+          sampleRate: __privateGet(this, _options).audio.sampleRate
+        };
+      }
+    }
+  };
+  _generateMpeg4AudioSpecificConfig = new WeakSet();
+  generateMpeg4AudioSpecificConfig_fn = function(objectType, sampleRate, numberOfChannels) {
+    let frequencyIndices = [96e3, 88200, 64e3, 48e3, 44100, 32e3, 24e3, 22050, 16e3, 12e3, 11025, 8e3, 7350];
+    let frequencyIndex = frequencyIndices.indexOf(sampleRate);
+    let channelConfig = numberOfChannels;
+    let configBits = "";
+    configBits += objectType.toString(2).padStart(5, "0");
+    configBits += frequencyIndex.toString(2).padStart(4, "0");
+    if (frequencyIndex === 15)
+      configBits += sampleRate.toString(2).padStart(24, "0");
+    configBits += channelConfig.toString(2).padStart(4, "0");
+    let paddingLength = Math.ceil(configBits.length / 8) * 8;
+    configBits = configBits.padEnd(paddingLength, "0");
+    let configBytes = new Uint8Array(configBits.length / 8);
+    for (let i = 0; i < configBits.length; i += 8) {
+      configBytes[i / 8] = parseInt(configBits.slice(i, i + 8), 2);
+    }
+    return configBytes;
+  };
+  _createSampleForTrack = new WeakSet();
+  createSampleForTrack_fn = function(track, data, type, timestamp, duration, meta, compositionTimeOffset) {
+    let presentationTimestampInSeconds = timestamp / 1e6;
+    let decodeTimestampInSeconds = (timestamp - (compositionTimeOffset ?? 0)) / 1e6;
+    let durationInSeconds = duration / 1e6;
+    let adjusted = __privateMethod(this, _validateTimestamp, validateTimestamp_fn).call(this, presentationTimestampInSeconds, decodeTimestampInSeconds, track);
+    presentationTimestampInSeconds = adjusted.presentationTimestamp;
+    decodeTimestampInSeconds = adjusted.decodeTimestamp;
+    if (meta?.decoderConfig) {
+      if (track.info.decoderConfig === null) {
+        track.info.decoderConfig = meta.decoderConfig;
+      } else {
+        Object.assign(track.info.decoderConfig, meta.decoderConfig);
+      }
+    }
+    let sample = {
+      presentationTimestamp: presentationTimestampInSeconds,
+      decodeTimestamp: decodeTimestampInSeconds,
+      duration: durationInSeconds,
+      data,
+      size: data.byteLength,
+      type,
+      // Will be refined once the next sample comes in
+      timescaleUnitsToNextSample: intoTimescale(durationInSeconds, track.timescale)
+    };
+    return sample;
+  };
+  _addSampleToTrack = new WeakSet();
+  addSampleToTrack_fn = function(track, sample) {
+    if (__privateGet(this, _options).fastStart !== "fragmented") {
+      track.samples.push(sample);
+    }
+    const sampleCompositionTimeOffset = intoTimescale(sample.presentationTimestamp - sample.decodeTimestamp, track.timescale);
+    if (track.lastTimescaleUnits !== null) {
+      let timescaleUnits = intoTimescale(sample.decodeTimestamp, track.timescale, false);
+      let delta = Math.round(timescaleUnits - track.lastTimescaleUnits);
+      track.lastTimescaleUnits += delta;
+      track.lastSample.timescaleUnitsToNextSample = delta;
+      if (__privateGet(this, _options).fastStart !== "fragmented") {
+        let lastTableEntry = last(track.timeToSampleTable);
+        if (lastTableEntry.sampleCount === 1) {
+          lastTableEntry.sampleDelta = delta;
+          lastTableEntry.sampleCount++;
+        } else if (lastTableEntry.sampleDelta === delta) {
+          lastTableEntry.sampleCount++;
+        } else {
+          lastTableEntry.sampleCount--;
+          track.timeToSampleTable.push({
+            sampleCount: 2,
+            sampleDelta: delta
+          });
+        }
+        const lastCompositionTimeOffsetTableEntry = last(track.compositionTimeOffsetTable);
+        if (lastCompositionTimeOffsetTableEntry.sampleCompositionTimeOffset === sampleCompositionTimeOffset) {
+          lastCompositionTimeOffsetTableEntry.sampleCount++;
+        } else {
+          track.compositionTimeOffsetTable.push({
+            sampleCount: 1,
+            sampleCompositionTimeOffset
+          });
+        }
+      }
+    } else {
+      track.lastTimescaleUnits = 0;
+      if (__privateGet(this, _options).fastStart !== "fragmented") {
+        track.timeToSampleTable.push({
+          sampleCount: 1,
+          sampleDelta: intoTimescale(sample.duration, track.timescale)
+        });
+        track.compositionTimeOffsetTable.push({
+          sampleCount: 1,
+          sampleCompositionTimeOffset
+        });
+      }
+    }
+    track.lastSample = sample;
+    let beginNewChunk = false;
+    if (!track.currentChunk) {
+      beginNewChunk = true;
+    } else {
+      let currentChunkDuration = sample.presentationTimestamp - track.currentChunk.startTimestamp;
+      if (__privateGet(this, _options).fastStart === "fragmented") {
+        let mostImportantTrack = __privateGet(this, _videoTrack) ?? __privateGet(this, _audioTrack);
+        const chunkDuration = __privateGet(this, _options).minFragmentDuration ?? 1;
+        if (track === mostImportantTrack && sample.type === "key" && currentChunkDuration >= chunkDuration) {
+          beginNewChunk = true;
+          __privateMethod(this, _finalizeFragment, finalizeFragment_fn).call(this);
+        }
+      } else {
+        beginNewChunk = currentChunkDuration >= 0.5;
+      }
+    }
+    if (beginNewChunk) {
+      if (track.currentChunk) {
+        __privateMethod(this, _finalizeCurrentChunk, finalizeCurrentChunk_fn).call(this, track);
+      }
+      track.currentChunk = {
+        startTimestamp: sample.presentationTimestamp,
+        samples: []
+      };
+    }
+    track.currentChunk.samples.push(sample);
+  };
+  _validateTimestamp = new WeakSet();
+  validateTimestamp_fn = function(presentationTimestamp, decodeTimestamp, track) {
+    const strictTimestampBehavior = __privateGet(this, _options).firstTimestampBehavior === "strict";
+    const noLastDecodeTimestamp = track.lastDecodeTimestamp === -1;
+    const timestampNonZero = decodeTimestamp !== 0;
+    if (strictTimestampBehavior && noLastDecodeTimestamp && timestampNonZero) {
+      throw new Error(
+        `The first chunk for your media track must have a timestamp of 0 (received DTS=${decodeTimestamp}).Non-zero first timestamps are often caused by directly piping frames or audio data from a MediaStreamTrack into the encoder. Their timestamps are typically relative to the age of thedocument, which is probably what you want.
+
+If you want to offset all timestamps of a track such that the first one is zero, set firstTimestampBehavior: 'offset' in the options.
+`
+      );
+    } else if (__privateGet(this, _options).firstTimestampBehavior === "offset" || __privateGet(this, _options).firstTimestampBehavior === "cross-track-offset") {
+      if (track.firstDecodeTimestamp === void 0) {
+        track.firstDecodeTimestamp = decodeTimestamp;
+      }
+      let baseDecodeTimestamp;
+      if (__privateGet(this, _options).firstTimestampBehavior === "offset") {
+        baseDecodeTimestamp = track.firstDecodeTimestamp;
+      } else {
+        baseDecodeTimestamp = Math.min(
+          __privateGet(this, _videoTrack)?.firstDecodeTimestamp ?? Infinity,
+          __privateGet(this, _audioTrack)?.firstDecodeTimestamp ?? Infinity
+        );
+      }
+      decodeTimestamp -= baseDecodeTimestamp;
+      presentationTimestamp -= baseDecodeTimestamp;
+    }
+    if (decodeTimestamp < track.lastDecodeTimestamp) {
+      throw new Error(
+        `Timestamps must be monotonically increasing (DTS went from ${track.lastDecodeTimestamp * 1e6} to ${decodeTimestamp * 1e6}).`
+      );
+    }
+    track.lastDecodeTimestamp = decodeTimestamp;
+    return { presentationTimestamp, decodeTimestamp };
+  };
+  _finalizeCurrentChunk = new WeakSet();
+  finalizeCurrentChunk_fn = function(track) {
+    if (__privateGet(this, _options).fastStart === "fragmented") {
+      throw new Error("Can't finalize individual chunks if 'fastStart' is set to 'fragmented'.");
+    }
+    if (!track.currentChunk)
+      return;
+    track.finalizedChunks.push(track.currentChunk);
+    __privateGet(this, _finalizedChunks).push(track.currentChunk);
+    if (track.compactlyCodedChunkTable.length === 0 || last(track.compactlyCodedChunkTable).samplesPerChunk !== track.currentChunk.samples.length) {
+      track.compactlyCodedChunkTable.push({
+        firstChunk: track.finalizedChunks.length,
+        // 1-indexed
+        samplesPerChunk: track.currentChunk.samples.length
+      });
+    }
+    if (__privateGet(this, _options).fastStart === "in-memory") {
+      track.currentChunk.offset = 0;
+      return;
+    }
+    track.currentChunk.offset = __privateGet(this, _writer).pos;
+    for (let sample of track.currentChunk.samples) {
+      __privateGet(this, _writer).write(sample.data);
+      sample.data = null;
+    }
+    __privateMethod(this, _maybeFlushStreamingTargetWriter, maybeFlushStreamingTargetWriter_fn).call(this);
+  };
+  _finalizeFragment = new WeakSet();
+  finalizeFragment_fn = function(flushStreamingWriter = true) {
+    if (__privateGet(this, _options).fastStart !== "fragmented") {
+      throw new Error("Can't finalize a fragment unless 'fastStart' is set to 'fragmented'.");
+    }
+    let tracks = [__privateGet(this, _videoTrack), __privateGet(this, _audioTrack)].filter((track) => track && track.currentChunk);
+    if (tracks.length === 0)
+      return;
+    let fragmentNumber = __privateWrapper(this, _nextFragmentNumber)._++;
+    if (fragmentNumber === 1) {
+      let movieBox = moov(tracks, __privateGet(this, _creationTime), true);
+      __privateGet(this, _writer).writeBox(movieBox);
+    }
+    let moofOffset = __privateGet(this, _writer).pos;
+    let moofBox = moof(fragmentNumber, tracks);
+    __privateGet(this, _writer).writeBox(moofBox);
+    {
+      let mdatBox = mdat(false);
+      let totalTrackSampleSize = 0;
+      for (let track of tracks) {
+        for (let sample of track.currentChunk.samples) {
+          totalTrackSampleSize += sample.size;
+        }
+      }
+      let mdatSize = __privateGet(this, _writer).measureBox(mdatBox) + totalTrackSampleSize;
+      if (mdatSize >= 2 ** 32) {
+        mdatBox.largeSize = true;
+        mdatSize = __privateGet(this, _writer).measureBox(mdatBox) + totalTrackSampleSize;
+      }
+      mdatBox.size = mdatSize;
+      __privateGet(this, _writer).writeBox(mdatBox);
+    }
+    for (let track of tracks) {
+      track.currentChunk.offset = __privateGet(this, _writer).pos;
+      track.currentChunk.moofOffset = moofOffset;
+      for (let sample of track.currentChunk.samples) {
+        __privateGet(this, _writer).write(sample.data);
+        sample.data = null;
+      }
+    }
+    let endPos = __privateGet(this, _writer).pos;
+    __privateGet(this, _writer).seek(__privateGet(this, _writer).offsets.get(moofBox));
+    let newMoofBox = moof(fragmentNumber, tracks);
+    __privateGet(this, _writer).writeBox(newMoofBox);
+    __privateGet(this, _writer).seek(endPos);
+    for (let track of tracks) {
+      track.finalizedChunks.push(track.currentChunk);
+      __privateGet(this, _finalizedChunks).push(track.currentChunk);
+      track.currentChunk = null;
+    }
+    if (flushStreamingWriter) {
+      __privateMethod(this, _maybeFlushStreamingTargetWriter, maybeFlushStreamingTargetWriter_fn).call(this);
+    }
+  };
+  _maybeFlushStreamingTargetWriter = new WeakSet();
+  maybeFlushStreamingTargetWriter_fn = function() {
+    if (__privateGet(this, _writer) instanceof StreamTargetWriter) {
+      __privateGet(this, _writer).flush();
+    }
+  };
+  _ensureNotFinalized = new WeakSet();
+  ensureNotFinalized_fn = function() {
+    if (__privateGet(this, _finalized)) {
+      throw new Error("Cannot add new video or audio chunks after the file has been finalized.");
+    }
+  };
+  return __toCommonJS(src_exports);
+})();
+if (typeof module === "object" && typeof module.exports === "object") Object.assign(module.exports, Mp4Muxer)
+
+</script>
+<script>
+window.__MSD_SLUG__ = "insecure-vs-secure-architecture";
+window.__MSD_STAGES__ = [
+  {
+    title: "Two ways to build it",
+    key: "Two ways",
+    desc: "Top: the app talks to the database. Bottom: it never does.",
+    status: "same feature · two designs",
+    thinking: false,
+    durationMs: 2600,
+    run: function(MSD, $, $$){
+
+      var K = window.__K || (window.__K = {});
+      K.P = 'ba';
+      K.NODES = ["app1","db1","app2","fd","api","db2"];
+      K.WIRES = ["bad","s1","s2","s3"];
+      K.CUTS = ["bad"];
+
+      K.sel = function(kind, id){ return '#' + K.P + '-' + kind + '-' + id; };
+
+      /* Pills. value null leaves the number alone. */
+      K.pill = function(i, value, unit, tone){
+        if(value !== null) MSD.q('#' + K.P + '-pill-v-' + i).textContent = value;
+        if(unit !== null && unit !== undefined) MSD.q('#' + K.P + '-pill-u-' + i).textContent = unit;
+        MSD.cls('#' + K.P + '-pill-' + i, 'bad', tone === 'bad');
+        MSD.cls('#' + K.P + '-pill-' + i, 'good', tone === 'good');
+      };
+      K.pillLabel = function(i, text){ MSD.q('#' + K.P + '-pill-l-' + i).textContent = text; };
+
+      /* Which nodes are in the picture, and which this stage is about. */
+      K.nodes = function(list, live){
+        K.NODES.forEach(function(n){
+          MSD.cls(K.sel('n', n), 'on', list.indexOf(n) !== -1);
+          MSD.cls(K.sel('n', n), 'live', (live || []).indexOf(n) !== -1);
+        });
+      };
+
+      K.label = function(id, text){ MSD.q(K.sel('l', id)).textContent = text; };
+
+      /* Wires. map is { id: [state, tone] }; anything omitted is turned off.
+         state: off | on | flow | dead.  tone: '' | hot | bad | ok. */
+      K.wires = function(map){
+        K.WIRES.forEach(function(id){
+          var v = (map || {})[id] || ['off', ''];
+          var el = K.sel('w', id);
+          MSD.cls(el, 'on',   v[0] !== 'off');
+          MSD.cls(el, 'flow', v[0] === 'flow');
+          MSD.cls(el, 'dead', v[0] === 'dead');
+          MSD.cls(el, 'hot',  v[1] === 'hot');
+          MSD.cls(el, 'bad',  v[1] === 'bad');
+          MSD.cls(el, 'ok',   v[1] === 'ok');
+        });
+      };
+
+      /* Counter beside a node. null hides it. It renders under the node's label. */
+      K.cnt = function(id, value, flip){
+        var el = K.sel('c', id);
+        MSD.cls(el, 'on', value !== null);
+        MSD.cls(el, 'flip', flip === true);
+        if(value !== null) MSD.q(el).textContent = value;
+      };
+      K.clearCnt = function(){ K.NODES.forEach(function(n){ K.cnt(n, null); }); };
+
+      K.cut = function(list){
+        K.CUTS.forEach(function(id){ MSD.cls(K.sel('x', id), 'on', (list || []).indexOf(id) !== -1); });
+      };
+
+      /* Code block. lines is an array of HTML strings; active/hit are 1-based. */
+      K.code = function(file, lines, opts){
+        opts = opts || {};
+        MSD.q('#' + K.P + '-code-h').textContent = file;
+        for(var i = 1; i <= 5; i++){
+          MSD.q('#' + K.P + '-ln-' + i).innerHTML = lines[i - 1] || '';
+          MSD.cls('#' + K.P + '-ln-' + i, 'active', i === opts.active);
+          MSD.cls('#' + K.P + '-ln-' + i, 'hit', i === opts.hit);
+          MSD.cls('#' + K.P + '-ln-' + i, 'gone', (opts.gone || []).indexOf(i) !== -1);
+        }
+        MSD.cls('#' + K.P + '-code', 'bad', opts.tone === 'bad');
+        MSD.cls('#' + K.P + '-code', 'good', opts.tone === 'good');
+      };
+
+      /* Payoff. Call with no args on every non-final stage to keep it hidden. */
+      K.payoff = function(on){
+        MSD.cls('#' + K.P + '-map', 'dim', on === true);
+        MSD.cls('#' + K.P + '-payoff', 'on', on === true);
+      };
+
+      /* Reset everything a stage might have left behind. Call first, always. */
+      K.reset = function(){
+        K.payoff(false);
+        K.cut([]);
+        K.clearCnt();
+      };
+
+      K.CMP = function(a, b, tone){
+        K.code('the same feature, both ways', [
+          '<span class="c">// INSECURE</span>',
+          a,
+          '',
+          '<span class="c">// SECURE</span>',
+          b
+        ], { hit: 2, active: 5, tone: tone });
+      };
+
+      K.reset();
+      K.pill(1, 'ships', '', '');
+      K.pill(2, 'ships', '', '');
+      K.nodes(['app1', 'db1'], []);
+      K.wires({ bad: ['flow', 'bad'] });
+      K.CMP(
+        '<span class="r">app  →  database</span>',
+        '<span class="g">app → Front Door → API → private SQL</span>',
+        ''
+      );
+
+      MSD.after(600, function(){ MSD.punch('#ba-n-app1', 1); MSD.sfx.blip(1); });
+      MSD.after(1400, function(){
+        K.nodes(['app1', 'db1', 'app2', 'fd', 'api', 'db2'], []);
+        K.wires({ bad: ['flow', 'bad'], s1: ['flow', 'ok'], s2: ['flow', 'ok'], s3: ['flow', 'ok'] });
+        MSD.sfx.pop();
+      });
+      MSD.after(2200, function(){ MSD.punch('#ba-ln-5', 4); });
+      
+    }
+  },
+  {
+    title: "A real customer: both work",
+    key: "both work",
+    desc: "This is exactly why the top one ships. Nothing is wrong yet.",
+    status: "happy path · identical",
+    thinking: false,
+    durationMs: 2800,
+    run: function(MSD, $, $$){
+
+      var K = window.__K;
+      K.reset();
+      K.pill(1, 'works', '', '');
+      K.pill(2, 'works', '', '');
+      K.nodes(['app1', 'db1', 'app2', 'fd', 'api', 'db2'], ['app1', 'app2']);
+      K.wires({ bad: ['flow', 'hot'], s1: ['flow', 'hot'], s2: ['flow', 'hot'], s3: ['flow', 'hot'] });
+      K.CMP(
+        '<span class="c">// 40 ms. her orders. correct.</span>',
+        '<span class="c">// 52 ms. her orders. correct.</span>',
+        ''
+      );
+
+      MSD.after(400,  function(){ MSD.punch('#ba-n-db1', 2); MSD.sfx.data(0); });
+      MSD.after(1200, function(){ MSD.punch('#ba-n-db2', 3); MSD.sfx.data(1); });
+      MSD.after(2100, function(){ MSD.punch('#ba-pill-1', 4); MSD.sfx.chime(); });
+      
+    }
+  },
+  {
+    title: "Someone unzips the app",
+    key: "unzips the app",
+    desc: "Top hands over a database password. Bottom hands over nothing.",
+    status: "package opened · what falls out?",
+    thinking: false,
+    durationMs: 2800,
+    run: function(MSD, $, $$){
+
+      var K = window.__K;
+      K.reset();
+      K.pill(1, 'key', '', 'bad');
+      K.pill(2, 'nothing', '', 'good');
+      K.nodes(['app1', 'db1', 'app2', 'fd', 'api', 'db2'], ['app1']);
+      K.wires({ bad: ['flow', 'bad'], s1: ['flow', 'ok'], s2: ['flow', 'ok'], s3: ['flow', 'ok'] });
+      K.CMP(
+        '<span class="r">"Server=...;Password=Pa55w0rd!"</span>',
+        '<span class="g">a token that expires in 60 minutes</span>',
+        'bad'
+      );
+
+      MSD.after(400,  function(){ MSD.punch('#ba-ln-2', 2); MSD.sfx.error(); });
+      MSD.after(1300, function(){ MSD.shake('#ba-n-app1'); });
+      MSD.after(2100, function(){ MSD.punch('#ba-pill-2', 5); MSD.sfx.chime(); });
+      
+    }
+  },
+  {
+    title: "He dials the database",
+    key: "dials the database",
+    desc: "Top answers him. Bottom has no address to dial.",
+    status: "direct connection attempt",
+    thinking: false,
+    durationMs: 2800,
+    run: function(MSD, $, $$){
+
+      var K = window.__K;
+      K.reset();
+      K.pill(1, 'open', '', 'bad');
+      K.pill(2, 'no IP', '', 'good');
+      K.nodes(['app1', 'db1', 'app2', 'fd', 'api', 'db2'], ['db1']);
+      K.wires({ bad: ['flow', 'bad'], s1: ['flow', 'ok'], s2: ['flow', 'ok'], s3: ['flow', 'ok'] });
+      K.CMP(
+        '<span class="r">publicNetworkAccess: "Enabled"</span>',
+        '<span class="g">publicNetworkAccess: "Disabled"</span>',
+        'bad'
+      );
+
+      MSD.after(400,  function(){ MSD.punch('#ba-n-db1', 2); MSD.sfx.error(); });
+      MSD.after(1300, function(){ MSD.shake('#ba-n-db1'); });
+      MSD.after(2100, function(){ MSD.punch('#ba-n-db2', 5); MSD.sfx.lock(); });
+      
+    }
+  },
+  {
+    title: "He asks for another user’s order",
+    key: "another user",
+    desc: "Top has no owner check to fail. Bottom filters by the token.",
+    status: "GET /orders/1043",
+    thinking: false,
+    durationMs: 2800,
+    run: function(MSD, $, $$){
+
+      var K = window.__K;
+      K.reset();
+      K.pill(1, 'returns', '', 'bad');
+      K.pill(2, '403', '', 'good');
+      K.nodes(['app1', 'db1', 'app2', 'fd', 'api', 'db2'], ['api']);
+      K.wires({ bad: ['flow', 'bad'], s1: ['flow', 'ok'], s2: ['flow', 'ok'], s3: ['flow', 'ok'] });
+      K.CMP(
+        '<span class="r">SELECT * FROM Orders WHERE Id = 1043</span>',
+        '<span class="g">.Where(o =&gt; o.UserId == me.Oid())</span>',
+        'bad'
+      );
+
+      MSD.after(400,  function(){ MSD.punch('#ba-ln-2', 2); MSD.sfx.error(); });
+      MSD.after(1300, function(){ MSD.punch('#ba-ln-5', 4); MSD.sfx.lock(); });
+      MSD.after(2100, function(){ MSD.punch('#ba-n-api', 5); MSD.sfx.chime(); });
+      
+    }
+  },
+  {
+    title: "Now replace the secret",
+    key: "replace the secret",
+    desc: "Top needs an app store release. Bottom is one command.",
+    status: "rotation · days vs seconds",
+    thinking: false,
+    durationMs: 2800,
+    run: function(MSD, $, $$){
+
+      var K = window.__K;
+      K.reset();
+      K.pill(1, '3 days', '', 'bad');
+      K.pill(2, '1 click', '', 'good');
+      K.nodes(['app1', 'db1', 'app2', 'fd', 'api', 'db2'], []);
+      K.wires({ bad: ['dead', 'bad'], s1: ['flow', 'ok'], s2: ['flow', 'ok'], s3: ['flow', 'ok'] });
+      K.CMP(
+        '<span class="r">new build → store review → user updates</span>',
+        '<span class="g">az keyvault secret set --name SqlPassword</span>',
+        'bad'
+      );
+
+      MSD.after(400,  function(){ MSD.punch('#ba-ln-2', 2); MSD.sfx.thud(); });
+      MSD.after(1300, function(){ MSD.punch('#ba-ln-5', 4); MSD.sfx.chime(); });
+      MSD.after(2100, function(){ MSD.punch('#ba-pill-1', 5); MSD.sfx.error(); });
+      
+    }
+  },
+  {
+    title: "One design cannot be fixed",
+    key: "cannot be fixed",
+    desc: "Not without changing the shape. That is what makes it expensive later.",
+    status: "top: rewrite · bottom: settings",
+    thinking: false,
+    durationMs: 2800,
+    run: function(MSD, $, $$){
+
+      var K = window.__K;
+      K.reset();
+      K.pill(1, 'rewrite', '', 'bad');
+      K.pill(2, 'settings', '', 'good');
+      K.nodes(['app1', 'db1', 'app2', 'fd', 'api', 'db2'], []);
+      K.wires({ bad: ['dead', 'bad'], s1: ['flow', 'ok'], s2: ['flow', 'ok'], s3: ['flow', 'ok'] });
+      K.cut(['bad']);
+      K.CMP(
+        '<span class="r">every fix needs a new app release</span>',
+        '<span class="g">every fix is a server-side change</span>',
+        ''
+      );
+
+      MSD.after(400,  function(){ K.cut(['bad']); MSD.sfx.thud(); });
+      MSD.after(1300, function(){ MSD.punch('#ba-ln-5', 4); MSD.sfx.chime(); });
+      MSD.after(2100, function(){ MSD.punch('#ba-n-api', 5); MSD.sfx.sparkle(); });
+      
+    }
+  },
+  {
+    title: "Both work. One survives",
+    key: "One survives",
+    desc: "The difference never shows up until something goes wrong.",
+    status: "pick the shape first",
+    thinking: false,
+    durationMs: 2800,
+    run: function(MSD, $, $$){
+
+      var K = window.__K;
+      K.reset();
+      K.pill(1, 'rewrite', '', 'bad');
+      K.pill(2, 'settings', '', 'good');
+      K.nodes(['app1', 'db1', 'app2', 'fd', 'api', 'db2'], []);
+      K.wires({ bad: ['dead', 'bad'], s1: ['flow', 'ok'], s2: ['flow', 'ok'], s3: ['flow', 'ok'] });
+      K.cut(['bad']);
+      K.CMP(
+        '<span class="r">app  →  database</span>',
+        '<span class="g">app → Front Door → API → private SQL</span>',
+        'good'
+      );
+
+      MSD.after(400,  function(){ K.payoff(true); MSD.sfx.chime(); });
+      MSD.after(1300, function(){ MSD.punch('#ba-po-b', 4); MSD.sfx.sparkle(); });
+      MSD.after(2100, function(){ MSD.punch('#ba-po-h', 5); MSD.sfx.resolve(); });
+      
+    }
+  }
+];
+</script>
+<script>
+
+(function(){
+  'use strict';
+
+  var canvas = document.getElementById('canvas');
+  var stageEl = document.getElementById('stage');
+  var STAGE_HTML_SNAPSHOT = stageEl.innerHTML;
+
+  /* ---------------------------------------------------------------- fit -- */
+  function fit(){
+    var scale = Math.min(window.innerWidth / 1080, window.innerHeight / 1920);
+    canvas.style.transform = 'scale(' + scale + ')';
+  }
+  window.addEventListener('resize', fit); fit();
+
+  /* -------------------------------------------------------------- audio -- */
+  // Two independent audio layers:
+  //
+  //   soundOn  — the flow effects: whooshes on cuts, blips on reveals, chimes.
+  //              These are tied to the animation and read as craft.
+  //   musicOn  — the ambient bed. OFF by default and opt-in via "m", because a
+  //              synthesised pad drone reads as background hum rather than as
+  //              music. Real background music belongs on the editing timeline,
+  //              not in the reel.
+  //
+  // Both start off so a reel opened in a tab is silent until you ask for sound.
+  var actx = null, soundOn = false, musicOn = false;
+  var master = null, musicGain = null, musicStarted = false;
+
+  // Audio is a nice-to-have: if the browser blocks or lacks Web Audio, the reel
+  // must still play silently rather than die on the first stage.
+  function ensureAudio(){
+    try{
+      if(!actx){
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC) return;
+        actx = new AC();
+        master = actx.createGain();
+        master.gain.value = 0.9;
+        master.connect(actx.destination);
+      }
+      if(actx.state === 'suspended') actx.resume();
+    }catch(err){
+      actx = null;
+      console.warn('[MSDevBuild] audio unavailable, playing silently:', err);
+    }
+  }
+
+  function beep(o){
+    o = o || {};
+    if(!soundOn || !actx) return;
+    try{
+    var t0 = actx.currentTime + (o.delay || 0);
+    var osc = actx.createOscillator();
+    var g = actx.createGain();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(o.freq || 600, t0);
+    if(o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t0 + (o.dur || 0.08));
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(o.gain || 0.05, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (o.dur || 0.08));
+    osc.connect(g); g.connect(master);
+    osc.start(t0); osc.stop(t0 + (o.dur || 0.08) + 0.03);
+    }catch(err){ /* a dropped sound must never interrupt the animation */ }
+  }
+
+  function noiseBurst(dur, gain, sweepFrom, sweepTo){
+    if(!soundOn || !actx) return;
+    try{
+    var len = Math.floor(actx.sampleRate * dur);
+    var buf = actx.createBuffer(1, len, actx.sampleRate);
+    var data = buf.getChannelData(0);
+    for(var i=0;i<len;i++){ data[i] = (Math.random()*2-1) * (1 - i/len); }
+    var src = actx.createBufferSource(); src.buffer = buf;
+    var filter = actx.createBiquadFilter(); filter.type = 'bandpass';
+    var t0 = actx.currentTime;
+    filter.frequency.setValueAtTime(sweepFrom, t0);
+    filter.frequency.exponentialRampToValueAtTime(sweepTo, t0 + dur);
+    filter.Q.value = 1.1;
+    var g = actx.createGain();
+    // Ramp up rather than jumping to full gain — an instant onset is a click.
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(filter); filter.connect(g); g.connect(master);
+    src.start(t0);
+    }catch(err){ /* see beep() */ }
+  }
+
+  // Every pitched effect is quantised to a C major pentatonic scale. Pentatonic
+  // has no dissonant intervals, so effects fired in any order still sound
+  // musical — a run of reveals becomes a rising melodic phrase instead of a
+  // string of beeps. This is the single biggest reason the sound reads as
+  // designed rather than as UI noise.
+  var PENTA = [0, 2, 4, 7, 9];
+  var ROOT = 523.25; // C5
+
+  function scaleFreq(step){
+    step = Math.max(0, step | 0);
+    var octave = Math.floor(step / PENTA.length);
+    var semitone = PENTA[step % PENTA.length] + octave * 12;
+    return ROOT * Math.pow(2, semitone / 12);
+  }
+
+  /** Pitch sweep used for risers — builds anticipation into a payoff. */
+  function sweep(fromFreq, toFreq, dur, gain, type){
+    if(!soundOn || !actx) return;
+    try{
+      var t0 = actx.currentTime;
+      var osc = actx.createOscillator();
+      var g = actx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(fromFreq, t0);
+      osc.frequency.exponentialRampToValueAtTime(toFreq, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(gain, t0 + dur * 0.82);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g); g.connect(master);
+      osc.start(t0); osc.stop(t0 + dur + 0.05);
+    }catch(err){ /* see beep() */ }
+  }
+
+  var SFX = {
+    /** Ascending scale note. Pass the item index for a rising phrase. */
+    blip:  function(i){ beep({ freq: scaleFreq(i || 0), dur: 0.085, gain: 0.026 }); },
+    /** Same phrase an octave up — for secondary or lighter reveals. */
+    step:  function(i){ beep({ freq: scaleFreq((i || 0) + 5), dur: 0.07, gain: 0.02 }); },
+    tick:  function(){ beep({ freq: 1046, dur: 0.03, type: 'square', gain: 0.009 }); },
+    pop:   function(){ beep({ freq: 392, to: 784, dur: 0.12, gain: 0.03 }); },
+    /** Two-note snap for something locking into place. */
+    lock:  function(){ beep({ freq: 659.25, dur: 0.07, gain: 0.03 }); beep({ freq: 987.77, dur: 0.14, gain: 0.026, delay: 0.06 }); },
+    /** Short high blip for data movement — pair with MSD.particles. */
+    data:  function(i){ beep({ freq: scaleFreq((i || 0) + 8), dur: 0.045, gain: 0.014 }); },
+    chime: function(){ beep({ freq: 784, dur: 0.2, gain: 0.03 }); beep({ freq: 1046.5, dur: 0.3, gain: 0.028, delay: 0.11 }); },
+    ding:  function(){ beep({ freq: 587.33, dur: 0.12, gain: 0.032 }); beep({ freq: 880, dur: 0.28, gain: 0.03, delay: 0.1 }); },
+    /** Resolving three-note phrase for a completed idea. */
+    resolve: function(){
+      beep({ freq: 659.25, dur: 0.12, gain: 0.028 });
+      beep({ freq: 783.99, dur: 0.14, gain: 0.028, delay: 0.1 });
+      beep({ freq: 1046.5, dur: 0.34, gain: 0.03, delay: 0.21 });
+    },
+    whoosh:function(up){ noiseBurst(0.42, 0.045, up ? 320 : 2400, up ? 2600 : 300); },
+    swipe: function(){ noiseBurst(0.22, 0.035, 1800, 420); },
+    /** Rising tone that builds tension. Duration in ms, default ~1s. */
+    riser: function(ms){ sweep(220, 1320, (ms || 1000) / 1000, 0.028); },
+    /** Fast four-note arpeggio — satisfying reward for a reveal landing. */
+    sparkle: function(){
+      for(var i = 0; i < 4; i++){
+        beep({ freq: scaleFreq(i + 4), dur: 0.09, gain: 0.019, delay: i * 0.055 });
+      }
+    },
+    /** Soft focus sound — pairs with MSD.focus, feels like a camera settling. */
+    focus: function(){ beep({ freq: 440, to: 660, dur: 0.16, gain: 0.02 }); },
+    thud:  function(){ beep({ freq: 150, to: 48, dur: 0.34, gain: 0.07 }); },
+    error: function(){ beep({ freq: 300, to: 170, dur: 0.2, type: 'sawtooth', gain: 0.03 }); }
+  };
+
+  /* Generative bed: A-minor pad + arpeggio + soft pulse. Deliberately quiet so
+     it sits under narration if voiceover is added in post. */
+  var CHORDS = [[220,261.63,329.63],[174.61,220,261.63],[196,246.94,293.66],[164.81,220,261.63]];
+  var arpStep = 0, chordIndex = 0, musicTimer = null;
+  var MUSIC_LEVEL = 0.028;   // deliberately low — this is a bed, not a track
+  var ARP_MS = 720;          // slower than a click track, so it stays ignorable
+
+  // Built lazily, and only once sound is actually enabled. Oscillators have no
+  // stop time, so creating this graph while muted would keep the OS audio
+  // daemon busy for the life of the tab for no audible benefit.
+  function startMusic(){
+    if(musicStarted || !actx || !musicOn) return;
+    musicStarted = true;
+    try{
+    musicGain = actx.createGain();
+    musicGain.gain.value = musicOn ? MUSIC_LEVEL : 0;
+    // Roll off the highs so the bed sits behind the effects instead of hissing,
+    // and route through master so one control governs everything.
+    var musicTone = actx.createBiquadFilter();
+    musicTone.type = 'lowpass';
+    musicTone.frequency.value = 1400;
+    musicGain.connect(musicTone);
+    musicTone.connect(master || actx.destination);
+
+    // Sustained pad with per-voice LFO breathing.
+    [110, 164.81, 130.81].forEach(function(freq, idx){
+      var osc = actx.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq;
+      var g = actx.createGain(); g.gain.value = 0.4;
+      osc.connect(g); g.connect(musicGain); osc.start();
+      var lfo = actx.createOscillator(); lfo.type = 'sine';
+      lfo.frequency.value = 0.06 + idx * 0.015;
+      var lg = actx.createGain(); lg.gain.value = 0.28;
+      lfo.connect(lg); lg.connect(g.gain); lfo.start();
+    });
+
+    // Arpeggio + pulse, advanced on a timer rather than a sample-accurate
+    // scheduler — at this tempo the drift is inaudible.
+    musicTimer = setInterval(function(){
+      if(!actx || !musicGain) return;
+      var chord = CHORDS[chordIndex % CHORDS.length];
+      var note = chord[arpStep % chord.length] * 2;
+      var t0 = actx.currentTime;
+      var osc = actx.createOscillator(); osc.type = 'sine'; osc.frequency.value = note;
+      var g = actx.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.07, t0 + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6);
+      osc.connect(g); g.connect(musicGain);
+      osc.start(t0); osc.stop(t0 + 0.65);
+
+      if(arpStep % 8 === 0){
+        var k = actx.createOscillator(); var kg = actx.createGain();
+        k.frequency.setValueAtTime(110, t0);
+        k.frequency.exponentialRampToValueAtTime(45, t0 + 0.16);
+        kg.gain.setValueAtTime(0.0001, t0);
+        kg.gain.exponentialRampToValueAtTime(0.28, t0 + 0.012);
+        kg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.28);
+        k.connect(kg); kg.connect(musicGain);
+        k.start(t0); k.stop(t0 + 0.3);
+      }
+      arpStep++;
+      if(arpStep % 16 === 0) chordIndex++;
+    }, ARP_MS);
+    }catch(err){
+      console.warn('[MSDevBuild] music bed unavailable:', err);
+    }
+  }
+
+  function updateGains(){
+    if(musicGain && actx) musicGain.gain.linearRampToValueAtTime(musicOn ? MUSIC_LEVEL : 0, actx.currentTime + 0.4);
+  }
+
+  // The visible toggle governs the flow effects only — that is the sound most
+  // people want. The ambient bed is deliberately keyboard-only.
+  var soundToggle = document.getElementById('sound-toggle');
+  function paintToggle(){ soundToggle.style.opacity = soundOn ? '1' : '0.35'; }
+  soundToggle.addEventListener('click', function(e){
+    e.stopPropagation();
+    ensureAudio(); soundOn = !soundOn; paintToggle();
+  });
+
+  function toggleMusic(){
+    ensureAudio(); musicOn = !musicOn;
+    if(musicOn) startMusic();
+    updateGains();
+  }
+
+  /* ----------------------------------------------------- MSD helper API -- */
+  var stageTimers = [];
+
+  /**
+   * Re-applies a one-shot animation class. Removing the class and forcing a
+   * reflow is what lets the same beat fire twice in a stage — without it the
+   * browser sees no change and the animation never replays.
+   */
+  function retrigger(sel, cls){
+    var els = canvas.querySelectorAll(sel);
+    for(var i = 0; i < els.length; i++){
+      els[i].classList.remove(cls);
+      void els[i].offsetWidth;
+      els[i].classList.add(cls);
+    }
+  }
+
+  function clearStageTimers(){
+    stageTimers.forEach(function(t){ clearTimeout(t); clearInterval(t); });
+    stageTimers = [];
+    // Particles schedule their own removal on a stage timer, so cancelling
+    // those timers would otherwise strand any particle still in flight.
+    var stray = canvas.querySelectorAll('.msd-particle');
+    for(var i = 0; i < stray.length; i++){
+      if(stray[i].parentNode) stray[i].parentNode.removeChild(stray[i]);
+    }
+  }
+
+  var MSD = {
+    /** First match inside the canvas. */
+    q: function(sel){ return canvas.querySelector(sel); },
+    /** All matches inside the canvas, as a real array. */
+    qa: function(sel){ return Array.prototype.slice.call(canvas.querySelectorAll(sel)); },
+
+    /** Reveals .msd-reveal elements one after another, with a blip each. */
+    show: function(sel, stagger, silent){
+      var els = MSD.qa(sel); stagger = stagger == null ? 65 : stagger;
+      els.forEach(function(el, i){
+        MSD.after(i * stagger, function(){
+          el.classList.add('show');
+          if(!silent) SFX.blip(i);
+        });
+      });
+      return els.length;
+    },
+    hide: function(sel){ MSD.qa(sel).forEach(function(el){ el.classList.remove('show'); }); },
+
+    /** Toggles a class on every match. */
+    cls: function(sel, cls, on){
+      MSD.qa(sel).forEach(function(el){ el.classList.toggle(cls, on !== false); });
+    },
+
+    /** Typewriter. Appends into the element, one character at a time. */
+    type: function(sel, text, speed, done){
+      var el = typeof sel === 'string' ? MSD.q(sel) : sel;
+      if(!el) return;
+      speed = speed || 42; el.textContent = '';
+      for(var i = 0; i < text.length; i++){
+        (function(i){
+          MSD.after(i * speed, function(){
+            el.textContent = text.slice(0, i + 1);
+            if(i % 5 === 0) SFX.tick();
+            if(i === text.length - 1 && done) done();
+          });
+        })(i);
+      }
+    },
+
+    /** Counts a number up into an element. */
+    count: function(sel, to, ms, opts){
+      var el = typeof sel === 'string' ? MSD.q(sel) : sel;
+      if(!el) return;
+      opts = opts || {}; ms = ms || 1200;
+      var steps = Math.max(1, Math.round(ms / 40)), i = 0;
+      var id = setInterval(function(){
+        i++;
+        var p = i / steps, eased = 1 - Math.pow(1 - p, 3);
+        var v = to * eased;
+        el.textContent = (opts.prefix || '') + v.toFixed(opts.decimals || 0) + (opts.suffix || '');
+        if(i >= steps){ clearInterval(id); el.textContent = (opts.prefix || '') + to.toFixed(opts.decimals || 0) + (opts.suffix || ''); }
+      }, 40);
+      stageTimers.push(id);
+    },
+
+    /** Emits glowing particles from one point to another inside a host. */
+    particles: function(hostSel, opts){
+      var host = typeof hostSel === 'string' ? MSD.q(hostSel) : hostSel;
+      if(!host) return;
+      opts = opts || {};
+      var n = opts.count || 8, dur = opts.duration || 1200;
+      var from = opts.from || { x: 50, y: 90 }, to = opts.to || { x: 50, y: 10 };
+      for(var i = 0; i < n; i++){
+        (function(i){
+          MSD.after(i * (dur / n / 1.6), function(){
+            var p = document.createElement('div');
+            p.className = 'msd-particle';
+            var jitter = (Math.random() - 0.5) * (opts.spread || 16);
+            p.style.left = 'calc(' + from.x + '% + ' + jitter + 'px)';
+            p.style.top = from.y + '%';
+            p.style.transition = 'left ' + dur + 'ms cubic-bezier(.4,0,.2,1), top ' + dur + 'ms cubic-bezier(.4,0,.2,1), opacity ' + dur + 'ms ease';
+            host.appendChild(p);
+            requestAnimationFrame(function(){
+              p.style.left = 'calc(' + to.x + '% + ' + jitter + 'px)';
+              p.style.top = to.y + '%';
+              p.style.opacity = '0';
+            });
+            MSD.after(dur + 120, function(){ if(p.parentNode) p.parentNode.removeChild(p); });
+          });
+        })(i);
+      }
+    },
+
+    /**
+     * Spotlight. Grows the subject and recedes everything in "othersSel", which
+     * reads as a camera push. One call is usually the difference between a
+     * stage that feels directed and one that feels like a slide.
+     */
+    focus: function(sel, othersSel){
+      MSD.qa('.msd-focus').forEach(function(el){ el.classList.remove('msd-focus'); el.style.transform = ''; });
+      MSD.qa('.msd-recede').forEach(function(el){ el.classList.remove('msd-recede'); });
+      if(othersSel) MSD.qa(othersSel).forEach(function(el){ el.classList.add('msd-recede'); });
+      MSD.qa(sel).forEach(function(el){
+        el.classList.remove('msd-recede');
+        el.classList.add('msd-focus');
+        el.style.transform = 'scale(1.06)';
+      });
+      SFX.focus();
+    },
+    /** Clears any spotlight. */
+    unfocus: function(){
+      MSD.qa('.msd-focus, .msd-recede').forEach(function(el){
+        el.classList.remove('msd-focus'); el.classList.remove('msd-recede');
+        el.style.transform = '';
+      });
+    },
+
+    /** One-shot attention beats. Re-triggerable — the class is removed first. */
+    // Each beat carries its own sound, so motion and audio never drift apart.
+    flash: function(sel){ retrigger(sel, 'msd-flash'); SFX.pop(); },
+    punch: function(sel, i){ retrigger(sel, 'msd-punch'); SFX.blip(i || 0); },
+    shake: function(sel){ retrigger(sel, 'msd-shake'); SFX.error(); },
+
+    /**
+     * Continuous particle stream for the life of the stage. Prefer this over
+     * a one-shot MSD.particles when something is flowing the whole time —
+     * constant motion is what stops a stage feeling static.
+     */
+    stream: function(hostSel, opts){
+      opts = opts || {};
+      var gap = opts.gap || 620;
+      var pulse = 0;
+      MSD.particles(hostSel, opts);
+      if(opts.silent !== true) SFX.data(0);
+      return MSD.every(gap, function(){
+        MSD.particles(hostSel, opts);
+        pulse++;
+        if(opts.silent !== true) SFX.data(pulse % 4);
+      });
+    },
+
+    /** Stage-scoped timers — cleared automatically when the stage changes. */
+    after: function(ms, fn){ var id = setTimeout(fn, ms); stageTimers.push(id); return id; },
+    every: function(ms, fn){ var id = setInterval(fn, ms); stageTimers.push(id); return id; },
+
+    sfx: SFX,
+    stage: 0
+  };
+  window.MSD = MSD;
+
+  /* ---------------------------------------------------------- sequencer -- */
+  var STAGES = window.__MSD_STAGES__ || [];
+  var END_CARD_MS = 2600;
+
+  var track = document.getElementById('progress-track');
+  var segs = STAGES.map(function(){
+    var seg = document.createElement('div'); seg.className = 'seg';
+    var fill = document.createElement('div'); fill.className = 'seg-fill';
+    seg.appendChild(fill); track.appendChild(seg);
+    return seg;
+  });
+
+  var elNum = document.getElementById('stage-num');
+  var elTitle = document.getElementById('stage-title');
+  var elDesc = document.getElementById('stage-desc');
+  var elStatus = document.getElementById('status-text');
+  var elThinking = document.getElementById('thinking');
+  var capCard = document.getElementById('caption-wrap');
+  var endCard = document.getElementById('end-card');
+
+  var cur = -1, seqTimer = null, running = false;
+
+  // Set by the recorder so it can stop on the reel's own last frame. A
+  // wall-clock timer cannot: a tab that loses focus is throttled, the reel then
+  // runs slower than the clock, and the recording ends mid-reel.
+  var onLoopEnd = null;
+
+  function escapeHtml(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function paintCaption(s, index){
+    elNum.textContent = 'STEP ' + String(index + 1).padStart(2, '0') + ' / ' + String(STAGES.length).padStart(2, '0');
+    var safe = escapeHtml(s.title);
+    if(s.key){
+      var safeKey = escapeHtml(s.key);
+      safe = safe.replace(safeKey, '<span class="kw-hl">' + safeKey + '</span>');
+    }
+    elTitle.innerHTML = safe;
+    elDesc.textContent = s.desc;
+    elStatus.textContent = s.status;
+    elThinking.classList.toggle('show', !!s.thinking);
+    capCard.classList.remove('pulse'); void capCard.offsetWidth; capCard.classList.add('pulse');
+  }
+
+  function paintTrack(index){
+    segs.forEach(function(seg, i){
+      seg.classList.remove('active');
+      seg.classList.toggle('done', i < index);
+      if(i === index){
+        seg.querySelector('.seg-fill').style.setProperty('--seg-dur', STAGES[i].durationMs + 'ms');
+        seg.classList.add('active');
+      }
+    });
+  }
+
+  function goto(index){
+    clearStageTimers();
+    cur = index; MSD.stage = index;
+    var s = STAGES[index];
+    paintCaption(s, index);
+    paintTrack(index);
+
+    // The transition note climbs the scale stage by stage, so the reel is
+    // audibly "going somewhere" — a cheap but strong reason to keep watching.
+    SFX.whoosh(true);
+    if(index === 0) SFX.thud(); else SFX.blip(index);
+
+    // Build tension across the last stage so the payoff lands instead of
+    // just arriving. Most drop-off happens right before the end.
+    if(index === STAGES.length - 1 && s.durationMs > 1400){
+      var riserMs = Math.min(1100, Math.round(s.durationMs * 0.45));
+      MSD.after(s.durationMs - riserMs, function(){ SFX.riser(riserMs); });
+    }
+
+    if(typeof s.run === 'function'){
+      // A thrown error in one stage must not kill the whole reel.
+      try { s.run(MSD, MSD.q, MSD.qa); }
+      catch(err){ console.error('[MSDevBuild] stage ' + index + ' failed:', err); }
+    }
+
+    seqTimer = setTimeout(function(){
+      if(index + 1 < STAGES.length) goto(index + 1);
+      else finish();
+    }, s.durationMs);
+  }
+
+  function finish(){
+    clearStageTimers();
+    endCard.classList.add('show');
+    // Resolving phrase over the brand card: the audio equivalent of closing
+    // the loop, which is what makes a viewer feel the reel was complete.
+    SFX.thud();
+    SFX.resolve();
+    seqTimer = setTimeout(function(){
+      endCard.classList.remove('show');
+      // Restore the stage to its authored markup so every loop is identical.
+      stageEl.innerHTML = STAGE_HTML_SNAPSHOT;
+      // One full pass is done. The recorder stops here, before the next loop
+      // starts, so the file ends on the end card rather than on stage one.
+      if(onLoopEnd){ var done = onLoopEnd; onLoopEnd = null; done(); }
+      goto(0);
+    }, END_CARD_MS);
+  }
+
+  function start(){
+    if(running) return;
+    running = true;
+    ensureAudio(); paintToggle();
+    document.getElementById('title-screen').classList.add('hide');
+    setTimeout(function(){ goto(0); }, 240);
+  }
+
+  /** Jumps back to stage one from anywhere, including the title screen. */
+  function restart(){
+    clearTimeout(seqTimer); clearStageTimers();
+    endCard.classList.remove('show');
+    stageEl.innerHTML = STAGE_HTML_SNAPSHOT;
+    running = true;
+    document.getElementById('title-screen').classList.add('hide');
+    goto(0);
+  }
+
+  document.getElementById('title-screen').addEventListener('click', start);
+
+  /* ------------------------------------------------------------- capture -- */
+  // The reel is DOM and CSS, not a <canvas>, so the pixels still have to come
+  // from the compositor: the Screen Capture API, cropped to the reel and scaled
+  // to 1080x1920. What changed is everything after that.
+  //
+  // MediaRecorder used to own the encode and made two decisions badly. It
+  // stamped an H.264 level on the stream that the stream then exceeded (a real
+  // recording declared level 4.0 while running at 437,760 macroblocks/sec
+  // against a 245,760 limit), and it wrote a fragmented MP4. Both play fine in
+  // Chrome and fall apart in editors, which is the worst way for a bug to
+  // behave. Here the encoder is configured explicitly and the muxer writes a
+  // plain ftyp/moov/mdat file, so neither failure can come back.
+  var recordBtn = document.getElementById('record-toggle');
+  var capturing = false;
+
+  var TARGET_W = 1080, TARGET_H = 1920;
+  // 30 rather than 60, and this is the setting that decides whether the file
+  // survives leaving Chrome: 1080x1920 at 30fps is 244,800 macroblocks/sec
+  // against level 4.0's 245,760. Legal with room to spare. Reels and Shorts
+  // play at 30 anyway.
+  var TARGET_FPS = 30;
+  // Editors seek to keyframes; a long gap between them is what makes a scrubbed
+  // timeline smear even when the file is otherwise sound.
+  var KEYFRAME_EVERY = TARGET_FPS * 2;
+  var VIDEO_BITRATE = 12000000;
+
+  /**
+   * Crop the tab capture down to the reel itself.
+   *
+   * getDisplayMedia hands back the whole tab, so without this the frames are a
+   * letterboxed window shot — the wrong aspect ratio for every platform this is
+   * posted to. Region Capture narrows the track to one element's box, which is
+   * how a DOM reel produces a 9:16 file at all.
+   */
+  function cropToCanvas(track){
+    if(!window.CropTarget || !track || !track.cropTo) return Promise.resolve();
+    return window.CropTarget.fromElement(canvas)
+      .then(function(target){ return track.cropTo(target); })
+      .catch(function(){});
+  }
+
+  /**
+   * Pin the frames to exactly 1080x1920 at 30fps.
+   *
+   * Exact, not ideal: asked with ideal, Chrome treats the size as a suggestion
+   * and hands back whatever the window painted — one recording came out
+   * 1256x2234, which is both the wrong size and outside the level it declared.
+   * If the exact size is refused, fall back so a recording still happens.
+   */
+  function sizeToTarget(track){
+    if(!track || !track.applyConstraints) return Promise.resolve();
+    return track.applyConstraints({
+      width: { exact: TARGET_W },
+      height: { exact: TARGET_H },
+      frameRate: { max: TARGET_FPS },
+      resizeMode: 'crop-and-scale'
+    }).catch(function(){
+      return track.applyConstraints({
+        width: { ideal: TARGET_W },
+        height: { ideal: TARGET_H },
+        frameRate: { max: TARGET_FPS },
+        resizeMode: 'crop-and-scale'
+      }).catch(function(){});
+    });
+  }
+
+  /** One full pass: every stage plus the end card. */
+  function loopMs(){
+    var total = 0;
+    for(var i = 0; i < STAGES.length; i++) total += STAGES[i].durationMs;
+    return total + END_CARD_MS;
+  }
+
+  function saveBlob(blob, extension){
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = (window.__MSD_SLUG__ || 'msdevbuild-reel') + '.' + extension;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+  }
+
+  function canEncode(){
+    return !!(window.VideoEncoder && window.MediaStreamTrackProcessor && window.Mp4Muxer);
+  }
+
+  /** Drain a track processor, handing each frame to the encoder until stopped. */
+  function pump(reader, onChunk, isStopped){
+    return reader.read().then(function(result){
+      if(result.done) return;
+      if(isStopped()){ result.value.close(); return; }
+      onChunk(result.value);
+      return pump(reader, onChunk, isStopped);
+    }).catch(function(){});
+  }
+
+  function startCapture(){
+    if(capturing) return;
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia || !canEncode()){
+      window.alert('This browser cannot export the reel.\n\nUse Chrome or Edge on desktop, or screen-record the tab yourself.');
+      return;
+    }
+
+    navigator.mediaDevices.getDisplayMedia({
+      // cursor:'never' keeps the mouse pointer out of the frames. It is on by
+      // default, and a stray arrow parked over the animation is the clearest
+      // tell that a clip was filmed rather than rendered.
+      video: { frameRate: TARGET_FPS, cursor: 'never' },
+      audio: true,
+      preferCurrentTab: true
+    }).then(runCapture).catch(function(){
+      // Cancelling the picker is a normal outcome, not an error worth shouting.
+    });
+  }
+
+  function runCapture(stream){
+    capturing = true;
+    canvas.classList.add('capturing');
+
+    // A silent export is a wasted one, and the tab audio is captured for free.
+    ensureAudio(); soundOn = true; paintToggle();
+
+    var videoTrack = stream.getVideoTracks()[0];
+    var audioTrack = stream.getAudioTracks()[0];
+    var muxer = null, videoEncoder = null, audioEncoder = null;
+    var stopped = false, frames = 0, stopTimer = null, wentHidden = false;
+
+    function isStopped(){ return stopped; }
+    // A hidden tab paints nothing, so the capture simply stops producing frames
+    // and the file comes back short with nothing in it saying why.
+    function noteHidden(){ if(document.hidden) wentHidden = true; }
+    document.addEventListener('visibilitychange', noteHidden);
+
+    function teardown(){
+      document.removeEventListener('visibilitychange', noteHidden);
+      stream.getTracks().forEach(function(track){ track.stop(); });
+      capturing = false;
+      canvas.classList.remove('capturing');
+    }
+
+    function report(settings){
+      var problems = [];
+      if(settings.width && (settings.width !== TARGET_W || settings.height !== TARGET_H)){
+        problems.push(
+          'Frame size is ' + settings.width + 'x' + settings.height + ', not '
+          + TARGET_W + 'x' + TARGET_H + '. Make the window taller (full screen, '
+          + 'browser UI hidden) so there are enough pixels to capture, then record again.'
+        );
+      }
+      if(wentHidden){
+        problems.push(
+          'The tab was hidden part way through. A hidden tab paints nothing, so '
+          + 'those seconds are missing from the file. Keep this window in front '
+          + 'for the whole recording.'
+        );
+      }
+      if(problems.length) setTimeout(function(){ window.alert(problems.join('\n\n')); }, 400);
+    }
+
+    function stop(){
+      if(stopped) return;
+      stopped = true;
+      clearTimeout(stopTimer);
+      onLoopEnd = null;
+
+      // Read the real frame size before the track is stopped and forgets it.
+      var settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
+      var pending = [videoEncoder.flush()];
+      if(audioEncoder) pending.push(audioEncoder.flush());
+
+      Promise.all(pending).then(function(){
+        muxer.finalize();
+        saveBlob(new Blob([muxer.target.buffer], { type: 'video/mp4' }), 'mp4');
+        teardown();
+        report(settings);
+      }).catch(function(error){
+        teardown();
+        window.alert('The export failed while encoding.\n\n' + ((error && error.message) || error));
+      });
+    }
+
+    // "Stop sharing" in the browser's own bar should still save the clip.
+    videoTrack.addEventListener('ended', stop);
+
+    cropToCanvas(videoTrack).then(function(){
+      return sizeToTarget(videoTrack);
+    }).then(function(){
+      var audioSettings = (audioTrack && audioTrack.getSettings) ? audioTrack.getSettings() : {};
+      var sampleRate = audioSettings.sampleRate || 48000;
+      var channels = audioSettings.channelCount || 2;
+
+      muxer = new window.Mp4Muxer.Muxer({
+        target: new window.Mp4Muxer.ArrayBufferTarget(),
+        video: { codec: 'avc', width: TARGET_W, height: TARGET_H, frameRate: TARGET_FPS },
+        audio: audioTrack ? { codec: 'aac', sampleRate: sampleRate, numberOfChannels: channels } : undefined,
+        // A plain ftyp/moov/mdat file with the index at the front — what editors
+        // and upload pipelines expect, and what MediaRecorder never wrote.
+        fastStart: 'in-memory',
+        // Capture timestamps start wherever the tab happens to be, not at zero.
+        firstTimestampBehavior: 'offset'
+      });
+
+      videoEncoder = new VideoEncoder({
+        output: function(chunk, meta){ muxer.addVideoChunk(chunk, meta); },
+        error: function(error){ console.error('video encode', error); }
+      });
+      videoEncoder.configure({
+        // High profile, level 4.0 — chosen rather than guessed, and 1080x1920 at
+        // 30fps fits inside it with room to spare.
+        codec: 'avc1.640028',
+        width: TARGET_W,
+        height: TARGET_H,
+        framerate: TARGET_FPS,
+        bitrate: VIDEO_BITRATE,
+        latencyMode: 'quality',
+        avc: { format: 'avc' }
+      });
+
+      if(audioTrack && window.AudioEncoder){
+        audioEncoder = new AudioEncoder({
+          output: function(chunk, meta){ muxer.addAudioChunk(chunk, meta); },
+          error: function(error){ console.error('audio encode', error); }
+        });
+        audioEncoder.configure({
+          codec: 'mp4a.40.2',
+          sampleRate: sampleRate,
+          numberOfChannels: channels,
+          bitrate: 192000
+        });
+      }
+
+      // Let the picker dialog finish dismissing, then roll. Frames are only
+      // pumped after the restart, so the file opens on stage one instead of on
+      // a half-faded dialog.
+      setTimeout(function(){
+        restart();
+        onLoopEnd = stop;
+        // Safety net only, and deliberately generous: it exists for the case
+        // where the reel never reaches its end, not to time the recording.
+        stopTimer = setTimeout(stop, loopMs() * 2 + 4000);
+
+        pump(new MediaStreamTrackProcessor({ track: videoTrack }).readable.getReader(), function(frame){
+          if(videoEncoder.state === 'configured'){
+            videoEncoder.encode(frame, { keyFrame: frames % KEYFRAME_EVERY === 0 });
+            frames++;
+          }
+          frame.close();
+        }, isStopped);
+
+        if(audioEncoder){
+          pump(new MediaStreamTrackProcessor({ track: audioTrack }).readable.getReader(), function(data){
+            if(audioEncoder.state === 'configured') audioEncoder.encode(data);
+            data.close();
+          }, isStopped);
+        }
+      }, 700);
+    });
+  }
+
+  recordBtn.addEventListener('click', function(e){ e.stopPropagation(); startCapture(); });
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === ' '){ e.preventDefault(); start(); }
+    if(e.key === 's' || e.key === 'S'){ ensureAudio(); soundOn = !soundOn; paintToggle(); }
+    if(e.key === 'm' || e.key === 'M'){ toggleMusic(); }
+    if(e.key === 'r' || e.key === 'R'){ restart(); }
+    if(e.key === 'd' || e.key === 'D'){ startCapture(); }
+  });
+})();
+
+</script>
+</body>
+</html>

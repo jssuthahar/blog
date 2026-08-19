@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:02,200
+He wants your customer data. Five things are in the way.
+
+2
+00:00:02,600 --> 00:00:05,000
+Azure Front Door drops it at the edge. It never reaches you.
+
+3
+00:00:05,400 --> 00:00:07,800
+He calls your API directly. Entra ID checks the signature.
+
+4
+00:00:08,200 --> 00:00:10,600
+His own login, someone else’s order id. Your API checks the owner.
+
+5
+00:00:11,000 --> 00:00:13,400
+He searches it for keys. There are none. They live in Key Vault.
+
+6
+00:00:13,800 --> 00:00:16,200
+He skips everything and dials the database. There is no address.
+
+7
+00:00:16,600 --> 00:00:19,000
+"Allow Azure services" means every Azure tenant. Not just yours.
+
+8
+00:00:19,400 --> 00:00:21,800
+Miss one and the others do not cover for it.

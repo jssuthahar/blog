@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:02,200
+One tap. Watch where her password actually goes.
+
+2
+00:00:02,600 --> 00:00:05,000
+It does not take her password. It opens Microsoft’s page instead.
+
+3
+00:00:05,400 --> 00:00:07,800
+It goes to Microsoft Entra ID. Your servers are not in this step.
+
+4
+00:00:08,200 --> 00:00:10,600
+Multi-factor. A stolen password on its own is now worth nothing.
+
+5
+00:00:11,000 --> 00:00:13,400
+Not her password. A pass, signed by Microsoft, good for 60 minutes.
+
+6
+00:00:13,800 --> 00:00:16,200
+On its own. It does not call anyone, so it costs microseconds.
+
+7
+00:00:16,600 --> 00:00:19,000
+Your API reaches the database with a managed identity.
+
+8
+00:00:19,400 --> 00:00:21,800
+To Microsoft. Everything after that was a signed token.

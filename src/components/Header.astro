@@ -40,6 +40,23 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
     </nav>
 
     <div class="ml-auto flex shrink-0 items-center gap-1 sm:ml-0">
+      <!-- A returning reader's own streak, reflected back at them. Hidden until
+           the script below finds one — most visits are still a stranger's
+           first, and a "0 day streak" badge would read as an accusation
+           rather than a reward. Links to /history, which has carried this
+           stat (plus resume, bookmarks, most-read) since before this chip
+           existed; the chip's only job is making it visible from anywhere
+           instead of a page nobody thinks to open unprompted. -->
+      <a
+        id="streak-chip"
+        href="/history/"
+        hidden
+        class="inline-flex items-center gap-1 rounded-full border border-default px-2.5 py-1 text-xs font-semibold transition-colors hover:bg-subtle"
+        title="Your reading streak"
+      >
+        <span aria-hidden="true">🔥</span>
+        <span id="streak-chip-count"></span>
+      </a>
       <!-- Opens the ⌘K palette; falls back to /search if JS is unavailable. -->
       <a
         href="/search/"
@@ -138,4 +155,25 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
   }
   initSearchTriggers();
   document.addEventListener('astro:page-load', initSearchTriggers);
+
+  // Streak chip: reflects lib/reading-history's own streak calculation, so
+  // this can never disagree with what /history reports for the same reader.
+  async function initStreakChip() {
+    const chip = document.getElementById('streak-chip');
+    const count = document.getElementById('streak-chip-count');
+    if (!chip || !count) return;
+
+    const { getStreak } = await import('../lib/reading-history');
+    const paint = () => {
+      const streak = getStreak();
+      count.textContent = String(streak);
+      chip.hidden = streak < 2; // a "streak" of one day is just today — not yet a habit worth flaunting back.
+      chip.title = `${streak} day reading streak — keep it going`;
+    };
+
+    paint();
+    window.addEventListener('reading-history-change', paint);
+  }
+  initStreakChip();
+  document.addEventListener('astro:page-load', initStreakChip);
 </script>

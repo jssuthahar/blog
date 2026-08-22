@@ -46,7 +46,7 @@ const schema: Record<string, unknown>[] = [
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
       { '@type': 'ListItem', position: 2, name: 'Events', item: `${SITE.url}/events` },
-      { '@type': 'ListItem', position: 3, name: data.title },
+      { '@type': 'ListItem', position: 3, name: data.title, item: new URL(path, SITE.url).href },
     ],
   },
 ];

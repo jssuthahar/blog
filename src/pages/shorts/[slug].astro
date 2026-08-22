@@ -23,6 +23,7 @@ import Newsletter from '../../components/Newsletter.astro';
 import ShareRow from '../../components/ShareRow.astro';
 import Reactions from '../../components/Reactions.astro';
 import ReaderTools from '../../components/ReaderTools.astro';
+import ShortTracker from '../../components/ShortTracker.astro';
 import ViewCounter from '../../components/ViewCounter.astro';
 import PresentationMode from '../../components/PresentationMode.astro';
 import { AUTHOR } from '../../config';
@@ -239,6 +240,8 @@ if (short.faq.length > 0) {
       present
       align="start"
     >
+      <ShortTracker short={short} compact />
+
       <Fragment slot="meta">
         <span>{short.folderLabel}</span>
         <span>{short.stages.length} steps</span>

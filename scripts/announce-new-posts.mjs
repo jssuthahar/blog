@@ -1,21 +1,29 @@
 #!/usr/bin/env node
 /**
- * Queues a push notification for every newly published article.
+ * Queues a push notification for every newly published article AND short.
  *
  * This is the "automatic" half of the notification pipeline. Until now a send
- * started by hand in /admin; this script scans the blog collection after a
- * deploy, finds posts that went live recently and have never been announced,
- * and writes them to the same Firestore `pushOutbox` the admin console writes
- * to. scripts/drain-push-outbox.mjs (cron, every 5 minutes) does the actual
- * sending, so nothing here ever touches the VAPID private key.
+ * started by hand in /admin; this script scans the blog collection and the
+ * shorts collection after a deploy, finds items that went live recently and
+ * have never been announced, and writes them to the same Firestore
+ * `pushOutbox` the admin console writes to. scripts/drain-push-outbox.mjs
+ * (cron, every 5 minutes) does the actual sending, so nothing here ever
+ * touches the VAPID private key.
+ *
+ * Shorts are included alongside posts, not as an afterthought: a 20-second
+ * short is a lower-friction reason to re-open the installed app than a
+ * 12-minute article, which makes it arguably the more valuable one to push.
  *
  * Idempotency without a state file or a new collection: the outbox document id
- * is derived from the article slug (`post-<slug>`) and the write carries an
- * `exists: false` precondition. Re-running for the same article is a no-op, so
- * this is safe on every deploy, on a re-run, and on a manual dispatch alike.
+ * is derived from the item's kind and slug (`post-<slug>` / `short-<slug>`)
+ * and the write carries an `exists: false` precondition. Re-running for the
+ * same item is a no-op, so this is safe on every deploy, on a re-run, and on
+ * a manual dispatch alike. The two prefixes share one outbox and one batch
+ * cap — a rush of posts and shorts on the same day is exactly the case the
+ * cap exists to catch.
  *
  * Two guards stop it ever blasting the archive:
- *   - a publish window (default 7 days), so only genuinely new posts qualify;
+ *   - a publish window (default 7 days), so only genuinely new items qualify;
  *   - a batch cap (default 3), so a bulk import or a back-dated fix aborts with
  *     a message instead of firing a dozen notifications at once.
  *
@@ -26,12 +34,13 @@
  *   node scripts/announce-new-posts.mjs --max 10 --force  # override the cap
  *
  * One-time setup: the archive predates this script, so the first real run would
- * hit the batch cap on articles nobody expects a notification for. Run
+ * hit the batch cap on items nobody expects a notification for. Run
  *   node scripts/announce-new-posts.mjs --seed --days 3650
- * once to record every existing article as already-announced (queued and
- * immediately marked `sent`, so nothing is delivered). Do it while the send
- * workflow is not mid-drain — the two writes are milliseconds apart, but a
- * drain landing exactly between them would deliver that row for real.
+ * once to record every existing post AND short as already-announced (queued
+ * and immediately marked `sent`, so nothing is delivered) — including the
+ * shorts that predate this script gaining shorts support. Do it while the
+ * send workflow is not mid-drain — the two writes are milliseconds apart, but
+ * a drain landing exactly between them would deliver that row for real.
  *
  * Required env (GitHub Secrets): ADMIN_EMAIL, ADMIN_PASSWORD.
  * Optional: FIREBASE_API_KEY.
@@ -45,6 +54,7 @@ const API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyC1oOQOPnd4i-6W0vXkhDHrzRA
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
 
 const CONTENT_DIR = 'src/content/blog';
+const SHORTS_DIR = 'src/content/Real';
 
 // firestore.rules caps these; truncate rather than let a long title 400.
 const TITLE_MAX = 100;
@@ -108,12 +118,12 @@ function frontmatterValue(raw, key) {
   return v.replace(/''/g, "'").trim();
 }
 
-function walk(dir) {
+function walk(dir, exts) {
   const out = [];
   for (const entry of readdirSync(dir)) {
     const path = join(dir, entry);
-    if (statSync(path).isDirectory()) out.push(...walk(path));
-    else if (['.md', '.mdx'].includes(extname(path))) out.push(path);
+    if (statSync(path).isDirectory()) out.push(...walk(path, exts));
+    else if (exts.includes(extname(path))) out.push(path);
   }
   return out;
 }
@@ -121,6 +131,11 @@ function walk(dir) {
 function truncate(s, max) {
   if (s.length <= max) return s;
   return `${s.slice(0, max - 1).trimEnd()}…`;
+}
+
+/** A Firestore-safe outbox id: the item's kind as a prefix, then its slug. */
+function makeId(prefix, slug) {
+  return `${prefix}-${slug.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 295)}`;
 }
 
 /**
@@ -132,14 +147,18 @@ function truncate(s, max) {
  * would link to a 404.
  */
 function readPosts() {
-  return walk(CONTENT_DIR)
+  return walk(CONTENT_DIR, ['.md', '.mdx'])
     .map((path) => {
       const raw = readFileSync(path, 'utf8');
       const fm = raw.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '';
       const publishedAt = frontmatterValue(raw, 'publishedAt');
+      const slug = basename(path).replace(/\.(md|mdx)$/, '');
       return {
+        kind: 'post',
+        id: makeId('post', slug),
+        url: `/blog/${slug}`,
         path,
-        slug: basename(path).replace(/\.(md|mdx)$/, ''),
+        slug,
         title: frontmatterValue(raw, 'title'),
         description: frontmatterValue(raw, 'description'),
         draft: /^draft:\s*true\s*$/m.test(fm),
@@ -149,13 +168,56 @@ function readPosts() {
     .filter((p) => p.title && p.description && p.publishedAt && !Number.isNaN(+p.publishedAt));
 }
 
+/** `<em>the</em> word` → `the word` — good enough for a push notification title. */
+function stripTags(html) {
+  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Every short, read straight from its `.spec.json` — no frontmatter parsing
+ * needed, the spec already is structured data. Mirrors how lib/shorts.ts
+ * derives the same fields, so a notification's title/body/slug can never
+ * disagree with what the short's own page actually shows.
+ *
+ * A short with no `publishedAt` still publishes on the site (see
+ * lib/shorts.ts) but is excluded here the same way it is excluded from
+ * /contributions — an undated short has nothing for the announce window to
+ * compare against, and guessing a date would risk announcing an old one.
+ */
+function readShorts() {
+  return walk(SHORTS_DIR, ['.json'])
+    .filter((path) => path.endsWith('.spec.json'))
+    .map((path) => {
+      let spec;
+      try {
+        spec = JSON.parse(readFileSync(path, 'utf8'));
+      } catch {
+        return null;
+      }
+      const slug = spec.slug || basename(path).replace(/\.spec\.json$/, '');
+      const title = spec.title?.main ? stripTags(spec.title.main) : null;
+      return {
+        kind: 'short',
+        id: makeId('short', slug),
+        url: `/shorts/${slug}`,
+        path,
+        slug,
+        title: spec.seoTitle || title,
+        description: spec.title?.sub || null,
+        draft: false,
+        publishedAt: spec.publishedAt ? new Date(spec.publishedAt) : null,
+      };
+    })
+    .filter((s) => s && s.title && s.description && s.publishedAt && !Number.isNaN(+s.publishedAt));
+}
+
 /** Published, not a draft, and inside the announce window. */
-function isNew(post, now) {
-  if (post.draft) return false;
-  // A future publishedAt is a scheduled post — it will qualify on the deploy
-  // that follows its date, not before it.
-  if (+post.publishedAt > +now) return false;
-  const ageDays = (+now - +post.publishedAt) / 86_400_000;
+function isNew(item, now) {
+  if (item.draft) return false;
+  // A future publishedAt is scheduled — it will qualify on the deploy that
+  // follows its date, not before it.
+  if (+item.publishedAt > +now) return false;
+  const ageDays = (+now - +item.publishedAt) / 86_400_000;
   return ageDays <= WINDOW_DAYS;
 }
 
@@ -185,15 +247,6 @@ async function adminToken() {
   return body.idToken;
 }
 
-/**
- * The outbox id for an article. Stable and derived only from the slug, which is
- * what makes a re-run a no-op. Firestore rejects ids containing '/' or matching
- * __*__; blog slugs are kebab-case already, so this only guards a stray.
- */
-function outboxId(slug) {
-  return `post-${slug.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 300)}`;
-}
-
 async function alreadyQueued(token, id) {
   const res = await fetch(`${BASE}/pushOutbox/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -206,7 +259,7 @@ async function alreadyQueued(token, id) {
 
 /** Write one notification as `pending`. Mirrors admin.ts queuePushNotification. */
 async function queue(token, post) {
-  const name = `projects/${PROJECT}/databases/(default)/documents/pushOutbox/${outboxId(post.slug)}`;
+  const name = `projects/${PROJECT}/databases/(default)/documents/pushOutbox/${post.id}`;
 
   const res = await fetch(`${BASE}:commit`, {
     method: 'POST',
@@ -219,7 +272,7 @@ async function queue(token, post) {
             fields: {
               title: { stringValue: truncate(post.title, TITLE_MAX) },
               body: { stringValue: truncate(post.description, BODY_MAX) },
-              url: { stringValue: `/blog/${post.slug}` },
+              url: { stringValue: post.url },
               status: { stringValue: 'pending' },
             },
           },
@@ -245,7 +298,7 @@ async function queue(token, post) {
  * single write.
  */
 async function markSeeded(token, post) {
-  const name = `projects/${PROJECT}/databases/(default)/documents/pushOutbox/${outboxId(post.slug)}`;
+  const name = `projects/${PROJECT}/databases/(default)/documents/pushOutbox/${post.id}`;
   const mask = ['status', 'sentAt', 'delivered']
     .map((f) => `updateMask.fieldPaths=${f}`)
     .join('&');
@@ -272,10 +325,13 @@ async function markSeeded(token, post) {
 
 async function main() {
   const now = new Date();
-  const candidates = readPosts().filter((p) => isNew(p, now));
+  // Posts and shorts share one window, one cap and one outbox — a rush of
+  // both on the same day is exactly the case the cap exists to catch, and
+  // splitting them would let a bulk import of one kind sneak past it.
+  const candidates = [...readPosts(), ...readShorts()].filter((p) => isNew(p, now));
 
   if (!candidates.length) {
-    console.log(`No article published in the last ${WINDOW_DAYS} day(s) — nothing to announce.`);
+    console.log(`Nothing published in the last ${WINDOW_DAYS} day(s) — nothing to announce.`);
     return;
   }
 
@@ -285,7 +341,7 @@ async function main() {
   if (offline) {
     console.log('No admin credentials — listing candidates without the already-announced check.\n');
     for (const post of candidates) {
-      console.log(`would consider: "${truncate(post.title, TITLE_MAX)}" → /blog/${post.slug}`);
+      console.log(`would consider (${post.kind}): "${truncate(post.title, TITLE_MAX)}" → ${post.url}`);
     }
     return;
   }
@@ -297,15 +353,15 @@ async function main() {
   // only what would actually be sent.
   const fresh = [];
   for (const post of candidates) {
-    if (await alreadyQueued(token, outboxId(post.slug))) {
-      console.log(`· already announced — ${post.slug}`);
+    if (await alreadyQueued(token, post.id)) {
+      console.log(`· already announced — ${post.id}`);
     } else {
       fresh.push(post);
     }
   }
 
   if (!fresh.length) {
-    console.log('Every recent article has already been announced.');
+    console.log('Everything recent has already been announced.');
     return;
   }
 
@@ -313,7 +369,7 @@ async function main() {
   // does not apply to it.
   if (fresh.length > MAX_BATCH && !FORCE && !SEED) {
     console.error(
-      `✗ ${fresh.length} un-announced articles in the last ${WINDOW_DAYS} day(s), cap is ${MAX_BATCH}.\n` +
+      `✗ ${fresh.length} un-announced item(s) in the last ${WINDOW_DAYS} day(s), cap is ${MAX_BATCH}.\n` +
         '  That usually means a bulk import or a back-dated publishedAt, not a real release.\n' +
         `  Re-run with --force (or --max ${fresh.length}) if you really want them all sent.`,
     );
@@ -321,7 +377,7 @@ async function main() {
   }
 
   for (const post of fresh) {
-    const line = `"${truncate(post.title, TITLE_MAX)}" → /blog/${post.slug}`;
+    const line = `(${post.kind}) "${truncate(post.title, TITLE_MAX)}" → ${post.url}`;
     if (DRY_RUN) {
       console.log(`would ${SEED ? 'seed' : 'queue'}: ${line}`);
       continue;
@@ -339,7 +395,7 @@ async function main() {
 
   console.log(
     SEED
-      ? `${fresh.length} article(s) recorded as announced — nothing was delivered.`
+      ? `${fresh.length} item(s) recorded as announced — nothing was delivered.`
       : `${fresh.length} notification(s) queued — the send job delivers within ~5 minutes.`,
   );
 }

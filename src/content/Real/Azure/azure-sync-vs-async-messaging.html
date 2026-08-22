@@ -771,7 +771,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Same request, two designs",
     key: "two designs",
-    desc: "Checkout has to tell shipping about an order. That single sentence has two very different implementations.",
+    desc: "Checkout has to tell the shipping service about a new order. That single requirement has two completely different implementations.",
     status: "checkout → shipping · one order",
     thinking: false,
     durationMs: 2700,
@@ -832,7 +832,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Sync is a phone call",
     key: "a phone call",
-    desc: "Both ends have to be free at the same instant. Your thread is held open for the whole conversation.",
+    desc: "A synchronous HTTP call is a phone call — both ends have to be available at the same instant, and your thread is held open the whole time.",
     status: "HTTP · connection held · 612ms",
     thinking: true,
     durationMs: 2900,
@@ -871,7 +871,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Their downtime is your downtime",
     key: "your downtime",
-    desc: "Chain three dependencies at three nines and you inherit 99.7% — two hours a month, not forty minutes.",
+    desc: "Chain three synchronous dependencies each at 99.9% and you inherit 99.7% combined — roughly two hours of downtime a month, not forty minutes.",
     status: "99.9% × 99.9% × 99.9% = 99.7%",
     thinking: false,
     durationMs: 2900,
@@ -923,7 +923,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Latency adds up",
     key: "adds up",
-    desc: "Three hops of 200ms is 600ms every time — and one slow dependency sets your p99, not your average.",
+    desc: "Three sequential hops of 200ms each is 600ms on every single request — and your single slowest dependency sets your p99, not your average case.",
     status: "3 hops · 612ms · p99 owned by the slowest",
     thinking: false,
     durationMs: 2800,
@@ -970,7 +970,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Async is a message",
     key: "a message",
-    desc: "Checkout writes to a queue and returns in 40ms. Shipping reads it whenever shipping is ready.",
+    desc: "An asynchronous design is a message. Checkout writes to a queue and returns in 40ms. Shipping reads it whenever shipping is actually ready.",
     status: "ship-orders · 202 Accepted · 40ms",
     thinking: false,
     durationMs: 2600,
@@ -1026,7 +1026,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Downtime becomes lag",
     key: "becomes lag",
-    desc: "Shipping is down for four minutes. The queue holds three orders, then the worker drains them. Nobody 500s.",
+    desc: "Shipping goes down for four full minutes. The queue simply holds the backlog, then the worker drains it once shipping's back. Nobody sees a 500.",
     status: "worker offline · queue depth 3 · no errors",
     thinking: false,
     durationMs: 3000,
@@ -1092,7 +1092,7 @@ window.__MSD_STAGES__ = [
   {
     title: "But you gave up the answer",
     key: "the answer",
-    desc: "“Order placed” now means “order accepted”. You do not know it shipped, and the UI has to admit that.",
+    desc: "“Order placed” now means “order accepted for processing”, not “confirmed shipped” — and the UI has to be honest about that difference.",
     status: "eventual consistency · the UX changes",
     thinking: false,
     durationMs: 3000,
@@ -1135,7 +1135,7 @@ window.__MSD_STAGES__ = [
   {
     title: "And you inherited three jobs",
     key: "three jobs",
-    desc: "Correlation ids to trace it, an idempotent handler, and code that survives duplicates and reordering.",
+    desc: "A correlation id to trace the request end to end, an idempotent handler, and code that survives both duplicate delivery and reordering.",
     status: "correlation · idempotency · ordering",
     thinking: false,
     durationMs: 2900,
@@ -1180,7 +1180,7 @@ window.__MSD_STAGES__ = [
   {
     title: "When to use which",
     key: "use which",
-    desc: "Sync when the caller cannot continue without the result. Async when it can, and only then.",
+    desc: "Reach for sync only when the caller genuinely cannot continue without the result right now. Async covers every case where it can wait.",
     status: "need it now · or it can wait",
     thinking: false,
     durationMs: 3200,
@@ -1206,7 +1206,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Do you need the answer to continue?",
     key: "the answer to continue",
-    desc: "That is the whole decision. Yes means call it. No means queue it — and pay the bill on purpose.",
+    desc: "That's the entire decision, reduced to one question. Yes means call it synchronously. No means queue it — and accept that trade-off on purpose.",
     status: "one question · per call",
     thinking: false,
     durationMs: 3000,

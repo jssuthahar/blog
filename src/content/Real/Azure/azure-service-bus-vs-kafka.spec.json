@@ -19,7 +19,7 @@
     {
       "title": "Somebody said “we need Kafka”",
       "key": "we need Kafka",
-      "desc": "It gets said in design reviews constantly, and it is an answer to a question nobody asked out loud.",
+      "desc": "It gets said in design reviews constantly, usually as a reflex — an answer to a question about scale nobody actually asked out loud.",
       "status": "design review · claim made · unexamined",
       "thinking": false,
       "durationMs": 2700,
@@ -28,7 +28,7 @@
     {
       "title": "Kafka is a log, not a queue",
       "key": "not a queue",
-      "desc": "Service Bus hands you one message and waits. Kafka gives you a position in a file that keeps growing.",
+      "desc": "Service Bus hands you one message, locks it, and waits for Complete(). Kafka gives you an offset into a partition file that just keeps growing.",
       "status": "messages · or · offsets",
       "thinking": false,
       "durationMs": 2900,
@@ -37,7 +37,7 @@
     {
       "title": "What do you actually need?",
       "key": "actually need",
-      "desc": "Only two answers matter here: do a piece of work exactly once, or read the same stream many times.",
+      "desc": "Only two answers actually matter here: does one piece of work need to happen exactly once, or does the same stream need reading many times?",
       "status": "do work once · or · read a stream",
       "thinking": false,
       "durationMs": 2800,
@@ -46,7 +46,7 @@
     {
       "title": "Work needs a broker",
       "key": "a broker",
-      "desc": "Lock a message, complete it, dead-letter it if it will never work. Kafka makes you build every bit of that.",
+      "desc": "Work needs message locks, Complete(), and a dead-letter queue for what will never succeed. Kafka gives you none of that for free.",
       "status": "PeekLock · DLQ · sessions · scheduled",
       "thinking": false,
       "durationMs": 3000,
@@ -55,7 +55,7 @@
     {
       "title": "Kafka caps your parallelism",
       "key": "caps your parallelism",
-      "desc": "One consumer per partition, per group. Eight partitions means eight consumers, and repartitioning is not free.",
+      "desc": "One consumer per partition, per consumer group, is the hard ceiling. Eight partitions means eight consumers max, and repartitioning isn't free.",
       "status": "8 partitions = 8 consumers, maximum",
       "thinking": false,
       "durationMs": 2900,
@@ -64,7 +64,7 @@
     {
       "title": "Streams need a log",
       "key": "a log",
-      "desc": "If several teams must read the same events, and read them again next week, you do want a log.",
+      "desc": "If several independent teams must read the same events, and replay them again next week from an offset, you genuinely want a log.",
       "status": "offsets · retention · replay",
       "thinking": false,
       "durationMs": 2800,
@@ -73,7 +73,7 @@
     {
       "title": "On Azure that's Event Hubs",
       "key": "Event Hubs",
-      "desc": "It exposes a Kafka-protocol endpoint. Point your existing Kafka client at it and change three config lines.",
+      "desc": "Event Hubs exposes a native Kafka-protocol endpoint. Point your existing Kafka client at it and change three lines of broker config.",
       "status": "port 9093 · SASL_SSL · no cluster",
       "thinking": false,
       "durationMs": 3000,
@@ -82,7 +82,7 @@
     {
       "title": "So when do you run Kafka?",
       "key": "run Kafka",
-      "desc": "When you need Connect, Streams or ksqlDB, exactly-once stream processing, or portability off Azure entirely.",
+      "desc": "When you specifically need Kafka Connect, Kafka Streams or ksqlDB, exactly-once stream semantics, or genuine portability off Azure entirely.",
       "status": "the ecosystem · not the queue",
       "thinking": false,
       "durationMs": 2900,
@@ -91,7 +91,7 @@
     {
       "title": "Broker, log, or cluster",
       "key": "or cluster",
-      "desc": "Three destinations, and only one of them comes with servers you have to keep alive yourself.",
+      "desc": "A managed broker, a managed log, or a cluster you operate yourself — and only self-hosted Kafka comes with servers you have to patch.",
       "status": "Service Bus · Event Hubs · Kafka",
       "thinking": false,
       "durationMs": 3200,
@@ -100,7 +100,7 @@
     {
       "title": "You probably wanted a broker",
       "key": "wanted a broker",
-      "desc": "And if you genuinely wanted a log, Azure already speaks Kafka without asking you to operate one.",
+      "desc": "And if you genuinely did want a log, Event Hubs already speaks the Kafka protocol without asking you to run brokers or ZooKeeper yourself.",
       "status": "Service Bus · Event Hubs · Kafka",
       "thinking": false,
       "durationMs": 2800,

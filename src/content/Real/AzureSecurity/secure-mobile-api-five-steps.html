@@ -2488,7 +2488,7 @@ window.__MSD_STAGES__ = [
   {
     title: "A public URL and nothing else",
     key: "nothing else",
-    desc: "Your API works. Anyone on earth can call it right now.",
+    desc: "Your API answers on a plain URL. No auth, no TLS requirement, no monitoring — anyone on earth can call it right now.",
     status: "no TLS · no auth · no limits",
     thinking: false,
     durationMs: 2600,
@@ -2621,7 +2621,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Step 1: HTTPS only",
     key: "HTTPS only",
-    desc: "Turn off plain HTTP. Not a redirect — off.",
+    desc: "Turn off plain HTTP entirely — not a redirect that still accepts it first, off. Everything before this step travels in the clear.",
     status: "HTTPS Only · HSTS on",
     thinking: false,
     durationMs: 2800,
@@ -2645,7 +2645,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Step 2: who are you?",
     key: "who are you?",
-    desc: "Microsoft Entra ID validates the token. No token, no entry.",
+    desc: "Microsoft Entra ID validates the token’s signature and audience. No valid token, the request never reaches your code.",
     status: "authentication · Entra ID",
     thinking: false,
     durationMs: 2800,
@@ -2669,7 +2669,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Step 3: what may you see?",
     key: "what may you see?",
-    desc: "A different question. Her token is valid; her rows are still only hers.",
+    desc: "A different question from step 2. Her token is genuinely valid — your API still has to filter every query by her own id.",
     status: "authorization · owner check",
     thinking: false,
     durationMs: 2800,
@@ -2693,7 +2693,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Step 4: no secrets in config",
     key: "no secrets",
-    desc: "Key Vault holds them. A managed identity fetches them. No password anywhere.",
+    desc: "Key Vault holds every secret; a managed identity fetches them at runtime. No connection string, no password, anywhere in config.",
     status: "Azure Key Vault · managed identity",
     thinking: false,
     durationMs: 2800,
@@ -2717,7 +2717,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Step 5: watch it",
     key: "watch it",
-    desc: "Application Insights and Defender for Cloud. You see the attempt.",
+    desc: "Application Insights and Defender for Cloud watch every call — so a scan against you shows up as an alert, not silence.",
     status: "monitoring · alerts on failures",
     thinking: false,
     durationMs: 2800,
@@ -2741,7 +2741,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Now try it without a token",
     key: "without a token",
-    desc: "The call dies at step 2, and step 5 tells you it happened.",
+    desc: "Take away the token and call again. The request dies at step 2 — and step 5 is what tells you it happened at all.",
     status: "anonymous call → 401 → logged",
     thinking: false,
     durationMs: 2800,
@@ -2778,7 +2778,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The order is the point",
     key: "",
-    desc: "HTTPS first is not optional. Monitoring last is fine.",
+    desc: "You can do step 5 last and lose nothing. You cannot do step 1 last — every step before it just travelled unencrypted.",
     status: "5 layers · one API",
     thinking: false,
     durationMs: 2800,

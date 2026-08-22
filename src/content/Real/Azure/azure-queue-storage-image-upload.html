@@ -859,7 +859,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Upload. Then nothing happens",
     key: "nothing happens",
-    desc: "A 4.2 MB photo goes up and the screen just sits there. No progress anyone believes.",
+    desc: "A 4.2 MB photo uploads and the screen just hangs. No progress bar, no response — because the API hasn’t returned yet.",
     status: "upload-api · POST /photos · pending",
     thinking: true,
     durationMs: 2700,
@@ -920,7 +920,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Your API is doing image work",
     key: "doing image work",
-    desc: "Virus scan, three resizes, EXIF strip, then the blob write — all inside the HTTP request.",
+    desc: "A virus scan, three thumbnail resizes, an EXIF strip, then the blob write — all synchronous, all inside the same HTTP request.",
     status: "upload-api · 8.4s · CPU 91%",
     thinking: false,
     durationMs: 2900,
@@ -963,7 +963,7 @@ window.__MSD_STAGES__ = [
   {
     title: "20 uploads and the site is down",
     key: "the site is down",
-    desc: "Each request pins a thread for 8.4 seconds. The web tier runs out long before the CPU does.",
+    desc: "Each request pins a thread pool thread for 8.4 seconds. The web tier exhausts its thread pool long before the CPU is even under load.",
     status: "upload-api · thread pool exhausted · 504",
     thinking: false,
     durationMs: 2900,
@@ -1016,7 +1016,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Fix: Blob + Queue Storage",
     key: "Queue Storage",
-    desc: "Write the file to a blob, drop a tiny message on a queue, return 202. Ninety milliseconds.",
+    desc: "Write the file straight to a blob, drop a tiny message on Queue Storage, return 202 Accepted. The whole request now takes ninety milliseconds.",
     status: "upload-api · 202 Accepted · 90ms",
     thinking: false,
     durationMs: 2600,
@@ -1071,7 +1071,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Send the claim check, not the file",
     key: "claim check",
-    desc: "The message carries a blob path and 182 bytes of context. A 64 KB limit you will never hit.",
+    desc: "The message carries just the blob path and 182 bytes of context — a claim check. Queue Storage's 64 KB message limit, you'll never hit.",
     status: "image-jobs · 182 bytes · limit 64 KB",
     thinking: false,
     durationMs: 3100,
@@ -1112,7 +1112,7 @@ window.__MSD_STAGES__ = [
   {
     title: "A worker drains it in the background",
     key: "in the background",
-    desc: "A queue-triggered function picks the message up, does the eight seconds of work, and nobody waits.",
+    desc: "A queue-triggered Azure Function picks the message up, does the full eight seconds of image work, and no HTTP request is waiting on it.",
     status: "thumbnailer · processing · invisible 30s",
     thinking: true,
     durationMs: 3100,
@@ -1171,7 +1171,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Nothing is deleted until you delete it",
     key: "until you delete it",
-    desc: "Receiving only hides the message. If the worker dies, it reappears with DequeueCount up by one.",
+    desc: "Dequeuing only hides the message for its visibility timeout. If the worker crashes mid-job, it reappears automatically with DequeueCount incremented.",
     status: "visibility timeout expired · DequeueCount 2",
     thinking: false,
     durationMs: 2900,
@@ -1227,7 +1227,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Poison? You handle that yourself",
     key: "handle that yourself",
-    desc: "There is no automatic dead-letter here. The Functions trigger gives you a -poison queue after five tries.",
+    desc: "Queue Storage has no built-in dead-letter queue. The Functions trigger gives you a matching -poison queue after maxDequeueCount attempts, by default 5.",
     status: "image-jobs-poison · after 5 attempts",
     thinking: false,
     durationMs: 2900,
@@ -1283,7 +1283,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Queue Storage vs Service Bus",
     key: "vs Service Bus",
-    desc: "One is already in the storage account you pay for. The other is a broker with features you may not need.",
+    desc: "Queue Storage rides the storage account you already pay for. Service Bus is a dedicated broker with sessions and topics you may not need here.",
     status: "cheap and simple · or rich and managed",
     thinking: false,
     durationMs: 3200,
@@ -1307,7 +1307,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Return fast. Work later",
     key: "Work later",
-    desc: "The user only ever needed to hear “got it”. Everything after that belongs to a worker.",
+    desc: "The user only ever needed to hear “got it” in ninety milliseconds. Every second of actual image processing belongs to a background worker.",
     status: "Azure Queue Storage · image-jobs",
     thinking: false,
     durationMs: 2800,

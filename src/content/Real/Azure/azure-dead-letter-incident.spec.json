@@ -19,7 +19,7 @@
     {
       "title": "09:12 — the deploy goes out",
       "key": "the deploy",
-      "desc": "Three instances of orders-worker, health checks green, consumer connected. An ordinary Tuesday.",
+      "desc": "Three instances of orders-worker roll out, health checks green, the Service Bus consumer connects cleanly. An ordinary Tuesday morning.",
       "status": "14 March · deploy 4f21a9 · all green",
       "thinking": false,
       "durationMs": 2700,
@@ -28,7 +28,7 @@
     {
       "title": "09:40 — the consumer stops",
       "key": "the consumer stops",
-      "desc": "A serialisation bug in the new build. The handler throws on start-up and never receives anything.",
+      "desc": "A JSON serialisation bug in the new build. The message handler throws before it ever calls ReceiveMessageAsync, so nothing is even read.",
       "status": "09:40 · 0 consumers · depth climbing",
       "thinking": false,
       "durationMs": 2800,
@@ -37,7 +37,7 @@
     {
       "title": "10:41 — the queue starts draining",
       "key": "starts draining",
-      "desc": "Depth begins falling. Nothing is consuming. No worker has come back. Read that twice.",
+      "desc": "Queue depth begins falling on the dashboard. Nothing is consuming, no worker has come back — messages are leaving some other way.",
       "status": "10:41 · depth falling · 0 consumers",
       "thinking": true,
       "durationMs": 3000,
@@ -46,7 +46,7 @@
     {
       "title": "The messages are just gone",
       "key": "just gone",
-      "desc": "No dead-letter entry. No exception. No log line. The graph looks like recovery — it is deletion.",
+      "desc": "No entry in the dead-letter queue, no exception, no log line anywhere. The falling graph looks like recovery — it is silent expiry.",
       "status": "DLQ 0 · errors 0 · orders missing",
       "thinking": false,
       "durationMs": 3000,
@@ -55,7 +55,7 @@
     {
       "title": "The setting I skipped",
       "key": "setting I skipped",
-      "desc": "Somebody set a one-hour TTL so stale orders would not pile up. That is the trap, and it is armed by a default.",
+      "desc": "Somebody set TimeToLive to one hour on the queue so stale orders wouldn't pile up. That property is the trap, armed months ago.",
       "status": "TTL 01:00:00 · dead-lettering on expiration: false",
       "thinking": false,
       "durationMs": 3000,
@@ -64,7 +64,7 @@
     {
       "title": "With it on, they survive",
       "key": "they survive",
-      "desc": "Same bug, same six hours, same TTL. The expired orders land in the dead-letter queue instead of nowhere.",
+      "desc": "Turn on DeadLetteringOnMessageExpiration and the same bug, same six hours, same TTL end differently — expired orders land in the DLQ, not nowhere.",
       "status": "DLQ 4,318 · TTLExpiredException · replayable",
       "thinking": false,
       "durationMs": 2900,
@@ -73,7 +73,7 @@
     {
       "title": "We found out from customers",
       "key": "from customers",
-      "desc": "Not from an alert. Support tickets at 16:20, four hours after the graph said everything was fine.",
+      "desc": "Not from an alert — there was none configured on queue depth. Support tickets started at 16:20, four hours after the graph looked fine.",
       "status": "16:20 · 61 tickets · “where is my order?”",
       "thinking": false,
       "durationMs": 2900,
@@ -82,7 +82,7 @@
     {
       "title": "Three things failed",
       "key": "Three things",
-      "desc": "The bug was one. The one-hour TTL was two. The default nobody read was three — and only three was silent.",
+      "desc": "The serialisation bug was one failure. The one-hour TTL was two. Dead-lettering being off by default was three — and only the third was silent.",
       "status": "postmortem · 3 contributing causes",
       "thinking": false,
       "durationMs": 2900,
@@ -91,7 +91,7 @@
     {
       "title": "The four-line fix",
       "key": "four-line fix",
-      "desc": "Three properties on the queue and one alert rule. Ten minutes of work, and none of it is application code.",
+      "desc": "DeadLetteringOnMessageExpiration on, a sane TimeToLive, and one Azure Monitor alert on dead-letter count. Ten minutes, zero application code.",
       "status": "TTL · dead-letter on expiry · retries · alert",
       "thinking": false,
       "durationMs": 3200,
@@ -100,7 +100,7 @@
     {
       "title": "Defaults are decisions",
       "key": "are decisions",
-      "desc": "Somebody chose that default, and it was not you. Read the properties on anything holding your data.",
+      "desc": "Somebody chose DeadLetteringOnMessageExpiration's default, and it was not you. Read every property on anything that queues your data.",
       "status": "Azure Service Bus · read the defaults",
       "thinking": false,
       "durationMs": 2500,

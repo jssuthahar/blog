@@ -538,7 +538,7 @@ window.__MSD_STAGES__ = [
   {
     title: "It did not run once",
     key: "not run once",
-    desc: "Your orchestrator function executes again and again. You only ever see the final result.",
+    desc: "Your orchestrator function body executes again and again from the top — the Functions runtime, not a bug, and you only see the final result.",
     status: "Orchestrator idle",
     thinking: false,
     durationMs: 2400,
@@ -552,7 +552,7 @@ window.__MSD_STAGES__ = [
   {
     title: "It looks like normal code",
     key: "normal code",
-    desc: "Three awaits, top to bottom. Nothing here hints that it gets re-executed.",
+    desc: "Three sequential awaits, top to bottom, reading like ordinary C#. Nothing in the syntax hints that the whole function replays.",
     status: "Loading orchestrator",
     thinking: false,
     durationMs: 2200,
@@ -569,7 +569,7 @@ window.__MSD_STAGES__ = [
   {
     title: "It stops at the first await",
     key: "stops",
-    desc: "The runtime schedules the activity, then the function exits completely. No thread waits around.",
+    desc: "The runtime schedules the activity function on the task hub, then the orchestrator exits completely — no thread sits blocked waiting.",
     status: "Scheduling activity",
     thinking: true,
     durationMs: 2400,
@@ -590,7 +590,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The result lands in history",
     key: "history",
-    desc: "When the activity finishes, its output is appended to an event history in storage.",
+    desc: "When the activity finishes, its output is appended as an event to the orchestration's history table in Azure Storage.",
     status: "Writing event history",
     thinking: false,
     durationMs: 2400,
@@ -610,7 +610,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Then it runs again",
     key: "runs again",
-    desc: "From line one. This time the first await returns instantly from history instead of calling anything.",
+    desc: "From line one, on a new thread. This time the first await returns instantly from history instead of calling the activity again.",
     status: "Replaying from history",
     thinking: true,
     durationMs: 2600,
@@ -634,7 +634,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One step deeper each time",
     key: "One step deeper",
-    desc: "Every completed activity extends the history, so each replay gets further before it stops.",
+    desc: "Every completed activity extends the history table by one event, so each replay gets exactly one step further before hitting new work.",
     status: "Replaying from history",
     thinking: true,
     durationMs: 2400,
@@ -661,7 +661,7 @@ window.__MSD_STAGES__ = [
   {
     title: "This is why DateTime breaks",
     key: "DateTime breaks",
-    desc: "Anything non-deterministic returns a new value on every replay, so your code stops matching history.",
+    desc: "DateTime.Now, Guid.NewGuid, random — anything non-deterministic returns a new value on every replay, so execution stops matching history.",
     status: "Replay mismatch",
     thinking: false,
     durationMs: 2400,
@@ -682,7 +682,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Keep the replay invisible",
     key: "replay invisible",
-    desc: "Use the context APIs for time and GUIDs, and the whole re-execution stays hidden from you.",
+    desc: "Use context.CurrentUtcDateTime and context.NewGuid instead — deterministic replacements that keep the whole replay mechanism invisible.",
     status: "Orchestration complete",
     thinking: false,
     durationMs: 2400,

@@ -736,7 +736,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Both say event. Not the same",
     key: "Not the same",
-    desc: "Same word, two completely different jobs — and picking wrong shows up months later, not on day one.",
+    desc: "Same word in both service names, two completely different jobs underneath — and picking wrong shows up months later, not on day one.",
     status: "Event Grid · vs · Event Hubs",
     thinking: false,
     durationMs: 2700,
@@ -778,7 +778,7 @@ window.__MSD_STAGES__ = [
   {
     title: "A doorbell and a tape",
     key: "a tape",
-    desc: "A doorbell rings each person once and its job is over. A tape keeps what was recorded and can be rewound.",
+    desc: "Event Grid is a doorbell — it rings each subscriber once and its job is done. Event Hubs is a tape — it keeps every recording and can be rewound.",
     status: "push and forget · or store and read",
     thinking: false,
     durationMs: 2900,
@@ -820,7 +820,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One thing, or a stream?",
     key: "or a stream",
-    desc: "“Order placed” matters on its own. “Driver moved” only means something as part of a series.",
+    desc: "“Order placed” is a discrete fact that matters entirely on its own. “Driver moved” only means anything as part of a continuous series.",
     status: "Q1 · discrete event or event series",
     thinking: false,
     durationMs: 2900,
@@ -868,7 +868,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Push, or pull?",
     key: "or pull",
-    desc: "Grid calls your handler and expects a 200. Hubs sits there while you read at whatever pace you manage.",
+    desc: "Event Grid pushes — it calls your HTTP handler and expects a 200 back. Event Hubs just sits there while your consumer reads at its own pace.",
     status: "Q2 · it calls you · you call it",
     thinking: false,
     durationMs: 2900,
@@ -916,7 +916,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Does anyone read it twice?",
     key: "read it twice",
-    desc: "A Grid event is delivered and gone. A Hubs event stays in the retention window for anyone who asks.",
+    desc: "A Grid event is delivered once and gone for good. A Hubs event stays inside the retention window, readable by anyone who asks again.",
     status: "Q3 · no retention · 1-7 days replay",
     thinking: false,
     durationMs: 2900,
@@ -965,7 +965,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Who retries — them or you?",
     key: "them or you",
-    desc: "Grid retries a failed delivery with backoff and can dead-letter it. Hubs never retries anything.",
+    desc: "Event Grid retries a failed delivery itself with exponential backoff and can dead-letter it. Event Hubs never retries anything — that's on your consumer.",
     status: "Q4 · backoff + DLQ · or your checkpoint",
     thinking: false,
     durationMs: 2900,
@@ -1016,7 +1016,7 @@ window.__MSD_STAGES__ = [
   {
     title: "How many per second?",
     key: "per second",
-    desc: "Discrete business events arrive in the hundreds. Telemetry arrives in the millions, in batches.",
+    desc: "Discrete business events like OrderPlaced arrive in the hundreds per second. Telemetry and IoT data arrive in the millions, batched by partition.",
     status: "Q5 · reactions · or a firehose",
     thinking: false,
     durationMs: 2800,
@@ -1067,7 +1067,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Usually you need both",
     key: "need both",
-    desc: "Capture writes a file, that write raises a BlobCreated event, and a Function reacts to it. One pipeline.",
+    desc: "Event Hubs Capture writes a file to Blob Storage automatically, that write raises a BlobCreated event on Event Grid, and a Function reacts. One pipeline, both services.",
     status: "Hubs → Capture → Grid → Function",
     thinking: false,
     durationMs: 2800,
@@ -1110,7 +1110,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The whole difference in one frame",
     key: "one frame",
-    desc: "Five rows. Save this one — it is the answer interviewers are listening for.",
+    desc: "Five rows: push vs pull, once vs replayable, hundreds vs millions, who retries, and what each one actually models. Save this one for interviews.",
     status: "carries · delivery · afterwards · failure · shape",
     thinking: false,
     durationMs: 3200,
@@ -1134,7 +1134,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Doorbell, or tape?",
     key: "or tape",
-    desc: "Ask that one question and you will never mix these two up again — in a design or in an interview.",
+    desc: "Ask yourself that one doorbell-or-tape question and you'll never confuse Event Grid with Event Hubs again — in a design or an interview.",
     status: "Event Grid · Event Hubs",
     thinking: false,
     durationMs: 2900,

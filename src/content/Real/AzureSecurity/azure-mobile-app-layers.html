@@ -165,9 +165,7 @@ html,body{
 
 /* ===================== STATUS BAR ===================== */
 #statusbar{
-  position:absolute; top:1540px; left:56px; right:56px; height:66px; z-index:20;
-  display:flex; align-items:center; gap:14px; padding:0 26px;
-  background:rgba(20,27,43,0.8); border:1.5px solid var(--border); border-radius:18px;
+  display:none;
 }
 #status-icon{ width:26px; height:26px; flex-shrink:0; }
 #status-text{ color:var(--text-primary); font-family:var(--font-mono); font-size:21px; font-weight:600; }
@@ -2510,7 +2508,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Most people draw this",
     key: "draw this",
-    desc: "The app, the database, and a straight line between them.",
+    desc: "The app, the database, and a straight line between them — the shape everyone reaches for first, and the shape that gets you breached.",
     status: "app → database · one hop",
     thinking: false,
     durationMs: 2800,
@@ -2606,7 +2604,7 @@ window.__MSD_STAGES__ = [
   {
     title: "That line is the whole attack",
     key: "the whole attack",
-    desc: "No token, no owner check, and a database on the internet.",
+    desc: "No token, no owner check, and a database sitting on the internet — that one line is your entire attack surface.",
     status: "no auth · public database · cut it",
     thinking: false,
     durationMs: 2800,
@@ -2634,7 +2632,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Front Door meets it first",
     key: "meets it first",
-    desc: "The firewall drops junk at the edge, before it costs you anything.",
+    desc: "The WAF runs the OWASP ruleset and drops SQL injection and bad bots at the edge — before a container spins up or a database connection opens.",
     status: "Azure Front Door · WAF",
     thinking: false,
     durationMs: 3000,
@@ -2670,7 +2668,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Your API is the only door",
     key: "the only door",
-    desc: "It is the one public thing you own. Everything else hides behind it.",
+    desc: "It is the one public thing you own, and the only place that holds credentials for anything. Everything else hides behind it.",
     status: "your API · the only public address",
     thinking: false,
     durationMs: 3000,
@@ -2703,7 +2701,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Entra ID proves who is calling",
     key: "who is calling",
-    desc: "Your API checks the token signature. No token, no entry.",
+    desc: "Your API validates the token's signature, issuer and audience against Microsoft's published keys — a local check, no extra network call.",
     status: "Microsoft Entra ID · validate the token",
     thinking: false,
     durationMs: 3000,
@@ -2740,7 +2738,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Then: what may she see?",
     key: "what may she see",
-    desc: "Entra ID says she is Priya. Your API decides she gets Priya rows.",
+    desc: "Entra ID says she is Priya. Your API still has to decide Priya only gets Priya's rows — that's a WHERE clause, not middleware.",
     status: "authorization · her rows only",
     thinking: false,
     durationMs: 3000,
@@ -2772,7 +2770,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The database has no address",
     key: "no address",
-    desc: "A private endpoint. You cannot attack what you cannot reach.",
+    desc: "Private endpoint on, public access off. The database gets a private IP — no internet-facing address left to scan or misconfigure.",
     status: "Azure SQL · private endpoint · 0 public IPs",
     thinking: false,
     durationMs: 2800,
@@ -2805,7 +2803,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The app never touches it",
     key: "never touches it",
-    desc: "Four checks in front, and no public address behind.",
+    desc: "Four checks in front — WAF, your API, Entra ID, authorization — and no public address behind. The app never touches the data.",
     status: "save this shape",
     thinking: false,
     durationMs: 2800,

@@ -2912,7 +2912,7 @@ window.__MSD_STAGES__ = [
   {
     title: "You tap View Product",
     key: "View Product",
-    desc: "One tap on a phone. Everything after it happens in Azure, and it has under a second.",
+    desc: "One tap on a phone screen. Everything after it happens somewhere in Azure, and the whole chain has under a second to finish.",
     status: "msdevbuild.shop · GET /products/123",
     thinking: true,
     durationMs: 3200,
@@ -3056,7 +3056,7 @@ window.__MSD_STAGES__ = [
   {
     title: "First stop is the edge, not your app",
     key: "the edge",
-    desc: "Front Door and CDN sit in front of everything. The request lands on a POP near the phone.",
+    desc: "Azure Front Door and CDN sit in front of everything else. The request lands on the nearest point of presence to the phone, not your origin.",
     status: "azure front door · edge POP · nearest region",
     thinking: false,
     durationMs: 4000,
@@ -3096,7 +3096,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Cache hit: your app never wakes up",
     key: "Cache hit",
-    desc: "The edge already holds this response. It answers in 18 ms and your API never sees the request.",
+    desc: "The edge already holds a cached copy of this exact response. It answers in 18 ms flat, and your API process never even sees the request.",
     status: "edge · CACHE HIT · 18 ms · origin untouched",
     thinking: false,
     durationMs: 4000,
@@ -3138,7 +3138,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Cache miss: keep going",
     key: "Cache miss",
-    desc: "Nothing cached, or the response says not to cache it. Front Door forwards to the origin.",
+    desc: "Nothing's cached yet, or the response headers say not to cache it. Front Door forwards the request on to your origin App Service.",
     status: "edge · CACHE MISS · forwarding to origin",
     thinking: true,
     durationMs: 3800,
@@ -3179,7 +3179,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The API asks Redis before SQL",
     key: "asks Redis",
-    desc: "App Service takes the request and looks in Azure Cache for Redis first. Always first.",
+    desc: "App Service picks up the request and checks Azure Cache for Redis before touching anything else. Redis is always consulted first, no exceptions.",
     status: "app service · GET product:123 · cache-aside",
     thinking: false,
     durationMs: 4200,
@@ -3227,7 +3227,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Redis hit: 2 ms, no database",
     key: "Redis hit",
-    desc: "The product JSON is already in memory. Price, stock, done — and SQL is never queried.",
+    desc: "The full product JSON is already sitting in Redis memory. Price, stock, description — answered in 2 ms, and SQL is never even queried.",
     status: "redis · HIT · product:123 · 2 ms",
     thinking: false,
     durationMs: 4200,
@@ -3274,7 +3274,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Redis miss: now you pay for the query",
     key: "Redis miss",
-    desc: "Nothing in memory. The API has to go to the one place that actually owns the data.",
+    desc: "Nothing's in memory for this product yet. The API has no choice but to go to the one place that actually owns the source data.",
     status: "redis · MISS · falling through to SQL",
     thinking: true,
     durationMs: 3600,
@@ -3321,7 +3321,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Azure SQL is the source of truth",
     key: "source of truth",
-    desc: "One indexed lookup on ProductId 123. Price $99, stock 24 — correct, and slower than memory.",
+    desc: "One indexed lookup on ProductId, straight from Azure SQL. Price $99, stock 24 — guaranteed correct, and noticeably slower than reading memory.",
     status: "azure sql · SELECT · 85 ms round trip",
     thinking: false,
     durationMs: 4200,
@@ -3367,7 +3367,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Write it back with a TTL",
     key: "with a TTL",
-    desc: "The API puts the row into Redis before it answers. The next viewer never reaches SQL.",
+    desc: "The API writes that row into Redis with a TTL before it even answers this request. The next viewer of this product never reaches SQL at all.",
     status: "redis · SET product:123 · TTL 60s",
     thinking: false,
     durationMs: 4000,
@@ -3419,7 +3419,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The image never touches your API",
     key: "never touches your API",
-    desc: "Product photos live in Blob Storage and come off the edge. A completely separate path.",
+    desc: "Product photos live in Blob Storage behind their own CDN endpoint. A completely separate path that never touches your API compute at all.",
     status: "blob storage · products/123/hero.webp · 240 KB",
     thinking: false,
     durationMs: 4200,
@@ -3470,7 +3470,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One tap, five services",
     key: "five services",
-    desc: "Edge, API, cache, database, storage. Each one exists to stop the next one being asked.",
+    desc: "Front Door, App Service, Redis, Azure SQL, Blob Storage — five services, and each one exists purely to stop the next one being asked.",
     status: "msdevbuild.shop · one request · five hops",
     thinking: false,
     durationMs: 4400,
@@ -3509,7 +3509,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One click. One fast experience",
     key: "One fast experience",
-    desc: "The fast path is the normal path. SQL is the exception — and that is the entire design.",
+    desc: "The cached path is the normal path for almost every request. Azure SQL is the rare exception — and that asymmetry is the entire design.",
     status: "microsoft azure · product 123 · served",
     thinking: false,
     durationMs: 4000,

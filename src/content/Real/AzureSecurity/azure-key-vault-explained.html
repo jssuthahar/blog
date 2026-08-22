@@ -2488,7 +2488,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Six secrets, in git",
     key: "in git",
-    desc: "Your config file. Everyone with repo access has all of them.",
+    desc: "Six secrets sitting in your config file, in git. Everyone with repo access — past and present — has all of them.",
     status: "appsettings.json · 6 secrets",
     thinking: false,
     durationMs: 2600,
@@ -2614,7 +2614,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Move them into the vault",
     key: "into the vault",
-    desc: "Secrets, keys and certificates. Three kinds, one place.",
+    desc: "Secrets, keys and certificates move into the vault — three different kinds of credential, one place to manage and audit them.",
     status: "Azure Key Vault · secrets, keys, certificates",
     thinking: false,
     durationMs: 2800,
@@ -2645,7 +2645,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Your config still has one",
     key: "still has one",
-    desc: "The credential that opens the vault. You moved the problem.",
+    desc: "Your config still holds a ClientId and ClientSecret — the one credential that opens the vault. You replaced six secrets with one.",
     status: "ClientSecret · still in git",
     thinking: false,
     durationMs: 2800,
@@ -2668,7 +2668,7 @@ window.__MSD_STAGES__ = [
   {
     title: "That is not a fix",
     key: "not a fix",
-    desc: "A secret to get the secrets. It leaks the same way, and it expires.",
+    desc: "That master secret leaks the exact same way the six did, and it still expires — usually at 2am, long after whoever made it left.",
     status: "the chicken-and-egg problem",
     thinking: false,
     durationMs: 2800,
@@ -2691,7 +2691,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Give the app an identity",
     key: "an identity",
-    desc: "Azure issues it. Nothing is stored, so nothing can be stolen.",
+    desc: "DefaultAzureCredential: your az login locally, the app’s managed identity in Azure — same line of code, nothing stored anywhere.",
     status: "managed identity · 0 passwords",
     thinking: false,
     durationMs: 2800,
@@ -2719,7 +2719,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The vault decides who reads",
     key: "who reads",
-    desc: "The app may read. Your laptop may not. That is an RBAC role.",
+    desc: "Grant Key Vault Secrets User — read-only, secrets only — over RBAC, not the older access-policy model. Your laptop gets no role.",
     status: "Key Vault Secrets User · nothing more",
     thinking: false,
     durationMs: 2800,
@@ -2750,7 +2750,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Rotate once. Nobody redeploys",
     key: "Nobody redeploys",
-    desc: "And the audit log says who read which secret, and when.",
+    desc: "Rotate the secret once; every consumer using the identity just reads the new version. The audit log says who read what, and when.",
     status: "new version · picked up automatically",
     thinking: false,
     durationMs: 2800,
@@ -2785,7 +2785,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Zero secrets in your code",
     key: "Zero secrets",
-    desc: "The vault holds them. The identity opens it. Nothing is written down.",
+    desc: "The vault holds the value, the identity holds the door key, and neither one is ever typed into a config file or committed to git.",
     status: "Azure Key Vault + managed identity",
     thinking: false,
     durationMs: 2800,

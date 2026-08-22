@@ -812,7 +812,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Your ERP is behind the firewall",
     key: "behind the firewall",
-    desc: "The cloud app needs live stock levels. The system that has them is on a private address in Chennai.",
+    desc: "The cloud app needs live stock levels right now. The ERP system that actually has them sits on a private 10.x address in a Chennai datacenter.",
     status: "orders-api → 10.20.4.11:8080 · no route",
     thinking: false,
     durationMs: 2700,
@@ -858,7 +858,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Security says no inbound port",
     key: "no inbound port",
-    desc: "Open 443 inbound, get a public IP, build a DMZ, buy a certificate. Every answer is a change to the network.",
+    desc: "Open port 443 inbound, provision a public IP, build a DMZ, buy and manage a certificate. Every one of those answers is a change to the network.",
     status: "firewall · inbound DENY · request refused",
     thinking: false,
     durationMs: 2900,
@@ -903,7 +903,7 @@ window.__MSD_STAGES__ = [
   {
     title: "A VPN is a big hammer",
     key: "a big hammer",
-    desc: "Not wrong — just network-level. You joined two networks to let one app read one number.",
+    desc: "Not the wrong tool exactly — just a network-level one. You'd be joining two entire networks together just to let one app read one stock number.",
     status: "VPN gateway · weeks · subnet-level access",
     thinking: false,
     durationMs: 2900,
@@ -944,7 +944,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Fix: Azure Relay",
     key: "Azure Relay",
-    desc: "A public rendezvous point in Azure that both sides connect out to. Nothing dials in to anybody.",
+    desc: "A public rendezvous point hosted in Azure that both the cloud app and the on-prem ERP connect out to. Nothing ever dials inbound to anybody.",
     status: "msdevbuild-relay · hybrid connection created",
     thinking: false,
     durationMs: 2600,
@@ -991,7 +991,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The on-prem service dials out",
     key: "dials out",
-    desc: "An outbound TLS connection on 443 to the relay, held open. That rule was already allowed.",
+    desc: "The ERP-side listener opens one outbound TLS connection on port 443 to the relay and holds it open. That outbound rule was already allowed by default.",
     status: "listener · wss:// outbound 443 · connected",
     thinking: false,
     durationMs: 3100,
@@ -1039,7 +1039,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The cloud calls the relay",
     key: "calls the relay",
-    desc: "The request goes to a public Azure endpoint and comes back down the socket the ERP already opened.",
+    desc: "The cloud app’s request goes to a public *.servicebus.windows.net endpoint, and rides back down the exact socket the ERP already opened outbound.",
     status: "orders-api → relay → listener · 41ms",
     thinking: false,
     durationMs: 3100,
@@ -1093,7 +1093,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One service, not your network",
     key: "not your network",
-    desc: "The relay exposes a single hybrid connection. Listen and Send are separate keys, so a caller cannot register.",
+    desc: "The relay exposes exactly one named hybrid connection. Listen and Send use separate SAS keys, so a caller can never register itself as a listener.",
     status: "SAS · Listen ≠ Send · 1 hybrid connection",
     thinking: false,
     durationMs: 2800,
@@ -1136,7 +1136,7 @@ window.__MSD_STAGES__ = [
   {
     title: "No listener, no call",
     key: "no call",
-    desc: "Relay is connectivity, not messaging. It buffers nothing — if the ERP is down, the caller fails now.",
+    desc: "Relay provides connectivity, not messaging — it buffers absolutely nothing. If the ERP-side listener is down, the caller’s request fails immediately.",
     status: "listener offline · 502 · nothing queued",
     thinking: false,
     durationMs: 2900,
@@ -1192,7 +1192,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Relay, VPN or queue",
     key: "Relay, VPN or queue",
-    desc: "Join two networks, join one service, or join nothing at all and let a queue hold the request.",
+    desc: "Join two entire networks with a VPN, join one specific service with Relay, or join nothing at all and let a queue hold the request until it's read.",
     status: "pick by blast radius, not by habit",
     thinking: false,
     durationMs: 3200,
@@ -1221,7 +1221,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Dial out, don't open in",
     key: "don't open in",
-    desc: "The safest inbound rule is the one you never had to write. Let the private side start the conversation.",
+    desc: "The safest inbound firewall rule is the one you never had to write at all. Let the private side always be the one that starts the conversation.",
     status: "Azure Relay · hybrid connection",
     thinking: false,
     durationMs: 2800,

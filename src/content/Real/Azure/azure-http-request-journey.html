@@ -2768,7 +2768,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One line of code",
     key: "One line",
-    desc: "You call an API and get JSON back. Between those two moments, a lot happens.",
+    desc: "You call an API with one line of code and get JSON back. Between those two moments, seven separate hops actually happen.",
     status: "your app · about to call an Azure API",
     thinking: false,
     durationMs: 5000,
@@ -2847,7 +2847,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Stop 1 — Azure DNS",
     key: "Azure DNS",
-    desc: "Your code has a name. The internet needs an address. DNS turns one into the other.",
+    desc: "Your code calls a hostname. The internet routes on IP addresses. Azure DNS resolves one into the other before anything else can happen.",
     status: "api.contoso.com → 20.51.4.117 · 30 ms",
     thinking: false,
     durationMs: 4600,
@@ -2875,7 +2875,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Stop 2 — the TLS handshake",
     key: "TLS handshake",
-    desc: "Before a single byte of your request moves, both sides say hello and swap certificates.",
+    desc: "Before a single byte of your actual request moves, client and server negotiate a cipher suite and swap certificates — a full round trip.",
     status: "TCP + TLS · certificate check · 70 ms",
     thinking: true,
     durationMs: 5000,
@@ -2905,7 +2905,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Stop 3 — Azure Front Door",
     key: "Azure Front Door",
-    desc: "Your request arrives at the nearest Azure edge, gets checked for anything nasty, then goes inside.",
+    desc: "Your request arrives at the nearest Azure Front Door edge point of presence, gets WAF-checked for anything nasty, then routes inward.",
     status: "Azure Front Door · WAF check · 15 ms",
     thinking: false,
     durationMs: 4600,
@@ -2930,7 +2930,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Stop 4 — App Service runs your code",
     key: "App Service",
-    desc: "Finally, your controller runs. This is the only part most people picture — and it is 5 ms of 160.",
+    desc: "Finally, your controller method runs on App Service. This is the only part most people picture when they think 'my API' — 5 ms of 160.",
     status: "App Service · OrdersController.Get() · 5 ms",
     thinking: false,
     durationMs: 4400,
@@ -2955,7 +2955,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Stop 5 — a token from Entra ID",
     key: "Entra ID",
-    desc: "Your API needs to prove who it is to the database. Managed identity gets a token — no password anywhere.",
+    desc: "Your API needs to prove its own identity to the database. A managed identity token comes from Entra ID — no password in the chain at all.",
     status: "Microsoft Entra ID · managed identity · 10 ms",
     thinking: false,
     durationMs: 5000,
@@ -2985,7 +2985,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Stop 6 — Azure SQL",
     key: "Azure SQL",
-    desc: "The bit you were actually asking for: one query, over the private network inside Azure.",
+    desc: "The bit you actually asked for: one indexed query, travelling over the private network inside Azure, never touching the public internet.",
     status: "Azure SQL · SELECT · 20 ms",
     thinking: false,
     durationMs: 4400,
@@ -3010,7 +3010,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Stop 7 — the trip home",
     key: "the trip home",
-    desc: "The JSON travels back the same way it came, and your await finally returns.",
+    desc: "The JSON response retraces the same seven stops in reverse, and your original await call finally returns to your code.",
     status: "200 OK · application/json · 10 ms",
     thinking: false,
     durationMs: 4400,
@@ -3039,7 +3039,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The whole trip, 160 ms",
     key: "160 ms",
-    desc: "Seven stops, every one of them doing a job you never see. Now look at what each one cost.",
+    desc: "Seven stops end to end, every one of them doing real work you never see in the stack trace. Now look at what each one actually cost.",
     status: "the full journey · 160 ms",
     thinking: false,
     durationMs: 4800,
@@ -3070,7 +3070,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Where the time actually went",
     key: "time actually went",
-    desc: "Two thirds of the call was spent introducing yourself. Your code was 5 ms of it.",
+    desc: "DNS, TLS and Front Door together were about two thirds of the 160 ms. Your controller code itself was 5 ms of the total.",
     status: "DNS 30 · TLS 70 · Azure 50 · home 10",
     thinking: false,
     durationMs: 5000,
@@ -3103,7 +3103,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Now call it a second time",
     key: "second time",
-    desc: "Same code, same server. But the address, the connection and the token are all still there.",
+    desc: "Same code, same server, same endpoint. But the resolved address, the open TLS connection and the cached token are all still warm.",
     status: "second call · 45 ms",
     thinking: false,
     durationMs: 5000,
@@ -3128,7 +3128,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The one-line bug that undoes it",
     key: "one-line bug",
-    desc: "new HttpClient() inside a method throws that saving away and pays the 100 ms tax on every call.",
+    desc: "new HttpClient() instantiated inside a method throws all of that caching away — and pays the DNS and TLS tax again on every single call.",
     status: "new HttpClient() · vs · IHttpClientFactory",
     thinking: false,
     durationMs: 5000,
@@ -3151,7 +3151,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Now you know what await really costs",
     key: "what await really costs",
-    desc: "Next time an API feels slow, you can name the stop instead of guessing.",
+    desc: "Next time an API call feels slow, you can name the exact stop — DNS, TLS, edge, compute, identity, database — instead of just guessing.",
     status: "one line · seven stops · 160 ms",
     thinking: false,
     durationMs: 4600,

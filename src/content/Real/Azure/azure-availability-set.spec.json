@@ -20,7 +20,7 @@
     {
       "title": "One server. Every order goes through it",
       "key": "One server",
-      "desc": "The shop is live and selling. Right now nothing about this looks like a problem.",
+      "desc": "The shop is live and selling on a single VM. Right now, with everything green, nothing about this looks like a problem.",
       "status": "web server · healthy",
       "thinking": false,
       "durationMs": 3500,
@@ -29,7 +29,7 @@
     {
       "title": "Azure has to patch the host",
       "key": "patch",
-      "desc": "Security updates land on the physical host underneath. Your VM reboots — and it is not optional.",
+      "desc": "Security updates land on the physical host underneath your VM on Azure's own schedule. Your VM reboots — and it is not optional.",
       "status": "planned maintenance scheduled",
       "thinking": true,
       "durationMs": 3500,
@@ -38,7 +38,7 @@
     {
       "title": "Server Unavailable",
       "key": "Unavailable",
-      "desc": "Problem: server maintenance causes downtime. Every shopper hits an error page and leaves.",
+      "desc": "Server maintenance causes real downtime here. Every shopper mid-checkout hits an error page and leaves without an order.",
       "status": "HTTP 503 · site offline",
       "thinking": false,
       "durationMs": 3500,
@@ -47,7 +47,7 @@
     {
       "title": "Put two VMs in an Availability Set",
       "key": "Availability Set",
-      "desc": "VM1 and VM2 run the same shop. The set is Azure’s promise that it will never take both down at once.",
+      "desc": "VM1 and VM2 run identical copies of the shop. The availability set is Azure’s contractual promise it will never take both down at once.",
       "status": "availability set · 2 VMs",
       "thinking": false,
       "durationMs": 3500,
@@ -56,7 +56,7 @@
     {
       "title": "One address in front of both",
       "key": "One address",
-      "desc": "Azure Load Balancer owns the public IP and health-probes each VM before it sends a single request there.",
+      "desc": "Azure Load Balancer owns the single public IP and health-probes each VM on an interval before it routes a single request there.",
       "status": "load balancer · 2 backends",
       "thinking": false,
       "durationMs": 3400,
@@ -65,7 +65,7 @@
     {
       "title": "Fault domains and update domains",
       "key": "Fault domains",
-      "desc": "Different rack, power and switch. And Azure only ever reboots one update domain at a time.",
+      "desc": "Different rack, power feed and switch for fault domains; and Azure only ever reboots one update domain of five at a time.",
       "status": "FD 0 / FD 1 · UD 0 / UD 1",
       "thinking": false,
       "durationMs": 3600,
@@ -74,7 +74,7 @@
     {
       "title": "Requests start arriving",
       "key": "Requests",
-      "desc": "Shoppers hit one public address. They have no idea how many servers are behind it.",
+      "desc": "Shoppers all hit the one public IP on the load balancer. They have no idea how many servers are actually behind it.",
       "status": "traffic incoming",
       "thinking": false,
       "durationMs": 5000,
@@ -83,7 +83,7 @@
     {
       "title": "The load balancer splits the traffic",
       "key": "splits",
-      "desc": "Roughly half to VM1, half to VM2 — and it keeps probing both the entire time.",
+      "desc": "Roughly half to VM1, half to VM2 by its distribution algorithm — and it keeps health-probing both the entire time.",
       "status": "VM1 50% · VM2 50%",
       "thinking": false,
       "durationMs": 5000,
@@ -92,7 +92,7 @@
     {
       "title": "Both green. Orders going through",
       "key": "Both green",
-      "desc": "Two servers doing the work of one. The spare capacity is a bonus, not the point.",
+      "desc": "Both VMs pass their health probe and orders keep clearing. The spare capacity is a bonus here — resilience was always the point.",
       "status": "VM1 healthy · VM2 healthy",
       "thinking": false,
       "durationMs": 5000,
@@ -101,7 +101,7 @@
     {
       "title": "Azure starts maintenance on VM1",
       "key": "VM1",
-      "desc": "Update domain 0 goes first. VM1 drains and reboots — update domain 1 is not touched.",
+      "desc": "Update domain 0 goes first, by Azure's own schedule. VM1 drains connections and reboots — update domain 1 is left completely alone.",
       "status": "UD 0 · updating",
       "thinking": true,
       "durationMs": 4600,
@@ -110,7 +110,7 @@
     {
       "title": "Traffic Automatically Redirected",
       "key": "Automatically",
-      "desc": "The health probe fails, the load balancer drops VM1 from the pool, and VM2 takes 100%.",
+      "desc": "The health probe on VM1 fails within seconds, the load balancer drops it from the pool, and VM2 absorbs 100% of traffic.",
       "status": "failover · zero manual steps",
       "thinking": false,
       "durationMs": 5000,
@@ -119,7 +119,7 @@
     {
       "title": "The shopper never finds out",
       "key": "never finds out",
-      "desc": "Same URL, same cart, same checkout. No error page, no support ticket, no abandoned basket.",
+      "desc": "Same URL, same session cookie, same checkout flow. No error page, no support ticket, no abandoned basket to explain later.",
       "status": "site online · orders flowing",
       "thinking": false,
       "durationMs": 4400,
@@ -128,7 +128,7 @@
     {
       "title": "VM1 rejoins. Only then does UD 1 go",
       "key": "rejoins",
-      "desc": "The probe passes, traffic rebalances — and Azure waits for that before touching VM2 at all.",
+      "desc": "The probe on VM1 passes again, traffic rebalances across both — and Azure waits for exactly that before starting update domain 1.",
       "status": "rebalanced · 50% · 50%",
       "thinking": false,
       "durationMs": 5000,
@@ -137,7 +137,7 @@
     {
       "title": "High Availability Achieved",
       "key": "High Availability",
-      "desc": "Two VMs, one availability set, one load balancer. Azure backs it with a 99.95% SLA.",
+      "desc": "Two VMs, one availability set spanning fault and update domains, one load balancer in front. Azure backs the combination with a 99.95% SLA.",
       "status": "SLA 99.95% · availability set",
       "thinking": false,
       "durationMs": 6000,

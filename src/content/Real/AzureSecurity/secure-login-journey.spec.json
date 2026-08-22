@@ -12,7 +12,7 @@
     {
       "title": "She taps Sign in",
       "key": "taps Sign in",
-      "desc": "One tap. Watch where her password actually goes.",
+      "desc": "One tap on Sign in. Everything that matters here is which system actually receives her password next.",
       "status": "0 ms · sign in",
       "thinking": false,
       "durationMs": 2600,
@@ -21,7 +21,7 @@
     {
       "title": "The app hands it off",
       "key": "hands it off",
-      "desc": "It does not take her password. It opens Microsoft’s page instead.",
+      "desc": "The app never renders its own password field — it opens the system browser to Microsoft’s own sign-in page instead.",
       "status": "20 ms · redirect to Entra ID",
       "thinking": false,
       "durationMs": 2800,
@@ -30,7 +30,7 @@
     {
       "title": "Her password stops here",
       "key": "stops here",
-      "desc": "It goes to Microsoft Entra ID. Your servers are not in this step.",
+      "desc": "Her password goes to Microsoft Entra ID and stops there. Your API isn’t part of this exchange at all.",
       "status": "90 ms · password → Entra ID only",
       "thinking": false,
       "durationMs": 2800,
@@ -39,7 +39,7 @@
     {
       "title": "She approves it on her phone",
       "key": "on her phone",
-      "desc": "Multi-factor. A stolen password on its own is now worth nothing.",
+      "desc": "MFA approval on her phone — the slow step, and it’s her doing it, not the system. A stolen password alone now does nothing.",
       "status": "1,400 ms · MFA approved",
       "thinking": false,
       "durationMs": 2800,
@@ -48,7 +48,7 @@
     {
       "title": "A signed token comes back",
       "key": "signed token",
-      "desc": "Not her password. A pass, signed by Microsoft, good for 60 minutes.",
+      "desc": "What comes back isn’t her password — a JWT signed by Microsoft, typically valid 60 to 90 minutes, stored in Keychain or Keystore.",
       "status": "1,450 ms · token issued",
       "thinking": false,
       "durationMs": 2800,
@@ -57,7 +57,7 @@
     {
       "title": "Your API checks the signature",
       "key": "checks the signature",
-      "desc": "On its own. It does not call anyone, so it costs microseconds.",
+      "desc": "Your API checks signature, issuer, audience and expiry against Microsoft’s cached signing keys — locally, no network call per request.",
       "status": "1,460 ms · verified locally",
       "thinking": false,
       "durationMs": 2800,
@@ -66,7 +66,7 @@
     {
       "title": "And no password below it either",
       "key": "no password",
-      "desc": "Your API reaches the database with a managed identity.",
+      "desc": "Your API reaches Azure SQL the same way — a managed identity, so there’s no password in the connection string either.",
       "status": "1,700 ms · her orders, only hers",
       "thinking": false,
       "durationMs": 2800,
@@ -75,7 +75,7 @@
     {
       "title": "Her password went one place",
       "key": "one place",
-      "desc": "To Microsoft. Everything after that was a signed token.",
+      "desc": "Her password touched exactly one system: Microsoft’s. Everything downstream of that was a signed, time-limited token.",
       "status": "Microsoft Entra ID",
       "thinking": false,
       "durationMs": 2800,

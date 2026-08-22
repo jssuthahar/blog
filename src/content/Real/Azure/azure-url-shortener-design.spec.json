@@ -13,7 +13,7 @@
     {
       "title": "One giant URL, one tiny link",
       "key": "one tiny link",
-      "desc": "Same destination, 8 times fewer characters. That is the entire product.",
+      "desc": "Same destination, roughly 8 times fewer characters to type or paste. On the surface, that's the entire product in one sentence.",
       "status": "118 characters → 15 characters",
       "thinking": false,
       "durationMs": 5000,
@@ -22,7 +22,7 @@
     {
       "title": "Two jobs, not one",
       "key": "Two jobs",
-      "desc": "Making a link happens once. Following it happens a thousand times. Same feature, opposite needs.",
+      "desc": "Creating a short link happens exactly once per link. Following it happens thousands of times. Same feature, two completely opposite load shapes.",
       "status": "1 write · 1,000 reads · per second",
       "thinking": false,
       "durationMs": 4800,
@@ -31,7 +31,7 @@
     {
       "title": "Where aZ8kQ2f comes from",
       "key": "aZ8kQ2f",
-      "desc": "Seven slots, 62 options each — letters big and small, plus digits. Roll them at random.",
+      "desc": "Seven character slots, 62 possible values each — upper and lower case letters plus digits — rolled at random, giving 62^7 possible codes.",
       "status": "62⁷ = 3,521,614,606,208 possible links",
       "thinking": false,
       "durationMs": 5000,
@@ -40,7 +40,7 @@
     {
       "title": "What if two people get the same code",
       "key": "the same code",
-      "desc": "Rare, but not impossible. Let the database be the referee — it already knows every id.",
+      "desc": "Rare at 62^7 combinations, but not impossible. Let the database’s unique constraint be the referee — it already knows every code in use.",
       "status": "Cosmos DB · 409 Conflict · roll again",
       "thinking": true,
       "durationMs": 4800,
@@ -49,7 +49,7 @@
     {
       "title": "Saving it: Functions + Cosmos DB",
       "key": "Functions + Cosmos DB",
-      "desc": "The write path is three boxes and it runs once per link. One small item, keyed by the code itself.",
+      "desc": "The write path is Functions plus Cosmos DB, and it runs exactly once per link created — one small item, partitioned and keyed by the code itself.",
       "status": "POST /shorten → Azure Functions → Cosmos DB",
       "thinking": false,
       "durationMs": 4800,
@@ -58,7 +58,7 @@
     {
       "title": "Now somebody clicks the link",
       "key": "clicks the link",
-      "desc": "This path runs a million times, so every millisecond and every penny on it matters.",
+      "desc": "This read path can run a million times for a single link. Every millisecond of latency and every fraction of a cent here compounds fast.",
       "status": "GET msdev.io/aZ8kQ2f",
       "thinking": false,
       "durationMs": 4400,
@@ -67,7 +67,7 @@
     {
       "title": "Front Door answers most clicks",
       "key": "Front Door",
-      "desc": "A popular link is cached at the edge, so the redirect goes back without waking your code at all.",
+      "desc": "A popular link is cached at the Azure Front Door edge point of presence, so the redirect returns without ever waking your API code.",
       "status": "Azure Front Door · cache hit · ~0 ms of your code",
       "thinking": false,
       "durationMs": 4600,
@@ -76,7 +76,7 @@
     {
       "title": "Cosmos DB: one point read",
       "key": "one point read",
-      "desc": "Look up seven characters by id. Not a search, not a scan — the cheapest read a database can do.",
+      "desc": "A Cosmos DB point read on the seven-character partition key. Not a query, not a scan — the single cheapest read operation a database offers.",
       "status": "Azure Cosmos DB · point read · ~1 RU · single-digit ms",
       "thinking": false,
       "durationMs": 4800,
@@ -85,7 +85,7 @@
     {
       "title": "302, not 301",
       "key": "302, not 301",
-      "desc": "One digit. 301 tells the browser to remember forever — so you lose your click stats and can never repoint the link.",
+      "desc": "One HTTP status digit matters enormously. 301 tells the browser to cache the redirect forever — you lose click analytics and can never repoint it.",
       "status": "301 permanent · vs · 302 found",
       "thinking": false,
       "durationMs": 5200,
@@ -94,7 +94,7 @@
     {
       "title": "The whole design in one picture",
       "key": "one picture",
-      "desc": "One slim write lane, one busy read lane, and a cache in front of the busy one.",
+      "desc": "One slim, infrequent write lane through Functions and Cosmos DB, one busy read lane, and an edge cache sitting in front of the busy one.",
       "status": "Functions · Cosmos DB · Front Door · 302",
       "thinking": false,
       "durationMs": 4800,
@@ -103,7 +103,7 @@
     {
       "title": "92 of every 100 clicks",
       "key": "92 of every 100",
-      "desc": "When a link goes viral, the cache does the work — and your bill stops tracking your traffic.",
+      "desc": "When a link goes viral, roughly 92 of every 100 clicks are answered straight from the Front Door cache — your bill stops tracking your traffic growth.",
       "status": "100,000 clicks · 92,000 served at the edge",
       "thinking": false,
       "durationMs": 5000,
@@ -112,7 +112,7 @@
     {
       "title": "What beginners build vs what scales",
       "key": "what scales",
-      "desc": "Same three services. Four small decisions are the difference between a demo and a product.",
+      "desc": "The exact same three Azure services in both versions. Four small decisions — caching, redirect code, key design, read/write split — separate demo from product.",
       "status": "first version · vs · the one that holds",
       "thinking": false,
       "durationMs": 4800,
@@ -121,7 +121,7 @@
     {
       "title": "Tiny link. Serious design",
       "key": "Serious design",
-      "desc": "It is the read-heavy problem in miniature — which is exactly why it gets asked in interviews.",
+      "desc": "It's the canonical read-heavy system design problem shrunk down to one feature — which is exactly why it shows up in interviews so often.",
       "status": "url shortener · on azure",
       "thinking": false,
       "durationMs": 4400,

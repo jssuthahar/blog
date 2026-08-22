@@ -914,7 +914,7 @@ window.__MSD_STAGES__ = [
   {
     title: "11:00 AM — the flash sale opens",
     key: "flash sale",
-    desc: "12,000 shoppers hit Buy inside the same minute. One order API is listening.",
+    desc: "12,000 shoppers hit Buy inside the same sixty seconds. One order API, running on a fixed number of instances, is listening for all of it.",
     status: "msdevbuild.shop · sale is live",
     thinking: false,
     durationMs: 2800,
@@ -1011,7 +1011,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Every order hits one server",
     key: "one server",
-    desc: "No buffer in between. Each request has to be accepted, validated and written right now.",
+    desc: "No buffer sits in between client and database. Each request has to be accepted, validated and written to SQL synchronously, right now.",
     status: "order-api · 940 requests/sec inbound",
     thinking: false,
     durationMs: 2900,
@@ -1077,7 +1077,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The server stops keeping up",
     key: "stops keeping up",
-    desc: "CPU pinned at 100%. Timestamps freeze mid-tick — the backlog is now inside the server.",
+    desc: "CPU pinned at 100% across every instance. Response timestamps freeze mid-tick — the backlog has moved from the network into the server itself.",
     status: "order-api · CPU 100% · degraded",
     thinking: true,
     durationMs: 3000,
@@ -1154,7 +1154,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Real orders, gone",
     key: "gone",
-    desc: "Connections time out. 1,729 shoppers see an error page — that is lost revenue, not lost packets.",
+    desc: "Connections time out under the load. 1,729 shoppers see a 5xx error page — that's lost revenue walking away, not just dropped packets.",
     status: "HTTP 503 · 1,729 orders dropped",
     thinking: false,
     durationMs: 2800,
@@ -1220,7 +1220,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Fix: Azure Service Bus",
     key: "Azure Service Bus",
-    desc: "Put a broker in front. The API has one job now — accept the order and enqueue it.",
+    desc: "Put a Service Bus queue in front of the write path. The API has exactly one job now — validate the order and enqueue it, nothing else.",
     status: "orders-queue · created",
     thinking: false,
     durationMs: 2600,
@@ -1273,7 +1273,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Every order lands in the queue",
     key: "lands in the queue",
-    desc: "Enqueue takes milliseconds, so nothing is rejected. The timestamps keep ticking.",
+    desc: "SendMessageAsync takes single-digit milliseconds, so nothing gets rejected under load. The response timestamps keep ticking normally.",
     status: "orders-queue · 1,204 messages waiting",
     thinking: false,
     durationMs: 3100,
@@ -1339,7 +1339,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The worker pulls at its own pace",
     key: "its own pace",
-    desc: "Service Bus holds the burst. The consumer takes one message, completes it, then asks for the next.",
+    desc: "Service Bus absorbs the entire burst in the queue. The consumer pulls one message, processes and completes it, then asks for the next.",
     status: "worker-1 · receive → complete → repeat",
     thinking: true,
     durationMs: 3100,
@@ -1403,7 +1403,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Failed? It comes back",
     key: "comes back",
-    desc: "An uncompleted message is redelivered automatically. Need it faster? Add workers to the same queue.",
+    desc: "An uncompleted message is redelivered automatically by the broker. Need more throughput? Just add more consumer instances on the same queue.",
     status: "redelivery 1/10 · workers 1 → 3",
     thinking: false,
     durationMs: 2900,
@@ -1514,7 +1514,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Same minute, two outcomes",
     key: "two outcomes",
-    desc: "Identical traffic. One design drops paying customers, the other absorbs the spike and keeps counting.",
+    desc: "Identical 12,000-shopper spike, same sixty seconds. One design drops paying customers on the floor; the other absorbs it and keeps counting.",
     status: "9,842 processed · 0 lost",
     thinking: false,
     durationMs: 3300,
@@ -1557,7 +1557,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Every order. Every time",
     key: "Every time",
-    desc: "The queue is the shock absorber between a spike you cannot control and a server you can.",
+    desc: "The queue is the shock absorber between a traffic spike you can't control and a server capacity you actually can size.",
     status: "Azure Service Bus · orders-queue",
     thinking: false,
     durationMs: 3400,

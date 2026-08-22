@@ -197,6 +197,18 @@ const { short, controls = true, class: className = '' } = Astro.props;
         else void frame.requestFullscreen?.().catch(() => {});
       });
 
+      // The Fullscreen API hides everything outside `frame` while it's active,
+      // so the step list beside the player disappears with it — but the page
+      // keeps rendering underneath, and reappears the instant fullscreen ends.
+      // Telling it to switch to the one-at-a-time card means the reader lands
+      // back on a single focused step instead of the full list, matching what
+      // fullscreen playback just was.
+      document.addEventListener('fullscreenchange', () => {
+        document.dispatchEvent(
+          new CustomEvent('short:fullscreen', { detail: { active: document.fullscreenElement === frame } }),
+        );
+      });
+
       // The step list asks for a jump without knowing what renders the short.
       document.addEventListener('short:jump', (event) => {
         const index = (event as CustomEvent<{ index: number }>).detail?.index;

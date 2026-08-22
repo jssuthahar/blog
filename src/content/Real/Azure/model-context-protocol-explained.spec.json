@@ -19,7 +19,7 @@
     {
       "title": "AI can talk. It cannot reach your tools",
       "key": "cannot reach",
-      "desc": "A model answers from memory. It has no native route into GitHub, your database, your files or Slack.",
+      "desc": "A language model answers purely from its training and the prompt. It has no native route into GitHub, your database, your files, or Slack.",
       "status": "assistant has no tools",
       "thinking": true,
       "durationMs": 2800,
@@ -28,7 +28,7 @@
     {
       "title": "Every tool speaks a different language",
       "key": "different language",
-      "desc": "Seven tools, seven APIs, seven bespoke integrations — and every AI app has to build all of them again.",
+      "desc": "Seven tools, seven different REST APIs, seven bespoke integrations to write and maintain — and every new AI app has to build all of them again.",
       "status": "wiring integrations by hand",
       "thinking": true,
       "durationMs": 3000,
@@ -37,7 +37,7 @@
     {
       "title": "One protocol replaces all of them",
       "key": "One protocol",
-      "desc": "MCP is a single open standard for how an AI app asks any tool for data, and how that tool answers.",
+      "desc": "MCP is a single open, JSON-RPC-based standard for exactly how an AI app asks any tool for data, and exactly how that tool answers back.",
       "status": "MCP connected",
       "thinking": false,
       "durationMs": 2900,
@@ -46,7 +46,7 @@
     {
       "title": "Client on your side, server on the tool's",
       "key": "Client on your side",
-      "desc": "The AI app runs an MCP client. Each tool is wrapped by an MCP server. Requests go down, results come back up.",
+      "desc": "The AI app runs an MCP client over stdio or HTTP. Each tool is wrapped once by an MCP server exposing its resources and actions as tools.",
       "status": "request down · response up",
       "thinking": false,
       "durationMs": 3000,
@@ -55,7 +55,7 @@
     {
       "title": "Watch a single request travel",
       "key": "single request",
-      "desc": "Read my GitHub repository — the ask goes down the stack, and the repo data comes back up as an answer.",
+      "desc": "“Read my GitHub repository” — the request travels client to server as a tool call, and the repo contents come back as a structured result.",
       "status": "calling the GitHub MCP server",
       "thinking": true,
       "durationMs": 3100,
@@ -64,7 +64,7 @@
     {
       "title": "One prompt, many tools",
       "key": "many tools",
-      "desc": "Read today’s sales from SQL and post a summary to Slack — the model chains two MCP servers on its own.",
+      "desc": "“Read today's sales from SQL and post a summary to Slack” — the model chains calls across two separate MCP servers entirely on its own.",
       "status": "SQL → summary → Slack",
       "thinking": true,
       "durationMs": 3200,
@@ -73,7 +73,7 @@
     {
       "title": "Build once, connect everywhere",
       "key": "Build once",
-      "desc": "One MCP server per tool, reused by every AI app you ever ship. M + N connectors instead of M × N.",
+      "desc": "One MCP server built per tool, then reused by every AI app you ever ship afterward. M + N connectors to maintain, instead of M multiplied by N.",
       "status": "M + N, not M × N",
       "thinking": false,
       "durationMs": 3000,
@@ -82,7 +82,7 @@
     {
       "title": "One protocol. Unlimited integrations",
       "key": "Unlimited integrations",
-      "desc": "User, assistant, MCP client, MCP server, and every tool you already run — all on one open standard.",
+      "desc": "User, assistant, MCP client, MCP server, and every tool you already run in production — all speaking the same one open standard.",
       "status": "MCP · one standard protocol",
       "thinking": false,
       "durationMs": 2900,

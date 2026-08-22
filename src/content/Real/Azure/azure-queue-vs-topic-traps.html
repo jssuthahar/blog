@@ -748,7 +748,7 @@ window.__MSD_STAGES__ = [
   {
     title: "You picked a topic. Good",
     key: "picked a topic",
-    desc: "Four teams needed the same event, so you created a topic and four subscriptions. Correct call.",
+    desc: "Four teams needed the same order event, so you created one topic with four subscriptions. At the time, that was exactly the right call.",
     status: "orders · topic · 4 subscriptions · healthy",
     thinking: false,
     durationMs: 2700,
@@ -803,7 +803,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Six months later",
     key: "Six months",
-    desc: "The publisher starts throwing QuotaExceededException. Nothing about the publisher changed.",
+    desc: "The publisher starts throwing QuotaExceededException on every send. Nothing about the publisher's own code changed in that time.",
     status: "send failed · topic is full",
     thinking: false,
     durationMs: 2800,
@@ -856,7 +856,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The $Default rule",
     key: "$Default",
-    desc: "You added a filter to billing. You did not remove the rule Azure created for you, so it still matches everything.",
+    desc: "You added a SQL filter to the billing subscription, but never removed the $Default rule Azure creates automatically — so it still matches everything.",
     status: "trap 1 · $Default TrueFilter still present",
     thinking: false,
     durationMs: 3000,
@@ -897,7 +897,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One idle subscription fills it",
     key: "idle subscription",
-    desc: "A topic keeps a message until every subscription has completed it. legacy-export stopped reading in March.",
+    desc: "A topic holds each message until every subscription completes it. legacy-export stopped reading back in March, and nobody noticed.",
     status: "trap 2 · legacy-export · 4.1M messages held",
     thinking: false,
     durationMs: 3100,
@@ -942,7 +942,7 @@ window.__MSD_STAGES__ = [
   {
     title: "N subs, N dead-letter queues",
     key: "N dead-letter queues",
-    desc: "Every subscription has its own DLQ. You set up one alert, years ago, on the queue this replaced.",
+    desc: "Every subscription carries its own independent dead-letter queue. The one alert you set up years ago only watches the queue this topic replaced.",
     status: "trap 3 · 4 DLQs · 1 alert",
     thinking: false,
     durationMs: 2900,
@@ -983,7 +983,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Ordering caps your fan-out",
     key: "caps your fan-out",
-    desc: "Need FIFO? Enable sessions — per subscription. Now it is one consumer per session, and throughput drops.",
+    desc: "Need FIFO ordering? Enable RequiresSession — per subscription, individually. Now it's one consumer per session on each one, and throughput drops.",
     status: "trap 4 · sessions · one consumer each",
     thinking: false,
     durationMs: 2900,
@@ -1022,7 +1022,7 @@ window.__MSD_STAGES__ = [
   {
     title: "You can't convert a queue",
     key: "convert a queue",
-    desc: "There is no toggle. A queue becomes a topic by creating a new entity and repointing every producer.",
+    desc: "There is no migration toggle in the portal or the API. A queue becomes a topic only by creating a new entity and repointing every producer to it.",
     status: "trap 5 · no in-place migration",
     thinking: false,
     durationMs: 2800,
@@ -1058,7 +1058,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Five settings prevent all of it",
     key: "Five settings",
-    desc: "None of these are code. Remove the default rule, set TTLs, auto-delete idle subs, alert on every DLQ.",
+    desc: "None of these five fixes touch application code: remove the $Default rule, set sane TTLs, auto-delete idle subscriptions, alert on every DLQ.",
     status: "five settings · five minutes",
     thinking: false,
     durationMs: 2900,
@@ -1109,7 +1109,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Queue or topic, honestly",
     key: "honestly",
-    desc: "A queue is less to run. A topic is still the right default — as long as somebody owns the subscriptions.",
+    desc: "A queue is genuinely less to operate. A topic stays the right default — but only if somebody is explicitly assigned to own its subscriptions.",
     status: "one destination · or four to maintain",
     thinking: false,
     durationMs: 3200,
@@ -1135,7 +1135,7 @@ window.__MSD_STAGES__ = [
   {
     title: "A topic is a queue with homework",
     key: "with homework",
-    desc: "The fan-out is free. The subscriptions are not — every one of them is a thing somebody has to own.",
+    desc: "The fan-out itself costs nothing extra. The subscriptions aren't free — every single one is a live thing somebody has to actually own.",
     status: "Azure Service Bus · topics",
     thinking: false,
     durationMs: 2700,

@@ -809,7 +809,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One message. Who gets it?",
     key: "Who gets it?",
-    desc: "Billing, analytics and audit all need to know an order was placed. All three are listening.",
+    desc: "Billing, analytics and audit all need to know the same order was placed. One event, and all three teams are listening for it.",
     status: "OrderPlaced · 3 interested teams",
     thinking: false,
     durationMs: 2700,
@@ -860,7 +860,7 @@ window.__MSD_STAGES__ = [
   {
     title: "A queue is a DM",
     key: "a DM",
-    desc: "Exactly one consumer receives each message, completes it, and it is deleted. Nobody else sees it.",
+    desc: "A Service Bus queue is a direct message. Exactly one consumer receives it, completes it, and it's gone. Nobody else ever sees that copy.",
     status: "queue · one message, one reader",
     thinking: false,
     durationMs: 2900,
@@ -905,7 +905,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Add a second consumer",
     key: "second consumer",
-    desc: "The other teams attach to the same queue expecting a copy. Instead all three start competing.",
+    desc: "The other two teams attach a receiver to the same queue expecting their own copy. Instead all three start competing for the same messages.",
     status: "3 consumers · 6 messages · 2 each",
     thinking: false,
     durationMs: 3000,
@@ -959,7 +959,7 @@ window.__MSD_STAGES__ = [
   {
     title: "That's scale, not fan-out",
     key: "not fan-out",
-    desc: "Competing consumers exist to go faster, not to go wider. It is the right tool for the wrong goal here.",
+    desc: "Competing consumers on one queue exist to process faster, not to reach more listeners. It's the right pattern solving the wrong problem here.",
     status: "more consumers = throughput, not copies",
     thinking: false,
     durationMs: 2800,
@@ -1004,7 +1004,7 @@ window.__MSD_STAGES__ = [
   {
     title: "A topic is a group broadcast",
     key: "a group broadcast",
-    desc: "Same message, same sender code. The topic hands a private copy to every subscription.",
+    desc: "Same message, same sender code, zero changes to publish. The topic hands an independent copy to every single subscription registered on it.",
     status: "orders · topic · 3 subscriptions",
     thinking: false,
     durationMs: 2600,
@@ -1061,7 +1061,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Each subscription is its own queue",
     key: "its own queue",
-    desc: "Its own backlog, its own delivery count, its own dead-letter queue. One broken reader hurts nobody else.",
+    desc: "Each subscription gets its own backlog, its own delivery count, and its own dead-letter queue. One broken reader can't touch the other two.",
     status: "analytics down · billing unaffected",
     thinking: false,
     durationMs: 3100,
@@ -1114,7 +1114,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Filters let you mute",
     key: "mute",
-    desc: "A subscription rule decides which messages it even receives — like muting the parts of the group you ignore.",
+    desc: "A SQL filter on the subscription decides which messages it even receives — like muting the parts of a group chat you don't need.",
     status: "audit-sub · amount > 10000 only",
     thinking: false,
     durationMs: 3000,
@@ -1164,7 +1164,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One line of difference",
     key: "One line",
-    desc: "The sender does not change at all. A topic is addressed exactly like a queue — the fan-out is infrastructure.",
+    desc: "The sender's code doesn't change at all — a topic is addressed exactly like a queue. The fan-out lives entirely in infrastructure, not code.",
     status: "CreateQueue → CreateTopic + subscriptions",
     thinking: false,
     durationMs: 2800,
@@ -1206,7 +1206,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Queue or topic",
     key: "or topic",
-    desc: "One is work that must happen once. The other is news that several teams need to hear.",
+    desc: "A queue is work that must happen exactly once, by exactly one worker. A topic is news that several independent teams all need to hear.",
     status: "point-to-point · or · pub/sub",
     thinking: false,
     durationMs: 3200,
@@ -1231,7 +1231,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One reader? Queue. Many? Topic",
     key: "Many? Topic",
-    desc: "And if you are not sure yet, a topic with one subscription costs almost nothing and saves the migration.",
+    desc: "If you're genuinely not sure yet, a topic with a single subscription costs almost nothing today and saves you the migration later.",
     status: "Azure Service Bus · queues and topics",
     thinking: false,
     durationMs: 2900,

@@ -2778,7 +2778,7 @@ window.__MSD_STAGES__ = [
   {
     title: "40 orders a minute, all fine",
     key: "all fine",
-    desc: "A queue, a worker, and a downstream API. Every setting on this queue is the Azure default.",
+    desc: "A Service Bus queue, one worker, and a downstream inventory API. Every setting on this queue is still the untouched Azure default.",
     status: "orders queue · 0 deep · inventory-api 200 OK",
     thinking: false,
     durationMs: 3200,
@@ -2882,7 +2882,7 @@ window.__MSD_STAGES__ = [
   {
     title: "11:03 — the inventory API starts failing",
     key: "starts failing",
-    desc: "Not down. Worse: up, fast, and returning 503 to everything. It will do this for eighteen minutes.",
+    desc: "Not down — worse. It's up, responding fast, and returning 503 to every single call. It will keep doing this for eighteen straight minutes.",
     status: "inventory-api · 503 · 180ms · outage 00:00",
     thinking: true,
     durationMs: 3400,
@@ -2916,7 +2916,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One order. Ten attempts. Four seconds",
     key: "Four seconds",
-    desc: "Order 41883 arrives, fails ten times, and is dead-lettered before you could refresh a dashboard.",
+    desc: "Order 41883 arrives, fails against MaxDeliveryCount's default of 10, and is dead-lettered in four seconds flat — before a dashboard even refreshes.",
     status: "order 41883 · DeliveryCount 10 · dead-lettered",
     thinking: false,
     durationMs: 4200,
@@ -2963,7 +2963,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Nothing waited between the attempts",
     key: "Nothing waited",
-    desc: "An abandoned message is redelivered at once. Service Bus has no backoff, and never claimed to.",
+    desc: "An abandoned message is redelivered immediately, with zero delay. Service Bus has no built-in backoff between attempts — it never claimed to.",
     status: "abandon() → immediate redelivery → DeliveryCount + 1",
     thinking: false,
     durationMs: 4200,
@@ -3000,7 +3000,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The outage had 17 more minutes to run",
     key: "17 more minutes",
-    desc: "The message needed to survive eighteen minutes. It was built to survive four seconds.",
+    desc: "The inventory outage had 17 more minutes left to run. The message only needed to survive eighteen minutes — it was built to survive four seconds.",
     status: "survived 4.1s · outage 18:00 · gap 17:56",
     thinking: false,
     durationMs: 4000,
@@ -3036,7 +3036,7 @@ window.__MSD_STAGES__ = [
   {
     title: "720 orders in the dead-letter queue",
     key: "720 orders",
-    desc: "Forty a minute for eighteen minutes. The queue did not back up — it emptied itself into the DLQ.",
+    desc: "Forty orders a minute for eighteen minutes straight. The main queue never even backed up — it emptied itself directly into the DLQ.",
     status: "orders/$deadletterqueue · 720 · outage 18:00",
     thinking: false,
     durationMs: 4200,
@@ -3072,7 +3072,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Not one of them was poison",
     key: "was poison",
-    desc: "Every message in there is valid. Replay them now, with the API back, and all 720 succeed.",
+    desc: "Every one of those 720 messages is perfectly valid. Replay them now, with the inventory API back up, and every single one succeeds.",
     status: "dlq 720 · valid 720 · poison 0",
     thinking: false,
     durationMs: 3800,
@@ -3109,7 +3109,7 @@ window.__MSD_STAGES__ = [
   {
     title: "MaxDeliveryCount is not a retry policy",
     key: "not a retry policy",
-    desc: "It caps how many times one bad message can hurt you. It says nothing about how long you try.",
+    desc: "MaxDeliveryCount only caps how many times one bad message can hurt you. It says nothing at all about how long those attempts should span.",
     status: "attempts: configurable · interval: not configurable",
     thinking: false,
     durationMs: 4200,
@@ -3143,7 +3143,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Retry on a schedule, not in a loop",
     key: "on a schedule",
-    desc: "Complete the message and re-enqueue a copy for later. Now your attempts span the outage instead of the first second of it.",
+    desc: "Complete the message and re-enqueue a copy with a scheduled ScheduledEnqueueTimeUtc. Now your attempts span the outage, not its first second.",
     status: "ScheduledEnqueueTimeUtc · 5s · 30s · 2m · 8m · 30m",
     thinking: false,
     durationMs: 4400,
@@ -3171,7 +3171,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Raising it to 100 changes nothing",
     key: "changes nothing",
-    desc: "A hundred attempts with no gap is forty-one seconds. You bought 37 more seconds of an 18-minute outage.",
+    desc: "A hundred attempts with the same zero-gap redelivery is still only forty-one seconds total. You bought 37 more seconds against an 18-minute outage.",
     status: "MaxDeliveryCount 100 · 41 seconds · still dead",
     thinking: false,
     durationMs: 4000,
@@ -3208,7 +3208,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Dead-letter the real poison on attempt one",
     key: "on attempt one",
-    desc: "A message that can never succeed should not get ten tries. Your handler knows the difference; the broker does not.",
+    desc: "A message that can never succeed — bad schema, missing field — shouldn't get ten tries at all. Your handler code knows the difference; MaxDeliveryCount does not.",
     status: "DeadLetterAsync(reason, description) · immediately",
     thinking: false,
     durationMs: 4200,
@@ -3233,7 +3233,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Ten tries is not ten chances",
     key: "ten chances",
-    desc: "The count is yours to set. The interval was never on offer — you have to build it.",
+    desc: "Ten tries across four seconds is not ten real chances. MaxDeliveryCount is yours to set; the interval between attempts was never on offer.",
     status: "azure service bus · retry window · by design",
     thinking: false,
     durationMs: 4000,

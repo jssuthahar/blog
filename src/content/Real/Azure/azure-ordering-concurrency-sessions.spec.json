@@ -13,7 +13,7 @@
     {
       "title": "Three events, one cart, in order",
       "key": "in order",
-      "desc": "Add an item, remove it, check out. Published in that sequence, one second apart.",
+      "desc": "Add an item, remove it, then check out — three events on one cart, published to Service Bus in that exact sequence, a second apart.",
       "status": "cart-4471 · 3 events · published in order",
       "thinking": false,
       "durationMs": 3200,
@@ -22,7 +22,7 @@
     {
       "title": "They were charged for the item they removed",
       "key": "the item they removed",
-      "desc": "Checkout ran before the removal. The basket still had the headphones in it when the total was taken.",
+      "desc": "The checkout handler ran before the removal handler finished. The basket total was calculated with the headphones still counted in.",
       "status": "cart-4471 · charged $120 · expected $0",
       "thinking": false,
       "durationMs": 3600,
@@ -31,7 +31,7 @@
     {
       "title": "The queue was never out of order",
       "key": "never out of order",
-      "desc": "Service Bus delivered these exactly as they were enqueued. Look further down the pipe.",
+      "desc": "Service Bus delivered all three messages exactly as enqueued, in order. The reordering happened downstream, in how they were processed.",
       "status": "orders queue · FIFO delivery · no fault",
       "thinking": false,
       "durationMs": 4200,
@@ -40,7 +40,7 @@
     {
       "title": "You have sixteen workers",
       "key": "sixteen workers",
-      "desc": "maxConcurrentCalls defaults to 16. Sixteen threads pulled three ordered messages and raced them.",
+      "desc": "MaxConcurrentCalls defaults to 16 on the message processor. Sixteen threads pulled the three ordered messages and processed them in parallel.",
       "status": "host.json · maxConcurrentCalls 16 · default",
       "thinking": false,
       "durationMs": 4200,
@@ -49,7 +49,7 @@
     {
       "title": "One worker fixes it, and kills throughput",
       "key": "kills throughput",
-      "desc": "Set concurrency to 1 and the order is perfect. So is the queue depth, climbing all afternoon.",
+      "desc": "Set MaxConcurrentCalls to 1 and per-message order is perfect — so is the queue depth, climbing all afternoon because nothing else can run.",
       "status": "maxConcurrentCalls 1 · ordered · and far too slow",
       "thinking": false,
       "durationMs": 4000,
@@ -58,7 +58,7 @@
     {
       "title": "SessionId = cartId",
       "key": "SessionId",
-      "desc": "A session is held by one receiver at a time. In order inside a cart, and still parallel across carts.",
+      "desc": "Set SessionId to the cart id. A session is locked to one receiver at a time — ordered within a cart, still parallel across every other cart.",
       "status": "sessions on · one lock per cart · order kept",
       "thinking": false,
       "durationMs": 4400,
@@ -67,7 +67,7 @@
     {
       "title": "Ordered with respect to what?",
       "key": "with respect to what",
-      "desc": "This is the real decision. Sessions do not turn ordering on — they choose what it applies to.",
+      "desc": "This is the real decision to make. Sessions don't simply turn ordering on — they choose the exact scope ordering applies to.",
       "status": "sessionid · the partition key you are choosing",
       "thinking": false,
       "durationMs": 4200,
@@ -76,7 +76,7 @@
     {
       "title": "The setting that gives the race back",
       "key": "gives the race back",
-      "desc": "MaxConcurrentCallsPerSession defaults to 1. Raise it for throughput and you undo everything.",
+      "desc": "MaxConcurrentCallsPerSession defaults to 1, which is what makes ordering work. Raise it for throughput and the original race comes right back.",
       "status": "maxConcurrentCallsPerSession 1 → 4 · order gone again",
       "thinking": false,
       "durationMs": 4200,
@@ -85,7 +85,7 @@
     {
       "title": "Turn the other one instead",
       "key": "the other one",
-      "desc": "Total concurrency is sessions multiplied by calls per session. Scale the sessions, never the calls.",
+      "desc": "Total throughput is concurrent sessions multiplied by calls per session. Scale MaxConcurrentSessions instead — never calls per session.",
       "status": "maxConcurrentSessions 8 × callsPerSession 1 = 8",
       "thinking": false,
       "durationMs": 3800,
@@ -94,7 +94,7 @@
     {
       "title": "You cannot add sessions later",
       "key": "cannot add sessions later",
-      "desc": "RequiresSession is fixed when the queue is created. Wanting it afterwards means a new queue.",
+      "desc": "RequiresSession is set once, at queue creation, and cannot be toggled after. Wanting sessions later means standing up a new queue entirely.",
       "status": "requiresSession · immutable · create a new entity",
       "thinking": false,
       "durationMs": 3800,
@@ -103,7 +103,7 @@
     {
       "title": "And your delayed retry reorders too",
       "key": "reorders too",
-      "desc": "Re-enqueue a copy on a backoff and it lands at the back of its session. Ordering and retry pull against each other.",
+      "desc": "A scheduled retry re-enqueues a copy that lands at the back of its own session queue — ordering and backoff retry actively fight each other.",
       "status": "scheduled retry · back of the session · order lost",
       "thinking": false,
       "durationMs": 4000,
@@ -112,7 +112,7 @@
     {
       "title": "Ordering is a partition key",
       "key": "a partition key",
-      "desc": "Not a checkbox, and not the broker’s fault. It is a decision about what must not overtake what.",
+      "desc": "Ordering is really a partition-key decision, not a checkbox and not the broker’s fault — it's about what must never overtake what.",
       "status": "azure service bus · sessions · by design",
       "thinking": false,
       "durationMs": 4000,

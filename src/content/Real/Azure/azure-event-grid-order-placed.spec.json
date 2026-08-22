@@ -19,7 +19,7 @@
     {
       "title": "Order placed. Now what?",
       "key": "Now what?",
-      "desc": "Three things must happen next: send the email, reserve the stock, create the shipping label.",
+      "desc": "Three things must happen next after checkout: send the confirmation email, reserve the stock, and create the shipping label.",
       "status": "order #A-7741 · placed 12:04:11",
       "thinking": false,
       "durationMs": 2700,
@@ -28,7 +28,7 @@
     {
       "title": "Checkout is calling all three",
       "key": "calling all three",
-      "desc": "Sequential HTTP calls inside the request. The customer waits for work they never asked about.",
+      "desc": "Checkout makes three sequential HTTP calls inside the same request. The customer's browser waits for work they never asked to see.",
       "status": "checkout-api · 1,940ms and counting",
       "thinking": true,
       "durationMs": 2900,
@@ -37,7 +37,7 @@
     {
       "title": "Add a fourth, redeploy checkout",
       "key": "redeploy checkout",
-      "desc": "Loyalty points want the same event. Now you edit and ship the one service nobody wants to touch.",
+      "desc": "Loyalty points now wants the same event too. Every new subscriber means editing and redeploying the one service nobody wants to touch.",
       "status": "checkout-api · +1 dependency · redeploy",
       "thinking": false,
       "durationMs": 3000,
@@ -46,7 +46,7 @@
     {
       "title": "Fix: Azure Event Grid",
       "key": "Azure Event Grid",
-      "desc": "Checkout publishes one event and returns. It does not know who is listening, and does not care.",
+      "desc": "Checkout publishes one OrderPlaced event to a topic and returns immediately. It has no idea who is listening, and it doesn't need to.",
       "status": "shop-events · OrderPlaced published",
       "thinking": false,
       "durationMs": 2600,
@@ -55,7 +55,7 @@
     {
       "title": "One event, many subscriptions",
       "key": "many subscriptions",
-      "desc": "The subscription is the fan-out unit. Event Grid pushes to each handler — nobody polls anything.",
+      "desc": "The event subscription is the fan-out unit. Event Grid pushes to every registered handler over HTTP — nobody polls a queue for it.",
       "status": "3 subscriptions · push delivery",
       "thinking": false,
       "durationMs": 3100,
@@ -64,7 +64,7 @@
     {
       "title": "Filters decide who gets what",
       "key": "Filters",
-      "desc": "Event type, subject prefix, or a field inside the payload. A subscriber never sees what it filtered out.",
+      "desc": "Advanced filters match on event type, subject prefix, or any field inside the JSON payload. A subscriber never even sees what it filtered out.",
       "status": "shipping-sub · subject: /orders/IN/",
       "thinking": false,
       "durationMs": 3100,
@@ -73,7 +73,7 @@
     {
       "title": "It retries, then dead-letters",
       "key": "dead-letters",
-      "desc": "A failing handler gets exponential backoff for up to 24 hours — and only its own subscription is affected.",
+      "desc": "A failing handler gets exponential retry for up to 24 hours by default, then dead-letters to blob storage — only its own subscription is affected.",
       "status": "shipping-sub · retry 4 · backoff",
       "thinking": false,
       "durationMs": 2900,
@@ -82,7 +82,7 @@
     {
       "title": "New subscriber, zero changes",
       "key": "zero changes",
-      "desc": "Loyalty creates its own subscription. Nobody edited checkout, nobody redeployed, nobody was consulted.",
+      "desc": "Loyalty creates its own event subscription with its own filter. Nobody touched checkout's code, nobody redeployed, nobody was even consulted.",
       "status": "loyalty-sub · created · 0 upstream edits",
       "thinking": false,
       "durationMs": 2900,
@@ -91,7 +91,7 @@
     {
       "title": "Which one? Grid, Hubs, Bus",
       "key": "Grid, Hubs, Bus",
-      "desc": "Commands to be done, facts to react to, and streams to be read. Three jobs, three services.",
+      "desc": "A command to be done, a discrete fact to react to, or a stream to be read continuously — three different jobs, three different Azure services.",
       "status": "Service Bus · Event Grid · Event Hubs",
       "thinking": false,
       "durationMs": 3200,
@@ -100,7 +100,7 @@
     {
       "title": "Publish the fact. Let them subscribe.",
       "key": "Let them subscribe",
-      "desc": "The publisher should never hold a list of who cares. That list is the coupling.",
+      "desc": "The publisher should never hold a list of who cares about OrderPlaced. That subscriber list is exactly the coupling Event Grid removes.",
       "status": "Azure Event Grid · shop-events",
       "thinking": false,
       "durationMs": 2800,

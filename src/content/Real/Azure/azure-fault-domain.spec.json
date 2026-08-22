@@ -20,7 +20,7 @@
     {
       "title": "12,000 shoppers. One checkout",
       "key": "12,000 shoppers",
-      "desc": "A live e-commerce site on Azure. Orders are landing, nobody is thinking about hardware.",
+      "desc": "A live e-commerce site on Azure, 12,000 shoppers mid-session. Orders are landing normally — nobody is thinking about hardware at all.",
       "status": "shop.msdevbuild.com · online",
       "thinking": false,
       "durationMs": 3000,
@@ -29,7 +29,7 @@
     {
       "title": "Two servers, two racks",
       "key": "two racks",
-      "desc": "VM1 sits in rack A, VM2 in rack B. The load balancer splits every request between them.",
+      "desc": "VM1 sits in physical rack A, VM2 in rack B. Azure Load Balancer splits every incoming request across the two of them.",
       "status": "load balancer · VM1 50% · VM2 50%",
       "thinking": false,
       "durationMs": 3000,
@@ -38,7 +38,7 @@
     {
       "title": "Rack A just lost power",
       "key": "lost power",
-      "desc": "Not a reboot. Not a patch. The power feed to an entire cabinet is gone.",
+      "desc": "Not a reboot, not a scheduled patch — the power feed to an entire cabinet just failed, with zero warning to anyone.",
       "status": "ALARM · rack A power failure",
       "thinking": false,
       "durationMs": 3200,
@@ -47,7 +47,7 @@
     {
       "title": "Four servers gone at once",
       "key": "Four servers",
-      "desc": "A rack is a shared blast radius. One power feed, one switch, one cooling loop — and everything in it drops together.",
+      "desc": "A rack is a shared blast radius by design. One power feed, one top-of-rack switch, one cooling loop — everything inside drops together.",
       "status": "rack A · 0 hosts responding",
       "thinking": false,
       "durationMs": 3000,
@@ -56,7 +56,7 @@
     {
       "title": "This is where most sites die",
       "key": "most sites die",
-      "desc": "Half the capacity is gone mid-checkout. You would expect the error page right about now.",
+      "desc": "Half the checkout capacity just vanished mid-transaction. On most architectures, this is exactly where the error page shows up.",
       "status": "expected: HTTP 503",
       "thinking": true,
       "durationMs": 2800,
@@ -65,7 +65,7 @@
     {
       "title": "The health probe fails",
       "key": "health probe",
-      "desc": "Azure Load Balancer probes every backend on a fixed interval. VM1 stops answering, so it leaves the pool.",
+      "desc": "Azure Load Balancer probes every backend on a fixed interval over TCP or HTTP. VM1 stops answering, and the probe pulls it from the pool.",
       "status": "probe failed · VM1 removed",
       "thinking": false,
       "durationMs": 3000,
@@ -74,7 +74,7 @@
     {
       "title": "Every request goes to Rack B",
       "key": "Rack B",
-      "desc": "Within seconds the surviving backend is carrying 100% of the traffic. Same URL, same cart, same session.",
+      "desc": "Within seconds VM2 in rack B is carrying 100% of the traffic. Same URL, same cart, same session cookie — nothing visibly changed.",
       "status": "failover complete · VM2 100%",
       "thinking": false,
       "durationMs": 3200,
@@ -83,7 +83,7 @@
     {
       "title": "The shop never went down",
       "key": "never went down",
-      "desc": "An entire rack is dark and the checkout is still taking money. That is the whole trick.",
+      "desc": "An entire physical rack is dark, and checkout is still clearing payments on the surviving one. That's the entire point of spreading out.",
       "status": "site online · orders flowing",
       "thinking": false,
       "durationMs": 3200,
@@ -92,7 +92,7 @@
     {
       "title": "Azure Fault Domain",
       "key": "Fault Domain",
-      "desc": "That rack has a name. A fault domain is a group of hardware that shares one power source and one network switch.",
+      "desc": "That rack has a name in Azure's model: a fault domain is a group of hardware sharing one power source and one top-of-rack switch.",
       "status": "the term · fault domain",
       "thinking": false,
       "durationMs": 3400,
@@ -101,7 +101,7 @@
     {
       "title": "Separate power, switch and cooling",
       "key": "Separate power",
-      "desc": "Two fault domains share nothing physical. A failure in one has no path into the other.",
+      "desc": "Two separate fault domains share no physical infrastructure at all. A failure in one has no path — electrical or network — into the other.",
       "status": "FD 0 ≠ FD 1",
       "thinking": false,
       "durationMs": 3000,
@@ -110,7 +110,7 @@
     {
       "title": "Azure picks the racks for you",
       "key": "picks the racks",
-      "desc": "Put the VMs in an availability set and Azure spreads them across 2–3 fault domains. You never choose a cabinet.",
+      "desc": "Put the VMs in an availability set and Azure spreads them across 2–3 fault domains automatically. You never pick a cabinet yourself.",
       "status": "availability set · FD 0 / FD 1",
       "thinking": false,
       "durationMs": 3000,
@@ -119,7 +119,7 @@
     {
       "title": "Now put both VMs in one rack",
       "key": "one rack",
-      "desc": "Two VMs, same app, same load balancer — but both landed in fault domain 0. It looks identical from the portal.",
+      "desc": "Two VMs, same app, same load balancer — but a misconfiguration lands both in fault domain 0. The portal shows nothing different.",
       "status": "VM1 + VM2 · both in FD 0",
       "thinking": true,
       "durationMs": 3200,
@@ -128,7 +128,7 @@
     {
       "title": "Same power cut. Site is gone",
       "key": "Site is gone",
-      "desc": "One cabinet, one failure, zero surviving backends. The load balancer has nowhere left to send anyone.",
+      "desc": "The identical power cut hits one cabinet, both VMs go dark together, and the load balancer has zero healthy backends left to route to.",
       "status": "HTTP 503 · no healthy backends",
       "thinking": false,
       "durationMs": 3000,
@@ -137,7 +137,7 @@
     {
       "title": "Fault domains fix that at deploy time",
       "key": "at deploy time",
-      "desc": "Nothing about the VMs changed. Only where Azure put them — and that is decided before the outage, not during it.",
+      "desc": "Nothing about the VMs' code or size changed — only where Azure physically placed them, decided at deploy time, long before any outage.",
       "status": "restored · FD 0 / FD 1",
       "thinking": false,
       "durationMs": 3600,
@@ -146,7 +146,7 @@
     {
       "title": "Fault Domain = Hardware Failure Protection",
       "key": "Hardware Failure Protection",
-      "desc": "Rack power, top-of-rack switch, a dead host — spread across fault domains, none of them is your outage.",
+      "desc": "Rack power loss, a dead top-of-rack switch, a failed host — spread correctly across fault domains, none of them becomes your outage.",
       "status": "SLA 99.95% · availability set",
       "thinking": false,
       "durationMs": 3400,

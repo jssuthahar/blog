@@ -2499,7 +2499,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Two ways to build it",
     key: "Two ways",
-    desc: "Top: the app talks to the database. Bottom: it never does.",
+    desc: "Top: the app talks straight to the database. Bottom: it never does. Both compile, both demo fine — only one survives an attacker.",
     status: "same feature · two designs",
     thinking: false,
     durationMs: 2600,
@@ -2621,7 +2621,7 @@ window.__MSD_STAGES__ = [
   {
     title: "A real customer: both work",
     key: "both work",
-    desc: "This is exactly why the top one ships. Nothing is wrong yet.",
+    desc: "A real customer opens the app and it just works, on both designs. This is exactly why the risky one ships — nothing looks wrong yet.",
     status: "happy path · identical",
     thinking: false,
     durationMs: 2800,
@@ -2648,7 +2648,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Someone unzips the app",
     key: "unzips the app",
-    desc: "Top hands over a database password. Bottom hands over nothing.",
+    desc: "Unzip the package: top hands over a database connection string. Bottom hands over nothing, because the app never held one.",
     status: "package opened · what falls out?",
     thinking: false,
     durationMs: 2800,
@@ -2675,7 +2675,7 @@ window.__MSD_STAGES__ = [
   {
     title: "He dials the database",
     key: "dials the database",
-    desc: "Top answers him. Bottom has no address to dial.",
+    desc: "He dials the database directly. Top answers, because it has a public address. Bottom has no address to even attempt.",
     status: "direct connection attempt",
     thinking: false,
     durationMs: 2800,
@@ -2702,7 +2702,7 @@ window.__MSD_STAGES__ = [
   {
     title: "He asks for another user’s order",
     key: "another user",
-    desc: "Top has no owner check to fail. Bottom filters by the token.",
+    desc: "He asks for another user’s order by id. Top has no owner check to fail it. Bottom filters every query by the validated token.",
     status: "GET /orders/1043",
     thinking: false,
     durationMs: 2800,
@@ -2729,7 +2729,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Now replace the secret",
     key: "replace the secret",
-    desc: "Top needs an app store release. Bottom is one command.",
+    desc: "Rotating a leaked secret on top means a new build and a store review. On bottom it’s one command, and nobody’s app breaks.",
     status: "rotation · days vs seconds",
     thinking: false,
     durationMs: 2800,
@@ -2756,7 +2756,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One design cannot be fixed",
     key: "cannot be fixed",
-    desc: "Not without changing the shape. That is what makes it expensive later.",
+    desc: "The top design can’t be patched into the bottom one — the database itself has to lose its public address, which changes the shape.",
     status: "top: rewrite · bottom: settings",
     thinking: false,
     durationMs: 2800,
@@ -2784,7 +2784,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Both work. One survives",
     key: "One survives",
-    desc: "The difference never shows up until something goes wrong.",
+    desc: "Identical behaviour for every real customer, right up until the day something goes wrong — that’s the only day the difference shows.",
     status: "pick the shape first",
     thinking: false,
     durationMs: 2800,

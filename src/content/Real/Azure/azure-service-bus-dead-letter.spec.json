@@ -19,7 +19,7 @@
     {
       "title": "11:42 — a customer pays",
       "key": "a customer pays",
-      "desc": "The order is on the queue. A worker picks it up and calls the payment gateway.",
+      "desc": "The order lands on the Service Bus queue at 11:42. A worker picks it up and calls out to the external payment gateway.",
       "status": "payments-queue · 3 waiting",
       "thinking": false,
       "durationMs": 2700,
@@ -28,7 +28,7 @@
     {
       "title": "The gateway times out",
       "key": "times out",
-      "desc": "No response in 30 seconds. Did the card get charged, or not? The worker cannot tell.",
+      "desc": "No response after 30 seconds. Did the card actually get charged or not? The worker has no way to know from a timeout alone.",
       "status": "payment gateway · 504 · no response",
       "thinking": true,
       "durationMs": 2900,
@@ -37,7 +37,7 @@
     {
       "title": "Don't complete what you can't confirm",
       "key": "can't confirm",
-      "desc": "Complete() deletes the message for good. On an unconfirmed charge, that is how a payment disappears.",
+      "desc": "Calling Complete() deletes the message permanently. On a charge you can't confirm happened, that's exactly how a payment silently disappears.",
       "status": "worker · abandoning · lock released",
       "thinking": false,
       "durationMs": 3000,
@@ -46,7 +46,7 @@
     {
       "title": "It comes back automatically",
       "key": "comes back",
-      "desc": "You wrote no retry loop for this. The broker redelivers, and the count goes up on its own.",
+      "desc": "You wrote no retry loop at all for this. Not completing it means Service Bus redelivers automatically, and DeliveryCount increments on its own.",
       "status": "redelivered · delivery 2 / 10",
       "thinking": false,
       "durationMs": 2900,
@@ -55,7 +55,7 @@
     {
       "title": "Attempt 3 — the gateway is back",
       "key": "the gateway is back",
-      "desc": "Transient failures are the common case. Nobody was paged and nothing was lost.",
+      "desc": "By attempt 3 the gateway is responding normally again. Transient failures are the common case here — nobody was paged, nothing was lost.",
       "status": "200 OK · charge ch_8812 · completed",
       "thinking": false,
       "durationMs": 2900,
@@ -64,7 +64,7 @@
     {
       "title": "But some messages never succeed",
       "key": "never succeed",
-      "desc": "Order #90219 is missing its currency field. The handler throws on it every single time.",
+      "desc": "Order #90219 is missing its currency field entirely. The handler throws a null reference exception on it every single attempt.",
       "status": "payments-queue · #90219 · handler threw",
       "thinking": false,
       "durationMs": 2800,
@@ -73,7 +73,7 @@
     {
       "title": "Ten attempts. Same failure.",
       "key": "Ten attempts",
-      "desc": "Every redelivery costs a worker slot, and the result is identical. MaxDeliveryCount is the stop.",
+      "desc": "Ten redeliveries, ten identical exceptions. Every attempt costs a worker slot for nothing — MaxDeliveryCount is what finally stops it.",
       "status": "delivery 10 / 10 · MaxDeliveryCount reached",
       "thinking": false,
       "durationMs": 3000,
@@ -82,7 +82,7 @@
     {
       "title": "Dead-letter queue catches it",
       "key": "Dead-letter queue",
-      "desc": "Azure moves it to payments/$DeadLetterQueue with the reason attached. Off the queue, still stored.",
+      "desc": "Service Bus moves it automatically to payments/$DeadLetterQueue with a DeadLetterReason attached. Off the live queue, but never deleted.",
       "status": "$DeadLetterQueue · MaxDeliveryCountExceeded",
       "thinking": false,
       "durationMs": 3100,
@@ -91,7 +91,7 @@
     {
       "title": "Skip it, and you lose the customer",
       "key": "lose the customer",
-      "desc": "The DLQ is on by default — Azure fills it for you. The mistake nobody admits is never reading it.",
+      "desc": "The DLQ fills itself by default whether you look or not. The mistake nobody admits to is standing up no alert on its message count.",
       "status": "DLQ depth 47 · oldest 6 days",
       "thinking": false,
       "durationMs": 3200,
@@ -100,7 +100,7 @@
     {
       "title": "Failures don't vanish",
       "key": "don't vanish",
-      "desc": "Retry absorbs the blip. The dead-letter queue holds everything else — until somebody looks.",
+      "desc": "Automatic retry absorbs the transient blip for free. The dead-letter queue holds everything genuinely broken — until somebody actually looks.",
       "status": "Azure Service Bus · retry + dead-letter",
       "thinking": false,
       "durationMs": 2700,

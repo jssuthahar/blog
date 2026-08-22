@@ -19,7 +19,7 @@
     {
       "title": "Millions of shoppers, one shop",
       "key": "Millions of shoppers",
-      "desc": "Logins, carts and checkouts — every one of them lands on the same server.",
+      "desc": "Millions of shoppers, one shop, one physical building. Logins, carts and checkouts all land on that same single server.",
       "status": "all systems normal",
       "thinking": false,
       "durationMs": 2600,
@@ -28,7 +28,7 @@
     {
       "title": "Everything depends on that one box",
       "key": "one box",
-      "desc": "Traditional design: users, one server, one database. No spare, no second copy.",
+      "desc": "The traditional design: users, one app server, one database, all in one datacenter. No spare copy exists anywhere else.",
       "status": "single point of failure",
       "thinking": false,
       "durationMs": 2700,
@@ -37,7 +37,7 @@
     {
       "title": "Maintenance starts. The server goes offline",
       "key": "goes offline",
-      "desc": "A patch, a reboot, a failed power supply — it does not matter which. The box stops answering.",
+      "desc": "A patch, a reboot, a failed power supply, a fibre cut — it does not matter which. The one box simply stops answering requests.",
       "status": "server unreachable",
       "thinking": false,
       "durationMs": 2900,
@@ -46,7 +46,7 @@
     {
       "title": "Customers cannot log in",
       "key": "cannot log in",
-      "desc": "The architecture diagram fails silently. Your customer sees a spinner, then an error, then leaves.",
+      "desc": "The architecture diagram never showed a single point of failure — but your customer sees a spinner, then a timeout, then leaves.",
       "status": "sign-in failing",
       "thinking": false,
       "durationMs": 2800,
@@ -55,7 +55,7 @@
     {
       "title": "This is what the outage costs",
       "key": "what the outage costs",
-      "desc": "Lost customers, lost revenue, damaged reputation — the bill keeps growing while the box reboots.",
+      "desc": "Lost checkouts, refunded orders, a support queue and a damaged reputation — the bill keeps growing for every minute the box reboots.",
       "status": "business impact",
       "thinking": false,
       "durationMs": 2900,
@@ -64,7 +64,7 @@
     {
       "title": "Azure splits a region into zones",
       "key": "zones",
-      "desc": "Every zone-enabled Azure region has three or more physically separate datacenters — own power, own cooling, own network.",
+      "desc": "Every zone-enabled Azure region has three or more physically separate datacenters, each with its own power, cooling and network path.",
       "status": "availability zones",
       "thinking": false,
       "durationMs": 3000,
@@ -73,7 +73,7 @@
     {
       "title": "Run the shop in all three",
       "key": "all three",
-      "desc": "One load balancer in front, an app instance in every zone, and the database replicated across them.",
+      "desc": "One zone-redundant load balancer in front, an app instance in every zone, and the database in a zone-redundant configuration across all three.",
       "status": "zone-redundant deployment",
       "thinking": false,
       "durationMs": 3000,
@@ -82,7 +82,7 @@
     {
       "title": "Zones share data synchronously",
       "key": "synchronously",
-      "desc": "Under 2 ms apart, so a write can wait for all three. The commit is only acknowledged once every zone has it — zero data loss.",
+      "desc": "Under 2 ms apart, close enough that a write can wait for all three. The commit only acknowledges once every zone has confirmed it — zero data loss.",
       "status": "synchronous replication · RPO 0",
       "thinking": false,
       "durationMs": 3200,
@@ -91,7 +91,7 @@
     {
       "title": "Zone 2 fails. The shop stays open",
       "key": "stays open",
-      "desc": "The load balancer stops sending traffic there within seconds. Zones 1 and 3 absorb it — logins keep working.",
+      "desc": "The load balancer's health probe stops sending traffic there within seconds. Zones 1 and 3 absorb the load — logins keep working uninterrupted.",
       "status": "failover in progress",
       "thinking": true,
       "durationMs": 3100,
@@ -100,7 +100,7 @@
     {
       "title": "One server: 99.9%. Three zones: 99.99%",
       "key": "99.99%",
-      "desc": "Azure backs it with an SLA — 8.7 hours of downtime a year becomes 52 minutes, for the price of spreading out.",
+      "desc": "Azure backs single-zone at 99.9% and zone-redundant at 99.99% — 8.7 hours of allowed downtime a year becomes 52 minutes.",
       "status": "zone redundant · SLA 99.99%",
       "thinking": false,
       "durationMs": 3000,

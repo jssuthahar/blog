@@ -19,7 +19,7 @@
     {
       "title": "It is not coming from Netflix",
       "key": "not coming from Netflix",
-      "desc": "When you press play, the video almost never travels from Netflix's own data centres to your TV.",
+      "desc": "When you press play, the video almost never travels all the way from Netflix's own AWS-hosted data centres to your TV.",
       "status": "Player idle",
       "thinking": false,
       "durationMs": 2400,
@@ -28,7 +28,7 @@
     {
       "title": "Two separate planes",
       "key": "Two separate planes",
-      "desc": "Netflix splits the job in two: a control plane that decides things, and a data plane that moves bytes.",
+      "desc": "Netflix splits the job into two completely separate systems: a control plane that makes decisions, and a data plane that just moves bytes fast.",
       "status": "Mapping the system",
       "thinking": false,
       "durationMs": 2200,
@@ -37,7 +37,7 @@
     {
       "title": "You press play",
       "key": "press play",
-      "desc": "Your app asks the control plane one question: where should I get this title from right now?",
+      "desc": "Your app sends the control plane exactly one question over HTTPS: where should I fetch this specific title from, right now, from this location?",
       "status": "Requesting manifest",
       "thinking": true,
       "durationMs": 2400,
@@ -46,7 +46,7 @@
     {
       "title": "It answers with a ranked list",
       "key": "ranked list",
-      "desc": "The reply is not video. It is a manifest naming the nearest servers, sorted by measured latency.",
+      "desc": "The reply contains zero video bytes. It's a manifest listing the nearest candidate servers, ranked by real measured latency to your device.",
       "status": "Manifest received",
       "thinking": false,
       "durationMs": 2600,
@@ -55,7 +55,7 @@
     {
       "title": "That server is a real box",
       "key": "a real box",
-      "desc": "Open Connect appliances are physical servers Netflix ships to internet providers, for free.",
+      "desc": "Open Connect Appliances are real physical servers Netflix designs, builds, and ships to internet providers at no cost to install in their network.",
       "status": "Locating appliance",
       "thinking": false,
       "durationMs": 2200,
@@ -64,7 +64,7 @@
     {
       "title": "Filled while you sleep",
       "key": "while you sleep",
-      "desc": "Every night Netflix predicts what your region will watch and pre-loads it onto that box.",
+      "desc": "Every night a prediction model forecasts what your specific region will watch tomorrow, and pre-loads that content onto the local appliance.",
       "status": "Prefill window open",
       "thinking": true,
       "durationMs": 2400,
@@ -73,7 +73,7 @@
     {
       "title": "Then the bytes go local",
       "key": "go local",
-      "desc": "Playback streams from inside your ISP, so the video never crosses the public internet at all.",
+      "desc": "Playback streams from an appliance sitting physically inside your own ISP's network, so the video never crosses the public internet at all.",
       "status": "Streaming from ISP",
       "thinking": false,
       "durationMs": 2400,
@@ -82,7 +82,7 @@
     {
       "title": "Why it feels instant",
       "key": "feels instant",
-      "desc": "A few milliseconds away, already cached, and the quality adapts per chunk. That is the whole trick.",
+      "desc": "The server is a few milliseconds away, the title is already cached locally, and bitrate adapts per chunk to your connection. That's the whole trick.",
       "status": "Playing 4K",
       "thinking": false,
       "durationMs": 2600,

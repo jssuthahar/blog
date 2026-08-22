@@ -19,7 +19,7 @@
     {
       "title": "Two queues. Which one?",
       "key": "Which one?",
-      "desc": "Both hold messages. Both are managed. One costs a fraction of the other and is already deployed.",
+      "desc": "Both hold messages reliably. Both are fully managed by Azure. One costs a fraction of the other, and you may already have it deployed.",
       "status": "Service Bus · or · Queue Storage",
       "thinking": false,
       "durationMs": 2700,
@@ -28,7 +28,7 @@
     {
       "title": "Most people pick by habit",
       "key": "by habit",
-      "desc": "“We always use Service Bus.” That is not an architecture decision, it is a default nobody re-examined.",
+      "desc": "“We always use Service Bus” is a habit, not an architecture decision — a default that outlived the reason it was chosen the first time.",
       "status": "chosen by convention · not by requirement",
       "thinking": false,
       "durationMs": 2800,
@@ -37,7 +37,7 @@
     {
       "title": "Does anyone else need it?",
       "key": "anyone else",
-      "desc": "Queue Storage has no topics. One message goes to exactly one consumer, and that is the end of it.",
+      "desc": "Queue Storage has no topic concept at all. One message goes to exactly one consumer, gets deleted, and that's the entire lifecycle.",
       "status": "Q1 · fan-out → Service Bus",
       "thinking": false,
       "durationMs": 3000,
@@ -46,7 +46,7 @@
     {
       "title": "Does the order matter?",
       "key": "the order",
-      "desc": "Queue Storage is best-effort FIFO. If “message 2 must not overtake message 1”, you need sessions.",
+      "desc": "Queue Storage is only best-effort FIFO, not guaranteed. If message 2 must never overtake message 1, you need Service Bus sessions.",
       "status": "Q2 · strict FIFO → Service Bus sessions",
       "thinking": false,
       "durationMs": 2900,
@@ -55,7 +55,7 @@
     {
       "title": "How big is the message?",
       "key": "How big",
-      "desc": "64 KB on Queue Storage, 256 KB on Service Bus Standard, 100 MB on Premium — or use a claim check.",
+      "desc": "64 KB on Queue Storage, 256 KB on Service Bus Standard, 100 MB on Service Bus Premium — or go past any of those with a claim-check pattern.",
       "status": "Q3 · 64 KB vs 256 KB vs 100 MB",
       "thinking": false,
       "durationMs": 2900,
@@ -64,7 +64,7 @@
     {
       "title": "Who catches the failures?",
       "key": "catches the failures",
-      "desc": "Service Bus dead-letters for you. On Queue Storage that is your code reading DequeueCount.",
+      "desc": "Service Bus dead-letters automatically past MaxDeliveryCount. On Queue Storage, that logic is your own code checking DequeueCount by hand.",
       "status": "Q4 · DLQ, dedupe, transactions",
       "thinking": false,
       "durationMs": 2900,
@@ -73,7 +73,7 @@
     {
       "title": "How much can pile up?",
       "key": "pile up",
-      "desc": "And here it flips. A Service Bus queue has a ceiling; a Queue Storage queue rides the storage account.",
+      "desc": "And here the comparison flips. A Service Bus queue caps out at 80 GB; a Queue Storage queue rides the entire storage account's capacity.",
       "status": "Q5 · 80 GB cap vs the storage account",
       "thinking": false,
       "durationMs": 2900,
@@ -82,7 +82,7 @@
     {
       "title": "All no? Use the cheap one",
       "key": "the cheap one",
-      "desc": "One consumer, order does not matter, small messages, simple retries. That is most background work.",
+      "desc": "One consumer is enough, order doesn't matter, messages are small, retries are simple — that describes most background work you'll ever queue.",
       "status": "all five no · Queue Storage wins",
       "thinking": false,
       "durationMs": 2800,
@@ -91,7 +91,7 @@
     {
       "title": "The whole decision in one frame",
       "key": "one frame",
-      "desc": "Five questions. Four of them send you one way, the fifth sends you the other. Nothing else matters.",
+      "desc": "Five questions, and four of them push you toward one answer. Nothing about pricing or popularity should override what they say.",
       "status": "any yes → Service Bus · all no → Queue Storage",
       "thinking": false,
       "durationMs": 3200,
@@ -100,7 +100,7 @@
     {
       "title": "Pick the smallest thing that says yes",
       "key": "the smallest thing",
-      "desc": "Reach for the broker when a question demands it. Until then, the cheap queue is not a compromise.",
+      "desc": "Reach for the Service Bus broker only when one of the five questions genuinely demands it. Until then, Queue Storage isn't a compromise.",
       "status": "Service Bus · or · Queue Storage",
       "thinking": false,
       "durationMs": 2900,

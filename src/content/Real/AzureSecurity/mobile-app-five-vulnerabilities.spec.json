@@ -12,7 +12,7 @@
     {
       "title": "It works. Ship it?",
       "key": "Ship it?",
-      "desc": "Run one scan first. This is a normal, working app.",
+      "desc": "Run one scan before you ship. This is a normal, working app — and that’s exactly the problem with all five findings below.",
       "status": "scanning MSDevShop.apk",
       "thinking": false,
       "durationMs": 2600,
@@ -21,7 +21,7 @@
     {
       "title": "1. A secret in the package",
       "key": "A secret",
-      "desc": "An API key in strings.xml. The package is public.",
+      "desc": "An API key sitting in strings.xml. Unzip the package and it’s just there — no exploit needed, just an archive tool.",
       "status": "finding 1 · HIGH",
       "thinking": false,
       "durationMs": 2800,
@@ -30,7 +30,7 @@
     {
       "title": "2. The token in plain text",
       "key": "in plain text",
-      "desc": "Saved in SharedPreferences or UserDefaults. Readable on a rooted phone.",
+      "desc": "Saved in SharedPreferences or UserDefaults instead of Keystore or Keychain — one word apart, and completely different in what it protects.",
       "status": "finding 2 · HIGH",
       "thinking": false,
       "durationMs": 2800,
@@ -39,7 +39,7 @@
     {
       "title": "3. An endpoint with no auth",
       "key": "no auth",
-      "desc": "The /admin route you added to test. It never got a check.",
+      "desc": "The /admin route you added to test something never got an auth check — and it’s reachable from anywhere on earth right now.",
       "status": "finding 3 · CRITICAL",
       "thinking": false,
       "durationMs": 2800,
@@ -48,7 +48,7 @@
     {
       "title": "4. TLS checking turned off",
       "key": "turned off",
-      "desc": "Someone disabled it to test against a local server. It stayed off.",
+      "desc": "Someone disabled certificate validation to test against a local server, and it shipped that way with nothing re-enabling it.",
       "status": "finding 4 · HIGH",
       "thinking": false,
       "durationMs": 2800,
@@ -57,7 +57,7 @@
     {
       "title": "5. Permissions it never uses",
       "key": "never uses",
-      "desc": "Contacts, location, camera. Copied in from a sample and left there.",
+      "desc": "Contacts, location, camera — copied in from a sample project, granted, and never actually used or removed.",
       "status": "finding 5 · MEDIUM",
       "thinking": false,
       "durationMs": 2800,
@@ -66,7 +66,7 @@
     {
       "title": "Fix number 3 first",
       "key": "number 3 first",
-      "desc": "It is the only one that needs no phone at all. Anyone with curl can use it.",
+      "desc": "It’s the only one of the five that needs no phone and no network access at all — anyone with curl can find and use it today.",
       "status": "open endpoint · no device required",
       "thinking": false,
       "durationMs": 2800,
@@ -75,7 +75,7 @@
     {
       "title": "All five are defaults",
       "key": "are defaults",
-      "desc": "Nobody chose any of them. That is exactly why they are still there.",
+      "desc": "Nobody sat down and chose any of these five. They’re defaults nobody revisited — which is exactly why they’re still there.",
       "status": "run the scan on yours",
       "thinking": false,
       "durationMs": 2800,

@@ -2489,7 +2489,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One line, shipped",
     key: "One line",
-    desc: "A key in the code, in the app, on forty thousand phones.",
+    desc: "A key hard-coded in the app, shipped on forty thousand phones — everyone says don’t do this, and here it is anyway.",
     status: "40,000 installs · bill normal",
     thinking: false,
     durationMs: 2800,
@@ -2610,7 +2610,7 @@ window.__MSD_STAGES__ = [
   {
     title: "A stranger has the key",
     key: "has the key",
-    desc: "He unzipped the app. It took him a minute.",
+    desc: "He unzipped the package and found it in strings.xml — same file, same minute of work as always.",
     status: "key extracted from the package",
     thinking: false,
     durationMs: 2800,
@@ -2635,7 +2635,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The bill starts moving",
     key: "starts moving",
-    desc: "He does not delete anything. He just uses it.",
+    desc: "Deletion gets noticed. Consumption doesn’t — a stolen key against a billed API shows up as an invoice, not an alert.",
     status: "bill climbing · looks like normal traffic",
     thinking: false,
     durationMs: 3000,
@@ -2663,7 +2663,7 @@ window.__MSD_STAGES__ = [
   {
     title: "So you rotate the key",
     key: "rotate the key",
-    desc: "One click at three in the morning. The bleeding stops.",
+    desc: "Check Azure Monitor logs grouped by caller IP first, then swap to the secondary key while you regenerate the primary.",
     status: "key rotated · his calls now 401",
     thinking: false,
     durationMs: 3000,
@@ -2696,7 +2696,7 @@ window.__MSD_STAGES__ = [
   {
     title: "And you killed your own app",
     key: "your own app",
-    desc: "Every installed copy carries the key you just revoked.",
+    desc: "The key you just revoked was in every installed copy — you didn’t fix the incident, you caused an outage on top of it.",
     status: "40,000 installs · all failing",
     thinking: false,
     durationMs: 3000,
@@ -2730,7 +2730,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The repair takes days",
     key: "takes days",
-    desc: "New build, store review, and then people have to update.",
+    desc: "A new build, a store review, then waiting on forty thousand people to update — days, while the outage is already live.",
     status: "ship → review → users update",
     thinking: false,
     durationMs: 3000,
@@ -2756,7 +2756,7 @@ window.__MSD_STAGES__ = [
   {
     title: "None of it had to happen",
     key: "had to happen",
-    desc: "If the key had lived in Key Vault, rotation changes nothing for users.",
+    desc: "Key Vault plus a ReloadInterval means the app never held the key at all — rotating it changes nothing for a single user.",
     status: "Azure Key Vault · rotate in one click",
     thinking: false,
     durationMs: 2800,
@@ -2790,7 +2790,7 @@ window.__MSD_STAGES__ = [
   {
     title: "A secret you cannot rotate",
     key: "cannot rotate",
-    desc: "If fixing it needs an app store release, it was never a secret.",
+    desc: "If undoing a leak needs an app store release, the key was never really rotatable — and that was true before it ever leaked.",
     status: "Azure Key Vault",
     thinking: false,
     durationMs: 2800,

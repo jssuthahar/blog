@@ -2482,7 +2482,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One attacker, one target",
     key: "one target",
-    desc: "He wants your customer data. Five things are in the way.",
+    desc: "He wants your customer data. Five defences stand between him and it — skip any one and the rest don’t cover for it.",
     status: "attacker → ??? → your data",
     thinking: false,
     durationMs: 2600,
@@ -2604,7 +2604,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Attack 1: a flood of junk",
     key: "a flood of junk",
-    desc: "Azure Front Door drops it at the edge. It never reaches you.",
+    desc: "The WAF runs the OWASP ruleset at the edge — but it ships in Detection mode by default, which only logs. Switch it to Prevention.",
     status: "Front Door WAF · blocked",
     thinking: false,
     durationMs: 2800,
@@ -2641,7 +2641,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Attack 2: no token at all",
     key: "no token",
-    desc: "He calls your API directly. Entra ID checks the signature.",
+    desc: "He calls your API with no token at all. Entra ID checks the signature — validate the audience claim too, not just that it’s signed.",
     status: "Microsoft Entra ID · 401",
     thinking: false,
     durationMs: 2800,
@@ -2678,7 +2678,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Attack 3: a real token",
     key: "a real token",
-    desc: "His own login, someone else’s order id. Your API checks the owner.",
+    desc: "His own valid login, someone else’s order id. This is OWASP API’s #1 flaw — a valid token doesn’t stop it, an owner check does.",
     status: "authorization · her rows only",
     thinking: false,
     durationMs: 2800,
@@ -2716,7 +2716,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Attack 4: your public repo",
     key: "your public repo",
-    desc: "He searches it for keys. There are none. They live in Key Vault.",
+    desc: "He searches your public repo for keys and finds none — they live in Key Vault. Check git history too, not just the current HEAD.",
     status: "Azure Key Vault · nothing in the repo",
     thinking: false,
     durationMs: 2800,
@@ -2754,7 +2754,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Attack 5: straight at the data",
     key: "straight at the data",
-    desc: "He skips everything and dials the database. There is no address.",
+    desc: "He skips every layer and dials the database directly. A private endpoint means there’s no public address left to even try.",
     status: "private endpoint · nothing to dial",
     thinking: false,
     durationMs: 2800,
@@ -2792,7 +2792,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One setting opens a door",
     key: "opens a door",
-    desc: "\"Allow Azure services\" means every Azure tenant. Not just yours.",
+    desc: "“Allow Azure services and resources” sounds like it means yours. It means any Azure subscription on earth, including one he just made.",
     status: "the default that undoes door 5",
     thinking: false,
     durationMs: 2800,
@@ -2828,7 +2828,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Five doors, five questions",
     key: "five questions",
-    desc: "Miss one and the others do not cover for it.",
+    desc: "Five doors, five different questions — garbage, identity, ownership, secrets, reachability. Miss one and the rest don’t cover for it.",
     status: "defence in depth",
     thinking: false,
     durationMs: 2800,

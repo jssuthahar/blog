@@ -36,7 +36,7 @@
     {
       "title": "25 million people, one ball",
       "key": "25 million",
-      "desc": "Last ball of the match. Watch the reactions land — this is one second of one match.",
+      "desc": "25 million viewers, one final ball of the match. Watch the reactions land — this is a single second of live traffic, not the whole game.",
       "status": "India vs New Zealand · 25,000,000 watching",
       "thinking": false,
       "durationMs": 4600,
@@ -45,7 +45,7 @@
     {
       "title": "A million reactions every second",
       "key": "A million",
-      "desc": "The four counters add up to a million — every second, for the whole last over.",
+      "desc": "The four emoji counters add up to roughly a million taps every second, sustained for the entire final over of the match.",
       "status": "🔥 412,309 · 😂 268,144 · 👏 191,880 · 🏏 127,667",
       "thinking": false,
       "durationMs": 4600,
@@ -54,7 +54,7 @@
     {
       "title": "What the app has to do",
       "key": "has to do",
-      "desc": "Before any architecture, write the feature down. It is only four lines long.",
+      "desc": "Before any architecture gets drawn, write the feature down in plain English first. The actual requirement is only four lines long.",
       "status": "the use case · four steps",
       "thinking": false,
       "durationMs": 5400,
@@ -63,7 +63,7 @@
     {
       "title": "Way 1: save every tap",
       "key": "save every tap",
-      "desc": "A million rows a second. The database falls over — and the phone is stuck waiting for it.",
+      "desc": "Writing a million rows a second to a database. It falls over immediately — and every phone is stuck waiting on a write that never returns.",
       "status": "database · 1,000,000 writes per second",
       "thinking": true,
       "durationMs": 4600,
@@ -72,7 +72,7 @@
     {
       "title": "Way 2: send every tap to everyone",
       "key": "to everyone",
-      "desc": "A million taps × 25 million phones = 25 trillion messages every second. No cloud on earth does that.",
+      "desc": "A million taps broadcast individually to 25 million phones is 25 trillion messages a second. No cloud provider on earth runs at that scale.",
       "status": "1,000,000 × 25,000,000 = 25 trillion / sec",
       "thinking": false,
       "durationMs": 4800,
@@ -81,7 +81,7 @@
     {
       "title": "The idea that fixes everything",
       "key": "The idea",
-      "desc": "Look at your screen during a match. You never see one person’s tap. You only see a total.",
+      "desc": "Look at your own screen during a match. You never see one individual person’s tap arrive — you only ever see a running total.",
       "status": "nobody needs your tap · everybody wants the total",
       "thinking": false,
       "durationMs": 5000,
@@ -90,7 +90,7 @@
     {
       "title": "Step 1 — Azure Front Door",
       "key": "Azure Front Door",
-      "desc": "The tap lands at the closest Azure edge in the world, not on one server in one country.",
+      "desc": "The tap lands at the nearest Azure Front Door point of presence in the world, not on a single origin server in one country.",
       "status": "Azure Front Door · the front gate",
       "thinking": false,
       "durationMs": 4400,
@@ -99,7 +99,7 @@
     {
       "title": "Step 2 — Azure Container Apps",
       "key": "Azure Container Apps",
-      "desc": "The API says OK straight away and keeps the tap in memory. Your phone never waits for anything.",
+      "desc": "The API on Container Apps accepts the tap, buffers it in memory, and returns immediately. Your phone never blocks waiting on a database.",
       "status": "Azure Container Apps · answers in milliseconds",
       "thinking": false,
       "durationMs": 4800,
@@ -108,7 +108,7 @@
     {
       "title": "Step 3 — Azure Event Hubs",
       "key": "Azure Event Hubs",
-      "desc": "Instead of 20,000 separate messages, the app packs 20,000 taps into one. Same data, far less work.",
+      "desc": "Instead of 20,000 separate network calls, the app batches 20,000 taps into a single Event Hubs message. Same data, a fraction of the overhead.",
       "status": "Azure Event Hubs · 20,000 taps in one message",
       "thinking": false,
       "durationMs": 5000,
@@ -117,7 +117,7 @@
     {
       "title": "Step 4 — Azure Stream Analytics",
       "key": "Azure Stream Analytics",
-      "desc": "Every 2 seconds it counts how many of each emoji arrived, sends the counts, and deletes the taps.",
+      "desc": "A tumbling 2-second window counts how many of each emoji arrived, emits just the counts downstream, and discards every individual tap.",
       "status": "Azure Stream Analytics · 2,000,000 taps → 5 numbers",
       "thinking": false,
       "durationMs": 5000,
@@ -126,7 +126,7 @@
     {
       "title": "Step 5 — Azure Web PubSub",
       "key": "Azure Web PubSub",
-      "desc": "You send that one small message once. Web PubSub copies it out to all 25 million phones.",
+      "desc": "You publish that one small count message exactly once. Web PubSub fans it out over open WebSocket connections to all 25 million phones.",
       "status": "Azure Web PubSub · 1 message → 25,000,000 phones",
       "thinking": false,
       "durationMs": 4800,
@@ -135,7 +135,7 @@
     {
       "title": "The whole thing in one picture",
       "key": "one picture",
-      "desc": "Tap goes in at the top. Two seconds later a count comes out at the bottom. Five services, one job each.",
+      "desc": "A tap goes in at the top; two seconds later an aggregated count comes out at the bottom. Five Azure services, each doing exactly one job.",
       "status": "Front Door → Container Apps → Event Hubs → Stream Analytics → Web PubSub",
       "thinking": false,
       "durationMs": 5200,
@@ -144,7 +144,7 @@
     {
       "title": "Old way vs new way",
       "key": "new way",
-      "desc": "Nothing about the audience changed. Only what you decided to send across the network.",
+      "desc": "Nothing about the 25 million viewers changed between the two designs. Only what you chose to actually send across the network did.",
       "status": "same crowd · two designs",
       "thinking": false,
       "durationMs": 4600,
@@ -153,7 +153,7 @@
     {
       "title": "Five billion emoji, none delivered",
       "key": "none delivered",
-      "desc": "Hotstar handled 5 billion reactions in one World Cup this way. Every one was counted, then thrown away.",
+      "desc": "Disney+ Hotstar handled over 5 billion reactions across one World Cup with exactly this pipeline. Every tap was counted, then discarded.",
       "status": "count them · don’t deliver them",
       "thinking": false,
       "durationMs": 4400,

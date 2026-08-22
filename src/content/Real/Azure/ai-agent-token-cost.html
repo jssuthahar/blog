@@ -2694,7 +2694,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The agent cost $4,260 last month",
     key: "$4,260",
-    desc: "One triage agent. Four thousand tasks. The invoice was six times the estimate.",
+    desc: "One customer-support triage agent. Four thousand completed tasks in a month. The invoice landed at six times the original estimate.",
     status: "billing · ai usage · august",
     thinking: false,
     durationMs: 3200,
@@ -2821,7 +2821,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Nobody wrote a bug",
     key: "a bug",
-    desc: "Every task succeeded. There is no incident to find, which is exactly why it ran for a month.",
+    desc: "Every single task succeeded end to end. There's no stack trace, no incident ticket to find — which is exactly why it ran unnoticed for a month.",
     status: "4,000 tasks · 0 failures · 0 alerts",
     thinking: false,
     durationMs: 3600,
@@ -2851,7 +2851,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The API has no memory",
     key: "no memory",
-    desc: "Every step is a fresh request carrying the entire conversation so far. Nothing is stored between calls.",
+    desc: "Every step is a stateless fresh request carrying the entire conversation transcript so far. The API itself stores nothing between calls.",
     status: "messages api · stateless · full history each call",
     thinking: true,
     durationMs: 4200,
@@ -2892,7 +2892,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Step 12 pays for steps 1 to 11",
     key: "pays for steps 1 to 11",
-    desc: "The bars are one task. Each one is longer than the last because it carries everything before it.",
+    desc: "Each bar is one step of the same task. Every step is longer than the last because it re-sends every token that came before it, unchanged.",
     status: "step 12 · 24,500 input tokens · one call",
     thinking: false,
     durationMs: 4400,
@@ -2932,7 +2932,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Twelve steps. 195,000 input tokens",
     key: "195,000 input tokens",
-    desc: "Add the bars up. The steps grow in a straight line, so the total grows as a square.",
+    desc: "Add all twelve steps together: 195,000 input tokens for one task. Steps grow linearly, so the cumulative total grows roughly quadratically.",
     status: "one task · 195,000 in · 3,600 out · $1.07",
     thinking: false,
     durationMs: 4200,
@@ -2967,7 +2967,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Output costs 5x more, and barely matters",
     key: "barely matters",
-    desc: "Output is the expensive token and the rare one. The agent barely speaks; it mostly re-reads.",
+    desc: "Output tokens price around 5x input on most frontier models, and they're the rare ones here — the agent barely speaks, it mostly re-reads context.",
     status: "input $5/M · output $25/M · input is 92% of the bill",
     thinking: false,
     durationMs: 4200,
@@ -3007,7 +3007,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Prompt caching reprices the repeat",
     key: "reprices the repeat",
-    desc: "A cached prefix reads back at about a tenth of the input rate. Writing it costs 1.25 times.",
+    desc: "A cached prompt prefix reads back at roughly a tenth of the standard input rate. Writing a new entry to the cache costs about 1.25x input instead.",
     status: "cache read 0.1× · cache write 1.25× · 5 min ttl",
     thinking: false,
     durationMs: 4200,
@@ -3043,7 +3043,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The same run, 32 cents",
     key: "32 cents",
-    desc: "Same agent, same steps, same tokens. $2,976 a month stops leaving the account.",
+    desc: "Same agent, same twelve steps, same total tokens processed. Only the pricing changed — and $2,976 a month simply stops leaving the account.",
     status: "one task · $0.32 · 4,000 tasks · $1,284",
     thinking: false,
     durationMs: 4000,
@@ -3078,7 +3078,7 @@ window.__MSD_STAGES__ = [
   {
     title: "One line puts the bill back",
     key: "One line",
-    desc: "The cache is a prefix match. Change a single byte near the top and everything after it is new.",
+    desc: "Prompt caching is a strict prefix match. Change a single byte anywhere near the top of the prompt and every token after it is priced as new.",
     status: "system prompt · rebuilt every request",
     thinking: false,
     durationMs: 4200,
@@ -3119,7 +3119,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Nothing errors. Nothing warns",
     key: "Nothing errors",
-    desc: "Caching is switched on, the code is correct, and it has never been read once. Only one number says so.",
+    desc: "Caching is switched on in the SDK, the code compiles and runs correctly, and the cache has never once actually been read. Only the bill says so.",
     status: "cache_read_input_tokens · 0 · every request",
     thinking: false,
     durationMs: 4000,
@@ -3155,7 +3155,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Three fixes, in this order",
     key: "in this order",
-    desc: "Freeze what repeats, cache it, and stop dragging dead tool output through every later call.",
+    desc: "Freeze the part of the prompt that repeats unchanged, put it first so caching can match it, and stop dragging stale tool output through every later call.",
     status: "freeze · cache · prune",
     thinking: false,
     durationMs: 4200,
@@ -3177,7 +3177,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The loop is the bill",
     key: "the bill",
-    desc: "Your agent is not expensive because it thinks. It is expensive because it re-reads.",
+    desc: "Your agent isn't expensive because the model has to think harder. It's expensive because every step re-reads everything every step before it read.",
     status: "ai agent cost · context, not cleverness",
     thinking: false,
     durationMs: 4000,

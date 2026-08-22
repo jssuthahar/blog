@@ -19,7 +19,7 @@
     {
       "title": "Copilot does not remember you",
       "key": "does not remember",
-      "desc": "The model is stateless. Between two requests it holds nothing — not your repo, not your last question.",
+      "desc": "The underlying model is completely stateless between calls. It holds nothing at all across requests — not your repo, not your last question.",
       "status": "model idle · zero state",
       "thinking": false,
       "durationMs": 2600,
@@ -28,7 +28,7 @@
     {
       "title": "The model is a frozen function",
       "key": "frozen function",
-      "desc": "Tokens in, one token out. Weights are read-only at inference, so nothing you type is ever written back.",
+      "desc": "Tokens go in, one next token comes out. Model weights are strictly read-only at inference time, so nothing you type ever gets written back into them.",
       "status": "inference · weights read-only",
       "thinking": false,
       "durationMs": 2800,
@@ -37,7 +37,7 @@
     {
       "title": "So the editor rebuilds the world",
       "key": "rebuilds the world",
-      "desc": "Every suggestion is a fresh prompt your IDE assembles: the file, the tabs, repo rules, retrieved code, the chat so far.",
+      "desc": "So VS Code rebuilds the entire context from scratch on every request: the current file, open tabs, instruction files, retrieved code, chat history.",
       "status": "assembling the prompt",
       "thinking": true,
       "durationMs": 2900,
@@ -46,7 +46,7 @@
     {
       "title": "It reads around your cursor",
       "key": "around your cursor",
-      "desc": "Your file is split into a prefix and a suffix, and the model is asked to fill in only the middle.",
+      "desc": "Your current file is split into a prefix before the cursor and a suffix after it, and the model is asked to generate only the missing middle.",
       "status": "fill-in-the-middle",
       "thinking": false,
       "durationMs": 2900,
@@ -55,7 +55,7 @@
     {
       "title": "Your open tabs are the context",
       "key": "open tabs",
-      "desc": "Copilot scans nearby files you have open, scores the snippets that look like your code, and pastes the winners in.",
+      "desc": "Copilot scans every file you currently have open, scores each snippet by similarity to what you're writing, and pastes the highest scorers in.",
       "status": "scanning neighbouring tabs",
       "thinking": true,
       "durationMs": 2800,
@@ -64,7 +64,7 @@
     {
       "title": "Chat searches your repo index",
       "key": "your repo index",
-      "desc": "Ask about #codebase and your workspace is chunked, embedded and searched — again on every turn.",
+      "desc": "Ask about #codebase and your entire workspace gets chunked, embedded and semantically searched — freshly, on every single turn of the conversation.",
       "status": "retrieving from the workspace index",
       "thinking": true,
       "durationMs": 2800,
@@ -73,7 +73,7 @@
     {
       "title": "Everything fights for one budget",
       "key": "one budget",
-      "desc": "The context window is a fixed number of tokens. Rules, code, retrieved snippets, history and the answer all share it.",
+      "desc": "The context window is a hard, fixed token budget. Instruction rules, code snippets, retrieved chunks, chat history and the answer all compete for it.",
       "status": "packing the context window",
       "thinking": false,
       "durationMs": 3000,
@@ -82,7 +82,7 @@
     {
       "title": "Chat memory is the transcript, resent",
       "key": "the transcript, resent",
-      "desc": "Every turn ships the whole conversation again. When it stops fitting, the oldest turns fall out — and it \"forgets\".",
+      "desc": "Every single turn re-sends the entire conversation transcript again from the start. When it stops fitting the budget, the oldest turns get dropped first.",
       "status": "replaying the conversation",
       "thinking": true,
       "durationMs": 2900,
@@ -91,7 +91,7 @@
     {
       "title": "So give it what it needs to know",
       "key": "what it needs",
-      "desc": "Instruction files, the right tabs open, explicit #file references and a fresh chat when it drifts. That is the real memory.",
+      "desc": "Instruction files committed to the repo, the right tabs actually open, explicit #file references, and a fresh chat started when it drifts. That's the real memory.",
       "status": "you own the context",
       "thinking": false,
       "durationMs": 2800,

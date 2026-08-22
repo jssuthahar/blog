@@ -650,7 +650,7 @@ window.__MSD_STAGES__ = [
   {
     title: "You changed b, a changed too",
     key: "a changed too",
-    desc: "A list assigned to a second name is not a copy. Both names sit on one object.",
+    desc: "A list assigned to a second name with b = a is not a copy at all. Both variable names simply point to the exact same object in memory.",
     status: "python REPL idle",
     thinking: false,
     durationMs: 2500,
@@ -666,7 +666,7 @@ window.__MSD_STAGES__ = [
   {
     title: "b = a copies the sticker",
     key: "the sticker",
-    desc: "The list is built once in memory. The second line just points another name at it.",
+    desc: "The list object is constructed exactly once in memory. The assignment b = a just attaches a second name label to that same object.",
     status: "binding names",
     thinking: false,
     durationMs: 2600,
@@ -706,7 +706,7 @@ window.__MSD_STAGES__ = [
   {
     title: "A list is mutable",
     key: "mutable",
-    desc: "append edits the object itself. The id never changes, so both names show the new value.",
+    desc: "list.append() mutates the object in place. id(a) never changes after the call, so both a and b immediately show the appended value.",
     status: "mutating in place",
     thinking: false,
     durationMs: 2800,
@@ -737,7 +737,7 @@ window.__MSD_STAGES__ = [
   {
     title: "A string is immutable",
     key: "immutable",
-    desc: "It cannot be edited, so += builds a new object and moves only that one name.",
+    desc: "A string object can never be edited in place. s += 'x' builds an entirely new string object and rebinds only the one name being assigned.",
     status: "rebinding s",
     thinking: false,
     durationMs: 2900,
@@ -784,7 +784,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Which types are which",
     key: "Which types",
-    desc: "Numbers, strings and tuples cannot change. Lists, dicts and sets can.",
+    desc: "int, float, str and tuple are all immutable in Python. list, dict and set are the three common mutable container types.",
     status: "the two families",
     thinking: false,
     durationMs: 2400,
@@ -803,7 +803,7 @@ window.__MSD_STAGES__ = [
   {
     title: "This is the classic bug",
     key: "classic bug",
-    desc: "A mutable default argument is created once, then quietly reused by every call.",
+    desc: "def f(items=[]): — that default list is created exactly once, at function definition time, then quietly reused and mutated by every call.",
     status: "default argument trap",
     thinking: true,
     durationMs: 2700,
@@ -847,7 +847,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The fix is a fresh object",
     key: "fresh object",
-    desc: "Default to None and build the list inside, or copy before you mutate.",
+    desc: "Default the parameter to None and build a fresh list inside the function body, or explicitly copy a mutable argument before you mutate it.",
     status: "safe patterns",
     thinking: false,
     durationMs: 2500,
@@ -887,7 +887,7 @@ window.__MSD_STAGES__ = [
   {
     title: "Mutate or rebind",
     key: "Mutate or rebind",
-    desc: "Every confusing line in Python comes down to which of these two it is doing.",
+    desc: "Every genuinely confusing line of Python variable behavior comes down to distinguishing mutating an object in place from simply rebinding a name.",
     status: "the whole rule",
     thinking: false,
     durationMs: 2600,

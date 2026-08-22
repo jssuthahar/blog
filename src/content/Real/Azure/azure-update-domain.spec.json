@@ -20,7 +20,7 @@
     {
       "title": "9,400 customers. One payments app",
       "key": "9,400 customers",
-      "desc": "A retail banking app on Azure. Transfers are clearing, nobody is thinking about servers.",
+      "desc": "A retail banking app on Azure, 9,400 customers active right now. Transfers are clearing normally — nobody is thinking about the servers underneath.",
       "status": "msdevbank.com · online",
       "thinking": false,
       "durationMs": 3200,
@@ -29,7 +29,7 @@
     {
       "title": "Two VMs behind one load balancer",
       "key": "one load balancer",
-      "desc": "VM1 and VM2 sit in the same availability set. Every request is split between them.",
+      "desc": "VM1 and VM2 sit in the same availability set behind Azure Load Balancer. Every incoming transfer request is split across the two of them.",
       "status": "load balancer · VM1 50% · VM2 50%",
       "thinking": false,
       "durationMs": 3200,
@@ -38,7 +38,7 @@
     {
       "title": "Azure schedules host maintenance",
       "key": "host maintenance",
-      "desc": "Not a crash. A planned platform update — the physical host under your VM needs patching and a reboot.",
+      "desc": "Not a crash — a planned platform update on Azure's own schedule. The physical host underneath your VM needs a security patch and a reboot.",
       "status": "notice · planned maintenance window",
       "thinking": false,
       "durationMs": 3400,
@@ -47,7 +47,7 @@
     {
       "title": "VM1 starts installing updates",
       "key": "installing updates",
-      "desc": "Azure takes the first update domain offline. VM1 stops answering and begins the host patch.",
+      "desc": "Azure takes update domain 0 offline first, by design. VM1 stops answering health probes and its underlying host begins the patch.",
       "status": "UD 0 · VM1 updating",
       "thinking": false,
       "durationMs": 3600,
@@ -56,7 +56,7 @@
     {
       "title": "Everyone expects the app to drop",
       "key": "expects the app to drop",
-      "desc": "Half the capacity is mid-reboot at peak hour. This is the moment the error page usually shows up.",
+      "desc": "Half the payment capacity is mid-reboot during a busy hour. On most architectures, this is exactly the moment the error page shows up.",
       "status": "expected: HTTP 503",
       "thinking": true,
       "durationMs": 3000,
@@ -65,7 +65,7 @@
     {
       "title": "The load balancer already moved",
       "key": "already moved",
-      "desc": "The health probe on VM1 stops answering, so Azure Load Balancer drops it from the backend pool.",
+      "desc": "The health probe on VM1 stops answering within seconds, so Azure Load Balancer drops it from the backend pool automatically.",
       "status": "probe failed · VM1 removed",
       "thinking": false,
       "durationMs": 3400,
@@ -74,7 +74,7 @@
     {
       "title": "VM2 takes 100% of the traffic",
       "key": "100% of the traffic",
-      "desc": "Same URL, same session, same balance on screen. The surviving VM simply absorbs the load.",
+      "desc": "Same URL, same session token, same account balance on screen. VM2 simply absorbs 100% of the transfer traffic without a blip.",
       "status": "failover complete · VM2 100%",
       "thinking": false,
       "durationMs": 3400,
@@ -83,7 +83,7 @@
     {
       "title": "VM1 reboots and comes back",
       "key": "comes back",
-      "desc": "The host restarts, the VM boots, the probe answers again — and the load balancer puts VM1 straight back in.",
+      "desc": "The physical host restarts, the VM boots back up, its health probe starts answering again — and the load balancer re-adds it immediately.",
       "status": "UD 0 · VM1 back in rotation",
       "thinking": false,
       "durationMs": 3400,
@@ -92,7 +92,7 @@
     {
       "title": "Only now does Azure touch VM2",
       "key": "Only now",
-      "desc": "Azure waits for the first update domain to recover — up to 30 minutes — before starting the next one.",
+      "desc": "Azure explicitly waits for update domain 0 to fully recover — up to a 30-minute window — before it starts patching update domain 1 at all.",
       "status": "UD 1 · VM2 updating",
       "thinking": false,
       "durationMs": 3600,
@@ -101,7 +101,7 @@
     {
       "title": "VM1 serves while VM2 patches",
       "key": "VM2 patches",
-      "desc": "The roles swap cleanly. The freshly patched VM carries every request while the other one reboots.",
+      "desc": "The roles swap cleanly and automatically. The freshly patched VM1 now carries every transfer while VM2’s host reboots in its place.",
       "status": "VM1 100% · VM2 updating",
       "thinking": false,
       "durationMs": 3400,
@@ -110,7 +110,7 @@
     {
       "title": "Both VMs patched. Nobody noticed",
       "key": "Nobody noticed",
-      "desc": "Two host reboots inside one maintenance window, and the payments counter never dropped to zero.",
+      "desc": "Two separate host reboots inside one maintenance window, and the live payments-processed counter never once dropped to zero.",
       "status": "maintenance complete · 0 downtime",
       "thinking": false,
       "durationMs": 3400,
@@ -119,7 +119,7 @@
     {
       "title": "Azure Update Domain",
       "key": "Update Domain",
-      "desc": "That sequence has a name. An update domain is a group of VMs Azure reboots together during planned maintenance.",
+      "desc": "That entire sequence has a name in Azure's model: an update domain is a group of VMs Azure reboots together during planned maintenance.",
       "status": "the term · update domain",
       "thinking": false,
       "durationMs": 3600,
@@ -128,7 +128,7 @@
     {
       "title": "One update domain at a time",
       "key": "One update domain",
-      "desc": "Five by default, up to twenty. Azure walks them in order and waits about 30 minutes after each one.",
+      "desc": "Five update domains by default, configurable up to twenty. Azure walks through them strictly in order, waiting roughly 30 minutes after each.",
       "status": "UD 0 → UD 1 → UD 2 → UD 3 → UD 4",
       "thinking": false,
       "durationMs": 3600,
@@ -137,7 +137,7 @@
     {
       "title": "Update domain vs fault domain",
       "key": "vs fault domain",
-      "desc": "Update domains cover the maintenance Azure schedules. Fault domains cover the hardware failure nobody schedules.",
+      "desc": "Update domains cover the maintenance Azure deliberately schedules. Fault domains cover the hardware failure nobody ever schedules.",
       "status": "planned vs unplanned",
       "thinking": false,
       "durationMs": 3400,
@@ -146,7 +146,7 @@
     {
       "title": "Update Domain = Planned Maintenance Without Downtime",
       "key": "Without Downtime",
-      "desc": "Spread across update domains, a platform reboot becomes a rolling restart instead of an outage.",
+      "desc": "Spread correctly across update domains, a mandatory platform reboot becomes an invisible rolling restart instead of a customer-facing outage.",
       "status": "SLA 99.95% · availability set",
       "thinking": false,
       "durationMs": 3600,

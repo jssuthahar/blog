@@ -41,6 +41,14 @@ export interface Short {
   folderLabel: string;
   /** Site taxonomy category — what the filter chips and the accent colour use. */
   category: CategorySlug;
+  /**
+   * A finer-grained topic within `category`, for categories broad enough to
+   * need one — currently only `azure`, which alone spans reliability
+   * fundamentals, messaging patterns, system design, AI and security. Absent
+   * for every other category, where the top-level chip is already specific
+   * enough that a second filter row would just repeat it.
+   */
+  subtopic?: Subtopic;
   /** Plain-language subject, e.g. "How Netflix works internally". */
   topic: string;
   /**
@@ -155,6 +163,13 @@ const FOLDER_CATEGORY: Record<string, CategorySlug> = {
   githubactions: 'devops',
   security: 'engineering',
   performance: 'engineering',
+  // The Azure Security reel series (src/content/Real/AzureSecurity/) is Azure
+  // content first — Front Door, Key Vault, Entra ID, private endpoints — with
+  // security as the theme running through it, not a separate discipline.
+  // Without this the normalized folder name "azuresecurity" matches neither
+  // the `azure` slug nor the generic `security` entry above, and every short
+  // in the folder silently fell back to Engineering instead.
+  azuresecurity: 'azure',
 };
 
 function categoryForFolder(folder: string): CategorySlug {
@@ -163,6 +178,93 @@ function categoryForFolder(folder: string): CategorySlug {
   // An unmapped folder still publishes — it just lands under Engineering rather
   // than failing the build. A missing short is worse than an imperfect chip.
   return FOLDER_CATEGORY[key] ?? 'engineering';
+}
+
+export interface Subtopic {
+  slug: string;
+  label: string;
+}
+
+const SUBTOPIC_SLUGS = ['basics', 'messaging', 'architecture', 'ai', 'security'] as const;
+type SubtopicSlug = (typeof SUBTOPIC_SLUGS)[number];
+
+const SUBTOPIC_LABEL: Record<SubtopicSlug, string> = {
+  basics: 'Basics',
+  messaging: 'Messaging',
+  architecture: 'Architecture',
+  ai: 'AI',
+  security: 'Security',
+};
+
+/**
+ * Short slug → sub-topic, for the one category broad enough to need a second
+ * filter row: `azure` alone covers reliability fundamentals, the messaging
+ * services, system design, AI and the whole security reel series.
+ *
+ * Keyed by slug rather than folder because the split cuts across folders —
+ * `Azure/` holds basics, messaging, architecture and AI shorts side by side,
+ * and only `AzureSecurity/` maps to a folder one-to-one. A short published
+ * without an entry here still shows under Azure; it just sits out of every
+ * sub-filter, which is a soft failure rather than a build break.
+ */
+const SHORT_SUBTOPIC: Record<string, SubtopicSlug> = {
+  // Reliability fundamentals — the platform mechanics under a VM or region.
+  'azure-availability-set': 'basics',
+  'azure-availability-zones': 'basics',
+  'azure-fault-domain': 'basics',
+  'azure-update-domain': 'basics',
+
+  // System design — a full request or feature traced end to end.
+  'azure-http-request-journey': 'architecture',
+  'azure-view-product-request-flow': 'architecture',
+  'azure-url-shortener-design': 'architecture',
+  'azure-realtime-reactions-fan-out': 'architecture',
+
+  // AI platform and agent economics.
+  'azure-ai-foundry': 'ai',
+  'model-context-protocol-explained': 'ai',
+  'ai-agent-token-cost': 'ai',
+
+  // Everything else in Azure/ is the messaging series: Service Bus, Event
+  // Hubs, Event Grid, Queue Storage, Notification Hubs, Relay, Durable
+  // Functions and the ordering/retry traps around them.
+  'azure-dead-letter-incident': 'messaging',
+  'azure-durable-functions-replay': 'messaging',
+  'azure-event-grid-order-placed': 'messaging',
+  'azure-event-grid-vs-event-hubs': 'messaging',
+  'azure-event-hubs-driver-pings': 'messaging',
+  'azure-notification-hubs-broadcast': 'messaging',
+  'azure-ordering-concurrency-sessions': 'messaging',
+  'azure-poison-message-retry-window': 'messaging',
+  'azure-pubsub-vs-point-to-point': 'messaging',
+  'azure-queue-storage-image-upload': 'messaging',
+  'azure-queue-vs-topic-traps': 'messaging',
+  'azure-relay-hybrid-connection': 'messaging',
+  'azure-service-bus-dead-letter': 'messaging',
+  'azure-service-bus-flash-sale': 'messaging',
+  'azure-service-bus-vs-kafka': 'messaging',
+  'azure-service-bus-vs-queue-storage': 'messaging',
+  'azure-sync-vs-async-messaging': 'messaging',
+
+  // The whole AzureSecurity/ folder — one entry per short rather than a
+  // folder-level rule, so a future non-security short dropped in there does
+  // not get swept into Security by default.
+  'azure-mobile-app-layers': 'security',
+  'mobile-secret-in-apk': 'security',
+  'hardcoded-key-blast-radius': 'security',
+  'hacker-vs-azure-defences': 'security',
+  'mobile-app-five-vulnerabilities': 'security',
+  'secure-mobile-api-five-steps': 'security',
+  'azure-key-vault-explained': 'security',
+  'ai-bot-attacks-mobile-app': 'security',
+  'insecure-vs-secure-architecture': 'security',
+  'secure-login-journey': 'security',
+};
+
+function subtopicForShort(category: CategorySlug, slug: string): Subtopic | undefined {
+  if (category !== 'azure') return undefined;
+  const sub = SHORT_SUBTOPIC[slug];
+  return sub ? { slug: sub, label: SUBTOPIC_LABEL[sub] } : undefined;
 }
 
 /** `DesignPattern` → `Design Pattern`, `Azure` → `Azure`. */
@@ -529,12 +631,14 @@ function loadShorts(): Short[] {
     const durationMs = spec.stages.reduce((total, s) => total + s.durationMs, 0) + END_CARD_MS;
     const seconds = Math.round(durationMs / 1000);
     const title = stripTags(spec.title.main);
+    const category = categoryForFolder(folder);
 
     shorts.push({
       slug,
       folder,
       folderLabel: humaniseFolder(folder),
-      category: categoryForFolder(folder),
+      category,
+      subtopic: subtopicForShort(category, slug),
       topic: spec.topic,
       learn: spec.learn ?? [],
       titleHtml: spec.title.main,
@@ -611,6 +715,25 @@ export function shortCategories(
     label: group.label,
     hue: group.hue,
     count: shorts.filter((a) => a.category === group.slug).length,
+  })).filter((c) => c.count > 0);
+}
+
+/**
+ * Sub-topic chips for one category, in a fixed reading order with live
+ * counts. Only `azure` shorts carry a `subtopic` today, so calling this for
+ * any other category — or one with nothing tagged — returns an empty list,
+ * and the caller skips the second filter row entirely rather than showing one
+ * dead chip.
+ */
+export function shortSubtopics(
+  shorts: Short[],
+  category: CategorySlug,
+): { slug: string; label: string; count: number }[] {
+  const inCategory = shorts.filter((s) => s.category === category);
+  return SUBTOPIC_SLUGS.map((slug) => ({
+    slug,
+    label: SUBTOPIC_LABEL[slug],
+    count: inCategory.filter((s) => s.subtopic?.slug === slug).length,
   })).filter((c) => c.count > 0);
 }
 

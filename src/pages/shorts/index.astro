@@ -22,6 +22,7 @@ import { SITE, AUTHOR, ADSENSE_SLOT_DISPLAY, ADSENSE_SLOT_MULTIPLEX } from '../.
 import {
   shortCategories,
   shortSearchText,
+  shortSubtopics,
   shortUrl,
   getShorts,
 } from '../../lib/shorts';
@@ -30,6 +31,15 @@ import { CATEGORIES, formatDate } from '../../lib/posts';
 const shorts = getShorts();
 const categories = shortCategories(shorts);
 const total = shorts.length;
+
+// Only a category broad enough to need one carries sub-topic chips — today
+// that's just Azure. Computed per category rather than hard-coded to that
+// slug so a second category picks this up for free the day it needs it.
+const categorySubtopics = new Map(
+  categories
+    .map((category) => [category.slug, shortSubtopics(shorts, category.slug)] as const)
+    .filter(([, subs]) => subs.length > 0),
+);
 
 /**
  * Measured, not guessed: `npm run check:seo` renders this in Arial 14px and
@@ -141,6 +151,32 @@ const schema = [
           </button>
         ))}
       </div>
+
+      <!-- One row per category broad enough to need a second filter, hidden
+           until its parent category chip is active — see initShortFilters
+           for the show/hide and the reset-on-category-change rule. -->
+      {[...categorySubtopics].map(([categorySlug, subtopics]) => (
+        <div class="mt-3 flex flex-wrap gap-1.5 pl-1" data-subtopic-row data-parent={categorySlug} hidden>
+          <button
+            type="button"
+            data-subfilter="all"
+            aria-pressed="true"
+            class="subfilter-chip rounded-full border border-default px-3 py-1 text-xs font-medium transition-colors hover:bg-subtle"
+          >
+            All {CATEGORIES[categorySlug].label}
+          </button>
+          {subtopics.map((sub) => (
+            <button
+              type="button"
+              data-subfilter={sub.slug}
+              aria-pressed="false"
+              class="subfilter-chip rounded-full border border-default px-3 py-1 text-xs font-medium transition-colors hover:bg-subtle"
+            >
+              {sub.label} <span class="text-muted">{sub.count}</span>
+            </button>
+          ))}
+        </div>
+      ))}
     </div>
 
     <!-- ══════════════ The shorts ══════════════
@@ -152,6 +188,7 @@ const schema = [
         <article
           data-short
           data-category={short.category}
+          data-subtopic={short.subtopic?.slug ?? ''}
           data-search={shortSearchText(short)}
           class="group relative"
         >
@@ -185,7 +222,7 @@ const schema = [
                week reads as one undated pile without it, and a short published
                yesterday looks no newer than one from May. -->
           <p class="mt-2.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted">
-            <span>{CATEGORIES[short.category].label}</span>
+            <span>{CATEGORIES[short.category].label}{short.subtopic && ` · ${short.subtopic.label}`}</span>
             <span aria-hidden="true">·</span>
             <span>{short.stages.length} steps</span>
             {short.publishedAt && (
@@ -237,6 +274,12 @@ const schema = [
   .filter-chip[aria-pressed='true'] span {
     color: rgb(255 255 255 / 0.75);
   }
+
+  .subfilter-chip[aria-pressed='true'] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 </style>
 
 <script>
@@ -247,18 +290,47 @@ const schema = [
   function initShortFilters() {
     const search = document.getElementById('short-search') as HTMLInputElement | null;
     const chips = [...document.querySelectorAll<HTMLButtonElement>('.filter-chip')];
+    const subRows = [...document.querySelectorAll<HTMLElement>('[data-subtopic-row]')];
     const items = [...document.querySelectorAll<HTMLElement>('[data-short]')];
     const count = document.getElementById('short-count');
     const empty = document.getElementById('short-empty');
 
     if (!search || items.length === 0) return;
 
-    // /shorts/?category=azure arrives pre-filtered, so a category link from
-    // anywhere on the site lands on the right slice.
-    const requested = new URLSearchParams(location.search).get('category');
-    let active = requested && chips.some((c) => c.dataset.filter === requested) ? requested : 'all';
+    // Only one category carries a sub-topic row today, but this reads by
+    // `data-parent` rather than a hard-coded slug, so a second category's row
+    // shows up correctly the day it gets one too.
+    const subRowFor = (category: string) => subRows.find((row) => row.dataset.parent === category);
+
+    const showSubRow = (category: string) => {
+      const target = subRowFor(category);
+      for (const row of subRows) row.hidden = row !== target;
+    };
+
+    // /shorts/?category=azure&topic=messaging arrives pre-filtered, so a link
+    // from anywhere on the site — including a sub-topic — lands on the exact
+    // slice, not just the parent category.
+    const params = new URLSearchParams(location.search);
+    const requestedCategory = params.get('category');
+    let active = requestedCategory && chips.some((c) => c.dataset.filter === requestedCategory)
+      ? requestedCategory
+      : 'all';
     for (const chip of chips) {
       chip.setAttribute('aria-pressed', String(chip.dataset.filter === active));
+    }
+
+    showSubRow(active);
+    const activeRow = subRowFor(active);
+    const subChipsIn = (row: HTMLElement) => [...row.querySelectorAll<HTMLButtonElement>('.subfilter-chip')];
+    const requestedSub = params.get('topic');
+    let activeSub =
+      activeRow && requestedSub && subChipsIn(activeRow).some((c) => c.dataset.subfilter === requestedSub)
+        ? requestedSub
+        : 'all';
+    if (activeRow) {
+      for (const sub of subChipsIn(activeRow)) {
+        sub.setAttribute('aria-pressed', String(sub.dataset.subfilter === activeSub));
+      }
     }
 
     const apply = () => {
@@ -268,7 +340,8 @@ const schema = [
       for (const item of items) {
         const matchesText = query === '' || item.dataset.search!.includes(query);
         const matchesCategory = active === 'all' || item.dataset.category === active;
-        const visible = matchesText && matchesCategory;
+        const matchesSub = activeSub === 'all' || item.dataset.subtopic === activeSub;
+        const visible = matchesText && matchesCategory && matchesSub;
         item.hidden = !visible;
         if (visible) shown++;
       }
@@ -291,8 +364,22 @@ const schema = [
       chip.addEventListener('click', () => {
         active = chip.dataset.filter!;
         for (const other of chips) other.setAttribute('aria-pressed', String(other === chip));
+        // A category switch invalidates whatever sub-topic was picked under
+        // the previous one — carrying it forward would silently filter a
+        // category that was never shown a chip for it.
+        activeSub = 'all';
+        showSubRow(active);
         apply();
       });
+    }
+    for (const row of subRows) {
+      for (const sub of subChipsIn(row)) {
+        sub.addEventListener('click', () => {
+          activeSub = sub.dataset.subfilter!;
+          for (const other of subChipsIn(row)) other.setAttribute('aria-pressed', String(other === sub));
+          apply();
+        });
+      }
     }
 
     apply();

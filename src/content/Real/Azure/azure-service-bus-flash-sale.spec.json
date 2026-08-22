@@ -6,6 +6,16 @@
     "How a queue decouples arrival rate from processing rate",
     "Why an uncompleted message comes back without a retry loop"
   ],
+  "faq": [
+    {
+      "q": "Why does a flash sale overwhelm an order API with no queue in front of it?",
+      "a": "Without a queue, the API has to process orders at exactly the rate they arrive — a sudden spike in arrival rate becomes a spike in required processing rate, and the API falls over trying to keep up in real time."
+    },
+    {
+      "q": "How does a queue fix that without you writing a retry loop?",
+      "a": "It decouples arrival from processing — orders land on the queue as fast as they come in, and workers pull from it at whatever rate they can sustain. An order that isn't completed simply stays available for redelivery, with no custom retry logic needed."
+    }
+  ],
   "seoTitle": "Azure Service Bus flash sale",
   "publishedAt": "2026-06-29",
   "title": {

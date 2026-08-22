@@ -6,6 +6,16 @@
     "Why Kafka partitions put a ceiling on your consumer count",
     "When the Event Hubs Kafka endpoint is the cheaper answer"
   ],
+  "faq": [
+    {
+      "q": "What's the fundamental difference between Service Bus and Kafka?",
+      "a": "Service Bus is a message broker — messages are consumed and removed. Kafka is an append-only log — messages persist and can be replayed by any number of consumers reading at their own offset. They solve different problems even though both move data between services."
+    },
+    {
+      "q": "Should you pick Kafka just because a queue seems too simple?",
+      "a": "No — taking on Kafka is really a decision to take on its operational overhead (partitions, cluster management, rebalancing), and that's only worth it for its ecosystem or replay guarantees. Azure Event Hubs' Kafka-compatible endpoint is often the cheaper way to get Kafka's protocol without running a cluster."
+    }
+  ],
   "seoTitle": "Azure Service Bus vs Kafka",
   "publishedAt": "2026-06-30",
   "title": {

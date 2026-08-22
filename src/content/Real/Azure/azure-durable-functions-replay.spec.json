@@ -6,6 +6,16 @@
     "How completed activities are answered from the event history",
     "Why DateTime.Now and Guid.NewGuid break a Durable Function"
   ],
+  "faq": [
+    {
+      "q": "Why does a Durable Functions orchestrator run from the top every time?",
+      "a": "The orchestrator replays its entire function body from line one on every checkpoint, but activities that already completed answer instantly from the recorded event history instead of running again — that's how it resumes exactly where it left off without keeping the process alive between awaits."
+    },
+    {
+      "q": "Why do DateTime.Now and Guid.NewGuid break a Durable Function?",
+      "a": "Replay re-executes the same code path multiple times, so any non-deterministic call would return a different value on each replay and desynchronize the orchestrator from its own history. Use the context's deterministic equivalents instead."
+    }
+  ],
   "seoTitle": "How Durable Functions replay",
   "publishedAt": "2026-08-02",
   "title": {

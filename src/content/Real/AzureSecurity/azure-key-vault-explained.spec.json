@@ -110,6 +110,16 @@
     "Why moving secrets to a vault leaves you one secret you did not expect",
     "How a managed identity removes that last one so the count reaches zero"
   ],
+  "faq": [
+    {
+      "q": "Does moving secrets into Key Vault remove all secrets from your app?",
+      "a": "Almost — most tutorials stop at \"your secrets are in the vault\" while a ClientId/ClientSecret still sits in config to open the vault itself, which is one master secret standing in for six. A managed identity removes that last credential too, so the count reaches zero."
+    },
+    {
+      "q": "What permission model should a Key Vault app use?",
+      "a": "Azure RBAC with the Key Vault Secrets User role — read-only, secrets-only — rather than the older, coarser access-policy model. The app should never be able to write, delete, or list keys."
+    }
+  ],
   "seoTitle": "Azure Key Vault explained with managed identity",
   "keywords": [
     "azure key vault explained",

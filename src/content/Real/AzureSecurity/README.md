@@ -54,6 +54,9 @@ Filmora alongside each one.
 3. Add `sec:<name>` and `narration:<name>` scripts to `package.json`.
 4. Every new spec needs `learn` (exactly 3), `seoTitle`, `keywords` (10–16
    lowercase search phrases) and `publishedAt`.
+5. Add `faq` (3–5 `{ q, a }` pairs) on the reels that anchor a topic — the
+   ones a reader would search a whole question for, not every 8-stage beat.
+   It renders on the page and emits `FAQPage` schema, same as a blog post's.
 
 `security/kit.ts` holds the whole grammar — the icon library, and `kitHtml`,
 `kitCss` and `kitJs` generated from one `KitDef`. A reel file declares its nodes,

@@ -110,6 +110,16 @@
     "The six moments where the two designs stop behaving the same",
     "Why the difference only shows up when something goes wrong"
   ],
+  "faq": [
+    {
+      "q": "If the insecure design works, why does it matter?",
+      "a": "Because \"works\" and \"survives\" are different claims — the insecure design ships first and behaves identically to the secure one right up until the six moments things go wrong: a leaked key, a stolen token, an oversized permission, and so on. The difference is invisible until then."
+    },
+    {
+      "q": "What's the real cost of the insecure design?",
+      "a": "Every fix becomes an app store release you don't control the timing of, gated by a reviewer, while the secure design keeps every fix server-side. That gap in response time is what actually separates the two builds."
+    }
+  ],
   "seoTitle": "Insecure vs secure Azure app architecture",
   "keywords": [
     "secure vs insecure architecture",

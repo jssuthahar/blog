@@ -110,6 +110,16 @@
     "Why authentication and authorization are two different checks, not one",
     "Why a private endpoint means the database has no public address to attack"
   ],
+  "faq": [
+    {
+      "q": "Why shouldn't a mobile app connect directly to a database?",
+      "a": "A direct line from app to database is also the entire attack surface — no token, no owner check, and (if reachable) a public endpoint an attacker can scan and query. Front Door with WAF, your own API, Microsoft Entra ID and a private endpoint each answer a different question, and removing any one of them removes what the others assumed was already handled."
+    },
+    {
+      "q": "What's the difference between authentication and authorization here?",
+      "a": "Authentication (Entra ID) proves who is calling. Authorization is a separate check your API still has to make — deciding that a signed-in user only sees their own rows, typically a WHERE clause rather than middleware. Skipping it is broken object level authorization, OWASP API Security's #1 issue."
+    }
+  ],
   "seoTitle": "How Azure protects a mobile app end to end",
   "keywords": [
     "secure mobile app architecture azure",

@@ -110,6 +110,16 @@
     "Why watching your logs is not a defence against something that never sleeps",
     "The three Azure controls that make speed useless: rate limits, lockout, alerts"
   ],
+  "faq": [
+    {
+      "q": "Why doesn't watching your logs defend against an automated attacker?",
+      "a": "An automated attacker doesn't sleep, and volume is the whole point — it changes the maths, not just the scale, so a human reviewing logs after the fact is always behind. The defence has to be automatic too."
+    },
+    {
+      "q": "What actually stops a credential-stuffing bot?",
+      "a": "Three controls at the API itself, not the UI: rate limiting takes away its speed, smart lockout plus MFA makes a correct guess useless, and a service like Defender for Cloud watches continuously. A CAPTCHA on a web form does nothing if the bot is calling the API directly."
+    }
+  ],
   "seoTitle": "How Azure stops mobile app bot attacks",
   "keywords": [
     "credential stuffing attack api",

@@ -40,6 +40,8 @@ import {
   type Post,
 } from '../../lib/posts';
 import { entitiesForTags } from '../../lib/taxonomy';
+import { relatedShortsForPost } from '../../lib/app-feed';
+import { getShorts, shortUrl } from '../../lib/shorts';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -72,6 +74,11 @@ const seriesWindow = seriesLong
   : seriesPosts;
 const path = postUrl(post);
 const category = CATEGORIES[data.category];
+
+// The reverse of the short page's "Read deeper" link: shorts that point at
+// this post, so a reader who arrived by search meets the 20-second version
+// too, instead of it living only where the short happened to publish.
+const relatedShorts = relatedShortsForPost(post, getShorts());
 
 // --- Structured data -------------------------------------------------------
 // The technologies this post is about, as resolvable entities rather than
@@ -278,6 +285,32 @@ if (data.faq.length > 0) {
         <div class="mb-9 max-w-[68ch]">
           <PostHighlight text={data.highlight ?? data.description} />
         </div>
+
+        <!-- The 20-second version, for a reader who wants the shape before the
+             full read — or instead of it. Only appears when a short genuinely
+             covers this post's subject (see relatedShortsForPost), so most
+             posts render nothing here. -->
+        {relatedShorts.length > 0 && (
+          <aside
+            class="mb-9 max-w-[68ch] rounded-xl border border-default bg-subtle p-4"
+            aria-label="Related short video"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="text-2xl shrink-0" aria-hidden="true">🎥</span>
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold tracking-wider uppercase text-muted">
+                    Watch it in {relatedShorts[0].seconds} seconds
+                  </p>
+                  <p class="mt-0.5 truncate font-medium leading-snug">{relatedShorts[0].title}</p>
+                </div>
+              </div>
+              <a href={shortUrl(relatedShorts[0])} class="btn btn-outline btn-sm shrink-0">
+                Watch the short →
+              </a>
+            </div>
+          </aside>
+        )}
 
         <!-- `data-reader-root` scopes highlighting and the deck to the article
              itself, so nothing in the nav, the FAQ or the footer can be marked

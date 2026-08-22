@@ -6,6 +6,16 @@
     "Why a queue draining with no consumer is deletion, not recovery",
     "The three queue properties and one alert that would have caught it"
   ],
+  "faq": [
+    {
+      "q": "What happens to a Service Bus message when its TTL expires?",
+      "a": "By default, nothing gets logged — the message is simply deleted. EnableDeadLetteringOnMessageExpiration defaults to false, so unless you turn it on, an expired message disappears with no error and no trace, not a safety net."
+    },
+    {
+      "q": "How do you know a queue is silently losing messages instead of recovering?",
+      "a": "A queue depth draining to zero looks identical whether consumers processed everything or the broker just expired and deleted it. The property to check — and alert on — is dead-letter queue depth, not just active queue depth."
+    }
+  ],
   "seoTitle": "Service Bus dead letter incident",
   "publishedAt": "2026-05-20",
   "title": {

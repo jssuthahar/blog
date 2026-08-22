@@ -6,6 +6,16 @@
     "How your editor rebuilds the whole prompt every time",
     "What competes for the same fixed token budget"
   ],
+  "faq": [
+    {
+      "q": "Does GitHub Copilot remember your codebase between requests?",
+      "a": "No — the underlying model is stateless and holds nothing between calls. What feels like memory is your editor rebuilding the relevant context (open files, recent edits, relevant snippets) from scratch and sending it fresh with every request."
+    },
+    {
+      "q": "Why does everything Copilot \"knows\" have to compete for the same space?",
+      "a": "The rebuilt context, your instructions, and the model's own response all have to fit inside one fixed token budget per request — so open files, custom instructions and conversation history are all competing for the same limited window rather than living in separate memory."
+    }
+  ],
   "publishedAt": "2026-08-04",
   "article": "github-copilot-custom-instructions",
   "title": {

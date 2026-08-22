@@ -6,6 +6,16 @@
     "Why the private side dials out to a rendezvous point instead",
     "When Relay beats a VPN, and when a queue beats both"
   ],
+  "faq": [
+    {
+      "q": "How does Azure Relay reach an on-premises service without an open inbound port?",
+      "a": "The on-premises (private) side makes the outbound connection to a rendezvous point in Azure — the cloud side never initiates an inbound connection, so no firewall rule needs to be opened for it."
+    },
+    {
+      "q": "When would you use Relay instead of a VPN?",
+      "a": "Relay suits reaching a single specific on-prem service without standing up full network-level connectivity. When more than a request/response link is needed, or the two sides don't need to be online at the same time, a VPN or a queue can be the better fit."
+    }
+  ],
   "seoTitle": "Azure Relay Hybrid Connections",
   "publishedAt": "2026-06-27",
   "title": {

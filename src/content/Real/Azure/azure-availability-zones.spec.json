@@ -6,6 +6,16 @@
     "How three zones in one region are physically separate buildings",
     "Why sub-2 ms replication turns 99.9% into 99.99%"
   ],
+  "faq": [
+    {
+      "q": "What is an Azure Availability Zone?",
+      "a": "A physically separate location within an Azure region — its own datacenter, power and networking — connected to the other zones in that region by low-latency fibre, typically under 2 ms. Spreading VMs across zones survives a whole datacenter going down, not just a single server."
+    },
+    {
+      "q": "How much does spreading across zones actually buy you?",
+      "a": "On paper the jump from a single-zone deployment to three zones is roughly 99.9% to 99.99% availability — the difference between about 8.7 hours of downtime a year and about 52 minutes."
+    }
+  ],
   "seoTitle": "Azure Availability Zones",
   "publishedAt": "2026-08-06",
   "title": {

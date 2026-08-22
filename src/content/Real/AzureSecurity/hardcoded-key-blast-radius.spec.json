@@ -110,6 +110,16 @@
     "Why rotating a hard-coded key kills every installed copy of your app",
     "Why a secret in Azure Key Vault rotates with nobody updating anything"
   ],
+  "faq": [
+    {
+      "q": "Why is revoking a hardcoded key harder than it sounds?",
+      "a": "The key is embedded in every installed copy of the app, so revoking it to stop an attacker breaks every legitimate customer at the same instant — turning one incident into an outage on top of it."
+    },
+    {
+      "q": "What's the safe order of operations when a key leaks?",
+      "a": "Check whether it's already being used, ship (or front) the version that no longer needs it, swap traffic to the service's secondary key, then regenerate the primary and repeat for the secondary. Doing this out of order is what causes the second outage."
+    }
+  ],
   "seoTitle": "The blast radius of a hardcoded API key",
   "keywords": [
     "hardcoded api key consequences",

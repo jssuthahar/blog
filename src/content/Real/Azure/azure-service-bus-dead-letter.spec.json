@@ -6,6 +6,16 @@
     "How delivery count and MaxDeliveryCount stop an endless retry",
     "What lands in the dead-letter queue, and what to alert on"
   ],
+  "faq": [
+    {
+      "q": "What should you do with a message you can't confirm was processed?",
+      "a": "Never mark it complete — an uncompleted message becomes available for redelivery instead of being silently lost, which is what lets retries recover from a transient failure like a payment gateway timeout."
+    },
+    {
+      "q": "What stops a bad message from retrying forever?",
+      "a": "MaxDeliveryCount — once a message's delivery count reaches that limit it's automatically moved to the dead-letter queue instead of retrying indefinitely. The dead-letter queue is only useful if something alerts on its depth; left unread, it's the same as losing the message."
+    }
+  ],
   "seoTitle": "Azure Service Bus dead letter queue",
   "publishedAt": "2026-06-28",
   "title": {

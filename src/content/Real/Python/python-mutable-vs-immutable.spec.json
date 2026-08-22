@@ -6,6 +6,16 @@
     "Which Python types change in place and which are replaced",
     "How the mutable default argument bug gets written"
   ],
+  "faq": [
+    {
+      "q": "When you write b = a in Python, does it copy the object?",
+      "a": "No — it gives the same object a second name. Both a and b point at the same underlying object, so if that object is mutable, a change made through either name is visible through both."
+    },
+    {
+      "q": "What is the classic mutable-default-argument bug?",
+      "a": "Defining a function with a mutable default, like def f(items=[]), creates that list object once, at function-definition time — not on every call. Every call that doesn't pass its own list shares and mutates the same default list across calls."
+    }
+  ],
   "seoTitle": "Python mutable vs immutable",
   "publishedAt": "2026-07-30",
   "title": {

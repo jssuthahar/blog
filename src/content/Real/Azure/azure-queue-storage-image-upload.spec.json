@@ -6,6 +6,16 @@
     "The claim check: put a blob path on the queue, not the file",
     "How visibility timeout and DequeueCount handle a dead worker"
   ],
+  "faq": [
+    {
+      "q": "Why move image processing out of the upload request?",
+      "a": "Processing the image inline holds a web-tier thread and the user's connection open for the whole operation — do that under load and you exhaust the web tier's capacity. The upload request should end as soon as the answer the user needs — upload succeeded — is known."
+    },
+    {
+      "q": "What is the \"claim check\" pattern used here?",
+      "a": "Upload the image to blob storage, then put only a small message (the blob's path, here 182 bytes) on the queue — not the file itself. A background worker picks up the message and does the processing, and visibility timeout plus DequeueCount handle a worker that dies mid-job."
+    }
+  ],
   "seoTitle": "Azure Queue Storage image upload",
   "publishedAt": "2026-06-25",
   "title": {

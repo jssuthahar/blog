@@ -12,6 +12,16 @@
     "What cache-aside actually does on a Redis miss, including the write-back",
     "Why product images take a different path and never reach your API"
   ],
+  "faq": [
+    {
+      "q": "What happens first when a shopper taps View Product?",
+      "a": "Azure Front Door, the edge, answers directly from its cache when it can — on a hit, the request never reaches your API at all, which is why the edge cache is the layer that stops the most traffic before anything else runs."
+    },
+    {
+      "q": "What does the cache-aside pattern do on a Redis miss?",
+      "a": "On a miss, the API reads from Azure SQL, then writes that result back into Redis before returning it, so the next request for the same product hits the cache instead of the database."
+    }
+  ],
   "seoTitle": "How an Azure e-commerce request works",
   "keywords": [
     "azure ecommerce architecture",

@@ -12,6 +12,16 @@
     "Why sending every reaction to every viewer is impossible, in one line of maths",
     "The five Azure services that count instead — Front Door, Container Apps, Event Hubs, Stream Analytics, Web PubSub"
   ],
+  "faq": [
+    {
+      "q": "Why can't you just broadcast every reaction tap to every viewer?",
+      "a": "The maths doesn't scale — a million viewers each tapping becomes a million events, and delivering each one to a million other viewers is a delivery count that grows with the square of the audience. What was supposed to be growth becomes the outage."
+    },
+    {
+      "q": "How is a live reactions feature actually built at scale?",
+      "a": "Reactions are counted rather than individually delivered — Front Door, Container Apps, Event Hubs, Stream Analytics and Web PubSub each handle one stage (ingest, aggregate, fan-out), so viewers see an updating count instead of every raw tap."
+    }
+  ],
   "seoTitle": "Live emoji reactions on Azure, explained simply",
   "keywords": [
     "real time reactions system design",

@@ -7,6 +7,16 @@
     "How an availability set spreads VMs across fault domains for you",
     "Why two VMs in the same fault domain is not redundancy"
   ],
+  "faq": [
+    {
+      "q": "What is a fault domain in Azure?",
+      "a": "A group of hardware — VMs on the same rack sharing one power feed and one network switch — that fails together. Losing the rack's power or switch takes out everything in that fault domain at once."
+    },
+    {
+      "q": "Does putting two VMs in an availability set automatically protect them?",
+      "a": "Only if Azure actually places them in different fault domains — two VMs that land in the same fault domain share the same failure, so they aren't redundant with each other even though they're both \"in\" the set."
+    }
+  ],
   "seoTitle": "Azure Fault Domain",
   "publishedAt": "2026-08-08",
   "title": {

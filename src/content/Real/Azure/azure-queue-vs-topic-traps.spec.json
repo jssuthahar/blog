@@ -6,6 +6,16 @@
     "Why one idle subscription fills the topic and pages the publisher",
     "The five settings that prevent all of it, none of them code"
   ],
+  "faq": [
+    {
+      "q": "Why did a filtered topic subscription still receive everything?",
+      "a": "A new subscription is created with a $Default rule that matches all messages — adding your own filter rule without removing $Default leaves both rules active, so the filter has no effect until the default rule is explicitly deleted."
+    },
+    {
+      "q": "How does one unused subscription end up paging the message publisher?",
+      "a": "An idle subscription still receives and holds every matching message; if nobody is reading it, it fills up and can trigger size or quota alerts against the whole topic — which surfaces as a problem for the publisher, not the team that owns the abandoned subscription."
+    }
+  ],
   "seoTitle": "Service Bus queue vs topic traps",
   "publishedAt": "2026-06-26",
   "title": {

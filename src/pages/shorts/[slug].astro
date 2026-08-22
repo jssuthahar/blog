@@ -43,8 +43,17 @@ const url = new URL(shortUrl(short), SITE.url).href;
 
 // Articles that go deeper on the same subject. A short is the doorway; these
 // are the rooms — and they are the internal links this page contributes.
+//
+// The spec's own `article` link (when set) is the author naming the room this
+// short leads to, so it goes first and never gets bumped by a same-category
+// post that merely published more recently. Same confidence order as
+// `learnMoreFor` in lib/app-feed.ts, which drives the same link on /app.
 const posts = await getPublishedPosts();
-const relatedPosts = posts.filter((p) => p.data.category === short.category).slice(0, 3);
+const linkedPost = short.articleSlug ? posts.find((p) => p.id === short.articleSlug) : undefined;
+const relatedPosts = [
+  ...(linkedPost ? [linkedPost] : []),
+  ...posts.filter((p) => p.data.category === short.category && p.id !== linkedPost?.id),
+].slice(0, 3);
 
 const relatedShorts = getShorts()
   .filter((a) => a.slug !== short.slug)
@@ -58,7 +67,7 @@ const relatedShorts = getShorts()
  * generated to fill a schema slot, which is the line between structured data
  * that earns a rich result and structured data that earns a penalty.
  */
-const schema = [
+const schema: Record<string, unknown>[] = [
   {
     '@type': 'HowTo',
     '@id': `${url}#howto`,
@@ -122,6 +131,19 @@ const schema = [
     ],
   },
 ];
+
+// Same rule as the blog post: FAQ schema is what earns rich results and gets
+// quoted by AI answer engines. Only emitted when the spec actually carries one.
+if (short.faq.length > 0) {
+  schema.push({
+    '@type': 'FAQPage',
+    mainEntity: short.faq.map(({ q, a }) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text: a },
+    })),
+  });
+}
 ---
 
 <BaseLayout
@@ -350,6 +372,20 @@ const schema = [
 
       </div>
     </div>
+
+    {short.faq.length > 0 && (
+      <section class="mt-14 border-t border-default pt-8" aria-labelledby="short-faq-heading">
+        <h2 id="short-faq-heading" class="display text-2xl">Frequently asked questions</h2>
+        <dl class="mt-6 space-y-4">
+          {short.faq.map(({ q, a }) => (
+            <div class="rounded-xl border border-default p-5">
+              <dt class="font-semibold">{q}</dt>
+              <dd class="mt-2 leading-relaxed text-muted">{a}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+    )}
 
     <!-- In-article unit at the end of the read, matching how a blog post places
          it: nothing sits between the player and the steps, so the explanation

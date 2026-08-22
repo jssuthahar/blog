@@ -6,6 +6,16 @@
     "Push with retries versus pull with offsets and retention",
     "Why a real pipeline usually ends up using both"
   ],
+  "faq": [
+    {
+      "q": "What's the core difference between Event Grid and Event Hubs?",
+      "a": "Event Grid is push-based with retries and no replay — a doorbell, good for reacting to discrete things happening. Event Hubs is a pull-based log with offsets and retention — a tape, good for when more than one consumer needs to read the same stream, including ones that join later."
+    },
+    {
+      "q": "When would a pipeline need both?",
+      "a": "When some consumers need instant reaction to an event happening (Event Grid) and others need to replay or reprocess a history of events later (Event Hubs) — most real pipelines end up using both rather than picking one."
+    }
+  ],
   "seoTitle": "Azure Event Grid vs Event Hubs",
   "publishedAt": "2026-05-22",
   "title": {

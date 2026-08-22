@@ -6,6 +6,16 @@
     "How a partition key keeps one driver’s pings in order",
     "How consumer groups and offsets let a slow reader catch up"
   ],
+  "faq": [
+    {
+      "q": "Why doesn't a queue work for 60,000 drivers sending GPS pings?",
+      "a": "A queue hands each message to exactly one consumer and removes it — if four different teams (routing, billing, safety, analytics) all need the same ping, a queue can't give it to all of them. A partitioned event stream can, because reading doesn't remove the event."
+    },
+    {
+      "q": "How does Event Hubs keep one driver's pings in order?",
+      "a": "By partition key — pings from the same driver land in the same partition, and a partition preserves the order of what was written to it, so one consumer reading that partition sees that driver's pings in order."
+    }
+  ],
   "seoTitle": "When to use Azure Event Hubs",
   "publishedAt": "2026-06-22",
   "title": {

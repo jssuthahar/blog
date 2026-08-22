@@ -6,6 +6,16 @@
     "Why the load balancer always has a healthy VM to use",
     "Update domain versus fault domain, in one line"
   ],
+  "faq": [
+    {
+      "q": "What is an Azure update domain?",
+      "a": "A group of VMs that Azure reboots together during planned maintenance. An availability set spreads VMs across multiple update domains, so maintenance takes them down one group at a time rather than all at once."
+    },
+    {
+      "q": "What's the difference between an update domain and a fault domain?",
+      "a": "A fault domain groups VMs by shared hardware — the same rack, power and network switch, which fail together unplanned. An update domain groups VMs by planned-maintenance timing. They protect against different kinds of interruption."
+    }
+  ],
   "pacing": "long",
   "seoTitle": "Azure Update Domain",
   "publishedAt": "2026-08-05",

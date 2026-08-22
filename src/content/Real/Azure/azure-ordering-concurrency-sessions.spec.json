@@ -147,6 +147,16 @@
     "Why SessionId is a partition-key choice, not a yes/no on ordering",
     "The one setting that silently gives back the race after you enable sessions"
   ],
+  "faq": [
+    {
+      "q": "Does Azure Service Bus guarantee that messages are processed in order?",
+      "a": "It guarantees delivery order within a session, not processing order. If multiple workers pull messages from the same session concurrently, they can finish out of the order they were delivered in — delivery order and processing order are separate guarantees."
+    },
+    {
+      "q": "What does SessionId actually control?",
+      "a": "It's a partition-key decision, not a simple ordering toggle — messages sharing a SessionId are guaranteed to go to the same session-aware receiver, which is what makes in-order processing possible. Get the concurrency setting per session wrong and you can silently reintroduce the race sessions were meant to prevent."
+    }
+  ],
   "seoTitle": "Service Bus message ordering explained",
   "keywords": [
     "azure service bus ordering",

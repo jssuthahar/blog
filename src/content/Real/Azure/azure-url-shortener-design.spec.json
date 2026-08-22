@@ -156,6 +156,16 @@
     "How the short code is made, and what Cosmos DB does when two people roll the same one",
     "Why the redirect must be 302 and not 301, and why Front Door answers most clicks"
   ],
+  "faq": [
+    {
+      "q": "Why should a URL shortener's redirect be a 302, not a 301?",
+      "a": "A 301 is a permanent redirect that browsers and CDNs cache aggressively, so click analytics stop reaching your service after the first visit. A 302 is treated as temporary, so every click is still routed through and countable."
+    },
+    {
+      "q": "What does Cosmos DB do if two requests generate the same short code?",
+      "a": "The design has to handle the collision explicitly — the write path checks for an existing code and retries with a new one rather than assuming uniqueness, since two concurrent requests can otherwise generate the same code independently."
+    }
+  ],
   "seoTitle": "Design a URL shortener on Azure",
   "keywords": [
     "url shortener system design",

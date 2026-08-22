@@ -6,6 +6,16 @@
     "How competing consumers differ from real subscribers",
     "What a subscription gives you that a second reader never will"
   ],
+  "faq": [
+    {
+      "q": "Why did three teams reading one Service Bus queue each only get a third of the messages?",
+      "a": "A queue's readers are competing consumers — each message goes to exactly one of them, so adding more readers to the same queue divides the work rather than giving everyone a copy."
+    },
+    {
+      "q": "What actually gives every team its own copy of a message?",
+      "a": "A subscription on a topic, not a second reader on a queue. Each subscription gets its own copy of every message that matches its filter, which is duplication rather than division."
+    }
+  ],
   "seoTitle": "Point-to-point vs pub/sub messaging",
   "publishedAt": "2026-06-24",
   "title": {

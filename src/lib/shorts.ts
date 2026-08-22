@@ -66,6 +66,14 @@ export interface Short {
    * short handed over without the field still publishes everywhere.
    */
   learn: string[];
+  /**
+   * Rendered on the page **and** emitted as `FAQPage` schema, same contract as
+   * `faq` on a blog post. Optional — most 20-second shorts do not carry enough
+   * ground to support real questions, so this is worth filling in only for the
+   * shorts that anchor a topic (an explainer a reader would search a whole
+   * question for, not a 4-second before/after beat).
+   */
+  faq: { q: string; a: string }[];
   /** Headline with the short's own <em> emphasis kept. */
   titleHtml: string;
   /** Same headline as plain text — for <title>, OG tags and JSON-LD. */
@@ -582,6 +590,8 @@ interface ShortSpec {
   topic: string;
   /** Three lines saying what the short teaches. See `Short.learn`. */
   learn?: string[];
+  /** Questions and answers. See `Short.faq`. */
+  faq?: { q: string; a: string }[];
   /** Optional per-short <title> override. Add it when the pixel gate complains. */
   seoTitle?: string;
   /** Slug of the blog post this short introduces. Drives "Learn more" on /app. */
@@ -641,6 +651,7 @@ function loadShorts(): Short[] {
       subtopic: subtopicForShort(category, slug),
       topic: spec.topic,
       learn: spec.learn ?? [],
+      faq: spec.faq ?? [],
       titleHtml: spec.title.main,
       title,
       sub: spec.title.sub,
@@ -746,6 +757,7 @@ export function shortSearchText(short: Short): string {
     short.folderLabel,
     ...short.learn,
     ...short.stages.map((s) => `${s.title} ${s.desc}`),
+    ...short.faq.flatMap((f) => [f.q, f.a]),
     ...short.tags,
   ]
     .join(' ')

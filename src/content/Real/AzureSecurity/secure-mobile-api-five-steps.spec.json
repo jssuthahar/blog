@@ -110,6 +110,16 @@
     "Why authentication and authorization are two separate steps, not one",
     "Why monitoring is last but is the step you will be glad you did"
   ],
+  "faq": [
+    {
+      "q": "What order should you add security to a mobile API?",
+      "a": "HTTPS, authentication, authorization, secrets management, then monitoring. Each layer answers a different question, and the first three are what an attacker actually has to walk through — doing them last means everything you added in between travelled in the clear."
+    },
+    {
+      "q": "Why is monitoring last if it matters so much?",
+      "a": "Because it doesn't stop an attack by itself — it decides whether you find out about one in an hour or on the invoice. It's the step that makes the other four worth having evidence of."
+    }
+  ],
   "seoTitle": "Secure a mobile API in 5 steps on Azure",
   "keywords": [
     "secure mobile api azure",

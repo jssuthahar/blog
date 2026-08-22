@@ -110,6 +110,16 @@
     "Why insecure storage and a disabled TLS check are leftovers, not bugs",
     "Which of the five to fix first, and why it is not the one you expect"
   ],
+  "faq": [
+    {
+      "q": "Why do these five vulnerabilities show up in almost every mobile app?",
+      "a": "They're defaults, not mistakes — nobody deliberately wrote a secret into the package, disabled a TLS check, or left an endpoint without auth; each is what happens when a default setting is never revisited. That's also why they survive code review: there's no line of \"bad\" code to spot."
+    },
+    {
+      "q": "Which of the five should you fix first?",
+      "a": "An endpoint with no authentication — it needs nothing more than curl and a URL, is reachable from anywhere right now, and bots are already scanning for exactly that shape. The other four need someone to have your app, your traffic, or your network first."
+    }
+  ],
   "seoTitle": "Five common mobile app security vulnerabilities",
   "keywords": [
     "mobile app security vulnerabilities",

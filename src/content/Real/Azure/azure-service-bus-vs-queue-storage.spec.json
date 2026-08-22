@@ -6,6 +6,16 @@
     "Where Queue Storage stops: no topics, no sessions, 64 KB",
     "Why the cheap queue is the right call for most background work"
   ],
+  "faq": [
+    {
+      "q": "When is Queue Storage not enough and you need Service Bus instead?",
+      "a": "Queue Storage has no topics (fan-out to multiple subscribers), no sessions (ordered per-key processing), and a message size ceiling around 64 KB — needing any of those pushes you to Service Bus."
+    },
+    {
+      "q": "Is Service Bus always the safer default?",
+      "a": "No — for most background work that doesn't need those features, Queue Storage is the right, cheaper call. The choice comes down to five concrete questions about your workload, not a general preference for the more capable service."
+    }
+  ],
   "seoTitle": "Service Bus vs Queue Storage",
   "publishedAt": "2026-07-01",
   "title": {

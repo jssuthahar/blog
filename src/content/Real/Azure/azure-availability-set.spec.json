@@ -7,6 +7,16 @@
     "How an availability set spreads VMs across fault and update domains",
     "What the load balancer health probe does during a reboot"
   ],
+  "faq": [
+    {
+      "q": "Why can't a single VM survive Azure's own maintenance?",
+      "a": "Azure periodically reboots the physical host underneath a VM for planned maintenance — a single VM has no way to stay up through that, no matter how well the application itself is built."
+    },
+    {
+      "q": "What does an availability set actually do?",
+      "a": "It spreads your VMs across separate fault domains (different racks and power) and update domains (different maintenance groups), so planned maintenance or a hardware fault takes out one VM at a time while the load balancer's health probe keeps sending traffic to the ones still up."
+    }
+  ],
   "seoTitle": "Azure Availability Set",
   "publishedAt": "2026-08-07",
   "title": {

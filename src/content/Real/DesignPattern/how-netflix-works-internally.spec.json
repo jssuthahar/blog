@@ -6,6 +6,16 @@
     "How the control plane answers play with a ranked manifest",
     "How Open Connect boxes inside your ISP are filled overnight"
   ],
+  "faq": [
+    {
+      "q": "Does pressing play on Netflix stream video from Netflix's own servers?",
+      "a": "Almost never — the control plane, which does run in the cloud, responds to \"play\" with a ranked manifest pointing at the nearest source, but the actual video typically streams from an Open Connect box placed inside your own ISP's network."
+    },
+    {
+      "q": "How does content get onto those Open Connect boxes?",
+      "a": "They're filled overnight, during off-peak hours, with the content predicted to be popular in that region — so the box already holds the video locally before anyone on that ISP presses play."
+    }
+  ],
   "seoTitle": "How Netflix works internally",
   "publishedAt": "2026-08-01",
   "title": {

@@ -6,6 +6,16 @@
     "Why going async turns an outage into lag instead",
     "The three jobs you inherit the moment you queue it"
   ],
+  "faq": [
+    {
+      "q": "Why does a chain of synchronous calls become your own downtime?",
+      "a": "Each call in the chain has to wait for the one before it to answer, so if any dependency is slow or down, that failure propagates straight back to the caller — your service inherits the availability of every service it called synchronously."
+    },
+    {
+      "q": "Does going async remove the failure, or just change what it looks like?",
+      "a": "It changes it — a dependency outage becomes lag in the queue instead of a failed request, which is real availability gained. In exchange you inherit three jobs a synchronous call never had: retries, ordering and knowing when work is actually done."
+    }
+  ],
   "seoTitle": "Sync vs async messaging",
   "publishedAt": "2026-07-02",
   "title": {

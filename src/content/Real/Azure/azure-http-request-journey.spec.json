@@ -12,6 +12,16 @@
     "Why the first call is slow: 100 of the 160 ms is DNS and the TLS handshake, before your code runs",
     "Why new HttpClient() in a loop pays that cost forever, and IHttpClientFactory pays it once"
   ],
+  "faq": [
+    {
+      "q": "Why is the first call to an Azure API so much slower than the rest?",
+      "a": "Most of that latency — around 100 of a roughly 160 ms first call — is DNS resolution and the TLS handshake, both of which happen before any of your code runs. Once the connection exists, later calls skip straight past that cost."
+    },
+    {
+      "q": "Why does new HttpClient() in a loop hurt performance?",
+      "a": "It pays the DNS-and-TLS setup cost on every single call instead of once. IHttpClientFactory reuses the underlying connection, so that cost is paid once and every subsequent request is faster."
+    }
+  ],
   "seoTitle": "What happens when your app calls an Azure API",
   "keywords": [
     "what happens when you call an api",

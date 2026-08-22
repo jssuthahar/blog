@@ -274,6 +274,44 @@ export function learnMoreFor(short: Short, posts: Post[]): LearnMore {
   };
 }
 
+/**
+ * The reverse of `learnMoreFor`: which shorts point a reader at this post.
+ *
+ * Same two-tier confidence, run backwards:
+ *
+ * 1. Every short whose spec names this post directly (`short.articleSlug`) —
+ *    the author's own pairing, so these always lead.
+ * 2. Shorts in the same category that share a tag or two distinct subject
+ *    words. Same conjunction rule as `learnMoreFor` for the same reason: category
+ *    alone would hand every post in, say, Azure the newest Azure short whether
+ *    or not it is actually about the same thing.
+ *
+ * A post can reasonably have more than one short pointing at it — retry and
+ * dead-letter are both about the same queue — so this returns up to `limit`
+ * rather than picking a single best match.
+ */
+export function relatedShortsForPost(post: Post, shorts: Short[], limit = 2): Short[] {
+  const named = shorts.filter((s) => s.articleSlug === post.id);
+  if (named.length >= limit) return named.slice(0, limit);
+
+  const words = subjectWords(`${post.data.title} ${post.data.description}`);
+  const tags = new Set((post.data.tags ?? []).map((t) => t.toLowerCase()));
+
+  const scored = shorts
+    .filter((s) => !named.includes(s) && s.category === post.data.category)
+    .map((short) => {
+      const tagHits = short.tags.filter((t) => tags.has(t.toLowerCase())).length;
+      const shared = [...subjectWords(`${short.topic} ${short.title} ${short.sub}`)].filter((w) =>
+        words.has(w),
+      ).length;
+      return { short, score: tagHits * 3 + shared };
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  return [...named, ...scored.map((x) => x.short)].slice(0, limit);
+}
+
 /** Category hue for a Blogger label, when it names one of the site's own. */
 function hueForLabel(label: string): number {
   const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '') as CategoryId;

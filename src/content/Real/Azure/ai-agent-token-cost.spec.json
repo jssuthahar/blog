@@ -147,6 +147,16 @@
     "What prompt caching actually charges — reads at 0.1×, writes at 1.25×",
     "The one line that silently stops the cache being read, with no error"
   ],
+  "faq": [
+    {
+      "q": "Why does an AI agent's token bill grow faster than the number of steps it takes?",
+      "a": "Most agent loops resend the entire conversation history with every step — step 10 re-sends everything from steps 1 through 9. That makes total input tokens grow roughly with the square of the step count, not linearly with it."
+    },
+    {
+      "q": "How does prompt caching change the cost of that resent history?",
+      "a": "A cached read is billed at roughly 0.1× the normal input rate, while writing something new into the cache costs about 1.25×. The saving only materializes if the prefix you're resending is byte-identical each time — one line that changes something early in the prompt can silently break the cache and put you back to paying full price."
+    }
+  ],
   "seoTitle": "Why AI agents cost so much",
   "keywords": [
     "ai agent token cost",

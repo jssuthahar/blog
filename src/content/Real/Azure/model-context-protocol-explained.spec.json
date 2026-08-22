@@ -6,6 +6,16 @@
     "How an MCP client and server carry one request down and back",
     "Why M + N connectors beats M × N bespoke integrations"
   ],
+  "faq": [
+    {
+      "q": "What problem does MCP actually solve?",
+      "a": "Without it, every AI assistant that wants to talk to every tool — GitHub, SQL, Slack, and so on — needs its own bespoke integration: M assistants times N tools worth of connectors. MCP standardizes the protocol so each tool needs one MCP server and each assistant needs one MCP client — M + N instead of M × N."
+    },
+    {
+      "q": "Can a language model reach external systems like GitHub or a database on its own?",
+      "a": "No — a model has no ability to call out to anything by itself. An MCP client and server carry the request down to the tool and the response back, which is what actually lets the assistant act rather than just generate text."
+    }
+  ],
   "seoTitle": "MCP: Model Context Protocol",
   "publishedAt": "2026-08-04",
   "title": {

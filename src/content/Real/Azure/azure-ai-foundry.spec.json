@@ -6,6 +6,16 @@
     "How one Foundry project holds the model, your data and the agent",
     "What to evaluate and filter before a release, not after"
   ],
+  "faq": [
+    {
+      "q": "Why does an AI demo work but the product still not ship?",
+      "a": "A demo only has to answer once, well, on a curated question. Shipping requires evaluation against a real range of inputs, content filtering, and monitoring — the parts that don't show up in a five-minute demo but decide whether the product is safe and reliable in production."
+    },
+    {
+      "q": "What does Azure AI Foundry actually bundle together?",
+      "a": "One project holding the model catalog, your own data, the agent built on top of it, evaluation tooling and safety guardrails — all under the same Azure identity and access controls, rather than stitching separate services together yourself."
+    }
+  ],
   "seoTitle": "What is Azure AI Foundry",
   "publishedAt": "2026-08-03",
   "title": {

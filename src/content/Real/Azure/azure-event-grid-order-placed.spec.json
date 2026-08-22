@@ -6,6 +6,16 @@
     "How subscriptions and filters fan one event out to four teams",
     "What Event Grid retries before a delivery is dead-lettered"
   ],
+  "faq": [
+    {
+      "q": "Why publish one OrderPlaced event instead of calling each service directly?",
+      "a": "Calling email, inventory and shipping directly from checkout means every new consumer requires editing the checkout code — and one of those calls failing can fail the whole order. Publishing one event and letting each team subscribe with its own filter decouples them completely."
+    },
+    {
+      "q": "What happens if a subscriber can't process an Event Grid event?",
+      "a": "Event Grid retries delivery for a period before the event is dead-lettered, so a temporarily-down subscriber doesn't silently lose events — but a subscriber that's broken for good needs its own alert on dead-letter volume."
+    }
+  ],
   "seoTitle": "Azure Event Grid OrderPlaced event",
   "publishedAt": "2026-05-21",
   "title": {

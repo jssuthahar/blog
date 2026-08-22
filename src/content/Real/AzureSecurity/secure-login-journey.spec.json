@@ -110,6 +110,16 @@
     "What a signed token is and why verifying it needs no network call",
     "Why there is no password left anywhere in the chain, including the database"
   ],
+  "faq": [
+    {
+      "q": "Does your app's API ever see the user's password?",
+      "a": "No — a secure app opens the system browser to Microsoft's own sign-in page rather than rendering its own password field, so the password reaches Entra ID and stops there. Your API only ever sees a signed token afterward."
+    },
+    {
+      "q": "Why doesn't verifying that token need a network call?",
+      "a": "The API validates the token's signature, issuer, audience and expiry locally against Microsoft's cached signing keys, so each request check costs microseconds rather than a round trip to Entra ID."
+    }
+  ],
   "seoTitle": "What happens when you log in to a secure app",
   "keywords": [
     "what happens when you login",

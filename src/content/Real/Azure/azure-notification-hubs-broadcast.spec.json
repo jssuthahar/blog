@@ -6,6 +6,16 @@
     "How one send becomes APNs, FCM and WNS payloads",
     "How tag targeting replaces holding device tokens yourself"
   ],
+  "faq": [
+    {
+      "q": "Why not just loop over device tokens and call each push service yourself?",
+      "a": "A million individual calls to APNs, FCM and WNS takes too long to still be relevant by the time it finishes, and it means your code has to know the payload format each platform expects. Notification Hubs takes one send and fans it out as the correct payload per platform."
+    },
+    {
+      "q": "How do you target an audience without storing device tokens yourself?",
+      "a": "Tag targeting — you describe the audience (for example, premium users in a region) and Notification Hubs resolves which registered devices match, so your application code never has to hold or manage device tokens directly."
+    }
+  ],
   "seoTitle": "Azure Notification Hubs broadcast",
   "publishedAt": "2026-06-23",
   "title": {

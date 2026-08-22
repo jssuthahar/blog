@@ -12,6 +12,16 @@
     "That MaxDeliveryCount caps attempts and says nothing at all about time",
     "How to build the backoff Service Bus does not give you, with ScheduledEnqueueTimeUtc"
   ],
+  "faq": [
+    {
+      "q": "Does MaxDeliveryCount give you a retry window?",
+      "a": "No — it caps the number of delivery attempts, not the time between them. With no backoff, ten attempts can burn through in about four seconds, not the four minutes you might assume, dead-lettering everything if a dependency is down for even a short outage."
+    },
+    {
+      "q": "How do you add backoff to Service Bus retries?",
+      "a": "Service Bus doesn't provide one natively — you build it yourself, typically by re-scheduling a redelivery with ScheduledEnqueueTimeUtc set some interval in the future instead of letting it retry immediately."
+    }
+  ],
   "seoTitle": "Service Bus retry and dead-letter trap",
   "keywords": [
     "azure service bus maxdeliverycount",

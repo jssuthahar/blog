@@ -110,6 +110,16 @@
     "Why a valid token from a real user is still an attack you must block",
     "Why \"allow Azure services\" is far broader than it sounds"
   ],
+  "faq": [
+    {
+      "q": "Which Azure service stops which kind of attack?",
+      "a": "Front Door's WAF blocks junk traffic and injection at the edge, Microsoft Entra ID proves identity, an owner check inside your API blocks a valid token being used against someone else's data, Key Vault plus managed identity removes the value of a leaked key, and a private endpoint removes a database's public address entirely."
+    },
+    {
+      "q": "What does \"allow Azure services\" actually permit on a firewall?",
+      "a": "Far more than it sounds — it permits any resource in any Azure subscription in the world, not just your own, including one an attacker can create in minutes. Leave it off and use specific service tags or private endpoints instead."
+    }
+  ],
   "seoTitle": "Hacker vs Azure: five attacks, five defences",
   "keywords": [
     "azure security layers explained",

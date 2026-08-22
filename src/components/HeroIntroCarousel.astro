@@ -1,0 +1,319 @@
+---
+/**
+ * The hero's left column, as four rotating pitches instead of one static
+ * block: who I am, then the three things this site actually offers — shorts,
+ * the blog, speaking. Each gets its own headline and its own call to action,
+ * rather than all four competing for space (and losing) in one paragraph.
+ *
+ * Deliberately not the same technique as HeroCarousel on the right: that one
+ * crossfades absolutely-positioned slides inside a fixed-height box, which
+ * works because every slide is a bounded share-card image. The Intro slide
+ * here — avatar, heading, bio, awards, a search bar, two buttons — is far
+ * taller than a one-line pitch slide, and a fixed height would either crop it
+ * or leave the pitch slides stranded in a lot of dead space. So slides here
+ * are shown/hidden in normal flow instead of cross-faded: the container
+ * simply sizes to whichever slide is current, no absolute positioning, no
+ * height to guess wrong.
+ */
+import Avatar from './Avatar.astro';
+import { AUTHOR, BOOKING, SITE } from '../config';
+
+interface Props {
+  activeYears: number;
+  articlesCount: number;
+  postsCount: number;
+  shortsCount: number;
+  bookingHref: string;
+}
+
+const { activeYears, articlesCount, postsCount, shortsCount, bookingHref } = Astro.props;
+---
+
+<section class="intro-carousel relative" data-intro-carousel role="region" aria-roledescription="carousel" aria-label="About MSDEVBUILD">
+  <!-- Slide 1: Intro — everything the static hero used to show, unchanged. -->
+  <article class="carousel-slide" data-slide role="group" aria-roledescription="slide" aria-label="1 of 4: Intro" aria-hidden="false">
+    <p class="eyebrow">
+      <span class="text-accent">MS</span>DEVBUILD — {SITE.alternateName}
+    </p>
+    <div class="mt-3 flex items-center gap-3">
+      <Avatar size={40} />
+      <div class="text-sm">
+        <p class="font-semibold">{AUTHOR.name}</p>
+        <p class="text-muted">{AUTHOR.jobTitle} · {AUTHOR.location}</p>
+      </div>
+    </div>
+
+    <h1 class="display mt-6 text-[2.25rem] sm:text-[2.75rem] lg:text-[3rem]">
+      {activeYears} years contributing to the
+      <span style="color: var(--accent);">developer community</span>
+    </h1>
+
+    <p class="mt-4 max-w-xl leading-relaxed text-muted text-pretty">
+      {AUTHOR.yearsExperience}+ years as a solutions architect across Cloud, AI, Mobile and Web —
+      Azure, .NET, Flutter and modern web. {activeYears} of those years went into
+      contributing to the developer community: {articlesCount} articles, 50+ conference
+      sessions, 15,000+ developers reached.
+    </p>
+
+    <ul class="mt-6 flex flex-wrap gap-2">
+      {[...AUTHOR.awards, 'Microsoft Certified Trainer'].map((award) => (
+        <li class="inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1.5 text-xs font-medium">
+          <svg class="size-3.5 shrink-0" viewBox="0 0 20 20" fill="currentColor" style="color: var(--accent);" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.86-9.47a.75.75 0 0 0-1.22-.86l-3.24 4.53-1.62-1.62a.75.75 0 0 0-1.06 1.06l2.24 2.24a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
+          </svg>
+          {award}
+        </li>
+      ))}
+    </ul>
+
+    <button
+      type="button"
+      data-open-search
+      class="mt-6 flex w-full max-w-md items-center gap-3 rounded-full border border-default bg-[var(--bg)] px-5 py-3 text-left text-sm text-muted transition-colors hover:border-[var(--accent)]"
+    >
+      <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+      </svg>
+      <span class="flex-1">Search {articlesCount}+ articles, posts and pages…</span>
+      <kbd class="hidden rounded border border-default px-1.5 py-0.5 text-xs sm:inline">⌘K</kbd>
+    </button>
+
+    <div class="mt-6 flex flex-wrap items-center gap-3">
+      <a href={bookingHref} class="btn btn-primary">Book me to speak</a>
+      <a href="/about/" class="btn btn-outline">Full profile</a>
+      {BOOKING.available && (
+        <span class="inline-flex items-center gap-2 text-sm text-muted">
+          <span class="size-2 rounded-full" style="background: var(--accent);"></span>
+          {BOOKING.availabilityNote}
+        </span>
+      )}
+    </div>
+  </article>
+
+  <!-- Slide 2: Shorts. -->
+  <article class="carousel-slide pitch-slide" data-slide role="group" aria-roledescription="slide" aria-label="2 of 4: Shorts" aria-hidden="true">
+    <p class="eyebrow">30-second learning</p>
+    <h2 class="display mt-3 text-[2rem] leading-tight sm:text-[2.5rem]">
+      Learn Azure &amp; AI, <span style="color: var(--accent);">30 seconds a day</span>
+    </h2>
+    <p class="mt-4 max-w-xl leading-relaxed text-muted text-pretty">
+      {shortsCount} short videos, each one a real problem I actually hit on a project,
+      played out step by step. Every step is written out underneath the player too,
+      so it's still there when you want more than thirty seconds.
+    </p>
+    <div class="mt-6 flex flex-wrap items-center gap-3">
+      <a href="/shorts/" class="btn btn-primary">Watch a short →</a>
+      <span class="text-sm text-muted">{shortsCount} published so far</span>
+    </div>
+  </article>
+
+  <!-- Slide 3: Blog. -->
+  <article class="carousel-slide pitch-slide" data-slide role="group" aria-roledescription="slide" aria-label="3 of 4: Blog" aria-hidden="true">
+    <p class="eyebrow">The blog</p>
+    <h2 class="display mt-3 text-[2rem] leading-tight sm:text-[2.5rem]">
+      {articlesCount}+ articles, <span style="color: var(--accent);">written from production</span>
+    </h2>
+    <p class="mt-4 max-w-xl leading-relaxed text-muted text-pretty">
+      Not tutorials copied from the docs — incidents I've actually debugged, systems
+      I've actually designed, and the traps that only show up after something ships.
+      {postsCount} posts on the blog and counting.
+    </p>
+    <div class="mt-6 flex flex-wrap items-center gap-3">
+      <a href="/blog/" class="btn btn-primary">Read the blog →</a>
+      <a href="/articles/" class="btn btn-outline">Browse all articles</a>
+    </div>
+  </article>
+
+  <!-- Slide 4: Speaking. -->
+  <article class="carousel-slide pitch-slide" data-slide role="group" aria-roledescription="slide" aria-label="4 of 4: Speaking" aria-hidden="true">
+    <p class="eyebrow">Speaking</p>
+    <h2 class="display mt-3 text-[2rem] leading-tight sm:text-[2.5rem]">
+      50+ sessions delivered. <span style="color: var(--accent);">15,000+ developers reached.</span>
+    </h2>
+    <p class="mt-4 max-w-xl leading-relaxed text-muted text-pretty">
+      Conference sessions, webinars and community meetups on Azure, applied AI and
+      .NET — in English or Tamil, on site or online.
+    </p>
+    <div class="mt-6 flex flex-wrap items-center gap-3">
+      <a href={bookingHref} class="btn btn-primary">Book me to speak</a>
+      <a href="/speaking/" class="btn btn-outline">Talks &amp; topics</a>
+      {BOOKING.available && (
+        <span class="inline-flex items-center gap-2 text-sm text-muted">
+          <span class="size-2 rounded-full" style="background: var(--accent);"></span>
+          {BOOKING.availabilityNote}
+        </span>
+      )}
+    </div>
+  </article>
+
+  <!-- Controls, same shape and behaviour as the content carousel on the
+       right — a visitor who has already used one knows how to use this. -->
+  <div class="mt-6 flex items-center gap-3 border-t border-default pt-3">
+    <button type="button" data-prev class="carousel-btn" aria-label="Previous">
+      <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m15 18-6-6 6-6" />
+      </svg>
+    </button>
+    <button type="button" data-next class="carousel-btn" aria-label="Next">
+      <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m9 18 6-6-6-6" />
+      </svg>
+    </button>
+
+    <div class="ml-1 flex items-center gap-3" role="tablist" aria-label="Choose section">
+      {['Intro', 'Shorts', 'Blog', 'Speaking'].map((label, index) => (
+        <button
+          type="button"
+          data-dot
+          role="tab"
+          aria-selected={index === 0 ? 'true' : 'false'}
+          aria-label={label}
+          class="carousel-dot"
+        ></button>
+      ))}
+    </div>
+
+    <button type="button" data-play class="carousel-btn ml-auto" aria-label="Pause automatic rotation">
+      <svg class="size-4" data-pause-icon viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <rect x="7" y="6" width="3.5" height="12" rx="1" /><rect x="13.5" y="6" width="3.5" height="12" rx="1" />
+      </svg>
+      <svg class="size-4" data-play-icon style="display:none" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M8 5.5v13l10-6.5-10-6.5Z" />
+      </svg>
+    </button>
+  </div>
+</section>
+
+<style>
+  /* No absolute positioning and no fixed height: a hidden slide is removed
+     from flow entirely, so the container's height always matches whichever
+     slide is showing — the Intro slide's search bar and buttons never get
+     clipped, and a short pitch slide never leaves a box full of blank space
+     under it. The trade-off is a hard cut between slides instead of a
+     crossfade, which is the right side of that trade-off here. */
+  .carousel-slide[aria-hidden='true'] {
+    display: none;
+  }
+
+  .pitch-slide {
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .carousel-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem;
+    border-radius: 0.375rem;
+    color: var(--text-muted);
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .carousel-btn:hover {
+    background: var(--bg-subtle);
+    color: var(--text);
+  }
+
+  .carousel-dot {
+    width: 1.5rem;
+    height: 0.25rem;
+    box-sizing: content-box;
+    padding: 0.625rem 0;
+    border-radius: 999px;
+    background: var(--border);
+    background-clip: content-box;
+    transition: background-color 0.2s;
+  }
+  .carousel-dot[aria-selected='true'] {
+    background: var(--accent);
+    background-clip: content-box;
+  }
+</style>
+
+<script>
+  function initIntroCarousel() {
+    const root = document.querySelector<HTMLElement>('[data-intro-carousel]');
+    if (!root) return;
+
+    const slides = [...root.querySelectorAll<HTMLElement>('[data-slide]')];
+    const dots = [...root.querySelectorAll<HTMLButtonElement>('[data-dot]')];
+    const playBtn = root.querySelector<HTMLButtonElement>('[data-play]');
+    const pauseIcon = root.querySelector<SVGElement>('[data-pause-icon]');
+    const playIcon = root.querySelector<SVGElement>('[data-play-icon]');
+    if (slides.length <= 1) return;
+
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    let index = 0;
+    let timer: number | undefined;
+    let playing = !reduced.matches;
+
+    const show = (next: number) => {
+      index = (next + slides.length) % slides.length;
+      slides.forEach((slide, i) => slide.setAttribute('aria-hidden', String(i !== index)));
+      dots.forEach((dot, i) => dot.setAttribute('aria-selected', String(i === index)));
+    };
+
+    const stop = () => {
+      if (timer) clearInterval(timer);
+      timer = undefined;
+    };
+
+    // The Intro slide is what a first-time visitor should actually read, not
+    // rotate away from while they're still on it — auto-advance only runs
+    // once they've moved past it themselves, via a dot, arrow or key.
+    let userNavigated = false;
+
+    const start = () => {
+      stop();
+      if (!playing || !userNavigated) return;
+      timer = window.setInterval(() => show(index + 1), 7000);
+    };
+
+    const setPlaying = (next: boolean) => {
+      playing = next;
+      if (pauseIcon) pauseIcon.style.display = next ? '' : 'none';
+      if (playIcon) playIcon.style.display = next ? 'none' : '';
+      playBtn?.setAttribute('aria-label', next ? 'Pause automatic rotation' : 'Resume automatic rotation');
+      next ? start() : stop();
+    };
+
+    root.querySelector('[data-prev]')?.addEventListener('click', () => {
+      userNavigated = true;
+      show(index - 1);
+      start();
+    });
+    root.querySelector('[data-next]')?.addEventListener('click', () => {
+      userNavigated = true;
+      show(index + 1);
+      start();
+    });
+    dots.forEach((dot, i) =>
+      dot.addEventListener('click', () => {
+        userNavigated = true;
+        show(i);
+        start();
+      }),
+    );
+    playBtn?.addEventListener('click', () => setPlaying(!playing));
+
+    root.addEventListener('mouseenter', stop);
+    root.addEventListener('mouseleave', () => playing && start());
+    root.addEventListener('focusin', stop);
+    root.addEventListener('focusout', () => playing && start());
+
+    root.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') { userNavigated = true; show(index - 1); }
+      if (event.key === 'ArrowRight') { userNavigated = true; show(index + 1); }
+    });
+
+    reduced.addEventListener('change', (e) => setPlaying(!e.matches));
+
+    show(0);
+    setPlaying(playing);
+  }
+
+  initIntroCarousel();
+  document.addEventListener('astro:page-load', initIntroCarousel);
+</script>

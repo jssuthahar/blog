@@ -1,7 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import AppLaunchRedirect from '../components/AppLaunchRedirect.astro';
-import Avatar from '../components/Avatar.astro';
 import EventCard from '../components/EventCard.astro';
 import Newsletter from '../components/Newsletter.astro';
 import SubscribePopup from '../components/SubscribePopup.astro';
@@ -20,6 +19,7 @@ import { contributionPillars, publishingSpan } from '../lib/evidence';
 import ContributionTimeline from '../components/ContributionTimeline.astro';
 import AdUnit from '../components/AdUnit.astro';
 import HeroCarousel, { type Slide } from '../components/HeroCarousel.astro';
+import HeroIntroCarousel from '../components/HeroIntroCarousel.astro';
 import MicrosoftBadges from '../components/MicrosoftBadges.astro';
 import RecentlyRead from '../components/RecentlyRead.astro';
 import SeriesQuickNav from '../components/SeriesQuickNav.astro';
@@ -141,70 +141,14 @@ const schema = [
 
   <!-- ══════════════ Hero: claim, proof, and action on one screen ══════════════ -->
   <section class="mx-auto max-w-6xl px-4 pt-12 pb-10 sm:px-6 lg:pt-16 lg:pb-12">
-    <div class="grid items-center gap-10 lg:grid-cols-[1.3fr_0.9fr]">
-      <div>
-        <p class="eyebrow">
-          <span class="text-accent">MS</span>DEVBUILD — {SITE.alternateName}
-        </p>
-        <div class="mt-3 flex items-center gap-3">
-          <Avatar size={40} />
-          <div class="text-sm">
-            <p class="font-semibold">{AUTHOR.name}</p>
-            <p class="text-muted">{AUTHOR.jobTitle} · {AUTHOR.location}</p>
-          </div>
-        </div>
-
-        <h1 class="display mt-6 text-[2.25rem] sm:text-[2.75rem] lg:text-[3rem]">
-          {span.activeYears} years contributing to the
-          <span style="color: var(--accent);">developer community</span>
-        </h1>
-
-        <!-- The lead deliberately repeats the H1 wording ("contributing to the
-             developer community") — auditors flag an H1 whose terms never
-             appear in the body copy. -->
-        <p class="mt-4 max-w-xl leading-relaxed text-muted text-pretty">
-          {AUTHOR.yearsExperience}+ years as a solutions architect across Cloud, AI, Mobile and Web —
-          Azure, .NET, Flutter and modern web. {span.activeYears} of those years went into
-          contributing to the developer community: {articles.length} articles, 50+ conference
-          sessions, {repoIndex.count} open-source projects, 15,000+ developers reached.
-        </p>
-
-        <!-- Recognition moved inline so the panel slot can carry the banner. -->
-        <ul class="mt-6 flex flex-wrap gap-2">
-          {[...AUTHOR.awards, 'Microsoft Certified Trainer'].map((award) => (
-            <li class="inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1.5 text-xs font-medium">
-              <svg class="size-3.5 shrink-0" viewBox="0 0 20 20" fill="currentColor" style="color: var(--accent);" aria-hidden="true">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.86-9.47a.75.75 0 0 0-1.22-.86l-3.24 4.53-1.62-1.62a.75.75 0 0 0-1.06 1.06l2.24 2.24a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
-              </svg>
-              {award}
-            </li>
-          ))}
-        </ul>
-
-        <!-- Prominent power search: opens the ⌘K palette over all content. -->
-        <button
-          type="button"
-          data-open-search
-          class="mt-6 flex w-full max-w-md items-center gap-3 rounded-full border border-default bg-[var(--bg)] px-5 py-3 text-left text-sm text-muted transition-colors hover:border-[var(--accent)]"
-        >
-          <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
-          </svg>
-          <span class="flex-1">Search {articles.length}+ articles, posts and pages…</span>
-          <kbd class="hidden rounded border border-default px-1.5 py-0.5 text-xs sm:inline">⌘K</kbd>
-        </button>
-
-        <div class="mt-6 flex flex-wrap items-center gap-3">
-          <a href={bookingHref} class="btn btn-primary">Book me to speak</a>
-          <a href="/about/" class="btn btn-outline">Full profile</a>
-          {BOOKING.available && (
-            <span class="inline-flex items-center gap-2 text-sm text-muted">
-              <span class="size-2 rounded-full" style="background: var(--accent);"></span>
-              {BOOKING.availabilityNote}
-            </span>
-          )}
-        </div>
-      </div>
+    <div class="grid items-start gap-10 lg:grid-cols-[1.3fr_0.9fr]">
+      <HeroIntroCarousel
+        activeYears={span.activeYears}
+        articlesCount={articles.length}
+        postsCount={posts.length}
+        shortsCount={shortCount}
+        bookingHref={bookingHref}
+      />
 
       <HeroCarousel slides={slides} label="Latest articles, blog posts and events" />
 

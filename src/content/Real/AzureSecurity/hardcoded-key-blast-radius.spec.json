@@ -110,7 +110,7 @@
     "Why rotating a hard-coded key kills every installed copy of your app",
     "Why a secret in Azure Key Vault rotates with nobody updating anything"
   ],
-  "seoTitle": "What happens when you hardcode an API key in your app",
+  "seoTitle": "The blast radius of a hardcoded API key",
   "keywords": [
     "hardcoded api key consequences",
     "leaked azure api key",

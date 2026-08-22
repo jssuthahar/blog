@@ -86,6 +86,32 @@ const schema = [
       url: `${url}#step-${index + 1}`,
     })),
   },
+  // The page's whole content is a video, and nothing on the page said so
+  // structurally until this — HowTo describes the steps, not the medium.
+  // No contentUrl/embedUrl: the player has no public file to point at on
+  // purpose (see ShortPlayer.astro — nothing to hotlink, nothing to save),
+  // so this stays a description of the video rather than a claim of one
+  // Google can fetch. It is still valid, useful VideoObject data for an
+  // answer engine deciding whether "short video" is the right thing to cite.
+  {
+    '@type': 'VideoObject',
+    '@id': `${url}#video`,
+    name: short.title,
+    description: short.description,
+    thumbnailUrl: [new URL(`/og/short-${short.slug}.png`, SITE.url).href],
+    duration: `PT${short.seconds}S`,
+    inLanguage: SITE.lang,
+    // Same rule as HowTo below: only emitted when the short is actually
+    // dated, because a guessed uploadDate is worse than none.
+    ...(short.publishedAt && {
+      uploadDate: short.publishedAt.toISOString(),
+      ...(short.updatedAt && { dateModified: short.updatedAt.toISOString() }),
+    }),
+    author: { '@id': `${SITE.url}/#person` },
+    publisher: { '@id': `${SITE.url}/#person` },
+    isPartOf: { '@id': `${SITE.url}/#website` },
+    about: { '@type': 'Thing', name: category.label },
+  },
   {
     '@type': 'BreadcrumbList',
     '@id': `${url}#breadcrumbs`,

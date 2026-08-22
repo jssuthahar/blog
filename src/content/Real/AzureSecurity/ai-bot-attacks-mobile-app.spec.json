@@ -110,7 +110,7 @@
     "Why watching your logs is not a defence against something that never sleeps",
     "The three Azure controls that make speed useless: rate limits, lockout, alerts"
   ],
-  "seoTitle": "Automated attacks on a mobile app and how Azure stops them",
+  "seoTitle": "How Azure stops mobile app bot attacks",
   "keywords": [
     "credential stuffing attack api",
     "api rate limiting azure",

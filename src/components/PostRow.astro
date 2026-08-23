@@ -37,6 +37,9 @@ const category = CATEGORIES[data.category];
         <time datetime={data.publishedAt.toISOString()} class="text-muted">
           {formatDate(data.publishedAt)}
         </time>
+        {data.updatedAt && (
+          <span class="text-accent">Updated {formatDate(data.updatedAt)}</span>
+        )}
         <span class="text-muted">{minutes} min read</span>
         {data.series && <span class="text-muted">Part {data.seriesOrder} of a series</span>}
       </div>

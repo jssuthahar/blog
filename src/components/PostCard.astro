@@ -38,8 +38,11 @@ const category = CATEGORIES[data.category];
 
     <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{data.description}</p>
 
-    <div class="mt-4 flex items-center gap-3 border-t border-default pt-3 text-xs text-muted">
+    <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-default pt-3 text-xs text-muted">
       <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time>
+      {data.updatedAt && (
+        <span class="text-accent">Updated {formatDate(data.updatedAt)}</span>
+      )}
       {data.series && <span>· Part {data.seriesOrder}</span>}
     </div>
   </div>

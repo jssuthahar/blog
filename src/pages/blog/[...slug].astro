@@ -110,6 +110,9 @@ const schema: Record<string, unknown>[] = [
     '@id': new URL(path, SITE.url).href + '#article',
     headline: data.title,
     description: data.description,
+    // Required for Article/Top-stories rich-result eligibility — Google reads
+    // this off the JSON-LD, not off og:image, even though it's the same file.
+    image: [new URL(`/og/${post.id}.png`, SITE.url).href],
     datePublished: data.publishedAt.toISOString(),
     dateModified: (data.updatedAt ?? data.publishedAt).toISOString(),
     author: { '@id': `${SITE.url}/#person` },

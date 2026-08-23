@@ -74,6 +74,9 @@ const schema: Record<string, unknown>[] = [
     '@id': `${url}#howto`,
     name: short.topic,
     description: short.sub,
+    // Same rich-result requirement as the blog post's BlogPosting.image —
+    // reuses the short's own OG thumbnail, so there's nothing new to generate.
+    image: [new URL(`/og/short-${short.slug}.png`, SITE.url).href],
     totalTime: `PT${short.seconds}S`,
     inLanguage: SITE.lang,
     // Only emitted when the short is dated. An undated short still publishes

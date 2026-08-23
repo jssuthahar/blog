@@ -233,6 +233,12 @@ const schema = [
                 </time>
               </>
             )}
+            {short.updatedAt && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span class="text-accent">Updated {formatDate(short.updatedAt)}</span>
+              </>
+            )}
           </p>
         </article>
       ))}

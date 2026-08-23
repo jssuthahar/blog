@@ -2,7 +2,7 @@
 import '@fontsource-variable/inter';
 import '@fontsource-variable/source-serif-4';
 import '../styles/global.css';
-import { SITE, AUTHOR, GA_ID, ADSENSE_CLIENT } from '../config';
+import { SITE, AUTHOR, GA_ID, ADSENSE_CLIENT, SITE_VERIFICATION } from '../config';
 import { BUILD_ID } from '../lib/build-id';
 
 interface Props {
@@ -86,6 +86,11 @@ const brand = `${SITE.title} ${SITE.byline}`;
 {markdownUrl && (
   <link rel="alternate" type="text/markdown" href={new URL(markdownUrl, SITE.url)} title={`${title} (Markdown)`} />
 )}
+
+<!-- Search Console / Bing Webmaster HTML-tag verification. Renders nothing
+     until a code is pasted into config.ts — see SITE_VERIFICATION. -->
+{SITE_VERIFICATION.google && <meta name="google-site-verification" content={SITE_VERIFICATION.google} />}
+{SITE_VERIFICATION.bing && <meta name="msvalidate.01" content={SITE_VERIFICATION.bing} />}
 
 <link rel="sitemap" href="/sitemap-index.xml" />
 <link rel="alternate" type="application/rss+xml" title={`${SITE.title} RSS Feed`} href={new URL('/rss.xml', SITE.url)} />

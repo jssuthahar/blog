@@ -23,7 +23,7 @@ import PresentationMode from '../../components/PresentationMode.astro';
 import ReaderTools from '../../components/ReaderTools.astro';
 import FollowCTA from '../../components/FollowCTA.astro';
 import AdUnit from '../../components/AdUnit.astro';
-import { SITE, AUTHOR, ADSENSE_SLOT_IN_ARTICLE, ADSENSE_SLOT_MULTIPLEX } from '../../config';
+import { SITE, AUTHOR, REPO, ADSENSE_SLOT_IN_ARTICLE, ADSENSE_SLOT_MULTIPLEX } from '../../config';
 import {
   CATEGORIES,
   formatDate,
@@ -74,6 +74,13 @@ const seriesWindow = seriesLong
   : seriesPosts;
 const path = postUrl(post);
 const category = CATEGORIES[data.category];
+
+// Straight to the source file on GitHub, same pattern as Microsoft Learn's
+// "Edit this page" links: `filePath` is the project-relative path Astro's
+// glob loader stamps on every entry (e.g. `src/content/blog/foo.mdx`), so
+// this needs no per-post wiring and can't drift out of sync with where the
+// file actually lives.
+const editUrl = post.filePath ? `${REPO.url}/edit/${REPO.branch}/${post.filePath}` : undefined;
 
 // The reverse of the short page's "Read deeper" link: shorts that point at
 // this post, so a reader who arrived by search meets the 20-second version
@@ -327,6 +334,15 @@ if (data.faq.length > 0) {
             <Reactions slug={post.id} />
             <ShareRow title={data.title} path={path} />
           </div>
+
+          {editUrl && (
+            <p class="mt-4 text-xs text-muted">
+              Found a mistake or an outdated step?{' '}
+              <a href={editUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-accent">
+                Edit this page on GitHub
+              </a>
+            </p>
+          )}
         </div>
 
         {data.faq.length > 0 && (

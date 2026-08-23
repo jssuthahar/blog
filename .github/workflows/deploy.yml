@@ -64,6 +64,19 @@ jobs:
       - name: Build
         run: npm run build
 
+      # A courtesy ping, not a requirement: tells Bing (and whoever else
+      # subscribes to IndexNow) to re-crawl now instead of on its own
+      # schedule. Non-fatal for the same reason the syncs above are — a
+      # network hiccup against a third-party API must never mark a good
+      # build red. Runs against `dist/sitemap-0.xml` here in the build job
+      # rather than after the Pages deploy: unlike the push notification
+      # below, nobody is following this link the moment it's sent, so
+      # pinging a few minutes before the CDN finishes propagating costs
+      # nothing — Bing's own re-crawl is not instantaneous either.
+      - name: Ping IndexNow
+        run: npm run indexnow
+        continue-on-error: true
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

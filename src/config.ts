@@ -47,6 +47,19 @@ export const MAIN_SITE = {
   label: 'msdevbuild.com',
 } as const;
 
+/**
+ * This blog's own public source repo — powers the "Edit this page on GitHub"
+ * link on every post (see blog/[...slug].astro). Microsoft Learn does the
+ * same on every docs page: a link straight to the source file and its commit
+ * history is a stronger trust/provenance signal than any meta tag, because a
+ * reader (or a crawler) can go verify it themselves rather than take the
+ * page's word for it.
+ */
+export const REPO = {
+  url: 'https://github.com/jssuthahar/blog',
+  branch: 'main',
+} as const;
+
 export const AUTHOR = {
   name: 'Suthahar Jegatheesan',
   alternateName: 'MSDEVBUILD',
@@ -456,6 +469,30 @@ export const CONTACT_FORM = {
  * reports identical data without shipping the Firebase SDK to every visitor.
  */
 export const GA_ID = 'G-X0V2Y2GH4D';
+
+/**
+ * Search engine site-verification codes.
+ *
+ * Both Google Search Console and Bing Webmaster Tools also offer DNS-record
+ * verification, which needs no code here at all — use that if it's already
+ * done. This slot is for the HTML-tag method: paste the `content` value from
+ * each dashboard's "HTML tag" option (not the whole `<meta>` tag) and
+ * `BaseHead.astro` renders it. Leave a value empty and its tag doesn't render,
+ * so an unverified site never ships a meaningless placeholder meta tag.
+ */
+export const SITE_VERIFICATION = {
+  google: '',
+  bing: '',
+} as const;
+
+/**
+ * IndexNow key — proves ownership of the domain to Bing/Yandex/etc. so
+ * `scripts/indexnow-ping.mjs` can push a URL for near-instant re-crawl instead
+ * of waiting for the next scheduled one. The key itself needs no account or
+ * secret: it only has to match the filename of the `.txt` file it's paired
+ * with in `public/`. Change one, change the other.
+ */
+export const INDEXNOW_KEY = 'fac4b4f6b8d24cb30f334703d427d0fa';
 
 // Google AdSense publisher ID. Approval is account-level and already covers
 // this subdomain; ownership is verified via /ads.txt in public/.

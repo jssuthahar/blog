@@ -73,7 +73,14 @@ const brand = `${SITE.title} ${SITE.byline}`;
 <title>{fullTitle}</title>
 <meta name="description" content={description} />
 <link rel="canonical" href={canonicalUrl} />
-{noindex && <meta name="robots" content="noindex, nofollow" />}
+{noindex ? (
+  <meta name="robots" content="noindex, nofollow" />
+) : (
+  // These already match what Google defaults to when no robots meta is
+  // present at all — stating them explicitly costs nothing and survives if
+  // that default ever tightens.
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+)}
 
 <!-- Point AI crawlers at the clean Markdown twin of this page. -->
 {markdownUrl && (
@@ -85,6 +92,19 @@ const brand = `${SITE.title} ${SITE.byline}`;
 
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<!-- Resource hints for the third-party origins actually loaded on every page
+     (GA below) or most pages (AdSense) — the DNS lookup + TLS handshake
+     happen while the rest of <head> is still parsing instead of after the
+     script tag is reached. Fonts need no such hint: @fontsource ships them
+     as local files, so there is no font CDN to warm up. -->
+<link rel="preconnect" href="https://www.googletagmanager.com" />
+{ADSENSE_CLIENT && showAds && (
+  <>
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin="anonymous" />
+    <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
+  </>
+)}
 
 <!-- PWA: installable app + theme integration. The manifest makes the site
      installable on Android/desktop; the apple-* meta let iOS launch it

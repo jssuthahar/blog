@@ -7,7 +7,7 @@ import TestimonialForm from '../../components/TestimonialForm.astro';
 import AdUnit from '../../components/AdUnit.astro';
 import SeriesQuickNav from '../../components/SeriesQuickNav.astro';
 import { SITE, ADSENSE_SLOT_DISPLAY } from '../../config';
-import { getPublishedPosts } from '../../lib/posts';
+import { getPublishedPosts, postUrl } from '../../lib/posts';
 import { featuredTestimonials, testimonialIndex } from '../../lib/testimonials';
 
 const posts = await getPublishedPosts();
@@ -18,9 +18,43 @@ const testimonials = featuredTestimonials(10);
 const highlighted = testimonials.filter((t) => t.featured);
 const standard = testimonials.filter((t) => !t.featured);
 
+// The one hub page on the site that had no schema at all — every other
+// listing (category, series, shorts) already says what it is and lists its
+// items structurally. Same CollectionPage + ItemList + BreadcrumbList
+// pattern as `/category/[category]`, capped at 20 like the homepage's own
+// `blogPost` slice: naming every one of 50+ posts here would bloat the
+// graph for no benefit, since each post already carries its own full
+// BlogPosting node on its own page.
 // No Review schema — self-serving testimonials on your own site aren't eligible
 // for review rich results, and a Person is an invalid itemReviewed type.
-const schema: Record<string, unknown>[] = [];
+const schema: Record<string, unknown>[] = [
+  {
+    '@type': 'CollectionPage',
+    '@id': `${SITE.url}/blog#page`,
+    name: 'All posts',
+    description: `Every article on ${SITE.title} — Cloud, Azure, AI, GitHub Copilot, Mobile, and Web development guides.`,
+    about: { '@id': `${SITE.url}/#person` },
+    isPartOf: { '@id': `${SITE.url}/#website` },
+  },
+  {
+    '@type': 'ItemList',
+    itemListOrder: 'https://schema.org/ItemListOrderDescending',
+    numberOfItems: posts.length,
+    itemListElement: posts.slice(0, 20).map((post, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: post.data.title,
+      url: new URL(postUrl(post), SITE.url).href,
+    })),
+  },
+  {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE.url}/blog` },
+    ],
+  },
+];
 ---
 
 <BaseLayout

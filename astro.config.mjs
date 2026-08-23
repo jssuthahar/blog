@@ -23,18 +23,21 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
  * array) gets. This is what feeds `lastmod` in the sitemap below — real
  * freshness data instead of a build-time timestamp copied onto every URL.
  */
+/** @param {string} raw */
 function frontmatterDates(raw) {
   // Normalize CRLF first — posts are authored on Windows as often as not, and
   // every pattern below assumes a bare `\n`.
   const text = raw.replace(/\r\n/g, '\n');
   const match = text.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return {};
+  /** @param {string} name */
   const field = (name) => match[1].match(new RegExp(`^${name}:\\s*(.+)$`, 'm'))?.[1]?.trim().replace(/^['"]|['"]$/g, '');
   return { publishedAt: field('publishedAt'), updatedAt: field('updatedAt') };
 }
 
 function readBlogDates() {
   const dates = new Map();
+  /** @param {string} dir */
   const walk = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name);

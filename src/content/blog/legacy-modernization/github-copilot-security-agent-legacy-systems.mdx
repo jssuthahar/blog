@@ -1,85 +1,87 @@
 ---
 title: 'Building a GitHub Copilot Security Agent for Legacy Systems (Honestly)'
-description: 'A GitHub Copilot security agent for legacy systems: what AI review catches, what it misses, and why CodeQL and Dependabot stay the gate.'
-publishedAt: 2026-06-12
+description: 'Learn what a GitHub Copilot security agent can find in a legacy system, what it can miss, and why scanners and people must still approve changes.'
+publishedAt: 2026-09-07
 category: copilot
 categories: ['ai', 'devops']
 tags: ['GitHub Copilot security agent', 'AI security review', 'Legacy application security', 'Copilot OWASP', 'GitHub Copilot Skills', 'CodeQL', 'Dependabot', 'Secret scanning', 'GitHub Copilot Hooks', 'Enterprise security', 'Cybersecurity']
 seoTitle: 'Copilot Security Agent for Legacy Systems'
-highlight: 'A GitHub Copilot security agent is a force multiplier for review and triage, not a security sign-off. It reliably flags obvious, pattern-level issues and reliably misses the ones that hurt: business-logic authorization flaws and broken access control. The honest design: AI advises, deterministic scanners (CodeQL, Dependabot, secret scanning) block, and a human decides.'
+cover: './images/Copilot Security Agent for Legacy Systems.jpg'
+coverAlt: 'Diagram showing a GitHub Copilot security agent with code analysis, vulnerability detection, secure coding guidance, policy enforcement, security logging, and risk reporting for a legacy system.'
+highlight: 'A GitHub Copilot security agent can help with review and triage, but it cannot approve security. It can find simple patterns and miss business-logic authorization flaws. AI advises, scanners block, and a person decides.'
 series: 'legacy-modernization'
-seriesOrder: 4
-featured: false
-draft: true
+seriesOrder: 3
+featured: true
+draft: false
 faq:
   - q: 'Can GitHub Copilot do a security review?'
-    a: 'Partly. A GitHub Copilot security agent does a useful first-pass, advisory review — it flags concatenated SQL, hardcoded-looking secrets, and missing authorization attributes, and can explain a CVE and draft a fix. It cannot own the review: it misses business-logic authorization flaws and can hallucinate a vulnerability.'
+    a: 'Partly. A GitHub Copilot security agent can do a useful first review. It can find string-built SQL, possible secrets, and missing authorization attributes. It can explain a CVE and draft a fix. It can also miss business-logic flaws or report a bug that is not real.'
   - q: 'What security issues does AI miss in a code review?'
-    a: 'The ones that hurt most. AI misses business-logic authorization flaws (can user A act on user B''s resource?), broken access control across a multi-step workflow, trust-boundary and threat-model gaps, and anything correct line by line but wrong in context. Those are about intent and workflow, not patterns.'
+    a: 'AI can miss serious problems. It may not know if user A can use user B''s resource. It may miss broken access control in a multi-step workflow. It may also miss trust-boundary problems. These issues depend on business rules and context, not just code patterns.'
   - q: 'Should AI approve security fixes?'
-    a: 'No. Let the agent draft a remediation and explain the risk, but a human security engineer must review and approve any security fix, and a deterministic scanner must confirm it. AI has no accountability, and a fix that looks correct can still miss the real trust boundary.'
+    a: 'No. Let the agent explain the risk and draft a fix. A security engineer must review and approve the fix. A scanner must check it too. A fix can look correct and still miss the real security boundary.'
   - q: 'How do I make GitHub Copilot enforce our security rules?'
-    a: 'You do not — Copilot advises. Encode your rules in a security Skill (SKILL.md) so the agent reviews against your standards, then enforce with the deterministic layer: CodeQL, Dependabot, and secret scanning with push protection as required checks, plus a hook that blocks secrets locally.'
+    a: 'You cannot make Copilot enforce rules by itself. Put your rules in a security Skill (SKILL.md). Then use CodeQL, Dependabot, and secret scanning with push protection as required checks. Use a hook to block secrets on the local machine.'
   - q: 'What is the difference between a Copilot security agent and scanners like CodeQL or Dependabot?'
-    a: 'The agent is probabilistic and advisory — it reasons in natural language, explains issues, drafts fixes, and triages, but can be wrong in both directions. CodeQL, Dependabot, and secret scanning are deterministic and enforceable: they run the same way every time and can block a merge. Scanners are what you gate on.'
+    a: 'The agent gives advice. It can explain issues, draft fixes, and sort alerts, but it can be wrong. CodeQL, Dependabot, and secret scanning run the same way each time. They can block a merge. Use scanners as your required gate.'
 ---
 
 import Layers from '../../../components/mdx/Layers.astro';
 
-A pen test finished on a legacy order-management system I looked after, and the report opened with one finding that stung more than the rest. Any logged-in user could view and cancel another customer's order by changing a single ID in the URL. The endpoint required authentication. It just never checked that the order belonged to the person asking. That flaw had been in the code for years. Every human review had passed it. Even the AI review we ran on that repo had passed it, with a green tick and two tidy naming suggestions.
+A pen test finished on a legacy order system I looked after. One finding stood out. Any logged-in user could view and cancel another customer's order by changing an ID in the URL. The endpoint required login. It did not check who owned the order. The flaw had been in the code for years. Human reviews had missed it. Our AI review had missed it too. It gave the code a green tick and suggested two better names.
 
-Here is the thing that kept me up. Nobody was careless. The code was clean. It had an `[Authorize]` attribute, so it looked protected. The AI saw the attribute and moved on, because to a pattern-matcher an authenticated endpoint looks safe. But authentication is "are you logged in" and authorization is "are you allowed to touch *this*", and the gap between those two questions is where the worst legacy security bugs live. That is a business-logic authorization flaw. No pattern flags it.
+This stayed with me. Nobody was careless. The code was clean. It had an `[Authorize]` attribute, so it looked protected. The AI saw the attribute and moved on. To a pattern matcher, a logged-in endpoint can look safe. But authentication asks, "Are you logged in?" Authorization asks, "Can you use *this* resource?" The gap between these questions is where many serious legacy security bugs live. This is a business-logic authorization flaw. A simple pattern cannot find it.
 
-So this article is about building a **GitHub Copilot security agent for legacy systems** that genuinely helps, without lulling you into false confidence. I will be blunt throughout, because overselling AI in a security piece is not just wrong, it is dangerous. The same honesty runs through my [code-review-limits post](../github-copilot-automate-code-review-limits): AI reviews whether code is written well, not whether it is the right code. In security that distinction is the whole game.
+This article explains how to build a **GitHub Copilot security agent for legacy systems** that helps without creating false confidence. I will be direct. Overselling AI in a security article is dangerous. My [code-review-limits post](../github-copilot-automate-code-review-limits) makes the same point: AI can review how code is written. It cannot know if the code does the right thing. That difference matters even more in security.
 
-This is Part 4 of the legacy-modernization thread in my Copilot series. It assumes you have read the [cornerstone on Copilot agents for legacy applications](../github-copilot-agents-for-legacy-applications), which is the blueprint for the whole AI-team pattern. Here we drill into one role: security.
+This is Part 4 of my legacy-modernization series about Copilot. It assumes you have read the [article about Copilot agents for legacy applications](../github-copilot-agents-for-legacy-applications). That article explains the full AI team pattern. Here, we focus on one role: security.
 
-> One caveat up front, and I mean it. Copilot's agent, Skill, and hook features move between preview and general availability, and exact paths and frontmatter keys change. Skills-in-review is in public preview at the time of writing. Everything here matches current GitHub docs, but confirm the syntax against the current documentation before you rely on it. In security work, getting this right matters more than any demo.
+> One warning before we start. Copilot agents, Skills, and hooks can change. Their paths and frontmatter keys may change too. Skills in review are in public preview as I write this. The examples match the current GitHub docs. Check the latest docs before using them. In security work, correct setup matters more than a good demo.
 
 ## Where security debt hides in legacy systems
 
-Legacy systems are where security debt goes to hide. New code gets written after everyone learned the lesson; old code was written before the lesson existed, and then nobody dared touch it. Here is where I keep finding it.
+Legacy systems often hide security debt. New code is written after people learn security lessons. Old code was written before those lessons. Then nobody wants to change it. These are the problems I find most often.
 
-- **Outdated auth and session handling.** Home-grown login, tokens that never expire, session fixation nobody thought about in 2014. Legacy makes it worse because the auth code is load-bearing and terrifying to change.
-- **Known-CVE dependencies nobody upgraded.** A package three major versions behind with a public advisory. In legacy apps the upgrade breaks four other things, so it sits.
-- **SQL injection via string concatenation.** `"SELECT * FROM Orders WHERE Id = " + id`. Ten years of it, copied from the first developer who did it.
-- **Secrets in config and source.** Connection strings and API keys in `web.config`, committed to history. Legacy predates your secret manager.
-- **Endpoints missing authorization.** Or missing the *right* authorization — authenticated but not scoped to the caller, exactly my pen-test flaw.
-- **Over-broad permissions.** A service account that is `db_owner` because that made a bug go away in 2016.
-- **Unencrypted sensitive data.** PII (personally identifiable information — names, emails, card data) sitting in plain columns and plain logs.
-- **Missing audit logging.** When something goes wrong, there is no record of who did what. In a legacy system, that is often how you find out you were breached months late.
+- **Old login and session code.** Some systems use custom login code, tokens that never expire, or unsafe sessions. This code is hard to change because many other parts of the system depend on it.
+- **Dependencies with known CVEs.** A package may be several major versions old. An upgrade may break other parts of the app, so nobody upgrades it.
+- **SQL injection from string concatenation.** For example: `"SELECT * FROM Orders WHERE Id = " + id`.
+- **Secrets in config and source code.** Connection strings and API keys may be in `web.config` or in the Git history.
+- **Endpoints without the right authorization.** A user may be logged in but still allowed to access another user's data. This was the problem in my pen test.
+- **Permissions that are too broad.** A service account may be `db_owner` because it fixed a bug years ago.
+- **Sensitive data without encryption.** Personal information, such as names, email addresses, and card data, may be stored in plain text or written to logs.
+- **No audit logs.** When something goes wrong, there may be no record of who did what. You may find the breach months later.
 
-In short: legacy security debt is not one bug. It is layers of decisions made before the current standard existed, protected by the fear of changing code nobody fully understands. That fear is exactly why an AI helper is attractive — and exactly why you must be careful about what you trust it to do.
+Legacy security debt is not one bug. It is a set of old decisions. The code is hard to change because nobody fully understands it. That is why an AI helper is useful. It is also why you must be careful about what you trust it to do.
 
 ## What an AI security agent is genuinely good at
 
-Let me be fair before I am critical, because the value here is real and I use it every week.
+The value is real. I use this kind of help every week.
 
-A GitHub Copilot security agent is a strong first-pass reviewer for the **pattern-level** class of problems:
+A GitHub Copilot security agent is useful for a first review. It is good at problems with clear patterns:
 
-- **Concatenated SQL and missing input validation.** It spots string-built queries and unvalidated input reliably. This is textbook pattern recognition and AI is tireless at it.
-- **Hardcoded secrets by shape.** A 32-character hex string assigned to `apiKey` reads as a secret, and the agent will call it out.
-- **Obvious missing authorization.** An endpoint with no `[Authorize]` at all, or a controller where one action forgot it while its siblings have it. The *absence* of a pattern is something AI catches well.
-- **OWASP-category candidates.** It maps findings to OWASP Top 10 buckets (injection, broken access control, security misconfiguration) and gives you a shared vocabulary. Useful for triage.
-- **Explaining a CVE's relevance.** Point it at a Dependabot alert and it will explain, in plain language, why that CVE matters for *your* usage of the package. This turns a scary advisory into a decision.
-- **Drafting remediation.** It writes the parameterized-query version, the fixed config, the `[Authorize(Policy = ...)]` line. A good starting point a human then reviews.
-- **Triaging scanner output.** Fifty CodeQL alerts is noise. The agent can group and prioritise them into a human-readable list. This is one of its best jobs.
-- **Generating security-focused tests.** Ask it for a test that a non-owner cannot cancel an order, and it drafts it — which is how you turn a found flaw into a permanent guard.
+- **SQL and input validation.** It can find queries built from strings and input that is not checked.
+- **Hardcoded secrets.** A 32-character hex value assigned to `apiKey` may look like a secret. The agent can flag it.
+- **Missing authorization.** It can find an endpoint with no `[Authorize]` attribute. It can also find an action that is missing the attribute while similar actions have it.
+- **OWASP categories.** It can group findings under categories such as injection, broken access control, and security misconfiguration.
+- **CVE explanations.** Give it a Dependabot alert. It can explain why the CVE may matter to your use of the package.
+- **Fix suggestions.** It can write a parameterized query, change a config value, or add an `[Authorize(Policy = ...)]` line. A human must review the result.
+- **Scanner results.** It can group many CodeQL alerts into a shorter list. This is one of its best uses.
+- **Security tests.** Ask it for a test that stops a user from cancelling another user's order. It can create a useful first draft.
 
-That is a serious productivity gain. Nobody should ship string-concatenated SQL in 2026, and an AI agent makes sure nobody does by accident. It raises the floor. Say that clearly.
+This can save a lot of time. Nobody should ship string-built SQL in 2026. An AI agent can help catch it. It raises the basic level of security. That is useful.
 
 ## What it misses, and where it is dangerous
 
-Now the honest part, and it is the reason this article exists. The floor is not the ceiling. The flaws that actually cause breaches are the ones AI reliably misses.
+Now for the hard part. This is why the article exists. AI can catch basic problems. It can still miss the flaws that cause real breaches.
 
-- **Business-logic authorization flaws.** *Can user A act on user B's resource?* My pen-test bug. The code looked correct — authenticated, attributed, clean. The missing check was a business rule, not a pattern, and AI has no way to know that an order has an owner unless someone told it.
-- **Broken access control across a workflow.** A multi-step process where step 3 trusts that step 1 checked permissions, and step 3 is also reachable directly. No single file looks wrong. The flaw lives in the *gaps between* files.
-- **Real threat modeling.** Who are the attackers, what are the trust boundaries, what is the blast radius if this token leaks. This is reasoning about a system and an adversary, not reading code.
-- **Confident hallucination.** This one wastes real hours. AI will sometimes report a vulnerability that does not exist — a false SQL-injection flag on a value that is already parameterized upstream — and it says it with total confidence. It will also, worse, declare code "secure" when it simply did not understand it.
+- **Business-logic authorization flaws.** *Can user A use user B's resource?* This was the problem in my pen test. The code looked correct. The user was logged in, and the endpoint had an attribute. The missing check was a business rule. AI cannot know that an order belongs to someone unless you give it that information.
+- **Broken access control in a workflow.** Step 3 may trust that step 1 checked permissions. But step 3 may also be reachable by itself. Each file may look correct. The bug is between the files.
+- **Threat modeling.** Who might attack the system? What are the trust boundaries? What happens if a token leaks? These questions need a view of the whole system.
+- **Confident wrong answers.** AI may report a bug that is not real. For example, it may flag SQL injection even though the value was parameterized earlier. It may also say code is safe when it did not understand the code.
 
-Here is the line I give every team: **an AI security review is a smoke detector, not a fire marshal.** A smoke detector is cheap, always on, and catches the obvious fire. It will not tell you the building's exits are badly designed. For that you need someone who understands the whole structure.
+Here is how I explain it: **an AI security review is a smoke detector, not a fire marshal.** A smoke detector is cheap and always on. It can find smoke. It cannot tell you that the building has poor exits. You need a person who understands the whole system for that.
 
-Because both directions of error are real — false alarms and false all-clears — the only safe design is to separate who owns what. This table is the heart of the whole approach.
+AI can make both kinds of mistakes. It can raise a false alarm. It can also miss a real problem. So each part of the process needs a clear owner. This table shows the approach.
 
 | Concern | Who owns it | Type | Can it block a merge? |
 |---|---|---|---|
@@ -93,14 +95,14 @@ Because both directions of error are real — false alarms and false all-clears 
 | Threat model, trust boundaries | Human security engineer | Judgment | Yes — human gate |
 | Accountability for what ships | Human security engineer | Judgment | Always human |
 
-Read that table top to bottom and the design writes itself. The AI advises. The scanner blocks. The human decides. Everything below is how to build exactly that.
+The design is simple. The AI gives advice. The scanner blocks bad changes. A person makes the final decision. The rest of this article shows how to build it.
 
 ## The architecture: advisory AI, deterministic gate, human judgment
 
-Here is the whole system on one diagram. The AI agent sits at the front as a fast, cheap first pass. The deterministic scanners are the wall nothing gets through. The human owns the questions no tool can answer.
+This diagram shows the whole system. The AI agent gives a fast first review. The scanners form the blocking gate. The human answers the questions that tools cannot answer.
 
 <Layers
-  caption="Three layers, three different kinds of authority. The advisory layer is fast and fallible, the enforcement layer is dumb and absolute, and the judgment layer is the only one that gets to say yes."
+  caption="There are three layers. The AI gives advice. The scanners block. The human makes the final decision."
   entry={{ label: 'Developer or Copilot agent makes a change' }}
   layers={[
     {
@@ -133,15 +135,15 @@ Here is the whole system on one diagram. The AI agent sits at the front as a fas
   result={{ label: 'Merge / deploy' }}
 />
 
-Notice the agent can never reach merge on its own. Its arrows lead into the gate and then into a human. That is deliberate. If your architecture lets an AI security pass be the last thing before deploy, you have built security theater.
+The agent cannot merge code by itself. Its work goes to the scanners and then to a person. This is deliberate. An AI pass must never be the last step before deployment.
 
 ## Designing the two agents
 
-The cornerstone introduced security as a role on the AI team. In practice I split it into two agents because they think about different layers, and keeping them separate keeps each one focused. Both are `.agent.md` files in `.github/agents/`. Roles are a pattern you compose, not a turnkey team GitHub ships — I labour this point in the cornerstone and it holds here.
+The earlier article introduced security as one role on the AI team. I split that role into two agents. Each agent looks at a different layer. This keeps the work focused. Both are `.agent.md` files in `.github/agents/`. These roles are a pattern you build. GitHub does not ship them as a ready-made team.
 
 ### The Security agent: secure-coding review
 
-This one reviews the code in front of it against secure-coding rules. Authentication and authorization presence, sensitive-data handling, secrets, input validation. Close to the diff.
+This agent reviews the code against secure-coding rules. It checks login, authorization, sensitive data, secrets, and input validation. It stays close to the diff.
 
 ```markdown
 ---
@@ -180,11 +182,11 @@ what*, do not conclude — put it in QUESTIONS and say a human must decide.
   authorization-logic questions are outside what you can verify.
 ```
 
-The two blocks that earn their place are the `tools` line and the honesty rules. I give this agent `read` and `search` only — no `edit`, no `run`. A security *reviewer* that can also change code and execute commands is a bad idea; least privilege applies to your agents too. And the honesty rules exist because, without them, Copilot writes confident sentences about authorization that people read as approval. That is how my pen-test bug shipped with a green tick.
+Two parts are especially important: the `tools` line and the honesty rules. This agent gets only `read` and `search`. It cannot edit files or run commands. A reviewer should not change the code it reviews. Least privilege also applies to AI agents. The honesty rules stop Copilot from making a confident claim about authorization. That is how my pen-test bug got a green tick.
 
 ### The Cybersecurity agent: OWASP, dependencies, API security
 
-This one zooms out. It thinks about the application as a target: OWASP Top 10 coverage, vulnerable dependencies, API surface, and lightweight threat analysis.
+This agent looks at the wider application. It checks the OWASP Top 10, dependencies, APIs, and basic threats.
 
 ```markdown
 ---
@@ -223,13 +225,13 @@ this might be an issue" (opinion).
 - Never say the application is secure. That is not a claim any tool can make.
 ```
 
-How do they hand off? The security agent works close to a diff during development and PR review. The cybersecurity agent works at feature and release scope — before a release, or when a scanner fires, or when someone designs a new API. In the cornerstone's orchestration pattern, an orchestrator routes "review this endpoint" to the security agent and "triage these CVEs" to the cybersecurity agent. But be honest with yourself: this is a division of labour you designed, not two employees. Both are advisory. Neither gates anything.
+How do they work together? The security agent reviews a diff during development and pull request review. The cybersecurity agent looks at a feature or release. Use it before a release, after a scanner alert, or when you design a new API. An orchestrator can send an endpoint review to the security agent and CVE work to the cybersecurity agent. Remember that you designed this split. These are not two employees. Both agents give advice. Neither one is a gate.
 
 ## The Security Skill: encode YOUR rules, not generic advice
 
-Left to itself, a Copilot security agent gives you generic OWASP advice you could have Googled. The value comes from making it review against *your* standards. That is what a Skill does — it is the playbook the agent reaches for. If Skills are new to you, my [Copilot Skills explainer](../github-copilot-skills-deep-dive) covers why they load on demand, and the [Azure secure-baseline Skill post](../build-azure-copilot-skill-secure-cost-aware-bicep) shows the same idea applied to cloud guardrails.
+On its own, a Copilot security agent gives general OWASP advice. Your rules make it more useful. A Skill is the playbook the agent uses. My [Copilot Skills explainer](../github-copilot-skills-deep-dive) explains Skills in more detail. The [Azure secure-baseline Skill post](../build-azure-copilot-skill-secure-cost-aware-bicep) shows the same idea for cloud rules.
 
-Here is an excerpt from a `SKILL.md` under `.github/skills/secure-coding-standards/`. It encodes real rules, not principles.
+Here is part of a `SKILL.md` file under `.github/skills/secure-coding-standards/`. It contains real rules.
 
 ```markdown
 ---
@@ -276,21 +278,21 @@ description: >
 5. Are security-relevant actions audit-logged? -> REVIEW
 ```
 
-The rule I care about most is the authorization one, and notice how it is written: it tells the agent to *escalate to a human* when it cannot tell who owns a resource. That instruction is the single most valuable line in the file. It converts the AI's biggest blind spot into a routed question instead of a silent pass. The agent stops pretending it knows.
+The authorization rule is the most important one. It tells the agent to *ask a human* when it cannot tell who owns a resource. This turns the agent's biggest blind spot into a clear question. The agent does not pretend to know.
 
 ## Making security enforceable, not advisory
 
-Everything so far is advice. Advice does not stop a bad merge. This is where the series ties together: the deterministic layer is what actually enforces, and it is separate from the AI. My review-limits post makes the same argument for general review — advisory AI plus enforceable gates — and security is where that separation is non-negotiable.
+Everything so far is advice. Advice cannot stop a bad merge. The scanner layer does that job. It is separate from the AI. My review-limits post makes the same point about code review. AI can advise, but security gates must be enforceable.
 
-Three deterministic scanners do the real gating, and all three are real GitHub features (part of GitHub Advanced Security; confirm current availability and naming for your plan):
+Three scanners do the real blocking. They are GitHub features, including features in GitHub Advanced Security. Check which features your plan supports:
 
-1. **CodeQL / code scanning (SAST).** Static analysis that finds injection, unsafe deserialization, and similar classes across the codebase. Wire it as a **required status check** so a PR cannot merge with a new high-severity alert.
-2. **Dependabot + dependency review.** Flags dependencies with known CVEs and shows what a PR adds. Make dependency review a required check so nobody merges a package with a known-vulnerable version.
-3. **Secret scanning + push protection.** Scans for credential shapes and, with push protection on, **blocks the push** before a secret ever lands in history. On a legacy repo, also run a historical scan — old secrets are already in there.
+1. **CodeQL / code scanning (SAST).** It can find injection, unsafe deserialization, and similar problems. Make it a **required status check**. Then a pull request cannot merge when it adds a serious alert.
+2. **Dependabot + dependency review.** Dependabot finds packages with known CVEs. Dependency review shows what a pull request adds. Make this a required check.
+3. **Secret scanning + push protection.** Secret scanning looks for keys and other credentials. Push protection can **block the push** before a secret enters the repository. Also scan the history of a legacy repository. Old secrets may already be there.
 
-Put those behind **branch protection** as required checks. Now the AI can advise all it likes; the merge still cannot happen until the deterministic gates pass and a human approves.
+Put these checks behind **branch protection**. A pull request cannot merge until the checks pass and a human approves it.
 
-You can also enforce locally, before code even leaves the machine, with Copilot **Hooks**. Hooks run deterministic shell commands at lifecycle points, outside the AI model — a `preToolUse` hook can deny a tool call, and `sessionEnd` can archive a transcript. My [Hooks for beginners post](../github-copilot-hooks-for-beginners) covers the mechanics. Here is a sketch of `.github/hooks/security-gate.json` that blocks secrets and logs the session for compliance:
+You can also check code on the developer's machine with Copilot **Hooks**. Hooks run shell commands outside the AI model. A `preToolUse` hook can deny a tool call. A `sessionEnd` hook can save a transcript. My [Hooks for beginners post](../github-copilot-hooks-for-beginners) explains the details. Here is an example of `.github/hooks/security-gate.json` that blocks secrets and records the session:
 
 ```json
 {
@@ -314,24 +316,24 @@ You can also enforce locally, before code even leaves the machine, with Copilot 
 }
 ```
 
-The `preToolUse` hook runs your own secret-and-dependency scan before an edit is written and, on a non-zero exit, denies it. That is deterministic — it behaves the same every run, unlike the model. The `sessionEnd` hook writes an audit record of what the agent did, which matters for compliance: when an auditor asks "what did the AI touch and when", you have a log instead of a shrug. Verify the exact hook keys against current docs; the shape of this file has changed across previews.
+The `preToolUse` hook runs a secret and dependency scan before an edit is saved. A failed scan denies the edit. The result is the same each time. The `sessionEnd` hook records what the agent did. This helps with audits. Check the current docs before using these hook keys. The format has changed during the preview period.
 
-The whole enforcement story fits in one line I repeat until people are sick of it: **the AI advises; the scanner blocks; the human decides.**
+The whole model fits in one sentence: **the AI advises; the scanner blocks; the human decides.**
 
 ## A legacy security hardening workflow
 
-When I harden a legacy system with this setup, the order matters. You want the cheap, automated wins first and the expensive human judgment last, on a smaller surface.
+The order matters when you secure a legacy system. Start with the cheap automated checks. Then use human time on the smaller set of hard problems.
 
-1. **Turn on the deterministic layer first.** CodeQL, Dependabot, secret scanning with push protection, and a historical secret scan. This alone surfaces most of the obvious debt with zero AI involved.
-2. **Run the cybersecurity agent to triage the flood.** Fifty alerts become a ranked, explained list. This is where AI genuinely saves days.
-3. **Run the security agent across the auth and data-access code.** Let it flag the pattern-level smells against your Skill.
-4. **Now spend your human hours on what only humans can answer** — the checklist below, on the highest-risk endpoints.
-5. **Turn every confirmed flaw into a test.** Have the agent draft it; a human confirms it actually fails on the vulnerable code first. This is [characterization-test thinking from Part 3](../safely-change-legacy-code-github-copilot-characterization-tests) pointed at security.
-6. **Gate it.** Add the checks to branch protection so the debt cannot come back.
+1. **Turn on the scanners first.** Use CodeQL, Dependabot, secret scanning, push protection, and a history scan. These checks find many basic problems without AI.
+2. **Use the cybersecurity agent to sort the alerts.** It can turn fifty alerts into a short list with a priority and an explanation.
+3. **Use the security agent on login, authorization, and data-access code.** Ask it to check the rules in your Skill.
+4. **Use human time on the hard questions.** Start with the highest-risk endpoints and use the checklist below.
+5. **Turn each confirmed bug into a test.** The agent can draft the test. A person must first confirm that the test fails on the old code. This uses the [characterization-test approach from Part 3](../safely-change-legacy-code-github-copilot-characterization-tests) for security.
+6. **Add the checks to branch protection.** This stops the same debt from returning.
 
 ### The human-owned security checklist
 
-Copy this into your PR template. These are the questions AI cannot answer, and they are exactly the ones that catch the breaches. If you only take one thing from this article, take this list.
+Copy this into your pull request template. AI cannot answer these questions. These are the questions that often find serious bugs. If you remember one thing from this article, remember this list.
 
 ```markdown
 ## Human security review (AI cannot answer these)
@@ -354,37 +356,37 @@ Data & accountability
 - [ ] Who signs off that this is safe to ship? (name a human)
 ```
 
-Every item there failed silently on my pen-test system, and every one of them is invisible to a pattern-matcher. That is the point.
+Every item on this list failed silently in the system from my pen test. A simple pattern matcher could not find any of them. That is the point.
 
 ## The honest limitations, and a warning about security theater
 
-Let me recap the limits plainly, because this is the section that keeps you safe.
+Here are the limits again:
 
-- A passing AI security review is **not** a security sign-off. It means the obvious stuff was checked, nothing more.
-- The agent produces **false positives** (wasted hours) and **false negatives** (missed real flaws). Both are normal. Design for both.
-- It cannot reason about **who is allowed to do what** in your business. That is the flaw class that causes breaches, and it needs a human.
-- Roles, Skills, and hooks are a **pattern you assemble**, not a security team you install.
+- A passing AI security review is **not** security approval. It only means that the agent checked for some obvious problems.
+- The agent can produce **false positives** and **false negatives**. Both are normal. Plan for both.
+- It cannot know **who may do what** in your business. This question needs a person.
+- Roles, Skills, and hooks are a **pattern you build**. They are not a security team that you install.
 
-The failure mode I warn every team about is security theater: a green AI check that makes everyone feel safe while the real flaws sit untouched. That is worse than no check, because false confidence stops people from doing the hard human review. If your process treats the AI pass as the finish line, you have automated the feeling of security without the substance. Keep the human gate. Keep the scanners required. Let the AI be the smoke detector it is good at being.
+The main danger is security theater. A green AI check can make people feel safe while real bugs remain. This is worse than having no AI check because false confidence can stop the human review. Do not treat the AI result as the finish line. Keep the human gate and the required scanners. Use AI to find the simple problems.
 
 ## My recommendation
 
-After doing this on real legacy systems, here is the advice I would give a colleague at their desk.
+After using this approach on real legacy systems, this is my advice.
 
-Build the security agent and the cybersecurity agent, and use them hard — for triage, for explaining CVEs, for drafting fixes and security tests. That is real value and it will save your team days. But wire the deterministic layer *first* and make it required, because that is what actually protects you. And protect your human security hours fiercely: spend them on authorization, access control, and threat modeling, the work only they can do. Use the AI to clear the obvious so your people are free for the thinking that matters.
+Build both agents. Use them to sort alerts, explain CVEs, and draft fixes and security tests. This can save your team days. But set up the scanner layer *first* and make it required. That is what protects the repository. Use your security experts for authorization, access control, and threat modeling. Use AI to clear the simple work so people can focus on the hard questions.
 
 ## Key takeaways
 
-- A GitHub Copilot security agent is a force multiplier for review and triage, not a security sign-off.
-- It reliably catches pattern-level smells (concatenated SQL, secrets, missing authorize attributes) and reliably misses business-logic authorization and broken access control.
-- It can hallucinate a vulnerability or wrongly declare code safe — plan for errors in both directions.
-- The safe design: AI advisory first pass + a security Skill encoding your rules + deterministic scanners (CodeQL, Dependabot, secret scanning) as the required gate + a human for judgment.
-- Enforce with branch protection required checks and a Copilot hook that blocks secrets locally and logs the session for audit.
+- A GitHub Copilot security agent helps with review and triage. It is not security approval.
+- It can find clear patterns such as string-built SQL, secrets, and missing authorization attributes. It can miss business-logic authorization and broken access control.
+- It can report a bug that is not real or say that unsafe code is safe. Plan for both errors.
+- The safe design is an AI first review, a Skill with your rules, required scanners, and a human decision.
+- Use branch protection and a Copilot hook to block secrets locally and record the session.
 - The AI advises; the scanner blocks; the human decides.
 - AI raises the floor (nobody ships the obvious flaw) but not the ceiling (the flaws that hurt are still human-judgment problems).
 
 ## Conclusion
 
-That pen-test finding taught me the sentence I will end on. **AI security tooling raises the floor but not the ceiling.** It makes sure nobody ships the string-concatenated SQL or the hardcoded key ever again, and that is worth a lot. But the flaw that let one customer cancel another's order was never a pattern problem. It was a judgment problem, and judgment is still human work.
+The pen-test finding taught me this: **AI security tools raise the floor, but not the ceiling.** They can stop string-built SQL and hardcoded keys. That is valuable. But the flaw that let one customer cancel another customer's order was not a pattern problem. It was a judgment problem. People still need to do that work.
 
-So use the agent to clear the obvious, run the scanners as your wall, and spend your security people on the questions only they can answer. Next in this series I will connect these role agents into the orchestrated team the cornerstone sketched — where the security agent is one voice among developer, tester, and architect roles, and a human still owns what ships. Build the tools. Keep the gate. Trust the humans with the judgment.
+Use the agents to find the obvious problems. Use scanners as the blocking wall. Let security experts answer the questions only they can answer. In the next article, I will connect these role agents into one team. The security agent will work with developer, tester, and architect roles. A person will still decide what ships. Build the tools. Keep the gate. Let people make the final judgment.

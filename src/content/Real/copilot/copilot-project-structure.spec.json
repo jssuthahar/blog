@@ -1,0 +1,143 @@
+{
+  "slug": "copilot-project-structure",
+  "topic": "A curiosity-driven walkthrough of the seven files GitHub Copilot actually reads out of a repo before suggesting anything, staged as a real VS Code Explorer sidebar with one moving tooltip that relabels itself per file: repo-wide instructions, path-scoped instructions, reusable agent skills, custom agents, the coding-agent setup workflow, workspace settings and MCP server config",
+  "publishedAt": "2026-09-10",
+  "article": "github-copilot-skills-deep-dive",
+  "title": {
+    "main": "The <em>7 files</em> Copilot reads",
+    "sub": "Most devs have never opened half of them. Here's what each one actually does — and why it matters.",
+    "pill": "9 stages · 21 sec · GitHub Copilot"
+  },
+  "stageHtml": "\n    <div class=\"pt-scene\" id=\"pt-scene\">\n\n      <!-- Opening hook: a question, not a claim -->\n      <div class=\"pt-hook\" id=\"pt-hook\">\n        <div class=\"pt-hook-tag\">QUICK CHECK</div>\n        <div class=\"pt-hook-q\">How many of these<br><em>7 files</em><br>have you opened?</div>\n        <div class=\"pt-hook-row\" id=\"pt-hook-row\">\n          <span class=\"pt-hook-ic\" id=\"ph-1\">?</span>\n          <span class=\"pt-hook-ic\" id=\"ph-2\">?</span>\n          <span class=\"pt-hook-ic\" id=\"ph-3\">?</span>\n          <span class=\"pt-hook-ic\" id=\"ph-4\">?</span>\n          <span class=\"pt-hook-ic\" id=\"ph-5\">?</span>\n          <span class=\"pt-hook-ic\" id=\"ph-6\">?</span>\n          <span class=\"pt-hook-ic\" id=\"ph-7\">?</span>\n        </div>\n        <div class=\"pt-hook-l2\" id=\"pt-hook-l2\">Copilot reads <b>all seven</b>. Every single request.</div>\n      </div>\n\n      <!-- A window, because that's what the viewer actually recognises -->\n      <div class=\"pt-win\" id=\"pt-win\">\n        <div class=\"pt-win-dots\"><i></i><i></i><i></i></div>\n        <div class=\"pt-win-title\">your-repo &mdash; Visual Studio Code</div>\n        <div class=\"pt-progress\"><span id=\"pt-progress-n\">0</span> / 7 read</div>\n      </div>\n\n      <div class=\"pt-body\" id=\"pt-body\">\n        <div class=\"pt-explorer\" id=\"pt-explorer\">\n          <div class=\"pt-exp-h\"><span>EXPLORER</span><span class=\"pt-exp-h2\">YOUR-REPO</span></div>\n\n          <div class=\"pt-grp\">\n            <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m6 9 6 6 6-6\"/></svg>\n            <span>.github</span>\n          </div>\n\n          <div class=\"pt-row\" id=\"pt-row-1\">\n            <span class=\"pt-fic pt-c1\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z\"/><path d=\"M14 3v5h5\"/></svg></span>\n            <span class=\"pt-fname\">copilot-instructions.md</span>\n            <svg class=\"pt-check\" id=\"pt-check-1\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m5 13 4 4L19 7\"/></svg>\n          </div>\n\n          <div class=\"pt-row\" id=\"pt-row-2\">\n            <span class=\"pt-fic pt-c2\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 19.5A2.5 2.5 0 0 1 6.5 17H20\"/><path d=\"M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z\"/></svg></span>\n            <span class=\"pt-fname\">instructions/<i>*.instructions.md</i></span>\n            <svg class=\"pt-check\" id=\"pt-check-2\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m5 13 4 4L19 7\"/></svg>\n          </div>\n\n          <div class=\"pt-row\" id=\"pt-row-3\">\n            <span class=\"pt-fic pt-c2\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z\"/><path d=\"M3.3 7 12 12l8.7-5\"/><path d=\"M12 22V12\"/></svg></span>\n            <span class=\"pt-fname\">skills/<i>SKILL.md</i></span>\n            <svg class=\"pt-check\" id=\"pt-check-3\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m5 13 4 4L19 7\"/></svg>\n          </div>\n\n          <div class=\"pt-row\" id=\"pt-row-4\">\n            <span class=\"pt-fic pt-c2\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M4 21v-1a8 8 0 0 1 16 0v1\"/></svg></span>\n            <span class=\"pt-fname\">agents/<i>*.agent.md</i></span>\n            <svg class=\"pt-check\" id=\"pt-check-4\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m5 13 4 4L19 7\"/></svg>\n          </div>\n\n          <div class=\"pt-row\" id=\"pt-row-5\">\n            <span class=\"pt-fic pt-c4\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8\"/></svg></span>\n            <span class=\"pt-fname\">workflows/<i>copilot-setup-steps.yml</i></span>\n            <svg class=\"pt-check\" id=\"pt-check-5\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m5 13 4 4L19 7\"/></svg>\n          </div>\n\n          <div class=\"pt-grp\">\n            <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m6 9 6 6 6-6\"/></svg>\n            <span>.vscode</span>\n          </div>\n\n          <div class=\"pt-row\" id=\"pt-row-6\">\n            <span class=\"pt-fic pt-c3\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 6h7M4 12h11M4 18h7\"/><circle cx=\"15\" cy=\"6\" r=\"2.2\"/><circle cx=\"19\" cy=\"18\" r=\"2.2\"/></svg></span>\n            <span class=\"pt-fname\">settings.json</span>\n            <svg class=\"pt-check\" id=\"pt-check-6\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m5 13 4 4L19 7\"/></svg>\n          </div>\n\n          <div class=\"pt-row\" id=\"pt-row-7\">\n            <span class=\"pt-fic pt-c3\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 2v4M15 2v4M6.5 8h11l-.8 5.2a4.7 4.7 0 0 1-9.4 0L6.5 8Z\"/><path d=\"M9 17.5V21M15 17.5V21\"/></svg></span>\n            <span class=\"pt-fname\">mcp.json</span>\n            <svg class=\"pt-check\" id=\"pt-check-7\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m5 13 4 4L19 7\"/></svg>\n          </div>\n        </div>\n\n        <!-- The one thing that moves: relabelled and repositioned per stage -->\n        <div class=\"pt-tip\" id=\"pt-tip\">\n          <i class=\"pt-tip-arrow\"></i>\n          <div class=\"pt-tip-ic\" id=\"pt-tip-ic\">🧠</div>\n          <div class=\"pt-tip-label\" id=\"pt-tip-label\">Always-on memory</div>\n          <div class=\"pt-tip-sub\" id=\"pt-tip-sub\">Attached to every chat request.</div>\n        </div>\n      </div>\n\n    </div>\n",
+  "stageCss": "#stage .pt-scene{ position:relative; width:100%; height:100%; }#stage .pt-hook{\n  position:absolute; inset:0; z-index:9; display:flex; flex-direction:column;\n  align-items:center; justify-content:center; gap:20px; text-align:center;\n  background:radial-gradient(circle at 50% 38%, rgba(58,160,255,.16), transparent 60%), #0E1420;\n  opacity:0; pointer-events:none; transition:opacity .3s ease;\n}#stage .pt-hook.on{ opacity:1; }#stage .pt-hook-tag{ color:var(--accent-1); font-family:var(--font-mono); font-size:20px; font-weight:700; letter-spacing:4px; }#stage .pt-hook-q{ color:#fff; font-size:44px; font-weight:800; line-height:1.28; }#stage .pt-hook-q em{ font-style:normal; color:var(--accent-1); }#stage .pt-hook-row{ display:flex; gap:12px; }#stage .pt-hook-ic{\n  width:56px; height:56px; border-radius:14px; display:flex; align-items:center; justify-content:center;\n  background:rgba(139,149,167,.08); border:1.5px solid var(--border); color:var(--text-dim);\n  font-family:var(--font-mono); font-size:24px; font-weight:700;\n  opacity:0; transform:scale(.7);\n  transition:opacity .22s ease, transform .22s cubic-bezier(.22,1,.36,1), border-color .22s ease, color .22s ease, background .22s ease;\n}#stage .pt-hook-ic.on{ opacity:1; transform:none; }#stage .pt-hook-ic.hit{ border-color:rgba(58,160,255,.5); color:var(--accent-1); background:rgba(58,160,255,.12); }#stage .pt-hook-l2{ color:var(--text-primary); font-size:26px; font-weight:600; line-height:1.4; max-width:760px; opacity:0; transition:opacity .3s ease; }#stage .pt-hook-l2 b{ color:var(--accent-1); }#stage .pt-hook-l2.on{ opacity:1; }#stage .pt-win{\n  position:absolute; top:0; left:0; width:992px; height:54px; display:flex; align-items:center; gap:14px;\n  padding:0 20px; border-radius:16px 16px 0 0; background:var(--titlebar); border:1px solid #000;\n  opacity:0; transform:translateY(-8px); transition:opacity .3s ease, transform .3s ease;\n}#stage .pt-win.on{ opacity:1; transform:none; }#stage .pt-win-dots{ display:flex; gap:8px; }#stage .pt-win-dots i{ width:13px; height:13px; border-radius:50%; display:block; }#stage .pt-win-dots i:nth-child(1){ background:#ff5f57; }#stage .pt-win-dots i:nth-child(2){ background:#febc2e; }#stage .pt-win-dots i:nth-child(3){ background:#28c840; }#stage .pt-win-title{ color:var(--text-dim); font-size:19px; font-weight:600; }#stage .pt-progress{\n  margin-left:auto; padding:8px 18px; border-radius:100px;\n  background:rgba(58,160,255,.14); border:1px solid rgba(58,160,255,.35);\n  color:var(--accent-1); font-family:var(--font-mono); font-size:18px; font-weight:700;\n}#stage .pt-body{ position:absolute; top:54px; left:0; width:992px; height:970px; }#stage .pt-explorer{\n  position:relative; width:428px; padding:18px 14px 30px; border-radius:0 0 0 16px;\n  background:var(--editor-sidebar); border:1px solid #000; border-top:none;\n  opacity:0; transition:opacity .3s ease;\n}#stage .pt-explorer.on{ opacity:1; }#stage .pt-exp-h{\n  display:flex; align-items:center; justify-content:space-between; padding:0 6px 14px;\n  color:var(--text-dim); font-size:14px; font-weight:700; letter-spacing:1.6px;\n}#stage .pt-grp{ display:flex; align-items:center; gap:8px; padding:9px 6px; color:var(--text-primary); font-size:19px; font-weight:700; }#stage .pt-grp svg{ width:15px; height:15px; color:var(--text-dim); }#stage .pt-row{\n  position:relative; display:flex; align-items:center; gap:12px; padding:12px 12px 12px 24px;\n  margin-bottom:5px; border-radius:10px; box-shadow:inset 3px 0 0 transparent;\n  opacity:.5; transition:opacity .3s ease, background .25s ease, box-shadow .25s ease;\n}#stage .pt-row.show{ opacity:1; }#stage .pt-row.sel{ background:rgba(58,160,255,.14); box-shadow:inset 3px 0 0 var(--accent-1); }#stage .pt-row.sel .pt-fname{ color:#fff; }#stage .pt-fic{ width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }#stage .pt-fic svg{ width:17px; height:17px; }#stage .pt-fic.pt-c1{ background:rgba(58,160,255,.16); color:var(--accent-1); }#stage .pt-fic.pt-c2{ background:rgba(34,211,238,.14); color:var(--accent-cyan); }#stage .pt-fic.pt-c3{ background:rgba(240,166,74,.16); color:var(--warn); }#stage .pt-fic.pt-c4{ background:rgba(63,185,80,.16); color:var(--success); }#stage .pt-fname{ color:var(--text-primary); font-family:var(--font-mono); font-size:16px; font-weight:600; line-height:1.3; transition:color .25s ease; }#stage .pt-fname i{ color:var(--text-dim); font-style:normal; }#stage .pt-check{\n  margin-left:auto; width:19px; height:19px; color:var(--success); flex-shrink:0;\n  opacity:0; transform:scale(.5); transition:opacity .25s ease, transform .25s cubic-bezier(.22,1,.36,1);\n}#stage .pt-check.on{ opacity:1; transform:none; }#stage .pt-tip{\n  position:absolute; left:460px; width:510px; top:0; padding:26px 28px; border-radius:22px;\n  background:linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));\n  border:1.5px solid rgba(58,160,255,.4);\n  box-shadow:0 20px 55px rgba(0,0,0,.4), 0 0 0 1px rgba(58,160,255,.12);\n  opacity:0; transform:translateX(10px);\n  transition:top .5s cubic-bezier(.22,1,.36,1), opacity .3s ease, transform .3s ease;\n}#stage .pt-tip.show{ opacity:1; transform:none; }#stage .pt-tip-arrow{\n  position:absolute; left:-9px; top:36px; width:16px; height:16px;\n  background:var(--bg-panel); border-left:1.5px solid rgba(58,160,255,.4); border-bottom:1.5px solid rgba(58,160,255,.4);\n  transform:rotate(45deg);\n}#stage .pt-tip-ic{ font-size:36px; line-height:1; margin-bottom:12px; }#stage .pt-tip-label{ color:#fff; font-size:31px; font-weight:800; letter-spacing:-.4px; margin-bottom:9px; }#stage .pt-tip-sub{ color:var(--text-dim); font-size:19px; font-weight:500; line-height:1.42; }\n",
+  "stages": [
+    {
+      "title": "Be honest — how many have you opened?",
+      "key": "how many",
+      "desc": "Copilot reads every one of these files before it suggests a single line. Let’s open them, one by one.",
+      "status": "checking your repository",
+      "thinking": false,
+      "durationMs": 2350,
+      "js": "\n      MSD.cls('#pt-win', 'on', false);\n      MSD.cls('#pt-explorer', 'on', false);\n      MSD.cls('.pt-row', 'show', false);\n      MSD.cls('.pt-row', 'sel', false);\n      MSD.cls('.pt-check', 'on', false);\n      MSD.cls('#pt-tip', 'show', false);\n      MSD.cls('#pt-hook', 'on', true);\n      MSD.hide('.pt-hook-ic');\n      MSD.cls('.pt-hook-ic', 'hit', false);\n      MSD.cls('#pt-hook-l2', 'on', false);\n      MSD.q('#pt-progress-n').textContent = '0';\n      MSD.qa('.pt-hook-ic').forEach(function(el, i){\n        MSD.after(250 + i * 70, function(){ el.classList.add('on'); MSD.sfx.tick(); });\n      });\n      MSD.after(850, function(){ MSD.cls('.pt-hook-ic', 'hit', true); MSD.sfx.pop(); });\n      MSD.after(1100, function(){ MSD.cls('#pt-hook-l2', 'on', true); });\n      MSD.after(1650, function(){\n        MSD.cls('#pt-hook', 'on', false);\n        MSD.cls('#pt-win', 'on', true);\n        MSD.cls('#pt-explorer', 'on', true);\n        MSD.show('.pt-row', 55, true);\n        MSD.sfx.whoosh(true);\n      });\n      "
+    },
+    {
+      "title": "File 1: it never forgets the rules",
+      "key": "never forgets",
+      "desc": "copilot-instructions.md rides along on every request — the closest thing Copilot has to memory.",
+      "status": "reading copilot-instructions.md",
+      "thinking": false,
+      "durationMs": 2300,
+      "js": "\n      MSD.cls('.pt-row', 'sel', false);\n      MSD.cls('#pt-row-1', 'sel', true);\n      var r = MSD.q('#pt-row-1').getBoundingClientRect();\n      var b = MSD.q('#pt-body').getBoundingClientRect();\n      MSD.q('#pt-tip').style.top = Math.max(0, r.top - b.top - 22) + 'px';\n      MSD.cls('#pt-tip', 'show', true);\n      MSD.q('#pt-tip-ic').textContent = \"🧠\";\n      MSD.q('#pt-tip-label').textContent = \"Always-on memory\";\n      MSD.q('#pt-tip-sub').textContent = \"Attached to every chat request in this repo. No path to reference, nothing to import.\";\n      MSD.cls('#pt-check-1', 'on', true);\n      MSD.q('#pt-progress-n').textContent = '1';\n      MSD.after(120, function(){ MSD.sfx.blip(0); MSD.punch('#pt-row-1', 0); });\n      "
+    },
+    {
+      "title": "File 2: rules that know the file type",
+      "key": "know the file type",
+      "desc": "instructions/*.instructions.md scopes different rules to different paths with one glob.",
+      "status": "matching applyTo globs",
+      "thinking": true,
+      "durationMs": 2300,
+      "js": "\n      MSD.cls('.pt-row', 'sel', false);\n      MSD.cls('#pt-row-2', 'sel', true);\n      var r = MSD.q('#pt-row-2').getBoundingClientRect();\n      var b = MSD.q('#pt-body').getBoundingClientRect();\n      MSD.q('#pt-tip').style.top = Math.max(0, r.top - b.top - 22) + 'px';\n      MSD.cls('#pt-tip', 'show', true);\n      MSD.q('#pt-tip-ic').textContent = \"🎯\";\n      MSD.q('#pt-tip-label').textContent = \"Per-path rules\";\n      MSD.q('#pt-tip-sub').textContent = \"A YAML applyTo glob decides who it applies to — one voice for *.tsx, another for *.test.ts.\";\n      MSD.cls('#pt-check-2', 'on', true);\n      MSD.q('#pt-progress-n').textContent = '2';\n      MSD.after(120, function(){ MSD.sfx.blip(1); MSD.punch('#pt-row-2', 1); });\n      "
+    },
+    {
+      "title": "File 3: skills that load themselves",
+      "key": "load themselves",
+      "desc": "SKILL.md bundles instructions, scripts and resources — Copilot pulls it in the moment your ask matches, no slash command required.",
+      "status": "indexing agent skills",
+      "thinking": false,
+      "durationMs": 2300,
+      "js": "\n      MSD.cls('.pt-row', 'sel', false);\n      MSD.cls('#pt-row-3', 'sel', true);\n      var r = MSD.q('#pt-row-3').getBoundingClientRect();\n      var b = MSD.q('#pt-body').getBoundingClientRect();\n      MSD.q('#pt-tip').style.top = Math.max(0, r.top - b.top - 22) + 'px';\n      MSD.cls('#pt-tip', 'show', true);\n      MSD.q('#pt-tip-ic').textContent = \"🧩\";\n      MSD.q('#pt-tip-label').textContent = \"Self-loading skills\";\n      MSD.q('#pt-tip-sub').textContent = \"Matches your ask to a skill's description automatically \\u2014 or type / to call it by name.\";\n      MSD.cls('#pt-check-3', 'on', true);\n      MSD.q('#pt-progress-n').textContent = '3';\n      MSD.after(120, function(){ MSD.sfx.blip(2); MSD.punch('#pt-row-3', 2); });\n      "
+    },
+    {
+      "title": "File 4: chat gets a persona",
+      "key": "a persona",
+      "desc": "A custom agent packages its own tools, model and instructions into one dropdown option.",
+      "status": "loading custom agent",
+      "thinking": false,
+      "durationMs": 2300,
+      "js": "\n      MSD.cls('.pt-row', 'sel', false);\n      MSD.cls('#pt-row-4', 'sel', true);\n      var r = MSD.q('#pt-row-4').getBoundingClientRect();\n      var b = MSD.q('#pt-body').getBoundingClientRect();\n      MSD.q('#pt-tip').style.top = Math.max(0, r.top - b.top - 22) + 'px';\n      MSD.cls('#pt-tip', 'show', true);\n      MSD.q('#pt-tip-ic').textContent = \"🎭\";\n      MSD.q('#pt-tip-label').textContent = \"Custom agents\";\n      MSD.q('#pt-tip-sub').textContent = \"Its own tools, its own model, its own instructions — pick \\\"reviewer\\\" from the agent dropdown. Chat modes got renamed to this.\";\n      MSD.cls('#pt-check-4', 'on', true);\n      MSD.q('#pt-progress-n').textContent = '4';\n      MSD.after(120, function(){ MSD.sfx.blip(3); MSD.punch('#pt-row-4', 3); });\n      "
+    },
+    {
+      "title": "File 5: the agent's launchpad",
+      "key": "launchpad",
+      "desc": "copilot-setup-steps.yml preinstalls everything before the autonomous coding agent starts work.",
+      "status": "provisioning agent sandbox",
+      "thinking": true,
+      "durationMs": 2300,
+      "js": "\n      MSD.cls('.pt-row', 'sel', false);\n      MSD.cls('#pt-row-5', 'sel', true);\n      var r = MSD.q('#pt-row-5').getBoundingClientRect();\n      var b = MSD.q('#pt-body').getBoundingClientRect();\n      MSD.q('#pt-tip').style.top = Math.max(0, r.top - b.top - 22) + 'px';\n      MSD.cls('#pt-tip', 'show', true);\n      MSD.q('#pt-tip-ic').textContent = \"🚀\";\n      MSD.q('#pt-tip-label').textContent = \"Agent's launchpad\";\n      MSD.q('#pt-tip-sub').textContent = \"Preinstalls dependencies before the autonomous coding agent starts in its own sandbox.\";\n      MSD.cls('#pt-check-5', 'on', true);\n      MSD.q('#pt-progress-n').textContent = '5';\n      MSD.after(120, function(){ MSD.sfx.blip(4); MSD.punch('#pt-row-5', 4); });\n      "
+    },
+    {
+      "title": "File 6: flip the switches",
+      "key": "flip the switches",
+      "desc": "settings.json turns Copilot features on or off, per workspace, without touching code.",
+      "status": "applying workspace settings",
+      "thinking": false,
+      "durationMs": 2300,
+      "js": "\n      MSD.cls('.pt-row', 'sel', false);\n      MSD.cls('#pt-row-6', 'sel', true);\n      var r = MSD.q('#pt-row-6').getBoundingClientRect();\n      var b = MSD.q('#pt-body').getBoundingClientRect();\n      MSD.q('#pt-tip').style.top = Math.max(0, r.top - b.top - 22) + 'px';\n      MSD.cls('#pt-tip', 'show', true);\n      MSD.q('#pt-tip-ic').textContent = \"🎚️\";\n      MSD.q('#pt-tip-label').textContent = \"Feature switches\";\n      MSD.q('#pt-tip-sub').textContent = \"Turns features, code review and commit-message behaviour on or off — per repo.\";\n      MSD.cls('#pt-check-6', 'on', true);\n      MSD.q('#pt-progress-n').textContent = '6';\n      MSD.after(120, function(){ MSD.sfx.blip(5); MSD.punch('#pt-row-6', 5); });\n      "
+    },
+    {
+      "title": "File 7: it can touch real systems",
+      "key": "real systems",
+      "desc": "mcp.json connects Copilot to your database, Jira or an internal API as callable tools.",
+      "status": "connecting MCP servers",
+      "thinking": true,
+      "durationMs": 2300,
+      "js": "\n      MSD.cls('.pt-row', 'sel', false);\n      MSD.cls('#pt-row-7', 'sel', true);\n      var r = MSD.q('#pt-row-7').getBoundingClientRect();\n      var b = MSD.q('#pt-body').getBoundingClientRect();\n      MSD.q('#pt-tip').style.top = Math.max(0, r.top - b.top - 22) + 'px';\n      MSD.cls('#pt-tip', 'show', true);\n      MSD.q('#pt-tip-ic').textContent = \"🔌\";\n      MSD.q('#pt-tip-label').textContent = \"Real-world tools\";\n      MSD.q('#pt-tip-sub').textContent = \"Registers Model Context Protocol servers Copilot can call — not just code, real systems.\";\n      MSD.cls('#pt-check-7', 'on', true);\n      MSD.q('#pt-progress-n').textContent = '7';\n      MSD.after(120, function(){ MSD.sfx.blip(6); MSD.punch('#pt-row-7', 6); });\n      "
+    },
+    {
+      "title": "That's the whole rulebook",
+      "key": "whole rulebook",
+      "desc": "Seven files, all versioned in your repo — nothing hidden inside the model.",
+      "status": "seven files · one repo",
+      "thinking": false,
+      "durationMs": 2350,
+      "js": "\n      MSD.cls('.pt-row', 'sel', false);\n      MSD.q('#pt-progress-n').textContent = '7';\n      var last = MSD.q('#pt-row-7').getBoundingClientRect();\n      var b = MSD.q('#pt-body').getBoundingClientRect();\n      MSD.q('#pt-tip').style.top = Math.max(0, last.top - b.top - 22) + 'px';\n      MSD.cls('#pt-tip', 'show', true);\n      MSD.q('#pt-tip-ic').textContent = '🏆';\n      MSD.q('#pt-tip-label').textContent = 'One repo. One rulebook.';\n      MSD.q('#pt-tip-sub').textContent = 'Versioned, reviewable, and yours to edit — not memorised by the model.';\n      MSD.after(150, function(){ MSD.particles('#pt-tip', { count: 14, duration: 1000 }); MSD.sfx.resolve(); });\n      MSD.after(500, function(){ MSD.flash('#pt-explorer'); MSD.sfx.chime(); });\n      "
+    }
+  ],
+  "end": {
+    "title": "Now you know all seven",
+    "sub": "Versioned, reviewable, yours to edit — that's Copilot's real rulebook."
+  },
+  "post": {
+    "caption": "Quick test: how many of these 7 files have you actually opened? GitHub Copilot reads every one of them before it suggests a single line — memory, per-path rules, self-loading skills, custom agents, coding-agent setup, workspace switches, and MCP tools. Here's exactly what each one does.",
+    "hashtags": [
+      "#githubcopilot",
+      "#copilot",
+      "#vscode",
+      "#aiengineering",
+      "#devtools",
+      "#softwareengineering",
+      "#promptengineering",
+      "#msdevbuild"
+    ]
+  },
+  "learn": [
+    "copilot-instructions.md is auto-attached to every chat request — repo-wide, no reference needed",
+    "instructions/*.instructions.md scopes rules per path, skills/SKILL.md loads itself when your ask matches, and agents/*.agent.md (formerly chat modes) packages personas per task",
+    "mcp.json and copilot-setup-steps.yml extend Copilot into real tools and give the autonomous coding agent its own preinstalled sandbox"
+  ],
+  "faq": [
+    {
+      "q": "What files does GitHub Copilot actually read from a repository?",
+      "a": "Up to seven, when a repo uses all of them: .github/copilot-instructions.md for repo-wide rules, .github/instructions/*.instructions.md for path-scoped rules via an applyTo glob, .github/skills/*/SKILL.md for self-loading agent skills, .github/agents/*.agent.md for custom agents, .github/workflows/copilot-setup-steps.yml to provision the coding agent's sandbox, .vscode/settings.json for workspace feature switches, and .vscode/mcp.json to register MCP servers."
+    },
+    {
+      "q": "Are GitHub Copilot chat modes the same thing as custom agents?",
+      "a": "Yes — VS Code renamed chat modes to custom agents in 2026. Existing *.chatmode.md files still work, but the current format is *.agent.md in .github/agents, and the picker now reads \"Configure Custom Agents\" instead of \"Configure Chat Modes.\""
+    },
+    {
+      "q": "Do GitHub Copilot prompt files still work?",
+      "a": "They still run under the Local agent, but VS Code has deprecated *.prompt.md for Agent Host sessions in favor of Agent Skills. A SKILL.md folder bundles instructions, scripts and resources, and Copilot loads it automatically once your request matches its description — you can also still call it manually by typing /."
+    }
+  ],
+  "seoTitle": "GitHub Copilot Project Structure Explained",
+  "keywords": [
+    "github copilot instructions",
+    "copilot-instructions.md",
+    "github copilot project structure",
+    "copilot custom instructions",
+    "copilot custom agents",
+    "copilot agent skills",
+    "model context protocol vscode",
+    "copilot coding agent setup"
+  ]
+}

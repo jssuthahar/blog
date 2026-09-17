@@ -2,7 +2,7 @@
 
 Topic: Azure AI Foundry specialized models (embeddings, image generation, video generation, image analysis, speech) tied to real business problems
 Runtime: ~22s across 8 stages (1080x1920)
-SEO title: Azure AI Foundry Specialized Models Explained With Real Business Use Cases
+SEO title: Azure AI Foundry Specialized Models: Real Use Cases
 Published: 2026-09-17
 
 ## What you will learn

@@ -120,7 +120,7 @@
       "a": "Yes. Embeddings, GPT-image-1, Sora 2, GPT-4.1, and the GPT-4o transcribe/tts pair are all separate task-built models sitting in the same catalog under the same project, so one team's Foundry setup can back retail search, marketing creative, claims triage, and voice support without standing up separate infrastructure for each."
     }
   ],
-  "seoTitle": "Azure AI Foundry Specialized Models Explained With Real Business Use Cases",
+  "seoTitle": "Azure AI Foundry Specialized Models: Real Use Cases",
   "keywords": [
     "azure ai foundry specialized models",
     "azure ai foundry embeddings",

@@ -1,0 +1,181 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE, AUTHOR, MAIN_SITE } from '../config';
+
+// Kept current automatically so the "last updated" line never goes stale.
+const updated = new Date().toLocaleDateString('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
+const schema = [
+  {
+    '@type': 'WebPage',
+    '@id': `${SITE.url}/legal#page`,
+    name: `Legal — ${SITE.title}`,
+    description: `Terms of use, copyright, code sample licensing, and disclaimers for ${SITE.title}.`,
+    about: { '@id': `${SITE.url}/#person` },
+    isPartOf: { '@id': `${SITE.url}/#website` },
+  },
+];
+---
+
+<BaseLayout
+  title="Legal"
+  description={`Terms of use, copyright, code sample licensing and disclaimers for ${SITE.title}.`}
+  schema={schema}
+>
+  <div class="mx-auto max-w-3xl">
+    <header>
+      <p class="eyebrow">Legal</p>
+      <h1 class="display mt-3 text-4xl sm:text-5xl">Terms &amp; Legal Notices</h1>
+      <p class="mt-4 text-sm text-muted">Last updated: {updated}</p>
+    </header>
+
+    <div class="prose-reading mt-10 max-w-none">
+      <p>
+        These terms cover your use of <strong>{SITE.title}</strong> at
+        <a href={SITE.url}>{SITE.url}</a>, a personal publication written and run by
+        {AUTHOR.name}. By reading, downloading, or otherwise using anything on this site,
+        you accept what is set out below. How your data is handled is covered separately
+        on the <a href="/privacy/">privacy page</a>.
+      </p>
+
+      <h2>Whose views these are</h2>
+      <p>
+        Everything here is written in a personal capacity. The articles, code samples,
+        and opinions are my own, and they do not represent the views, positions, or
+        strategy of any employer, client, or organisation I am associated with.
+      </p>
+      <ul>
+        <li>
+          Nothing published here is produced on behalf of an employer or as part of any
+          commercial engagement.
+        </li>
+        <li>
+          No confidential, proprietary, internal, or company-owned information, code, or
+          data appears on this site.
+        </li>
+        <li>
+          Products and platforms are written about from public documentation and my own
+          hands-on use, never from privileged access.
+        </li>
+      </ul>
+
+      <h2>Copyright</h2>
+      <p>
+        All articles, short videos, images, diagrams, and other written material on this
+        site are &copy; {new Date().getFullYear()} {AUTHOR.name}, all rights reserved.
+      </p>
+      <p>
+        You are welcome to quote a short extract for review, commentary, or teaching, as
+        long as you attribute it to {AUTHOR.name} and link back to the original article.
+        Republishing a full article, translating it, or reposting it on another site —
+        including feeding it into a mirror or content farm — is not permitted without
+        written permission. Ask first via the <a href="/contact/">contact page</a>.
+      </p>
+
+      <h2>Code samples</h2>
+      <p>
+        Code published in articles exists to explain an idea. Unless an article says
+        otherwise, you may use, adapt, and ship the snippets in your own projects freely
+        and without attribution.
+      </p>
+      <p>
+        The samples are provided <strong>as is</strong>, without warranty of any kind.
+        They are written for clarity rather than production hardening, so review,
+        test, and secure anything you take from here before it reaches real users or
+        real data.
+      </p>
+
+      <h2>No professional advice</h2>
+      <p>
+        Articles here are technical notes and opinions, not professional advice for your
+        specific situation. Architecture, security, licensing, and cost decisions depend
+        on context I cannot see from here. You remain responsible for validating any
+        approach against your own requirements, and for any outcome of acting on it.
+      </p>
+
+      <h2>Accuracy and availability</h2>
+      <p>
+        Cloud platforms, SDKs, and AI tooling change constantly. An article reflects what
+        was accurate when it was published or last updated — versions, pricing, portal
+        screens, and APIs may have moved since. I correct errors when I find them, but I
+        make no guarantee that every page is current, complete, or uninterrupted.
+      </p>
+
+      <h2>Trademarks</h2>
+      <p>
+        Microsoft, Azure, GitHub, Google, Firebase, Flutter, and all other product and
+        company names referenced on this site are the trademarks of their respective
+        owners. They are used descriptively, for identification and educational purposes
+        only. Their use here does not imply any endorsement of, affiliation with, or
+        sponsorship of this site by those owners.
+      </p>
+
+      <h2>Advertising</h2>
+      <p>
+        This site carries ads served by Google AdSense, which help cover its running
+        costs. Ads are selected by the ad network, not by me, and their appearance beside
+        an article is not a recommendation of the advertised product. The cookies
+        involved are described on the <a href="/privacy/">privacy page</a>.
+      </p>
+
+      <h2>What you submit</h2>
+      <p>
+        Some parts of the site accept input from readers — the contact form, comments,
+        reactions, testimonials, and event registration. By submitting something you
+        confirm it is yours to share, and you give me permission to display it on the
+        site where that is the obvious purpose, such as a testimonial or a comment.
+      </p>
+      <p>
+        Please do not submit confidential material, credentials, or anyone else's
+        personal information. I may edit or remove any submission that is unlawful,
+        abusive, off-topic, or spam.
+      </p>
+
+      <h2>Acceptable use</h2>
+      <p>
+        You may read, link to, and share this site freely. You may not attempt to break
+        into or disrupt it, scrape it at a volume that degrades it for other readers, or
+        reuse its content in bulk to train or populate another publication or model.
+      </p>
+
+      <h2>External links</h2>
+      <p>
+        Articles link out to documentation, repositories, and other sites. Those are not
+        under my control, and a link is not an endorsement of the destination's content,
+        terms, or privacy practices.
+      </p>
+
+      <h2>Liability</h2>
+      <p>
+        To the fullest extent permitted by law, {AUTHOR.name} is not liable for any loss
+        or damage arising from your use of this site or anything published on it,
+        including any code sample or linked resource.
+      </p>
+
+      <h2>Corrections and takedown requests</h2>
+      <p>
+        If you believe something here is factually wrong, infringes your copyright, or
+        should not be published, tell me through the <a href="/contact/">contact page</a>
+        with enough detail to identify the page. Genuine issues get fixed or removed
+        quickly.
+      </p>
+
+      <h2>Changes to these terms</h2>
+      <p>
+        These terms may be updated from time to time. Changes are posted on this page
+        with a revised "last updated" date above, and continuing to use the site means
+        you accept the current version.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions about anything on this page, or about {MAIN_SITE.label}? Reach out
+        through the <a href="/contact/">contact page</a>.
+      </p>
+    </div>
+  </div>
+</BaseLayout>

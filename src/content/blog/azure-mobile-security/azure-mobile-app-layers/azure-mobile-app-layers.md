@@ -3,6 +3,8 @@ title: 'How Azure Protects a Mobile App: The Full Request Flow, Layer by Layer'
 seoTitle: 'How Azure Protects a Mobile App'
 description: 'Front Door, your API, Microsoft Entra ID, authorization and a private database — the five layers that stand between a mobile app and its data on Azure.'
 highlight: 'Authentication and authorization are two different questions. Entra ID proves who is calling; your API still has to decide what they may see, with a WHERE clause, not middleware.'
+cover: './images/azure-mobile-app-security-layers-cover.png'
+coverAlt: 'Share banner headed AZURE - SECURING A MOBILE APP and "Five layers, five questions", with the line "If there is a straight line between your app and your database, that line is your entire attack surface." On the right, a red panel titled ONE STRAIGHT LINE shows a phone joined to an Azure SQL database by a single dashed red arrow marked TCP 1433, noting that every permission the app holds goes to whoever holds the app and that nothing in between asks a question. An arrow marked "instead" leads to a green panel titled WHAT STANDS BETWEEN THEM - Front Door, your API, Entra ID, authorization, private endpoint - where five upright bars stand between the same phone and the same database, each one answering a question the others do not cover.'
 publishedAt: 2026-08-18
 category: azure
 categories: ['mobile']

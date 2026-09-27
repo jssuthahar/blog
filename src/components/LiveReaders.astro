@@ -1,0 +1,256 @@
+---
+/**
+ * "N reading now" plus the countries this article's readers came from.
+ *
+ * Social proof that is actually true. Every number here is a real count of real
+ * browsers — nothing is seeded, unlike the view and reaction counters, because
+ * a fabricated *live* number is a claim that people are in the room when they
+ * are not. If one person is reading, it says one.
+ *
+ * ## How it stays inside the Firestore free tier
+ *
+ * The obvious design — a document per reader, queried for "who is still here" —
+ * costs one read per reader per poll, so it grows as N². Twenty concurrent
+ * readers would burn the daily free quota before lunch.
+ *
+ * Instead there are two aggregate collections and no per-reader state:
+ *
+ *   presenceMinutes/{YYYYMMDDHHmm}   counts per country, one clock minute
+ *   presenceDays/{YYYYMMDD}          counts per country, one day
+ *
+ * A reader increments the *current* minute bucket once a minute while the tab
+ * is visible, and reads the *previous, complete* minute bucket to paint the
+ * figure. Writing to one bucket and reading another is what makes the count
+ * exact rather than double-counted: everyone active in minute M appears in
+ * bucket M exactly once, and bucket M never changes again once M has passed.
+ *
+ * That is one write and one read per reader per minute, regardless of how many
+ * other people are on the site. The five-day strip is five reads, cached in
+ * localStorage for an hour, and the daily bucket is written once per session.
+ *
+ * Buckets are keyed by time, so old ones simply stop being asked for. There is
+ * no cleanup job and nothing to schedule.
+ *
+ * ## Privacy
+ *
+ * The country comes from `Intl.DateTimeFormat().resolvedOptions().timeZone`,
+ * which is already in the browser. No IP is read, nothing is sent to a third
+ * party, no cookie is set, and the only thing written is a two-letter country
+ * code on a shared counter. A zone this site does not recognise is skipped
+ * rather than guessed at.
+ */
+import { FIREBASE } from '../config';
+import { ZONE_MAP, COUNTRY_NAMES } from '../lib/country';
+
+const enabled = FIREBASE.projectId.length > 0;
+---
+
+{enabled && (
+  <div data-live-readers class="live-readers not-prose" hidden aria-live="polite">
+    <p class="lr-line" data-lr-live-countries hidden></p>
+    <p class="lr-line lr-days" data-lr-days hidden></p>
+  </div>
+)}
+
+<style>
+  /* A slim line under the article header, not a card. It sits with the byline
+     and read time rather than competing with the title. */
+  .live-readers {
+    margin: 0 0 1.5rem;
+  }
+
+  .lr-line {
+    margin: 0.2rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--text-muted);
+    text-wrap: pretty;
+  }
+
+  .lr-days b {
+    color: var(--text);
+    font-weight: 600;
+  }
+</style>
+
+<style is:global>
+  /* The count itself rides in the article meta row, beside "N min read". */
+  .lr-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lr-meta[hidden] { display: none; }
+
+  .lr-dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--accent) 55%, transparent);
+    animation: lr-pulse 2.4s ease-out infinite;
+  }
+
+  @keyframes lr-pulse {
+    70% { box-shadow: 0 0 0 0.45rem transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lr-dot { animation: none; }
+  }
+</style>
+
+{enabled && (
+  <script is:inline define:vars={{ projectId: FIREBASE.projectId, ZONES: ZONE_MAP, NAMES: COUNTRY_NAMES }}>
+    (() => {
+      const box = document.querySelector('[data-live-readers]');
+      if (!box) return;
+
+      const BASE = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
+      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const CC = ZONES[zone] || null;          // null = unknown zone, never guessed
+
+      const flag = (c) =>
+        /^[A-Z]{2}$/.test(c)
+          ? String.fromCodePoint(...[...c].map((ch) => 0x1f1e6 + ch.charCodeAt(0) - 65))
+          : '';
+      const name = (c) => NAMES[c] || c;
+
+      const pad = (n) => String(n).padStart(2, '0');
+      const minuteKey = (d) =>
+        `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}`;
+      const dayKey = (d) =>
+        `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}`;
+
+      /** Firestore REST returns {integerValue:"3"} shaped values. */
+      const countsOf = (doc) => {
+        const f = doc && doc.fields && doc.fields.counts && doc.fields.counts.mapValue;
+        const out = {};
+        if (!f || !f.fields) return out;
+        for (const [k, v] of Object.entries(f.fields)) out[k] = Number(v.integerValue || 0);
+        return out;
+      };
+
+      /** One field transform: counts.<CC> += 1. Creates the doc if absent. */
+      async function bump(collection, docId) {
+        if (!CC) return;
+        await fetch(`${BASE}:commit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            // update + updateMask + updateTransforms, matching Reactions.astro.
+            // A bare `transform` write is rejected by this API version with an
+            // HTML 404, which looks like a wrong URL rather than a wrong body.
+            writes: [{
+              update: {
+                name: `projects/${projectId}/databases/(default)/documents/${collection}/${docId}`,
+                fields: {},
+              },
+              updateMask: { fieldPaths: [] },
+              updateTransforms: [{ fieldPath: `counts.${CC}`, increment: { integerValue: '1' } }],
+            }],
+          }),
+        }).catch(() => {});
+      }
+
+      async function getDoc(collection, docId) {
+        try {
+          const r = await fetch(`${BASE}/${collection}/${docId}`);
+          return r.ok ? await r.json() : null;
+        } catch { return null; }
+      }
+
+      // --- live figure ----------------------------------------------------
+      // Read the PREVIOUS minute: it is complete and will never change again,
+      // so every reader active in it is counted exactly once.
+      async function paintLive() {
+        const prev = new Date(Date.now() - 60_000);
+        const counts = countsOf(await getDoc('presenceMinutes', minuteKey(prev)));
+        const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+        const total = entries.reduce((n, [, v]) => n + v, 0);
+        if (!total) return;                      // nothing to say yet, stay hidden
+
+        // The count goes in the article meta row, beside "N min read"; the
+        // country breakdown goes in the strip under the header.
+        const meta = document.querySelector('[data-lr-meta]');
+        if (meta) {
+          meta.querySelector('[data-lr-count]').textContent = String(total);
+          meta.querySelector('[data-lr-word]').textContent =
+            total === 1 ? 'reading now' : 'reading now';
+          meta.hidden = false;
+        }
+
+        box.hidden = false;
+        const strip = box.querySelector('[data-lr-live-countries]');
+        strip.textContent =
+          'Reading right now: ' +
+          entries.slice(0, 6).map(([c, n]) => `${flag(c)} ${name(c)} ${n}`).join('  ·  ');
+        strip.hidden = false;
+      }
+
+      // --- five-day country strip ----------------------------------------
+      async function paintDays() {
+        const el = box.querySelector('[data-lr-days]');
+        const cacheKey = 'lr-days-v1';
+        let cached = null;
+        try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch {}
+        let totals;
+        if (cached && Date.now() - cached.at < 3_600_000) {
+          totals = cached.totals;
+        } else {
+          totals = {};
+          const days = [...Array(5)].map((_, i) => dayKey(new Date(Date.now() - i * 86_400_000)));
+          const docs = await Promise.all(days.map((d) => getDoc('presenceDays', d)));
+          for (const doc of docs) {
+            for (const [c, n] of Object.entries(countsOf(doc))) totals[c] = (totals[c] || 0) + n;
+          }
+          try { localStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), totals })); } catch {}
+        }
+        const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+        if (!entries.length) return;
+        box.hidden = false;
+        const shown = entries.slice(0, 8).map(([c, n]) => `${flag(c)} ${name(c)} ${n}`).join('  ·  ');
+        const more = entries.length > 8 ? `  ·  +${entries.length - 8} more` : '';
+        el.innerHTML = `Read from <b>${entries.length}</b> ${entries.length === 1 ? 'country' : 'countries'} in the last 5 days — ${shown}${more}`;
+        el.hidden = false;
+      }
+
+      // --- heartbeat ------------------------------------------------------
+      // Once a minute while the tab is visible. A hidden tab stops writing, so
+      // a background tab left open overnight is not counted as a reader.
+      let timer = null;
+      function beat() {
+        if (document.visibilityState !== 'visible') return;
+        bump('presenceMinutes', minuteKey(new Date()));
+        paintLive();
+      }
+      function start() {
+        if (timer) return;
+        beat();
+        timer = setInterval(beat, 60_000);
+      }
+      function stop() {
+        if (timer) { clearInterval(timer); timer = null; }
+      }
+
+      document.addEventListener('visibilitychange', () =>
+        document.visibilityState === 'visible' ? start() : stop());
+
+      // The daily bucket counts readers, not minutes, so it is written once per
+      // browser session rather than on every heartbeat.
+      try {
+        if (CC && !sessionStorage.getItem('lr-day-v1')) {
+          sessionStorage.setItem('lr-day-v1', '1');
+          bump('presenceDays', dayKey(new Date()));
+        }
+      } catch {}
+
+      start();
+      paintDays();
+    })();
+  </script>
+)}

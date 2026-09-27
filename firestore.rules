@@ -31,6 +31,73 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Live presence, and the five-day country strip.
+    //
+    // Two aggregate collections, no per-reader documents and nothing that
+    // identifies anybody. A reader's country comes from their own browser
+    // timezone (src/lib/country.ts) — no IP is ever seen, by this site or by
+    // anyone else — and only a two-letter country code is ever written.
+    //
+    // presenceMinutes/{YYYYMMDDHHmm}  one doc per clock minute, counts per country
+    // presenceDays/{YYYYMMDD}         one doc per day, counts per country
+    //
+    // A write may only ever touch `counts`, and only a single key from the
+    // fixed list below — the same ISO codes src/lib/country.ts can produce.
+    // Documents are keyed by time, so old ones age out of every query on their
+    // own and there is no cleanup job.
+    //
+    // What these rules deliberately do NOT pin down: that an update adds
+    // exactly 1. Rules cannot index the changed key out of a Set, so the +1
+    // check the views counter uses is not expressible against a map. The worst
+    // case is therefore "someone inflates a reader count" — the same category
+    // as "someone scripts extra page views" — and never arbitrary data, a wiped
+    // counter, or anything personal.
+    function countryKeys() {
+      return [
+        'AE', 'AF', 'AM', 'AR', 'AT', 'AU', 'AZ', 'BD', 'BE', 'BG',
+        'BH', 'BN', 'BO', 'BR', 'BY', 'CA', 'CD', 'CH', 'CI', 'CL',
+        'CN', 'CO', 'CR', 'CU', 'CZ', 'DE', 'DK', 'DO', 'DZ', 'EC',
+        'EE', 'EG', 'ES', 'ET', 'FI', 'FJ', 'FR', 'GB', 'GE', 'GH',
+        'GR', 'GT', 'GU', 'HK', 'HR', 'HU', 'ID', 'IE', 'IL', 'IN',
+        'IQ', 'IR', 'IS', 'IT', 'JM', 'JO', 'JP', 'KE', 'KG', 'KH',
+        'KR', 'KW', 'KZ', 'LA', 'LB', 'LK', 'LT', 'LU', 'LV', 'MA',
+        'MM', 'MN', 'MO', 'MT', 'MX', 'MY', 'MZ', 'NG', 'NL', 'NO',
+        'NP', 'NZ', 'OM', 'PA', 'PE', 'PG', 'PH', 'PK', 'PL', 'PR',
+        'PS', 'PT', 'PY', 'QA', 'RO', 'RS', 'RU', 'SA', 'SD', 'SE',
+        'SG', 'SI', 'SK', 'SN', 'SY', 'TH', 'TJ', 'TN', 'TR', 'TW',
+        'TZ', 'UA', 'UG', 'US', 'UY', 'UZ', 'VE', 'VN', 'ZA', 'ZM',
+        'ZW'
+      ];
+    }
+
+    function touchesOneCountry() {
+      let before = ('counts' in resource.data) ? resource.data.counts : {};
+      let touched = request.resource.data.counts.diff(before).affectedKeys();
+      return touched.size() == 1 && touched.hasOnly(countryKeys());
+    }
+
+    function createsOneCountry() {
+      return request.resource.data.keys().hasOnly(['counts'])
+             && request.resource.data.counts.keys().size() == 1
+             && request.resource.data.counts.keys().hasOnly(countryKeys());
+    }
+
+    match /presenceMinutes/{minute} {
+      allow read: if true;
+      allow create: if createsOneCountry();
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['counts'])
+                    && touchesOneCountry();
+      allow delete: if isAdmin();
+    }
+
+    match /presenceDays/{day} {
+      allow read: if true;
+      allow create: if createsOneCountry();
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['counts'])
+                    && touchesOneCountry();
+      allow delete: if isAdmin();
+    }
+
     // Per-article reactions (like / love / celebrate / insightful).
     //
     // One document per article holds a count per reaction, incremented with a

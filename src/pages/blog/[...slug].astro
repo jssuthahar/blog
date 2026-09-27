@@ -6,6 +6,7 @@ import TableOfContents from '../../components/TableOfContents.astro';
 import ReadingProgress from '../../components/ReadingProgress.astro';
 import ShareRow from '../../components/ShareRow.astro';
 import Reactions from '../../components/Reactions.astro';
+import LiveReaders from '../../components/LiveReaders.astro';
 import EngagementRail from '../../components/EngagementRail.astro';
 import FeedbackDialog from '../../components/FeedbackDialog.astro';
 import ArticleChat from '../../components/ArticleChat.astro';
@@ -242,6 +243,13 @@ const shareImage = data.cover
         )}
         <span>{minutes} min read</span>
         <ViewCounter slug={post.id} />
+        {/* Filled by LiveReaders' script once the previous minute has a count;
+            hidden until then, so it never shows a stale or invented number. */}
+        <span class="lr-meta" data-lr-meta hidden>
+          <span class="lr-dot" aria-hidden="true"></span>
+          <strong data-lr-count>—</strong>
+          <span data-lr-word>reading now</span>
+        </span>
       </Fragment>
     </ReaderTools>
 
@@ -262,6 +270,8 @@ const shareImage = data.cover
 
     <div class="mt-12 gap-12 lg:grid lg:grid-cols-[minmax(0,1fr)_15rem]">
       <div class="mx-auto min-w-0 max-w-3xl">
+        <LiveReaders />
+
         {seriesPosts.length > 1 && (
           <aside class="mb-10 rounded-xl border border-default bg-subtle p-5" aria-label="Series navigation">
             <div class="flex items-baseline justify-between gap-3">

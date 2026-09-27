@@ -301,7 +301,7 @@ The order matters when you secure a legacy system. Start with the cheap automate
 2. **Use the cybersecurity agent to sort the alerts.** It can turn fifty alerts into a short list with a priority and an explanation.
 3. **Use the security agent on login, authorization, and data-access code.** Ask it to check the rules in your Skill.
 4. **Use human time on the hard questions.** Start with the highest-risk endpoints and use the checklist below.
-5. **Turn each confirmed bug into a test.** The agent can draft the test. A person must first confirm that the test fails on the old code. This uses the [characterization-test approach from Part 3](../safely-change-legacy-code-github-copilot-characterization-tests) for security.
+5. **Turn each confirmed bug into a test.** The agent can draft the test. A person must first confirm that the test fails on the old code. This is the characterization-test approach applied to security: pin the current behaviour in a test first, watch it fail on the old code, and only then change anything.
 6. **Add the checks to branch protection.** This stops the same debt from returning.
 
 ### The human-owned security checklist

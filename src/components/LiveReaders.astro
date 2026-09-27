@@ -195,8 +195,9 @@ const enabled = FIREBASE.projectId.length > 0;
 {enabled && (
   <script is:inline define:vars={{ projectId: FIREBASE.projectId, ZONES: ZONE_MAP, NAMES: COUNTRY_NAMES }}>
     (() => {
-      const box = document.querySelector('[data-live-readers]');
-      if (!box) return;
+      // Re-resolved per page: this site uses Astro's ClientRouter, so a soft
+      // navigation swaps the DOM and any node captured at first load is stale.
+      let box = null;
 
       const BASE = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
       const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -332,12 +333,12 @@ const enabled = FIREBASE.projectId.length > 0;
       // a background tab left open overnight is not counted as a reader.
       let timer = null;
       function beat() {
-        if (document.visibilityState !== 'visible') return;
+        if (!box || document.visibilityState !== 'visible') return;
         bump('presenceMinutes', minuteKey(new Date()));
         paintLive();
       }
       function start() {
-        if (timer) return;
+        if (timer || !box) return;
         beat();
         timer = setInterval(beat, 60_000);
       }
@@ -345,20 +346,33 @@ const enabled = FIREBASE.projectId.length > 0;
         if (timer) { clearInterval(timer); timer = null; }
       }
 
+      // Listeners are attached once, not per navigation, or each soft page load
+      // would add another and the heartbeat would multiply.
       document.addEventListener('visibilitychange', () =>
         document.visibilityState === 'visible' ? start() : stop());
 
-      // The daily bucket counts readers, not minutes, so it is written once per
-      // browser session rather than on every heartbeat.
-      try {
-        if (CC && !sessionStorage.getItem('lr-day-v1')) {
-          sessionStorage.setItem('lr-day-v1', '1');
-          bump('presenceDays', dayKey(new Date()));
-        }
-      } catch {}
+      function init() {
+        stop();                                   // drop the previous page's timer
+        box = document.querySelector('[data-live-readers]');
+        if (!box) return;                         // not an article page
 
-      start();
-      paintDays();
+        // The daily bucket counts readers, not minutes, so it is written once
+        // per browser session rather than on every heartbeat or navigation.
+        try {
+          if (CC && !sessionStorage.getItem('lr-day-v1')) {
+            sessionStorage.setItem('lr-day-v1', '1');
+            bump('presenceDays', dayKey(new Date()));
+          }
+        } catch {}
+
+        start();
+        paintDays();
+      }
+
+      // astro:page-load fires on the first load AND after every client-side
+      // navigation, which is the whole reason this is not a bare call.
+      document.addEventListener('astro:page-load', init);
+      document.addEventListener('astro:before-swap', stop);
     })();
   </script>
 )}

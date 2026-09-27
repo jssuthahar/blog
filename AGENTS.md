@@ -44,6 +44,14 @@ Conventions agents should follow:
 - If a post uses MDX-only UI like custom callouts or YouTube embeds, keep the file extension `.mdx`.
 - Do not add blog categories outside the slug set defined in `src/lib/taxonomy.ts`.
 - Keep content changes separate from UI or layout changes unless they are directly related.
+- Each article lives in its own folder — `src/content/blog/<series>/<article-slug>/`
+  holding the `.mdx`, an `images/` folder and a `diagrams/` folder. The filename is
+  the URL, so moving an article into a folder never changes its slug; its cover and
+  body images must move with it.
+- Article figures are drawn in draw.io, never as components. Sources live in the
+  article's `diagrams/`, exports in its `images/`, and the shared builders in
+  [scripts/drawio_kit.py](scripts/drawio_kit.py). Reference an exported PNG relatively
+  so Astro optimises it, and wrap it in `<figure>`/`<figcaption>` with descriptive alt text.
 
 Useful references in this repo:
 
@@ -55,6 +63,8 @@ Useful references in this repo:
 - Topic/category source of truth: [src/lib/taxonomy.ts](src/lib/taxonomy.ts)
 - Site settings and feature flags: [src/config.ts](src/config.ts)
 - Sync scripts and data caches: [scripts/](scripts)
+- Diagram builders and the draw.io workflow: [scripts/drawio_kit.py](scripts/drawio_kit.py)
+- Icon sets and their licences: [public/icons/NOTICE.md](public/icons/NOTICE.md)
 
 If you (the human) want additional agent behaviors, ask to create:
 

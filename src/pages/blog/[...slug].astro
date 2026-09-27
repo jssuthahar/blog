@@ -40,6 +40,7 @@ import {
   type Post,
 } from '../../lib/posts';
 import { entitiesForTags } from '../../lib/taxonomy';
+import { getImage } from 'astro:assets';
 import { relatedShortsForPost } from '../../lib/app-feed';
 import { getShorts, shortUrl } from '../../lib/shorts';
 
@@ -158,6 +159,20 @@ if (data.faq.length > 0) {
     })),
   });
 }
+
+/**
+ * The share image: an authored cover when the post has one, otherwise the card
+ * drawn at build time in lib/og-card.ts.
+ *
+ * A real banner someone drew beats a generated card in a feed, so the cover
+ * wins when it exists. It is re-emitted at exactly 1200×630 and cropped to fit
+ * rather than letterboxed, because that is the box LinkedIn, X, WhatsApp and
+ * Slack all crop to anyway — better to choose the crop than to be handed one.
+ * PNG rather than WebP: some crawlers still do not fetch WebP share images.
+ */
+const shareImage = data.cover
+  ? (await getImage({ src: data.cover, width: 1200, height: 630, format: 'png', fit: 'cover' })).src
+  : `/og/${post.id}.png`;
 ---
 
 <BaseLayout
@@ -168,7 +183,7 @@ if (data.faq.length > 0) {
   publishedAt={data.publishedAt}
   updatedAt={data.updatedAt}
   markdownUrl={`${path}.md`}
-  image={`/og/${post.id}.png`}
+  image={shareImage}
   schema={schema}
   wide
 >

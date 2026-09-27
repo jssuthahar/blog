@@ -5,7 +5,10 @@ share card and the article it points at look like the same hand made both.
 Exported at scale 2 for retina; the aspect stays 1200:630.
 """
 import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "scripts"))
+_p = pathlib.Path(__file__).resolve()
+while not (_p / "scripts" / "drawio_kit.py").exists():
+    _p = _p.parent
+sys.path.insert(0, str(_p / "scripts"))
 from drawio_kit import *   # noqa: F403
 
 W, H = 1200, 630

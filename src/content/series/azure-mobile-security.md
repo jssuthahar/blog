@@ -1,6 +1,6 @@
 ---
 title: 'Securing a Mobile App on Azure'
-description: 'A working mobile app secured end to end on Azure — the key that should never ship, the layers between the app and the database, and what actually happens when you tap Sign in.'
+description: 'A mobile app secured end to end on Azure: the key that should never ship, the layers between app and database, and what happens when you tap Sign in.'
 order: 6
 ---
 

@@ -183,21 +183,26 @@ def free_edge(i, x1, y1, x2, y2, label="", dashed=False, color=None, width=2,
 
 # --- composite shapes -------------------------------------------------------
 
-def chain(cells, steps, cx=300, top=40, w=320, h=62, gap=30):
-    """A linear sequence. `steps` are (label, note) or (label, note, 'accent')."""
+def chain(cells, steps, cx=300, top=40, w=320, h=62, gap=30, prefix="c"):
+    """A linear sequence. `steps` are (label, note) or (label, note, 'accent').
+
+    `prefix` namespaces the cell ids. Two chains in one diagram with the same
+    prefix produce duplicate ids, and a duplicate id makes draw.io fail the
+    whole export with nothing but "Export failed" to go on.
+    """
     y = top
     ids = []
     for n, s in enumerate(steps, 1):
         label, note = s[0], s[1]
         accent = len(s) > 2 and s[2] == "accent"
-        i = f"c{n}"
+        i = f"{prefix}{n}"
         cells.append(box(i, f"{n}. {label}\n{note}", cx - w // 2, y, w, h,
                          GRN_F if accent else "#FFFFFF", GRN_S if accent else STROKE,
                          align="left", bold_first=True))
         ids.append(i)
         y += h + gap
     for n in range(len(ids) - 1):
-        cells.append(edge(f"ce{n}", ids[n], ids[n + 1]))
+        cells.append(edge(f"{prefix}e{n}", ids[n], ids[n + 1]))
     return ids, y
 
 
@@ -359,7 +364,24 @@ def fanout(cells, hub, branches, join=None, result=None, cx=460, top=40, bw=230,
         ry = y + 66
         cells.append(box("res", f"{result[0]}\n{result[1]}" if result[1] else result[0],
                          cx - 190, ry, 380, 58, GRN_F, GRN_S, align="left", bold_first=bool(result[1])))
-        cells.append(edge("jr", "jn" if join else "hub", "res"))
+        if join:
+            cells.append(edge("jr", "jn", "res"))
+        elif k <= 3:
+            # Without a join, a hub-to-result edge would be drawn straight down
+            # THROUGH whichever branch sits under the hub. Converge from the
+            # branches instead, which is also what the picture means.
+            for j in range(k):
+                cells.append(edge(f"jr{j}", f"br{j}", "res"))
+        else:
+            # Spine layout: mirror the fan-out on the right, exactly as a join
+            # does, because diagonals here cut through every box they pass.
+            right_x, by_, gap_, bh_ = spine_geo
+            rx = right_x + 60
+            for j in range(k):
+                mid = by_ + j * (bh_ + gap_) + bh_ // 2
+                cells.append(free_edge(f"jr{j}", right_x, mid, rx, mid, ""))
+            cells.append(free_edge("rres", rx, by_ + bh_ // 2, cx, ry, "",
+                                   points=[(rx, ry - 30), (cx, ry - 30)], width=2))
         y = ry + 58
     return ids, y
 
@@ -402,3 +424,94 @@ def write(out_dir, filename, name, cells):
     p = pathlib.Path(out_dir) / f"{filename}.drawio"
     p.write_text(wrap(name, cells))
     return p
+
+
+# --- the share banner -------------------------------------------------------
+
+BANNER_W, BANNER_H = 1200, 630
+
+def banner(cells, eyebrow, headline, subhead, chain, vias=None, right_x=700, right_w=430):
+    """A 1200x630 share card: words on the left, the thesis drawn on the right.
+
+    `headline` and `subhead` are lists of lines — breaking them by hand beats
+    trusting a wrap at this size, where one wrong break wastes a third of the
+    card. `chain` is a list of (title, note, kind) with kind in bad / warn /
+    good / plain, and `vias` labels the arrows between them.
+
+    The layout is fixed on purpose. These cards are a set: the left column is
+    identical across articles so the series is recognisable in a feed, and only
+    the right-hand drawing changes.
+    """
+    PAL = {'bad': (RED_F, RED_S), 'warn': (AMB_F, AMB_S),
+           'good': (GRN_F, GRN_S), 'plain': (GREY_F, GREY_S)}
+    cells.append(box("canvas", "", 0, 0, BANNER_W, BANNER_H, "#FFFFFF", "none"))
+    cells.append(text("eyebrow", eyebrow, 72, 96, 560, 24, size=17, color=BLUE, bold=True))
+    y = 150
+    for i, line in enumerate(headline):
+        cells.append(text(f"h{i}", line, 72, y, 600, 62, size=52, bold=True))
+        y += 62
+    y += 26
+    for i, line in enumerate(subhead):
+        cells.append(text(f"s{i}", line, 72, y, 580, 34, size=23, color=MUTED))
+        y += 34
+    cells.append(box("rule", "", 72, max(y + 22, 402), 90, 4, BLUE, "none"))
+    base = max(y + 22, 402) + 38
+    cells.append(text("brand", "MSDEVBUILD", 72, base, 320, 28, size=19, bold=True))
+    cells.append(text("byline", "Suthahar Jegatheesan", 72, base + 28, 320, 24, size=17, color=MUTED))
+
+    n = len(chain)
+    gap = 56 if n > 2 else 74
+    bh = 72
+    total = n * bh + (n - 1) * gap
+    cy = (BANNER_H - total) // 2
+    for i, (title, note, kind) in enumerate(chain):
+        fill, stroke = PAL[kind]
+        cells.append(box(f"r{i}", f"{title}\n{note}" if note else title,
+                         right_x, cy + i * (bh + gap), right_w, bh,
+                         fill, stroke, size=16, align="left", bold_first=bool(note)))
+        if i:
+            label = (vias or [])[i - 1] if vias and len(vias) >= i else ""
+            colour = PAL[chain[i][2]][1] if chain[i][2] in ('bad', 'good') else ARROW
+            y0 = cy + (i - 1) * (bh + gap) + bh
+            cells.append(free_edge(f"rv{i}", right_x + right_w // 2, y0,
+                                   right_x + right_w // 2, y0 + gap, label, color=colour))
+    return cells
+
+
+def flowchart(cells, start, steps, end, cx=300, top=30, reject_x=560):
+    """A decision chain: rounded start, rhombus decisions, rounded end.
+
+    `steps` is a list of either:
+      ("decision text", "no-branch label", "kind")  -> a rhombus whose no path
+          leaves right into a terminator, kind being bad / warn / plain
+      ("process text", None, "process")             -> a plain rectangle
+
+    Every branch is labelled, because an unlabelled fork makes the reader guess
+    which way is which — the one thing a flowchart exists to remove.
+    """
+    PAL = {'bad': (RED_F, RED_S), 'warn': (AMB_F, AMB_S), 'plain': (GREY_F, GREY_S)}
+    ids = []
+    y = top
+    cells.append(terminator("fc_start", start, cx - 130, y, 260, 48))
+    ids.append("fc_start")
+    y += 48 + 44
+    for i, (label, no_label, kind) in enumerate(steps):
+        i_id = f"fc{i}"
+        if kind == 'process':
+            cells.append(box(i_id, label, cx - 140, y, 280, 56, FILL, STROKE, size=12))
+            h = 56
+        else:
+            cells.append(decision(i_id, label, cx - 140, y))
+            h = 96
+            fill, stroke = PAL.get(kind, PAL['bad'])
+            r_id = f"fcr{i}"
+            cells.append(terminator(r_id, no_label, reject_x, y + (h - 48) // 2, 190, 48, fill, stroke))
+            cells.append(edge(f"fcn{i}", i_id, r_id, "no", exitX=1, exitY=0.5,
+                              color=stroke, dashed=True))
+        cells.append(edge(f"fce{i}", ids[-1], i_id, "" if i == 0 or steps[i-1][2] == 'process' else "yes"))
+        ids.append(i_id)
+        y += h + 44
+    cells.append(terminator("fc_end", end, cx - 130, y, 260, 48, GRN_F, GRN_S))
+    cells.append(edge("fce_end", ids[-1], "fc_end",
+                      "" if steps[-1][2] == 'process' else "yes"))
+    return ids, y + 48

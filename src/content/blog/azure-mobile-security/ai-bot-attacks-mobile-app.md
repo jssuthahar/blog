@@ -1,7 +1,7 @@
 ---
 title: 'An AI-Speed Bot Is Attacking Your Login Endpoint Right Now'
 seoTitle: 'Automated Attacks on a Mobile App and How Azure Stops Them'
-description: 'A script, not a person, tries 8,000 passwords a minute against your login endpoint at 3am. Rate limiting, smart lockout and Defender for Cloud make speed the losing move.'
+description: 'A script tries 8,000 passwords a minute against your login endpoint at 3am. Rate limiting, smart lockout and Defender for Cloud make speed the losing move.'
 highlight: 'A CAPTCHA protects a web form. The bot is calling the same API your app calls, straight from a server — the control has to live at the API, not the UI.'
 publishedAt: 2026-08-30
 category: azure

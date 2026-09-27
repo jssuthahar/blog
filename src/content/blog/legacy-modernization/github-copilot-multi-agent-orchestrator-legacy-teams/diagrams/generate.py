@@ -1,5 +1,8 @@
 import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "scripts"))
+_p = pathlib.Path(__file__).resolve()
+while not (_p / "scripts" / "drawio_kit.py").exists():
+    _p = _p.parent
+sys.path.insert(0, str(_p / "scripts"))
 from drawio_kit import *   # noqa: F403
 
 OUT = pathlib.Path(__file__).parent

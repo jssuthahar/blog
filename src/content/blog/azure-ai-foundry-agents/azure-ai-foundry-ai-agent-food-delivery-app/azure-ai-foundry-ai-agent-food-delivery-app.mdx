@@ -4,6 +4,8 @@ seoTitle: 'AI Agents Explained with Azure AI Foundry'
 description: 'The business case for an AI agent on an app that already exists, what an agent really is, and the architecture that keeps it inside its lane.'
 highlight: "An agent is a model that has been given a set of functions it is allowed to ask you to run. It does not run your code and it cannot reach your database. Once you see it that way, the design question stops being 'how smart is the model' and becomes 'which functions am I willing to expose, and to whom'."
 publishedAt: 2026-08-05
+cover: './images/azure-ai-foundry-ai-agent-food-delivery-app-cover.png'
+coverAlt: 'Share banner headed AZURE AI FOUNDRY · AGENTS with the title "It asks. It never runs." and the line "An agent is a model handed a list of functions it is allowed to request." above the MSDEVBUILD wordmark and the author name. On the right, a three-step chain: a warn box reading "Model decides it needs data", it cannot reach your database; then a plain box reading "Returns a function_call", name, call_id, arguments; then a good box reading "Your API validates, then runs it", your code, your rules, your roles.'
 category: ai
 categories: ['azure', 'mobile']
 tags: ['Azure AI Foundry', 'AI Agents', 'Architecture', 'Flutter', 'ASP.NET Core']
@@ -101,7 +103,7 @@ The data to answer "spicy food under RM20" has been sitting in the entity the wh
 
 The traditional fix is a product backlog. Add a spice toggle. Add a price slider. Ship it, and next month somebody asks for "vegetarian, no peanuts, ready in 20 minutes, near my office". That is four more controls on a screen that is already full, and it is the fifth request in a queue that never empties, because natural language has more combinations than a filter panel has room for.
 
-## Which problems justified the build?
+## The problems that justified the build
 
 The same shape of gap sits on all three dashboards, and seeing it three times is what turned this from an experiment into a project.
 
@@ -118,7 +120,7 @@ Five features, three dashboards, three different teams and three different sprin
 
 The rider row is the one that settled the argument. Nobody had built delivery prioritisation and nobody was going to; it sat below the line every quarter. But the data to rank a queue is already in the `Order` entity: `timeline` holds an audit trail of `OrderEvent`, `deliveryAddress` carries latitude and longitude, and `etaMinutes` is right there. The feature was not missing because it was hard. It was missing because it needed a screen, and a prompt is cheaper than a screen.
 
-## What is an AI agent, and what is it not?
+## What an AI agent is, and what it is not
 
 An agent is a model that has been given a set of functions it is allowed to ask you to run.
 
@@ -158,7 +160,7 @@ Two properties of this loop matter more than the rest.
 
 **The model chooses the arguments, and arguments are user-influenced input.** That `maxPriceMyr` value arrived, indirectly, from a stranger typing into a text box. Validate it exactly as you would validate a query string.
 
-## What does the architecture look like end to end?
+## What the architecture looks like end to end
 
 <figure>
 

@@ -1,0 +1,168 @@
+---
+title: 'Structuring a .NET Minimal API Project That Survives Growth'
+description: 'Program.cs stops scaling around twenty endpoints. Here is a vertical-slice layout for Minimal APIs that keeps routing, validation and handlers organised.'
+seoTitle: '.NET Minimal API Project Structure'
+highlight: 'Give every feature its own folder holding its endpoints, records, and handler, register each through an IEndpointModule extension method, and keep Program.cs to composition only. Program.cs stops scaling at roughly twenty endpoints.'
+publishedAt: 2026-06-28
+cover: './images/minimal-api-project-structure-cover.png'
+coverAlt: 'Share banner headed .NET · MINIMAL APIS with the title "Program.cs is composition only" and the line "Every feature gets a folder. Endpoints, records and handler, registered once." above the MSDEVBUILD wordmark and the author name. On the right, a three-step chain: a bad box reading "Everything in Program.cs", merge conflicts, nothing findable; then a warn box reading "One folder per feature", endpoints, records, handler together; then a good box reading "IEndpointModule per slice", program.cs composes, nothing more.'
+category: web
+categories: ['architecture']
+tags: ['ASP.NET Core', 'Minimal API', 'Architecture', 'Vertical Slice']
+series: 'minimal-api-production'
+seriesOrder: 1
+faq:
+  - q: 'Are Minimal APIs suitable for large applications?'
+    a: 'Yes, provided you move endpoint definitions out of Program.cs into feature modules registered via extension methods. The performance and simplicity benefits hold at scale; only the default single-file layout does not.'
+  - q: 'At what point does Program.cs stop scaling?'
+    a: 'Around twenty endpoints. Below that the single-file layout is genuinely simpler than controllers. Past it, routing, validation and handler code all compete for one file, and every new feature means editing the same place — which is where merge conflicts and inconsistent patterns start.'
+  - q: 'How should you organise Minimal API endpoints by feature?'
+    a: 'Give each operation one file holding its request, response and handler together, then register each feature as a module through an extension method that Program.cs calls. Everything that changes for one reason lives in one place, which is what makes a vertical slice easier to move or delete than a layered folder tree.'
+  - q: 'Should Minimal API handlers be static classes?'
+    a: 'Static classes work well here. The handler takes its dependencies as parameters and lets the framework inject them, so there is no constructor and no per-request instance. It also keeps the request record, response record and handler visible together in one short file.'
+---
+
+The Minimal API tutorials all put endpoints in `Program.cs`. That is fine for a demo and untenable by the twentieth endpoint.
+
+## Why does Program.cs stop scaling?
+
+Three reasons compound. Merge conflicts concentrate in one file that every feature branch touches. Related code drifts apart: the endpoint sits in `Program.cs` while its validation lives three folders away. And discoverability collapses: finding "where orders are handled" becomes a scroll rather than a folder. None of this is a failing of [Minimal APIs](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/overview) themselves — the single-file layout is a starting point the docs never claimed was an architecture.
+
+## What a vertical slice layout looks like
+
+Organise by feature, not by technical role:
+
+```
+src/
+├─ Program.cs                 // composition only
+├─ Features/
+│  ├─ Orders/
+│  │  ├─ OrderEndpoints.cs    // routes for this feature
+│  │  ├─ CreateOrder.cs       // request, response, handler
+│  │  ├─ GetOrder.cs
+│  │  └─ OrderValidators.cs
+│  └─ Customers/
+│     ├─ CustomerEndpoints.cs
+│     └─ ...
+└─ Shared/
+   ├─ Endpoints/IEndpointModule.cs
+   └─ Persistence/AppDbContext.cs
+```
+
+Everything a change to "create order" touches lives in one folder.
+
+<figure>
+
+![Fan-out diagram. Program.cs holds composition only: the builder, middleware and a MapFeatureModules call. It fans out to three feature folders, Features/Orders holding OrderEndpoints, OrderRecords and OrderHandler, Features/Catalog holding its own endpoints, records and handler together, and Features/Billing with the same shape and no shared Controllers folder. All three converge on one IEndpointModule per slice.](./images/minimal-api-vertical-slice-feature-modules.png)
+
+<figcaption>Figure 1 — Program.cs composes, features live apart. Adding a feature means dropping in a folder, not editing the composition root.</figcaption>
+
+</figure>
+
+## Registering feature modules in a Minimal API project
+
+Once the layout holds, the next thing to get right is who may call each slice, which I cover in [securing a .NET Minimal API with JWT bearer authentication](/blog/secure-minimal-api-jwt-dotnet).
+
+Define a tiny contract:
+
+```csharp
+public interface IEndpointModule
+{
+    void MapEndpoints(IEndpointRouteBuilder app);
+}
+```
+
+Then implement it per feature:
+
+```csharp
+public sealed class OrderEndpoints : IEndpointModule
+{
+    public void MapEndpoints(IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/orders")
+            .WithTags("Orders")
+            .RequireAuthorization();
+
+        group.MapGet("/{id:guid}", GetOrder.Handle).WithName("GetOrder");
+        group.MapPost("/", CreateOrder.Handle).WithName("CreateOrder");
+    }
+}
+```
+
+And discover them all at startup by assembly scan:
+
+```csharp
+public static class EndpointExtensions
+{
+    public static void MapAllEndpoints(this WebApplication app)
+    {
+        var modules = typeof(Program).Assembly
+            .GetTypes()
+            .Where(t => typeof(IEndpointModule).IsAssignableFrom(t)
+                        && t is { IsInterface: false, IsAbstract: false })
+            .Select(Activator.CreateInstance)
+            .Cast<IEndpointModule>();
+
+        foreach (var module in modules)
+        {
+            module.MapEndpoints(app);
+        }
+    }
+}
+```
+
+`Program.cs` then stays short no matter how many features exist:
+
+```csharp
+var app = builder.Build();
+
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapAllEndpoints();
+
+app.Run();
+```
+
+Once the structure holds, it is worth pointing it at something real, and [a RAG pipeline in .NET with Azure OpenAI](/blog/azure-openai-rag-dotnet) is built on exactly this layout.
+
+## Handlers as static classes
+
+Each operation gets one file holding its request, response, and handler:
+
+```csharp
+public static class CreateOrder
+{
+    public record Request(Guid CustomerId, List<LineItem> Items);
+    public record Response(Guid OrderId, decimal Total);
+
+    public static async Task<Results<Created<Response>, ValidationProblem>> Handle(
+        Request request,
+        AppDbContext db,
+        IValidator<Request> validator,
+        CancellationToken ct)
+    {
+        var validation = await validator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+        {
+            return TypedResults.ValidationProblem(validation.ToDictionary());
+        }
+
+        var order = Order.Create(request.CustomerId, request.Items);
+        db.Orders.Add(order);
+        await db.SaveChangesAsync(ct);
+
+        return TypedResults.Created(
+            $"/orders/{order.Id}",
+            new Response(order.Id, order.Total));
+    }
+}
+```
+
+Static handlers avoid a per-request allocation, and `TypedResults` gives you accurate OpenAPI output without extra attributes.
+
+## Key takeaways
+
+- Organise by feature; a change should touch one folder.
+- `IEndpointModule` + assembly scanning keeps `Program.cs` at composition only.
+- Route groups carry cross-cutting concerns like auth and tags.
+- Static handlers with `TypedResults` are cheap and self-documenting.

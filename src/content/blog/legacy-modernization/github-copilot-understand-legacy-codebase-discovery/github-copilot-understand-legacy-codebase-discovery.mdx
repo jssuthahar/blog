@@ -115,7 +115,7 @@ The human gate here confirms blast radius against reality. Copilot measures coup
 
 This is the pass most teams skip, and it is the one that captures what AI genuinely cannot infer from code alone. The reasons are in the history.
 
-I mine `git log` and `git blame` for the modules Pass 2 flagged as load-bearing. A commit message like "fix rounding for VAT edge case, do not remove" is pure gold — it is the rationale the code could never express. I feed those messages back to Copilot to help summarize, but the source of truth is the history and the people, not the model.
+I mine `git log` and [`git blame`](https://git-scm.com/docs/git-blame) for the modules Pass 2 flagged as load-bearing. A commit message like "fix rounding for VAT edge case, do not remove" is pure gold — it is the rationale the code could never express. I feed those messages back to Copilot to help summarize, but the source of truth is the history and the people, not the model.
 
 A prompt after gathering the log for one file:
 
@@ -123,7 +123,7 @@ A prompt after gathering the log for one file:
 
 What comes out is a timeline of intent. Half the "weird" branches in a legacy file have a commit message somewhere explaining exactly why they exist. That explanation is the knowledge you are extracting. The code was the symptom; the commit is the diagnosis.
 
-## Turning discovery output into knowledge Copilot can use
+## How do you turn discovery output into knowledge Copilot can use?
 
 {/* SCREENSHOT: the actual output on your screen — save as ./images/turning-discovery-output-into-knowledge-co.png, then replace this line with: ![Turning discovery output into knowledge Copilot can use](./images/turning-discovery-output-into-knowledge-co.png) */}
 

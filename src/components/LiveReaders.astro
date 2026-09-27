@@ -46,30 +46,118 @@ const enabled = FIREBASE.projectId.length > 0;
 ---
 
 {enabled && (
-  <div data-live-readers class="live-readers not-prose" hidden aria-live="polite">
-    <p class="lr-line" data-lr-live-countries hidden></p>
-    <p class="lr-line lr-days" data-lr-days hidden></p>
+  <div id="live-readers-panel" data-live-readers class="live-readers not-prose" hidden>
+    <p class="lr-line" data-lr-live-countries aria-live="polite"></p>
+    <p class="lr-head" data-lr-days-head></p>
+    <ul class="lr-list" data-lr-days></ul>
   </div>
 )}
 
 <style>
-  /* A slim line under the article header, not a card. It sits with the byline
-     and read time rather than competing with the title. */
+  /* Collapsed by default. It opens from the "N reading now" button in the
+     article meta row, so it is detail on request rather than another block
+     of furniture above the first paragraph. */
   .live-readers {
     margin: 0 0 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    background: var(--bg-subtle);
+    padding: 0.75rem 0.9rem;
   }
 
   .lr-line {
-    margin: 0.2rem 0 0;
+    margin: 0;
     font-size: 0.8125rem;
     line-height: 1.55;
     color: var(--text-muted);
     text-wrap: pretty;
   }
 
-  .lr-days b {
+  .lr-head {
+    margin: 0.6rem 0 0.35rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .lr-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.15rem 1.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.8125rem;
+  }
+
+  @media (min-width: 560px) {
+    .lr-list { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (min-width: 860px) {
+    .lr-list { grid-template-columns: 1fr 1fr 1fr; }
+  }
+
+  .lr-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-bottom: 1px dotted var(--border);
+    padding: 0.2rem 0;
+    color: var(--text-muted);
+  }
+
+  .lr-list b {
     color: var(--text);
     font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+
+<style is:global>
+  .lr-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lr-meta[hidden] { display: none; }
+  .lr-meta:hover { text-decoration: underline; }
+
+  .lr-caret {
+    transition: transform 0.15s ease;
+  }
+
+  .lr-meta[aria-expanded='true'] .lr-caret {
+    transform: rotate(90deg);
+  }
+
+  .lr-dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--accent) 55%, transparent);
+    animation: lr-pulse 2.4s ease-out infinite;
+  }
+
+  @keyframes lr-pulse {
+    70% { box-shadow: 0 0 0 0.45rem transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lr-dot { animation: none; }
+    .lr-caret { transition: none; }
   }
 </style>
 
@@ -179,22 +267,25 @@ const enabled = FIREBASE.projectId.length > 0;
         const meta = document.querySelector('[data-lr-meta]');
         if (meta) {
           meta.querySelector('[data-lr-count]').textContent = String(total);
-          meta.querySelector('[data-lr-word]').textContent =
-            total === 1 ? 'reading now' : 'reading now';
+          // The countries ride in the meta row too, not only in the strip
+          // below — that is where the eye already is, next to the read count.
+          const top = entries.slice(0, 3).map(([c, n]) => `${flag(c)} ${name(c)} ${n}`);
+          const rest = entries.length - top.length;
+          meta.querySelector('[data-lr-meta-countries]').textContent =
+            top.length ? ` — ${top.join(' · ')}${rest > 0 ? ` +${rest} more` : ''}` : '';
           meta.hidden = false;
+          wireToggle();
         }
 
-        box.hidden = false;
-        const strip = box.querySelector('[data-lr-live-countries]');
-        strip.textContent =
+        box.querySelector('[data-lr-live-countries]').textContent =
           'Reading right now: ' +
-          entries.slice(0, 6).map(([c, n]) => `${flag(c)} ${name(c)} ${n}`).join('  ·  ');
-        strip.hidden = false;
+          entries.map(([c, n]) => `${flag(c)} ${name(c)} ${n}`).join('  ·  ');
       }
 
       // --- five-day country strip ----------------------------------------
       async function paintDays() {
-        const el = box.querySelector('[data-lr-days]');
+        const head = box.querySelector('[data-lr-days-head]');
+        const list = box.querySelector('[data-lr-days]');
         const cacheKey = 'lr-days-v1';
         let cached = null;
         try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch {}
@@ -212,11 +303,28 @@ const enabled = FIREBASE.projectId.length > 0;
         }
         const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
         if (!entries.length) return;
-        box.hidden = false;
-        const shown = entries.slice(0, 8).map(([c, n]) => `${flag(c)} ${name(c)} ${n}`).join('  ·  ');
-        const more = entries.length > 8 ? `  ·  +${entries.length - 8} more` : '';
-        el.innerHTML = `Read from <b>${entries.length}</b> ${entries.length === 1 ? 'country' : 'countries'} in the last 5 days — ${shown}${more}`;
-        el.hidden = false;
+        const readers = entries.reduce((n, [, v]) => n + v, 0);
+        head.textContent =
+          `Last 5 days — ${readers} ${readers === 1 ? 'reader' : 'readers'} from ` +
+          `${entries.length} ${entries.length === 1 ? 'country' : 'countries'}`;
+        // Every country, not a top-N: this panel is the detail view, and the
+        // long tail is the interesting part of it.
+        list.innerHTML = entries
+          .map(([c, n]) => `<li><span>${flag(c)} ${name(c)}</span><b>${n}</b></li>`)
+          .join('');
+      }
+
+      // --- open / close ---------------------------------------------------
+      function wireToggle() {
+        const btn = document.querySelector('[data-lr-meta]');
+        if (!btn || btn.dataset.lrWired) return;
+        btn.dataset.lrWired = '1';
+        btn.addEventListener('click', () => {
+          const open = btn.getAttribute('aria-expanded') === 'true';
+          btn.setAttribute('aria-expanded', String(!open));
+          box.hidden = open;
+          if (!open) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        });
       }
 
       // --- heartbeat ------------------------------------------------------

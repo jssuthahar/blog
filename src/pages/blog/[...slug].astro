@@ -243,13 +243,24 @@ const shareImage = data.cover
         )}
         <span>{minutes} min read</span>
         <ViewCounter slug={post.id} />
-        {/* Filled by LiveReaders' script once the previous minute has a count;
-            hidden until then, so it never shows a stale or invented number. */}
-        <span class="lr-meta" data-lr-meta hidden>
+        {/* Filled by LiveReaders' script once the previous minute has a count,
+            hidden until then so it never shows a stale or invented number.
+            A button, not a span: clicking it opens the five-day breakdown, so
+            it has to be reachable by keyboard and announce its state. */}
+        <button
+          type="button"
+          class="lr-meta"
+          data-lr-meta
+          hidden
+          aria-expanded="false"
+          aria-controls="live-readers-panel"
+        >
           <span class="lr-dot" aria-hidden="true"></span>
           <strong data-lr-count>—</strong>
           <span data-lr-word>reading now</span>
-        </span>
+          <span data-lr-meta-countries></span>
+          <span class="lr-caret" aria-hidden="true">›</span>
+        </button>
       </Fragment>
     </ReaderTools>
 

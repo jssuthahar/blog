@@ -127,6 +127,14 @@ Two ways to do it. I'd start with the first one even if you're planning to rewri
 
 Once it exists, it's just always on — nothing to enable. If you edit it partway through a session, open a new chat afterward so the update actually takes effect.
 
+<figure>
+
+![Decision flowchart. You start typing in the repo. If there is no .github/copilot-instructions.md, Copilot guesses from the open file. If there is, Copilot reads it before producing the suggestion. If the suggestion still does not match your conventions you reject it and retype the same correction again; otherwise you get a suggestion that fits this repo.](./images/copilot-instructions-read-before-every-suggestion.png)
+
+<figcaption>Figure 1 — where the file sits in the loop. It is read before the suggestion, not after.</figcaption>
+
+</figure>
+
 ## What actually goes into the file
 
 Roughly: whatever you'd tell a new developer during their first week, minus the small talk.

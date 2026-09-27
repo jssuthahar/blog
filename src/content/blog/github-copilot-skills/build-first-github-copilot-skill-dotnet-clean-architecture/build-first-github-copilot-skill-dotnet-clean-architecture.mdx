@@ -127,6 +127,14 @@ layers, MediatR, validation, the response contract, and tests.
 
 I learned the value of "when not to use" the hard way. An early Skill of mine kept trying to add MediatR handlers to database migration tasks, because I had never told it where its job ended. Two lines fixed it.
 
+<figure>
+
+![Step flow of the five parts of a SKILL.md file. The description is one line and is the activation trigger Copilot reads on every task. Purpose and when not to use it keeps the Skill from firing on everything. Inputs name the project, layer and entity. Rules give the non-negotiables, such as Domain referencing nothing and no EF types above Infrastructure. The numbered workflow, shown in green, gives the order files get created in.](./images/skill-md-anatomy-dotnet-clean-architecture.png)
+
+<figcaption>Figure 1 — the five parts of a SKILL.md, and which one decides whether the other four ever run.</figcaption>
+
+</figure>
+
 ## Step 3: Add the inputs the Skill needs
 
 Before Copilot can build a feature, it needs to know what facts to gather. This section is short but it stops Copilot from inventing property names or guessing the operation type.

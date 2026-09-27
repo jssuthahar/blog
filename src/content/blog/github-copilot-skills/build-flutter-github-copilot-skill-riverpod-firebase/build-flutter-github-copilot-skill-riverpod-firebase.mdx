@@ -145,6 +145,14 @@ data/, a Cubit or Bloc for state, a screen that only renders, and a test.
 
 I learned the value of "when not to use" the hard way. An early Skill of mine kept trying to add a Cubit to a `pubspec.yaml` dependency bump, because I never told it where its job ended. Three lines fixed it. On mobile teams this matters more than on backend — a lot of Flutter tickets are pure config, and you do not want a feature Skill firing on a version bump.
 
+<figure>
+
+![Decision flowchart. You ask Copilot for a screen that loads orders. If there is no Flutter Skill in .github/skills, you get a Firestore call inside build() that rebuilds, re-reads and bills you. If the Skill description does not match the task, the Skill sits there and never loads. When it does match, the Skill loads its Riverpod provider, repository and Result rules, and you get a provider, a repository and no I/O in build().](./images/flutter-skill-stops-firestore-in-build.png)
+
+<figcaption>Figure 1 — two gates between a request and the Flutter anti-pattern.</figcaption>
+
+</figure>
+
 ## Step 3: Add the inputs the Skill needs
 
 Before Copilot can build a feature, it needs a few facts. This section is short but it stops Copilot from inventing field names or guessing whether Firebase is even involved.

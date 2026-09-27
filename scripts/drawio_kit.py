@@ -228,6 +228,10 @@ def gated(cells, steps, cx=300, top=40, w=330, gap=34, back_x=None):
                   f"fontSize=12;fontColor={TEXT};")
             val = (f"&lt;font color='{MUTED}'&gt;&lt;b&gt;{esc(s['gate']).upper()}&lt;/b&gt;"
                    f"&lt;/font&gt;&lt;br&gt;{esc(s['label'])}")
+            # A gate can carry a note too; without this it was silently dropped,
+            # which is worse than not supporting it — the caller sees no error.
+            if s.get("note"):
+                val += f"&lt;br&gt;&lt;font color='{MUTED}'&gt;{esc(s['note'])}&lt;/font&gt;"
             cells.append(f'<mxCell id="{i}" value="{val}" style="{st}" vertex="1" parent="1">'
                          f'<mxGeometry x="{cx - w // 2}" y="{y}" width="{w}" height="{h}" as="geometry"/></mxCell>')
         else:

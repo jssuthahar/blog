@@ -60,6 +60,14 @@ That has one practical consequence: everything in the file competes for the agen
 
 It's also why editing the file mid-session fixes nothing. Start a new session so the update is actually part of what gets loaded.
 
+<figure>
+
+![Layered diagram. An agent opens the repo knowing the language but nothing about this codebase, then passes down through three layers of AGENTS.md. Stack and layout gives the framework, versions, package manager and where the layers live. Conventions gives the patterns already chosen for state, errors, naming and testing. Hard rules gives constraints the agent can check itself against, including the specific thing never to do rather than generic advice, and the exact command that proves it. The result is code that reads like the rest of the repo.](./images/agents-md-anatomy-sections.png)
+
+<figcaption>Figure 1 — what each section of the file is actually for. Specificity, not length.</figcaption>
+
+</figure>
+
 ## The anatomy of a well-designed AGENTS.md
 
 Here are the sections worth having, roughly in the order they matter. Not every project needs all of them. A solo side project might only want the first four. An enterprise codebase probably wants most of the list.

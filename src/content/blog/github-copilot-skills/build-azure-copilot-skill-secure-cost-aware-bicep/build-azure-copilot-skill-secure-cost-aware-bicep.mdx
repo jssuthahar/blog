@@ -230,6 +230,14 @@ Rules tell Copilot *what*. The workflow tells it *in what order*, which matters 
    every box is ticked.
 ```
 
+<figure>
+
+![Step flow contrasting Bicep output. What Copilot writes by default: a P1v3 sku, publicNetworkAccess enabled, and a connection string in an app setting. Then SKILL.md, the azure-service-baseline, holding the security floor and cost ceiling written down once. What it writes instead, shown in green: managed identity, a Key Vault reference, a private endpoint, and the smallest sku that fits.](./images/azure-skill-bicep-default-versus-guarded.png)
+
+<figcaption>Figure 1 — the same prompt, before and after the Skill exists.</figcaption>
+
+</figure>
+
 ## The Bicep the Skill produces
 
 A Skill teaches best by example, so I embed production-shaped Bicep in it — not `Foo`/`Bar`, but the real shape Copilot should mirror. Three snippets carry most of the weight.

@@ -41,6 +41,14 @@ Here's the short answer: **an agent will not stay consistent with itself unless 
 
 The root cause is the same at every size: an AI agent makes a reasonable local decision with **zero view of what already happened elsewhere** — whether "elsewhere" is another developer's session, or your own, three months ago.
 
+<figure>
+
+![Fan-out diagram. One problem, an AI agent writing code without shared context, appears at three scales: a solo developer whose second session does not remember the first, a small team where two people bring two conventions to one repo, and an enterprise where every squad re-explains the same architecture. All three converge on AGENTS.md, written once and read by every agent, described as not a longer file but a more specific one.](./images/agents-md-same-problem-every-scale.png)
+
+<figcaption>Figure 1 — one problem, three scales. The file is the same size in all three.</figcaption>
+
+</figure>
+
 ## What AGENTS.md actually fixes
 
 It's one file. The agent reads it automatically before it writes anything. It tells the agent the architecture, the one approved way to handle state and data, where things belong, and what already exists so it doesn't rebuild it.

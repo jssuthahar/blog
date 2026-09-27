@@ -58,6 +58,14 @@ The honest answer: because the AI is probabilistic, and some things in your proj
 
 This is the exact point from Part 5, made concrete: an advisory instruction is a request the model may drop. A hook is enforcement that runs no matter what the model decided. If skipping a check would be a real problem, that check is a hook.
 
+<figure>
+
+![Gated pipeline of a Copilot agent session. You give the agent a task, then a hook runs before the session starts to load context and check the branch is clean. The agent proposes a command, described as probabilistic and usually but not always right. A second hook runs before the tool executes, deterministic and giving the same answer every time, and a blocked command never executes. The command then runs, a third hook runs after the session ends to format, lint, test and log, and the result is a change you can review.](./images/copilot-agent-session-hook-points.png)
+
+<figcaption>Figure 1 — the three points a hook can run, and the one that actually blocks.</figcaption>
+
+</figure>
+
 ## When can a hook run? The Copilot agent lifecycle
 
 {/* SCREENSHOT: the actual output on your screen — save as ./images/when-can-a-hook-run-the-copilot-agent-life.png, then replace this line with: ![When can a hook run? The Copilot agent lifecycle](./images/when-can-a-hook-run-the-copilot-agent-life.png) */}

@@ -63,6 +63,14 @@ Most disappointment with AI code review comes from expecting Layer 2 out of a to
 
 So the goal is not "replace reviewers." It is "stop spending your most expensive people on a checklist." Let us build something that owns Layer 1 and hands Layer 2 back to a human.
 
+<figure>
+
+![Layered diagram splitting code review into two jobs. A pull request arrives and passes through the mechanical layer, which Copilot owns reliably: standards and naming, missing tests, and obvious security smells such as hardcoded secrets and unparameterised SQL. Below it is the judgement layer, which a human owns and always will: whether this is the right change at all, the blast radius the diff does not show, and who signs their name. The result is a review that is faster and still owned.](./images/code-review-two-jobs-mechanical-and-judgement.png)
+
+<figcaption>Figure 1 — the split that makes the rest of this article make sense.</figcaption>
+
+</figure>
+
 ## Building a Copilot review Skill for the mechanical layer
 
 We build it the same way as the feature Skills earlier in the series. If you followed [the .NET Clean Architecture Skill in Part 2](../build-first-github-copilot-skill-dotnet-clean-architecture), this is its partner: that Skill teaches Copilot to *write* a feature our way, this one teaches it to *check* a diff against the same rules. It is a `SKILL.md` in its own folder under `.github/skills`.

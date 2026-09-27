@@ -66,6 +66,14 @@ That reframing is what changed my month. I stopped thinking about a monthly quot
 
 One caveat before the routing model, and it matters more than anything else here. **Find out how your company meters you.** A seat-based GitHub Copilot plan counts premium requests, not tokens, and inline completions are usually outside that count. A company gateway sitting in front of [Azure OpenAI](https://learn.microsoft.com/en-us/azure/ai-services/openai/quotas-limits) or the Anthropic API counts every token in both directions, completions included. Those two worlds need opposite habits. Ask your admin four questions: do completions count, do input and output count the same, does cached input get discounted, and does the pool reset monthly or roll over. I optimised the wrong thing for six weeks because I never asked.
 
+<figure>
+
+![Step flow dividing a token allowance. Four hundred thousand tokens a month becomes about nineteen thousand tokens per working day across twenty-one days with no rollover, which is about four file-heavy chat turns or roughly one third of a single agent-mode run.](./images/token-budget-month-to-day-to-turn.png)
+
+<figcaption>Figure 1 — the allowance divided down to something you can actually plan against.</figcaption>
+
+</figure>
+
 ## Which AI tool for which task?
 
 Here is the model I landed on. Four tiers, and the work moves down a tier only when the tier above genuinely cannot do it.

@@ -80,6 +80,14 @@ A few honest details that matter in practice:
 
 That last point is the whole story. Because the AI only sees the diff, its default output is a very fluent restatement of the diff. It will tell you a `CalculateRefund` method was added and `OrdersController` was modified. Both true. Both already visible one tab over. This is the failure mode I want you to design around.
 
+<figure>
+
+![Decision flowchart for a Copilot-drafted pull request description. It passes three questions: does it say anything the diff does not, in which case the answer is that it merely restated a diff the reviewer already has; does it say why rather than just what, otherwise the reviewer reads all eleven files to find out; and does it flag the risky part, otherwise the migration in the middle goes unnoticed. Surviving all three gives a description a reviewer actually reads.](./images/pr-summary-restates-the-diff-or-explains-it.png)
+
+<figcaption>Figure 1 — three questions a description has to survive. Most fail the first.</figcaption>
+
+</figure>
+
 ## The core problem: a summary that restates the diff is noise
 
 I need to be blunt here, because the marketing around this feature never is. An auto-generated summary that parrots the diff does not save review time. It costs it. Now the reviewer reads a paragraph of prose *and* the diff, and the prose added nothing. Worse, fluent prose creates false confidence — it *looks* like context, so people skim it and assume the risky part was covered when it never was. That is precisely how Nikhil nearly missed the migration.

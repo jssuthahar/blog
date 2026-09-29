@@ -1,0 +1,69 @@
+---
+/**
+ * The "Watch it in N seconds" strip that pairs a post with its short videos.
+ *
+ * One component for both places it appears, so they cannot drift apart:
+ *
+ *   - above a post body, fed by relatedShortsForPost() in blog/[...slug].astro
+ *   - inside a post body, from MDX, by slug:
+ *       <ShortHighlight slugs={['azure-redis-cache-flash-sale']} />
+ *
+ * One row per short. A slug that does not resolve (a draft, a future-dated
+ * short, a typo) is dropped rather than rendered as a dead link, and the whole
+ * strip renders nothing if no short is left.
+ */
+import { getShort, shortUrl, type Short } from '../lib/shorts';
+
+interface Props {
+  shorts?: Short[];
+  slugs?: string[];
+  class?: string;
+}
+
+const { shorts: given, slugs, class: className = '' } = Astro.props;
+const shorts = (given ?? (slugs ?? []).map((slug) => getShort(slug)))
+  .filter((s): s is Short => Boolean(s));
+---
+
+{shorts.length > 0 && (
+  <aside
+    class:list={['short-hl rounded-xl border border-default bg-subtle p-4', className]}
+    aria-label={shorts.length > 1 ? 'Related short videos' : 'Related short video'}
+  >
+    {shorts.map((short, i) => (
+      <div class:list={['short-hl-row flex flex-wrap items-center justify-between gap-3', i > 0 && 'mt-3 border-t border-default pt-3']}>
+        <div class="flex min-w-0 items-center gap-3">
+          <span class="shrink-0 text-2xl" aria-hidden="true">🎥</span>
+          <div class="min-w-0">
+            <p class="text-xs font-semibold uppercase tracking-wider text-muted">
+              Watch it in {short.seconds} seconds
+            </p>
+            <p class="mt-0.5 truncate font-medium leading-snug">{short.title}</p>
+          </div>
+        </div>
+        <a href={shortUrl(short)} class="short-hl-btn btn btn-outline btn-sm shrink-0">
+          Watch the short →
+        </a>
+      </div>
+    ))}
+  </aside>
+)}
+
+<style>
+  /* Inside an article the prose rules would underline and recolour the button
+     and space the two paragraphs apart; this keeps the strip identical to the
+     one above the body. */
+  .short-hl {
+    font-family: var(--font-sans);
+  }
+  .short-hl .short-hl-row a.short-hl-btn {
+    color: inherit;
+    text-decoration: none;
+  }
+  .short-hl .short-hl-row p {
+    margin: 0;
+  }
+  .short-hl .short-hl-row p + p {
+    margin-top: 0.125rem;
+  }
+</style>

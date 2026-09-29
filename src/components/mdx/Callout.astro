@@ -19,7 +19,8 @@ type CalloutType =
   | 'performance'
   | 'security'
   | 'mistake'
-  | 'when-not';
+  | 'when-not'
+  | 'quiz';
 
 interface Props {
   type?: CalloutType;
@@ -30,8 +31,9 @@ interface Props {
 const { type = 'note', title } = Astro.props;
 
 // hue drives the whole colour family; icon path is a single 24×24 glyph drawn
-// with fill-rule: evenodd so inner marks knock out cleanly.
-const CONFIG: Record<CalloutType, { hue: number; label: string; icon: string }> = {
+// with fill-rule: evenodd so inner marks knock out cleanly. `viewBox` is only
+// set for glyphs taken as-is from Material Symbols, which use 0 -960 960 960.
+const CONFIG: Record<CalloutType, { hue: number; label: string; icon: string; viewBox?: string }> = {
   note: {
     hue: 252,
     label: 'Note',
@@ -77,6 +79,14 @@ const CONFIG: Record<CalloutType, { hue: number; label: string; icon: string }> 
     label: 'Common mistake',
     icon: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm3.5 12.1-1.4 1.4L12 13.4l-2.1 2.1-1.4-1.4L10.6 12 8.5 9.9l1.4-1.4L12 10.6l2.1-2.1 1.4 1.4L13.4 12l2.1 2.1Z',
   },
+  // The reader-quiz box at the end of an article: a filled circle with the
+  // question mark knocked out (Material Symbols "help", Apache 2.0).
+  quiz: {
+    hue: 252,
+    label: 'Test yourself',
+    viewBox: '0 -960 960 960',
+    icon: 'M513.5-254.5Q528-269 528-290t-14.5-35.5Q499-340 478-340t-35.5 14.5Q428-311 428-290t14.5 35.5Q457-240 478-240t35.5-14.5ZM442-394h74q0-33 7.5-52t42.5-52q26-26 41-49.5t15-56.5q0-56-41-86t-97-30q-57 0-92.5 30T342-618l66 26q5-18 22.5-39t53.5-21q32 0 48 17.5t16 38.5q0 20-12 37.5T506-526q-44 39-54 59t-10 73Zm38 314q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z',
+  },
   'when-not': {
     hue: 22,
     label: 'When not to use this',
@@ -84,12 +94,12 @@ const CONFIG: Record<CalloutType, { hue: number; label: string; icon: string }> 
   },
 };
 
-const { hue, label, icon } = CONFIG[type];
+const { hue, label, icon, viewBox = '0 0 24 24' } = CONFIG[type];
 ---
 
 <aside class="callout not-prose my-6" style={`--cx-hue: ${hue};`}>
   <p class="callout-label">
-    <svg class="callout-icon" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" aria-hidden="true">
+    <svg class="callout-icon" viewBox={viewBox} fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" aria-hidden="true">
       <path d={icon} />
     </svg>
     <span>{title ?? label}</span>
@@ -129,6 +139,19 @@ const { hue, label, icon } = CONFIG[type];
     margin-top: 0.5rem;
     line-height: 1.65;
     text-wrap: pretty;
+  }
+
+  /* A button inside a callout (the quiz's "Answer in the comments") must not
+     pick up the article's underlined link style. */
+  .callout-body :global(a.btn) {
+    text-decoration: none;
+    color: inherit;
+    font-family: var(--font-sans);
+    margin-top: 0.75rem;
+  }
+
+  .callout-body :global(ol) {
+    margin-top: 0.75rem;
   }
 
   /* Dark mode: raise lightness so the label and tint stay legible on a dark

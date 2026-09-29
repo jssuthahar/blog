@@ -1,0 +1,513 @@
+---
+title: 'The Flash Sale That Hit the Database: When to Use Azure Cache for Redis'
+seoTitle: 'When to Use Azure Cache for Redis'
+description: 'When to use Azure Cache for Redis, from a flash sale that sent Azure SQL the same query 2,200 times a second. What to cache, and what to keep out.'
+highlight: "A flash sale is not a lot of different work. It is the same read, repeated. Put that read in Azure Cache for Redis and let the database answer it once, but keep anything that decides money, like stock left and the price at checkout, in the database. Caching the wrong thing is worse than caching nothing."
+publishedAt: 2026-09-29
+cover: './images/azure-cache-for-redis-flash-sale-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, real-world production issues" above the title "The flash sale that hit the database" and the lines "400,000 taps. One dish page. The same answer, computed every time.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "GET /api/items/biryani-99, 2,200 times a second", an arrow labelled "no cache" to an amber box reading "Azure SQL, 12 ms of CPU each, the same query, every single time", and an arrow labelled "CPU 100%" to a red box reading "Timeouts and a 9-second page".'
+category: azure
+categories: ['architecture', 'engineering']
+tags: ['Azure', 'Azure Cache for Redis', 'Redis', 'Azure SQL', 'SQL Server', 'Caching', 'ASP.NET Core', 'System Design', 'Performance']
+series: 'azure-production-issues'
+seriesOrder: 2
+draft: false
+faq:
+  - q: 'When should I use Azure Cache for Redis?'
+    a: 'Use it when many users read the same data far more often than it changes, and the data can be a few seconds or minutes old: product details, menus, ratings summaries, category lists, session data. It turns thousands of identical database reads into one read plus fast memory lookups.'
+  - q: 'When should I not use Redis as a cache?'
+    a: 'Do not use it as the only copy of data you cannot lose, for data that is different for every user and rarely re-read, or for values that must be exact when money moves, such as the final price at checkout. Also skip it when the database is not the bottleneck. A cache you do not need is one more thing to invalidate.'
+  - q: 'What happens to the cache when a product price changes?'
+    a: 'Write the new price to the database first, then delete the cache key. Do not update the cached value, because two racing updates can leave the older one in Redis. The next read rebuilds the entry from the database, and checkout always reads the price from the database, never from the cache.'
+  - q: 'What happens if Azure Cache for Redis goes down?'
+    a: 'If you built it as cache-aside, requests fall back to the database and the site gets slower but stays correct. Set short Redis timeouts, keep a small in-process cache in front of Redis, and cap how many requests may reach the database at once, so a Redis outage does not turn into a database outage.'
+  - q: 'Why does Azure SQL hit 100% CPU during a traffic spike?'
+    a: 'Usually because one cheap query runs thousands of times a second. A 12 ms query is fine once; at 2,200 runs a second it needs about 26 vCores of CPU. Find it with sys.dm_exec_query_stats ordered by execution_count, then cache its result so the database answers it once instead of scaling up to pay for the repeats.'
+  - q: 'Is Azure Cache for Redis being retired?'
+    a: 'Yes. Microsoft is retiring the Basic, Standard and Premium tiers on 30 September 2028, and the Enterprise tiers on 31 March 2027, in favour of Azure Managed Redis. New builds should start on Azure Managed Redis. The caching patterns and the StackExchange.Redis client code stay the same.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+It is 12:01 on a Thursday afternoon, and you are the engineer on call for a food delivery app. A restaurant partner in Chennai has just sent the support team a screenshot. A spinner, then grey boxes where the biryani photos should be, then, nine seconds later, the price.
+
+The message underneath says: "Sale started. Nobody can see the dish."
+
+It is the app's first flash deal. A Chettinad biryani for ₹99, 5,000 plates across Chennai, from noon. Marketing sent a push notification to about 400,000 people at 11:59, and it worked better than anyone planned. Everybody tapped it at once.
+
+You open the app on your own phone. Nine seconds, on good 4G.
+
+The strange part is that nothing is down. Every health check is green. No errors on the status page, no alerts firing. The app is simply slow for everybody, at exactly the moment everybody is looking at it.
+
+The deal was meant to sell out in fifteen minutes. At this rate it will take all afternoon.
+
+Two separate problems are hiding inside those nine seconds. This article is the one that hits the database, and how Azure Cache for Redis fixes it. The photos are the other one, and they need a completely different fix.
+
+<Callout type="tip" title="A scenario, on a real app you can run">
+This incident is a scenario played out on MSDevBuild Eats, the open-source reference app used across this blog. The architecture, the queries and the code are real; the traffic numbers are illustrative, sized to show exactly where this design breaks.
+
+- **Source code**: [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web**: [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/)
+- **Android build**: [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
+</Callout>
+
+## Forty minutes, and two fixes that made it worse
+
+Here is how the first forty minutes typically go, as the incident channel would record them:
+
+| Time | What happened |
+| --- | --- |
+| 11:59 | Push notification goes to 400,000 people |
+| 12:00 | Deal goes live. Dish page p95 jumps from 240 ms to 9 seconds |
+| 12:01 | The restaurant partner's screenshot |
+| 12:04 | 300 messages in the support inbox, all some version of "app not working" |
+| 12:05 | Azure SQL CPU hits 100% and stays there. The API logs fill with `Timeout expired` |
+| 12:07 | App Service is scaled out from 3 instances to 8. **The page gets slower**, and SQL error 10928 appears |
+| 12:12 | Azure SQL is scaled from 8 vCores to 32. The errors stop. The bill roughly quadruples |
+| 12:26 | One SQL query shows the whole problem in a single row |
+| 12:40 | 1,100 of 5,000 plates sold. Most people have given up and closed the app |
+
+The first guess, at 12:07, is the natural one. App Service CPU sits at 55%, not great, and somebody says "the API is too small". Five more instances go in.
+
+It gets worse. Much worse. Each App Service instance keeps its own pool of up to 100 SQL connections, so eight instances can hold 800 queries open at once. An Azure SQL database on the General Purpose tier with 8 vCores allows 800 concurrent workers. The API reaches that wall inside a minute, and a new error joins the timeouts:
+
+```text
+Resource ID : 1. The request limit for the database is 800 and has been reached.
+```
+
+That is SQL error 10928. The extra servers did not add capacity. They added callers to the thing that was already drowning.
+
+The Azure SQL metrics tell the rest. CPU is pinned at 100%, and every query waits in line for a scheduler. Nothing is broken inside SQL Server; each query is fine on its own. There are just far too many of them, the same shape as the scraping load I wrote about in [securing a public API with no login](/blog/secure-api-without-login-azure): repeated reads nobody needed.
+
+Scaling the database to 32 vCores at 12:12 makes the errors go away. It does not make the page fast, and it does not explain anything.
+
+## The SQL query that showed it in one row
+
+At 12:26 somebody finally asks the database itself a simple question: which queries are running, how often, and what does each one cost?
+
+```sql
+-- Top queries by execution count since the plan cache last cleared
+SELECT TOP (5)
+    qs.execution_count,
+    qs.total_worker_time   / qs.execution_count / 1000.0 AS avg_cpu_ms,
+    qs.total_logical_reads / qs.execution_count          AS avg_logical_reads,
+    qs.total_worker_time   / 1000000.0                   AS total_cpu_seconds,
+    SUBSTRING(st.text, 1, 120)                           AS query_text
+FROM sys.dm_exec_query_stats AS qs
+CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) AS st
+ORDER BY qs.execution_count DESC;
+```
+
+One row sits on top of everything else: the dish page query, about **130,000 executions a minute**, at 12 ms of CPU and around 900 logical reads each.
+
+This is the query:
+
+```sql
+SELECT m.Id, m.Name, m.Description, m.Price, m.DiscountPrice, m.ImageUrl,
+       r.Name                                AS RestaurantName,
+       AVG(CAST(rv.Rating AS decimal(3, 2))) AS Rating,
+       COUNT(rv.Id)                          AS ReviewCount
+FROM dbo.MenuItems        AS m
+JOIN dbo.Restaurants      AS r  ON r.Id = m.RestaurantId
+LEFT JOIN dbo.Reviews     AS rv ON rv.MenuItemId = m.Id
+WHERE m.Id = @id
+GROUP BY m.Id, m.Name, m.Description, m.Price, m.DiscountPrice, m.ImageUrl, r.Name;
+```
+
+Nothing is wrong with it. It uses an index, it returns one row, and it takes 12 ms. The cost is the rating: the biryani has 18,000 reviews, and `AVG` and `COUNT` walk all of them on every call. Same item. Same restaurant. Same 18,000 reviews. Every time.
+
+2,200 executions a second at 12 ms of CPU each is about 26 seconds of CPU work every second. That needs roughly 26 vCores. The database has 8.
+
+The system is not busy. It is busy repeating itself.
+
+<figure>
+
+![Architecture diagram of the flash sale before any caching. Inside a solid frame labelled "400,000 phones, one push notification at 11:59" sit a push notification icon for the Rs 99 biryani deal, the Android and iOS app, and Flutter web. One arrow, GET /api/items/biryani-99 at 2,200 a second, goes into the web tier: App Service with 3 instances, then 8, and a red note that scaling out added more callers to the same database. Below it an empty dashed slot is labelled "No cache here, so every request reads the database", and the arrow passes straight through it to the data tier, Azure SQL Database, with a red note reading "Same query, 12 ms of CPU, 2,200 times a second, on 8 vCores". The result, in red: CPU at 100%, connection timeouts and a 9-second dish page.](./images/flash-sale-without-cache-architecture.png)
+
+<figcaption>Figure 1 — the dish page at 12:00 on sale day. The empty slot between the API and the database is the whole story.</figcaption>
+
+</figure>
+
+## What is the real problem?
+
+The real problem was not traffic. It was repetition.
+
+400,000 people did not ask 400,000 different questions. They asked one question, "show me biryani-99", and the API worked the answer out from scratch for each of them.
+
+Three things lined up:
+
+- **A push notification is a starting gun.** Normal traffic arrives spread over an hour. A push sends most of its readers to one page inside two minutes.
+- **The database was the only place the answer lived.** No copy anywhere closer. Every request paid full price.
+- **Automatic retries multiplied the load.** A throttled read did not go away. It came back.
+
+That is why scaling out made it worse. It gave the same repeated work more doors into the database. Remember the pattern, because you will see it again: when adding servers makes a slow page slower, the bottleneck is behind the servers.
+
+<Callout type="cost" title="What the wrong fix cost">
+The 12:12 fix, scaling Azure SQL from 8 vCores to 32, roughly quadruples what the database costs per hour, because vCore pricing is linear. It stops the errors by paying to compute the same answer 2,200 times a second. A cache costs a small fraction of that per month, and it lets the database go back to 8 vCores.
+</Callout>
+
+## The same problem every big sale has
+
+None of this is special to food delivery. Think about Big Billion Days on Flipkart, Prime Day on Amazon, or 11.11 on Shopee. At midnight a phone goes on sale at half price, and a few million people open the same product page in the same minute.
+
+Every one of them sees the same product name, the same description, the same star rating. Only a few numbers change: the price when the deal starts, and the stock count as it drops.
+
+So the question is not "how do we handle millions of users?" It is narrower. How do we stop the database doing the same work millions of times? That is the job Azure Cache for Redis exists for. Knowing exactly what to put in it, and what to keep out, is the difference between a sale that sells out and a sale that times out.
+
+## The post-mortem, and the questions in the order they came
+
+The next morning the team sits in a room with the graphs on the screen. Nobody wants to talk about the outage. Everybody wants to talk about the fix, and the questions come in roughly this order:
+
+1. Should we just have used Redis? For what, exactly?
+2. So do we put everything in Redis?
+3. If the price changes during the sale, what does the customer pay?
+4. What if Redis itself goes down at 12:00?
+
+The rest of this article answers them in that order. If you would rather see it before you read it, the same incident is a one-minute short video:
+
+<ShortHighlight slugs={['azure-redis-cache-flash-sale']} />
+
+## When to use Azure Cache for Redis
+
+Use Azure Cache for Redis when many users read the same data far more often than it changes, and a few seconds of staleness hurts nobody. The dish page is exactly that.
+
+"Should we just have used Redis?" is the first question in the room, and the answer is yes. But the useful answer is *for what*, because the wrong things in Redis cause worse outages than this one.
+
+Azure Cache for Redis is an in-memory key-value store that sits in your Azure region, next to your API. Your API asks Redis first. If the answer is there, the database never hears about it. If it is not, the API reads the database once and puts the answer in Redis for the next caller. This is called cache-aside.
+
+Reach for it when all four of these are true:
+
+1. **Many users read the same data.** A product page, a menu, a category list, a "top 20 dishes near you".
+2. **It is read far more often than it changes.** A dish description changes monthly. It is read 130,000 times a minute during a sale.
+3. **Being a little out of date is acceptable.** If the rating shows 4.6 for thirty seconds after it became 4.7, nobody is harmed.
+4. **The database is the bottleneck, and you have measured it.** The query above is the measurement.
+
+### What data belongs in Redis
+
+| Data | Put it in Redis? | Time to live |
+| --- | --- | --- |
+| Dish or product details: name, description, photo URLs | Yes | 5 minutes |
+| Ratings summary, review count | Yes | 10 minutes |
+| Category list, home page banners, "popular now" | Yes | 1 to 5 minutes |
+| Restaurant opening hours | Yes | 15 minutes |
+| Login session and short-lived tokens | Yes, as the session store | The session length |
+| Rate-limit counters | Yes | The rate window |
+| Deal counter: plates left | As a fast gate, not the record | Until the deal ends |
+| The price a customer is charged | No | Read the database at checkout |
+| Cart, addresses, payment details | No | Per-user, read the database |
+
+## When not to use Redis
+
+Do not use Redis for the only copy of anything, for per-user data, or for any value that decides money. The second question comes fast. "So we put everything in Redis?" This is the point where a team that just got burned by the database overcorrects.
+
+A cache is a second copy of your data, and every second copy can be wrong. Skip Redis when:
+
+- **It would be the only copy.** Redis can evict keys under memory pressure and can lose recent writes in a failover. Orders, payments and inventory records belong in the database.
+- **Every user sees different data.** A cart is read by one person. Caching it saves nothing and adds an invalidation problem.
+- **The value decides money.** A price shown on a product page can be a few seconds old. A price charged at checkout cannot.
+- **Writes are as frequent as reads.** If the cache is invalidated after every read, you pay for both and gain nothing.
+- **The database is not the problem.** If your page is slow because of a 2 MB image, Redis will not help. That is a different problem with a different fix.
+
+<Callout type="when-not" title="Do not add Redis to fix a missing index">
+The most common misuse of Redis is hiding a slow query. The page gets fast, the query stays slow, and the first cache miss after a deploy takes the site down. Fix the query first. Cache the query that is already fast but runs too many times.
+</Callout>
+
+<figure>
+
+![Flowchart that starts with one piece of data on the dish page and asks four questions in order. First, is it a file such as an image, CSS, JS or font? Yes leads to CDN: Front Door, long TTL, versioned URL. Second, is it different for each user, like a cart, address or wallet? Yes leads to "Do not share-cache it. Read it from the database." Third, must it be exact when money moves, like stock left or the final price? Yes leads to "Database is the truth. Redis counter only as the gate." Fourth, is it read far more than written and fine if 30 seconds old? Yes leads to Redis cache-aside with a TTL of 1 to 5 minutes. A final no leads to "Leave it in the database. Measure before caching it."](./images/redis-or-cdn-caching-decision-flowchart.png)
+
+<figcaption>Figure 2 — four questions for every field on the page. Only the last green box is a Redis job; files are a CDN job, and money stays in the database.</figcaption>
+
+</figure>
+
+## The Redis fix: cache-aside with one caller per key
+
+Here is the fix. The API is ASP.NET Core on App Service, and it uses `HybridCache` from `Microsoft.Extensions.Caching.Hybrid` with Redis behind it, for one reason more than any other: it lets only one request per instance build a missing entry, while the others wait for that result. Plain `IDistributedCache` does not, and without that, a key expiring at the peak sends every waiting request to the database at the same moment. That is called a cache stampede, and it is exactly what happened at 12:00.
+
+```csharp
+// Program.cs
+using Azure.Identity;
+using Microsoft.Extensions.Caching.Hybrid;
+using StackExchange.Redis;
+
+var redisOptions = ConfigurationOptions.Parse(builder.Configuration["Redis:Endpoint"]!);
+await redisOptions.ConfigureForAzureWithTokenCredentialAsync(new DefaultAzureCredential());
+redisOptions.AbortOnConnectFail = false;   // start the app even if Redis is not reachable
+redisOptions.ConnectTimeout = 2000;
+redisOptions.AsyncTimeout = 500;           // a slow cache is worse than no cache
+
+builder.Services.AddStackExchangeRedisCache(o => o.ConfigurationOptions = redisOptions);
+
+builder.Services.AddHybridCache(o =>
+{
+    o.DefaultEntryOptions = new HybridCacheEntryOptions
+    {
+        Expiration = TimeSpan.FromMinutes(5),          // Redis, shared by every instance
+        LocalCacheExpiration = TimeSpan.FromSeconds(10) // this instance's memory
+    };
+});
+```
+
+Redis authenticates with the App Service managed identity through `Microsoft.Azure.StackExchangeRedis`, so there is no access key in configuration to leak or rotate. It also sits behind a private endpoint with public access off, the same way every data service does in [how Azure protects a mobile app](/blog/azure-mobile-app-layers). The two timeouts are the part people skip. The client default is five seconds, and a five-second wait on a cache is worse than going straight to the database.
+
+The endpoint barely changes:
+
+```csharp
+app.MapGet("/api/items/{id}", async (string id, HybridCache cache,
+                                     ICatalogReader catalog, CancellationToken ct) =>
+{
+    var page = await cache.GetOrCreateAsync(
+        $"item:{id}",
+        async token => await catalog.GetItemPageAsync(id, token),
+        cancellationToken: ct);
+
+    return page is null ? Results.NotFound() : Results.Ok(page);
+});
+```
+
+<figure>
+
+![UML sequence diagram with four lifelines: 500 dish page requests on one App Service instance, HybridCache as the in-process L1, Azure Cache for Redis as the shared L2, and Azure SQL Database. Step 1, the requests call GetOrCreateAsync for item:biryani-99 five hundred times. Step 2, HybridCache has an L1 miss, makes one factory call, and 499 callers wait on it. Step 3, it sends GET item:biryani-99 to Redis. Step 4, Redis returns nil because the key expired. Step 5, one query costing 12 ms of CPU goes to Azure SQL. Step 6, Azure SQL returns the dish page. Step 7, HybridCache sets the key in Redis for five minutes. Step 8, the same answer returns to all 500 callers. A red note says that without step 2, step 5 runs 500 times on this instance alone, which is exactly what happened at 12:00.](./images/redis-cache-aside-single-flight-sequence-diagram.png)
+
+<figcaption>Figure 3 — cache-aside with one caller per key. Step 2 is the whole difference between a cache and a cache stampede.</figcaption>
+
+</figure>
+
+The single-caller guarantee is per instance. With eight instances, a key expiring at the peak means up to eight database reads, not 2,200. Azure SQL does not even notice eight.
+
+<figure>
+
+![Architecture diagram after the fix. A solid frame of 400,000 phones with the Android and iOS app and Flutter web sends GET /api/items/biryani-99 to the web tier, App Service with a HybridCache L1 of 10 seconds, where hot keys are served from the instance's memory. On an L1 miss it asks the cache tier, Azure Cache for Redis, which holds dish page JSON for 5 minutes, the ratings summary for 10 minutes, and the deal counter of plates left. Only a Redis miss, one caller per instance, reaches the data tier, Azure SQL Database, which now sees cache misses and writes, not 400,000 people. The result, in green: dish page in 180 ms at the peak, and Azure SQL CPU under 15%.](./images/azure-cache-for-redis-flash-sale-architecture.png)
+
+<figcaption>Figure 4 — the same push, three weeks later. The slot is filled, and the database sees misses and writes instead of people.</figcaption>
+
+</figure>
+
+## How efficient is the new design?
+
+The database stops working in proportion to the number of people and starts working in proportion to the number of dishes. That is the whole gain, and the numbers show it plainly.
+
+Here is where the 2,200 requests a second for `biryani-99` end up once all three layers are in place, across eight App Service instances:
+
+| Layer | Answers per second for this dish | Why |
+| --- | --- | --- |
+| In-process memory (HybridCache L1) | about 2,199 | Each instance keeps the answer for 10 seconds |
+| Azure Cache for Redis | under 1 | Each instance asks Redis once every 10 seconds: 8 instances in 10 s |
+| Azure SQL Database | about 0.03 | One query per instance when the 5-minute Redis entry expires: 8 in 300 s, at worst |
+
+That is 2,200 queries a second turned into roughly two queries a minute, for exactly the same traffic.
+
+Side by side, for the same push to the same 400,000 people:
+
+| | First sale, no cache | Second sale, with the cache |
+| --- | --- | --- |
+| Dish page p95 | 9 seconds | 180 ms |
+| Dish page queries on Azure SQL | 2,200 a second | about 2 a minute |
+| CPU that query needed | about 26 vCores | a small fraction of one |
+| Azure SQL size | 32 vCores, scaled in a hurry | back to 8, CPU under 15% |
+| App Service | scaled from 3 to 8 instances | 3 instances, unchanged |
+| Errors | `Timeout expired`, error 10928 | none |
+| 5,000 plates | 1,100 sold in the first 40 minutes | sold out in 11 minutes |
+
+The rule that makes this a design and not a lucky tweak: database load is now **hot keys × instances ÷ cache lifetime**. Double the visitors and Azure SQL does the same work. Put twice as many dishes on sale and it does twice a very small amount.
+
+It also changes what scaling out does. At 12:07, every new App Service instance was another caller hammering the database. With the cache in front, a new instance adds one query every five minutes and a lot of memory that can answer on its own, so scaling out finally adds capacity.
+
+
+## What happens when the price or stock changes?
+
+Write the database, then delete the cache key, and never let checkout read the cache. Stock is different again: Redis holds a counter as a gate, and the database keeps the record.
+
+This is the question that should worry you most, and every restaurant partner asks it before a sale: "If I change the price during the sale, what will customers pay?"
+
+If the honest answer is "whatever was in the cache", you have a much bigger problem than a slow page. Price and stock get different treatment, because they break in different ways.
+
+**Price.** A partner can change the price from the restaurant dashboard at any time. The rule is: write the database first, then delete the cache entry. Delete, never update. If two updates race, an update can leave the older value in Redis. A delete only ever leaves "no value", and the next read fetches the truth.
+
+```csharp
+app.MapPut("/api/partner/items/{id}/price", async (string id, PriceChange change,
+    ICatalogWriter catalog, HybridCache cache, CancellationToken ct) =>
+{
+    await catalog.UpdatePriceAsync(id, change.Price, ct);  // 1. the source of truth
+    await cache.RemoveAsync($"item:{id}", ct);            // 2. then drop the copy
+    return Results.NoContent();
+}).RequireAuthorization("PartnerOnly");
+```
+
+`RemoveAsync` clears Redis and this instance's memory. The other instances still hold their in-memory copy for up to ten seconds, which is why `LocalCacheExpiration` is ten seconds and not five minutes. For a price shown on a page, ten seconds is fine. For a price charged, it is not, so checkout never uses the cache. It runs its own query, `SELECT Price FROM dbo.MenuItems WHERE Id = @id`, and puts that number on the order.
+
+<figure>
+
+![Step flow for a price change. Step 1, the partner changes the price with PUT /api/partner/items/biryani-99/price. Step 2, write Azure SQL first, because the database is the source of truth. Step 3, delete the Redis key; delete, do not update, and the next read rebuilds it. Step 4, other instances drop their L1 copy within 10 seconds, the L1 lifetime. Step 5, highlighted green, checkout re-reads the price, so the order uses the database price and never the cached one.](./images/price-change-redis-cache-invalidation-steps.png)
+
+<figcaption>Figure 5 — a price change, in the order the writes have to happen. The page may lag by ten seconds. The bill never does.</figcaption>
+
+</figure>
+
+**Stock.** "Plates left" is the one number everybody watches and everybody changes. You cannot cache it with a TTL, because it is wrong the moment the next order lands. You also do not want 2,200 requests a second queuing for one row. SQL Server can decrement a counter safely, but every buyer waits for the same row lock, and that lock queue becomes the next outage.
+
+So Redis holds the counter as a gate, and the database holds the record:
+
+```csharp
+var left = await redis.StringDecrementAsync($"deal:{dealId}:left");
+if (left < 0)
+{
+    await redis.StringIncrementAsync($"deal:{dealId}:left");   // give it back
+    return Results.Conflict(new { reason = "sold_out" });
+}
+
+// Redis said yes. The database still has the final word.
+await orders.PlaceDealOrderAsync(order, dealId, ct);
+```
+
+Inside `PlaceDealOrderAsync`, in the same transaction as the order insert, SQL Server does the real claim. The `WHERE` clause makes it impossible to go below zero:
+
+```sql
+UPDATE dbo.Deals
+SET    PlatesLeft = PlatesLeft - 1
+WHERE  Id = @dealId
+  AND  PlatesLeft > 0;   -- 0 rows affected: sold out, roll back the order
+```
+
+`DECR` is atomic, so two requests can never both take the last plate. Redis answers the question "is it worth trying?" in under a millisecond. The `UPDATE` is the record. Only the requests Redis let through ever reach that row, so it sees at most 5,000 claims in total instead of 2,200 a second, and a reconciliation job every minute compares the two counts. If they disagree, the database wins. The number on the dish page reads the same counter, rounded down to "fewer than 50 left", because an exact count that changes forty times a second is noise to a customer anyway.
+
+## What happens if Redis is unavailable?
+
+The site gets slower but stays correct, as long as Redis is a cache-aside speed-up and not a dependency. The last question in the room turns the whole fix around. Redis now sits between 400,000 people and the database. What if Redis goes down at 12:00?
+
+If the cache is built as cache-aside, a Redis outage makes the site slower, not wrong. The data is still in the database. The danger is that "slower" means every request now goes to the database at once, which is the exact outage this article started with.
+
+Three settings keep it contained:
+
+1. **Short timeouts.** 500 ms on Redis calls. A request that waits five seconds for a dead cache has already failed.
+2. **The in-process copy.** `HybridCache`'s memory layer keeps serving hot keys for ten seconds while Redis is away, and on a sale day the hot keys are nearly all of the traffic.
+3. **A cap on database reads.** At most 40 queries per instance go to Azure SQL at once, well under its 800-worker limit even across eight instances. Anything beyond that gets a fast `503` with `Retry-After`, and the app shows "busy, retrying" instead of a spinner.
+
+The cap sits inside the cache's factory, not on the endpoint. Put it on the endpoint and it throttles cache hits too, which are the requests you most want to serve:
+
+```csharp
+public sealed class CatalogReader(IDbConnectionFactory db) : ICatalogReader
+{
+    private static readonly SemaphoreSlim DbSlots = new(40);   // per instance
+
+    public async Task<ItemPage?> GetItemPageAsync(string id, CancellationToken ct)
+    {
+        if (!await DbSlots.WaitAsync(TimeSpan.FromMilliseconds(250), ct))
+            throw new DatabaseBusyException();   // mapped to 503 + Retry-After: 2
+
+        try { return await QueryItemPageAsync(id, ct); }   // the SELECT from earlier
+        finally { DbSlots.Release(); }
+    }
+}
+```
+
+<figure>
+
+![Flowchart for a dish page request when Redis may be unavailable. First decision: an in-process L1 copy under 10 seconds old? Yes serves from memory. No leads to the second decision: does Redis answer within 500 ms? Yes serves from Redis. No, or a timeout, leads to the third decision: is a database slot free, with a maximum of 40 reads per instance? Yes queries Azure SQL, fills L1 and returns, slower but still correct. No, drawn as a red dashed branch, returns 503 with Retry-After of 2 seconds and the app shows "Busy, retrying", with a note that the database stays up and a few users wait two seconds.](./images/redis-unavailable-fallback-flowchart.png)
+
+<figcaption>Figure 6 — Redis is a speed-up, not a dependency. When it goes away, the request steps down one layer at a time instead of falling straight onto the database.</figcaption>
+
+</figure>
+
+Test it before any sale by rebooting the Redis instance in the middle of a load test. In this setup the p95 goes from 180 ms to 1.4 seconds for about forty seconds, no errors reach the database, and nobody files a ticket. A restart is also the realistic failure: patching and scaling operations briefly drop connections, so this path runs in production whether you plan for it or not.
+
+## Why the obvious fixes were wrong
+
+- **"Scale out App Service."** It gave the repeated work more paths into the database. Eight instances were slower than three.
+- **"Scale the database up."** 32 vCores worked, at the price of paying for the same answer 2,200 times a second.
+- **"Raise Max Pool Size on the connection string."** More connections per instance only reach the 800-worker limit sooner.
+- **"Put everything in Redis."** Including the cart and the checkout price. Every one of those needs invalidation logic, and each one is a new way to charge someone the wrong amount.
+- **"Make the Redis TTL one hour."** Fewer misses, but a price change stays wrong on the page for an hour, and every partner call becomes a support ticket.
+- **"Update the cached value when the price changes."** Two racing updates leave the older price in Redis. Delete the key instead.
+
+## The guardrail: two queries and one rehearsal
+
+The first query counts SQL calls per dish page request, from Application Insights. With the cache working, it sits well below 0.1. An alert fires above 0.5, which catches a cache that stopped working, before the next sale does:
+
+```kusto
+let pages = requests
+    | where timestamp > ago(15m) and url has "/api/items/"
+    | summarize pages = count();
+dependencies
+| where timestamp > ago(15m) and type == "SQL"
+| summarize dbCalls = count()
+| extend pages = toscalar(pages)
+| extend callsPerPage = round(1.0 * dbCalls / pages, 2)
+```
+
+The second one asks the database directly. Query Store keeps execution counts per interval, so this shows whether the dish page query is running at cache-miss rates or at traffic rates. A few hundred executions an hour is the cache doing its job. Hundreds of thousands means it is not:
+
+```sql
+SELECT TOP (5)
+    q.query_id,
+    SUM(rs.count_executions)      AS executions_last_hour,
+    AVG(rs.avg_cpu_time) / 1000.0 AS avg_cpu_ms,
+    MAX(qt.query_sql_text)        AS query_text
+FROM sys.query_store_runtime_stats          AS rs
+JOIN sys.query_store_runtime_stats_interval AS i  ON i.runtime_stats_interval_id = rs.runtime_stats_interval_id
+JOIN sys.query_store_plan                   AS pl ON pl.plan_id = rs.plan_id
+JOIN sys.query_store_query                  AS q  ON q.query_id = pl.query_id
+JOIN sys.query_store_query_text             AS qt ON qt.query_text_id = q.query_text_id
+WHERE i.start_time > DATEADD(hour, -1, SYSUTCDATETIME())
+GROUP BY q.query_id
+ORDER BY executions_last_hour DESC;
+```
+
+The rehearsal matters more. Before every flash sale, an Azure Load Testing run replays the push notification: 2,500 requests a second to one item, ramping up in thirty seconds, with a Redis reboot halfway through. If the p95 stays under a second and Azure SQL CPU stays under 50%, marketing gets the go-ahead to send the push.
+
+## System design interview questions from this incident
+
+These come up in real interviews, usually phrased around Amazon or Flipkart. Each one is a section of this article.
+
+1. **A million users open the same product page in one minute. What do you cache, and for how long?** They want to hear you split the page into shared data and money data, not "add Redis".
+2. **What is a cache stampede, and how do you prevent it?** One key expires, every waiting request misses at once. Single-flight per key, a small in-process cache, and staggered TTLs.
+3. **A seller changes the price. How does the new price reach users, and what guarantees the customer is charged correctly?** Write the database, delete the key, and never use the cached price at checkout.
+4. **How do you sell exactly 5,000 units without overselling when 50,000 people click Buy?** Atomic decrement as a gate, the database as the record, and reconciliation between them.
+5. **Your Redis cluster goes down during the sale. What happens?** Short timeouts, in-memory fallback, and a cap on database concurrency, so a cache outage does not become a database outage.
+6. **Your cache hit ratio is 99% but the site is still slow. Where do you look?** The 1% might be the expensive path, the hot key might sit on one Redis shard, or the slow part might not be data at all.
+
+<Callout type="note" title="Azure Cache for Redis is being retired">
+Microsoft is retiring the Basic, Standard and Premium tiers of Azure Cache for Redis on 30 September 2028, and the Enterprise tiers on 31 March 2027, in favour of [Azure Managed Redis](https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/retirement-faq). Start new builds there. Everything in this article, including the `StackExchange.Redis` client code and `HybridCache`, works the same on both.
+</Callout>
+
+## What to do on day one, not after the sale
+
+- Put `HybridCache` in front of every read-heavy public endpoint before the first sale, not after it.
+- Decide, per field, whether it may be cached, and write that down beside the DTO. Price and stock needed the most care, and they were the ones nobody had thought about.
+- Set Redis timeouts in the first commit. The five-second default is a trap you only find under load.
+- Load test the push notification, not the average day. Average traffic never breaks anything.
+
+## Key takeaways
+
+- A flash sale is the same read repeated, so cache the read, not the traffic.
+- Use Azure Cache for Redis for shared, read-heavy data that can be seconds old.
+- Keep the price you charge, the cart and the only copy of anything in the database.
+- On a change, write the database and delete the key. Never update it.
+- Let one request per key rebuild a miss, and cap database reads so a Redis outage stays small.
+
+## The second sale
+
+Three weeks later, the second flash deal runs with the cache in place. Same biryani, same ₹99, same push to the same 400,000 people.
+
+At 12:11 the restaurant partner sends another screenshot. It says **SOLD OUT**.
+
+The dish page stays under 200 ms the whole time, and the Azure SQL CPU graph barely moves. Nobody bought a bigger database. The API just stopped asking it the same question 2,200 times a second.
+
+The grey boxes where the photos should have been are the other half of that afternoon, and they are next in this series.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could run this incident on your own.
+
+1. **The price changes mid-sale.** The partner moves the biryani from ₹99 to ₹129 at 12:05:00. A customer opened the dish page at 12:04:58 and taps Buy at 12:05:03. Which price do they see on the page, which price are they charged, and why are those two allowed to differ?
+2. **A "harmless" tuning change.** A teammate raises `LocalCacheExpiration` from 10 seconds to 5 minutes "to take load off Redis". What breaks, and who notices first?
+3. **Fifty deals instead of one.** The next sale puts 50 dishes on offer, with the same eight App Service instances and the same cache settings. Using the rule in this article, roughly how many dish page queries a minute reach Azure SQL at worst?
+4. **Redis restarts at 12:00:30.** Walk one dish page request through the next ten seconds, then the next sixty. At which point does a customer first feel it, and what stops Azure SQL from going back to 100% CPU?
+5. **The race.** Two partner edits to the same dish land a few milliseconds apart. Why does "delete the key" survive this, when "update the key" can leave the wrong price cached?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

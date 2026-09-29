@@ -44,6 +44,7 @@ import { entitiesForTags } from '../../lib/taxonomy';
 import { getImage } from 'astro:assets';
 import { relatedShortsForPost } from '../../lib/app-feed';
 import { getShorts, shortUrl } from '../../lib/shorts';
+import ShortHighlight from '../../components/ShortHighlight.astro';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -88,6 +89,9 @@ const editUrl = post.filePath ? `${REPO.url}/edit/${REPO.branch}/${post.filePath
 // this post, so a reader who arrived by search meets the 20-second version
 // too, instead of it living only where the short happened to publish.
 const relatedShorts = relatedShortsForPost(post, getShorts());
+// Shorts made for this post all get a row; a guessed match only ever gets one.
+const pinnedShorts = relatedShorts.filter((s) => s.articleSlug === post.id);
+const stripShorts = pinnedShorts.length > 0 ? pinnedShorts : relatedShorts.slice(0, 1);
 
 // --- Structured data -------------------------------------------------------
 // The technologies this post is about, as resolvable entities rather than
@@ -336,27 +340,7 @@ const shareImage = data.cover
              full read — or instead of it. Only appears when a short genuinely
              covers this post's subject (see relatedShortsForPost), so most
              posts render nothing here. -->
-        {relatedShorts.length > 0 && (
-          <aside
-            class="mb-9 max-w-[68ch] rounded-xl border border-default bg-subtle p-4"
-            aria-label="Related short video"
-          >
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div class="flex items-center gap-3 min-w-0">
-                <span class="text-2xl shrink-0" aria-hidden="true">🎥</span>
-                <div class="min-w-0">
-                  <p class="text-xs font-semibold tracking-wider uppercase text-muted">
-                    Watch it in {relatedShorts[0].seconds} seconds
-                  </p>
-                  <p class="mt-0.5 truncate font-medium leading-snug">{relatedShorts[0].title}</p>
-                </div>
-              </div>
-              <a href={shortUrl(relatedShorts[0])} class="btn btn-outline btn-sm shrink-0">
-                Watch the short →
-              </a>
-            </div>
-          </aside>
-        )}
+        <ShortHighlight shorts={stripShorts} class="mb-9 max-w-[68ch]" />
 
         <!-- `data-reader-root` scopes highlighting and the deck to the article
              itself, so nothing in the nav, the FAQ or the footer can be marked

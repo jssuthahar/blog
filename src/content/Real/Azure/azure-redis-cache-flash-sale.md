@@ -1,14 +1,14 @@
 # 400,000 taps. One database.
 
-Topic: Azure Cache for Redis during a flash sale — why 400,000 people opening one product page maxed out Azure SQL CPU, why adding servers made it worse, and how cache-aside with Redis makes the database answer once.
+Topic: Azure Managed Redis during a flash sale — why 400,000 people opening one product page maxed out Azure SQL CPU, why adding servers made it worse, and how cache-aside with Redis makes the database answer once.
 Runtime: ~60s across 11 stages (1080x1920)
-SEO title: Azure Redis for a flash sale
+SEO title: Azure Managed Redis in a flash sale
 Published: 2026-09-28
 
 ## What you will learn
 
 - Why a flash sale overloads the database with the same read, not with different work
-- How cache-aside with Azure Cache for Redis makes the database answer once
+- How cache-aside with Azure Managed Redis makes the database answer once
 - What to do when the price changes, and what happens when Redis goes down
 
 ## Copy-paste for posting
@@ -22,7 +22,7 @@ Published: 2026-09-28
 **YouTube Shorts — title**
 
 ```
-Azure Redis for a flash sale #Shorts
+Azure Managed Redis in a flash sale #Shorts
 ```
 
 **Description** (Instagram caption and Shorts description)
@@ -64,17 +64,17 @@ Write the database first, then DELETE the key. Never update it. Checkout always 
 IF REDIS GOES DOWN
 500 ms timeout, fall back to the database, cap concurrent reads. Slower, still correct.
 
-Full incident write-up, with the KQL and the code: blog.msdevbuild.com/blog/azure-cache-for-redis-flash-sale
+Full incident write-up, with the KQL and the code: blog.msdevbuild.com/blog/azure-managed-redis-flash-sale
 
 Follow for Azure & Cloud Engineering tips.
 
-#azure #redis #azurecacheforredis #systemdesign #sqlserver #azuresql #dotnet #aspnetcore #caching #scalability #cloudarchitecture #backenddeveloper #microsoftazure #interviewprep
+#azure #redis #azuremanagedredis #systemdesign #sqlserver #azuresql #dotnet #aspnetcore #caching #scalability #cloudarchitecture #backenddeveloper #microsoftazure #interviewprep
 ```
 
 **SEO keywords**
 
 ```
-azure redis for a flash sale, azure cache for redis, azure redis flash sale, cache aside pattern azure, azure sql cpu 100 percent, sql server dmv top queries, when to use redis cache, when not to use redis, redis cache invalidation price change, cache stampede, hybridcache asp.net core redis, what happens if redis goes down, system design flash sale, azure managed redis, az-204 azure cache for redis, azure, redis, azurecacheforredis, systemdesign, sqlserver, azuresql, dotnet, aspnetcore, caching, scalability, cloudarchitecture, backenddeveloper, microsoftazure, interviewprep
+azure managed redis in a flash sale, azure managed redis, azure managed redis vs azure cache for redis, azure cache for redis, azure redis flash sale, cache aside pattern azure, azure sql cpu 100 percent, sql server dmv top queries, when to use redis cache, when not to use redis, redis cache invalidation price change, cache stampede, hybridcache asp.net core redis, what happens if redis goes down, system design flash sale, az-204 azure cache for redis, azure, redis, azuremanagedredis, systemdesign, sqlserver, azuresql, dotnet, aspnetcore, caching, scalability, cloudarchitecture, backenddeveloper, microsoftazure, interviewprep
 ```
 
 ## Stage breakdown
@@ -84,7 +84,7 @@ azure redis for a flash sale, azure cache for redis, azure redis flash sale, cac
 03. **The database hits its ceiling** (5600ms) — It needs 26 vCores of CPU. It has 8. Queries queue and time out.
 04. **More servers made it worse** (5400ms) — 3 instances became 8. That is 8 doors into the same database.
 05. **It was the same answer** (5000ms) — 2,200 times a second, the database worked out the exact same page.
-06. **Keep one copy close** (5600ms) — Azure Cache for Redis sits next to the API and keeps the answer in memory.
+06. **Keep one copy close** (5600ms) — Azure Managed Redis sits next to the API and keeps the answer in memory.
 07. **First tap: read once** (5600ms) — Redis has nothing yet, so one request queries Azure SQL and saves the answer.
 08. **Everyone else: from memory** (6000ms) — The next 2,199 taps that second never reach the database.
 09. **Price changes? Delete the key** (5600ms) — Write the database first, then delete the cached copy. The next read rebuilds it.

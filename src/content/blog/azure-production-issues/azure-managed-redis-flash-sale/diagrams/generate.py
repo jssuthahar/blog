@@ -1,7 +1,7 @@
-"""Figures for the Azure Cache for Redis flash sale article. Run from the repo root:
+"""Figures for the Azure Managed Redis flash sale article. Run from the repo root:
 
-    python3 src/content/blog/azure-production-issues/azure-cache-for-redis-flash-sale/diagrams/generate.py \
-            src/content/blog/azure-production-issues/azure-cache-for-redis-flash-sale/diagrams
+    python3 src/content/blog/azure-production-issues/azure-managed-redis-flash-sale/diagrams/generate.py \
+            src/content/blog/azure-production-issues/azure-managed-redis-flash-sale/diagrams
 """
 import sys, pathlib
 _p = pathlib.Path(__file__).resolve()
@@ -53,7 +53,7 @@ REQ, HC, RD, DB = 130, 420, 710, 1000
 BOT = 640
 lifeline(c, "req", "500 dish page requests\n(one App Service instance)", REQ, 30, BOT, w=220, h=56)
 lifeline(c, "hc", "HybridCache\n(in-process L1)", HC, 30, BOT, h=56)
-lifeline(c, "rd", "Azure Cache for Redis\n(shared L2)", RD, 30, BOT, h=56)
+lifeline(c, "rd", "Azure Managed Redis\n(shared L2)", RD, 30, BOT, h=56)
 lifeline(c, "db", "Azure SQL Database", DB, 30, BOT, h=56)
 c.append(free_edge("m1", REQ, 140, HC, 140, "1. GetOrCreateAsync(item:biryani-99) x 500"))
 selfmsg(c, "m2", HC, 172, "2. L1 miss. One factory call,\n499 callers wait on it", drop=40, out=60)
@@ -144,7 +144,7 @@ c.append(node("app", "Android and iOS app", "material/smartphone.svg", 200, 72))
 c.append(node("web", "Flutter web", "material/language.svg", 470, 72))
 tier(c, "svc", "Web tier", "App Service\nHybridCache L1, 10 s", "azure/app-service.svg", 210, 260,
      note="Hot keys served from this\ninstance's memory", note_color=TEXT)
-tier(c, "rd", "Cache tier", "Azure Cache for Redis", "azure/cache-redis.svg", 210, 480,
+tier(c, "rd", "Cache tier", "Azure Managed Redis", "azure/managed-redis.svg", 210, 480,
      note="Dish page JSON, 5 minutes\nRatings summary, 10 minutes\nDeal counter: plates left",
      note_color=TEXT)
 tier(c, "db", "Data tier", "Azure SQL Database", "azure/sql-database.svg", 210, 700,
@@ -155,5 +155,5 @@ c.append(edge("e1", "grp", "svcf", "GET /api/items/biryani-99"))
 c.append(edge("e2", "svcf", "rdf", "L1 miss: GET item:biryani-99"))
 c.append(edge("e3", "rdf", "dbf", "Redis miss only, one caller per instance"))
 c.append(edge("e4", "dbf", "ok", ""))
-write(OUT, "azure-cache-for-redis-flash-sale-architecture", "After", c)
+write(OUT, "azure-managed-redis-flash-sale-architecture", "After", c)
 print("6 .drawio files written")

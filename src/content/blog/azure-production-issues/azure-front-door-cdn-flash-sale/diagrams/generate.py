@@ -53,7 +53,7 @@ tier(c, "blob", "Static origin", "Blob Storage", "azure/storage.svg", 700, 260, 
 c.append(text("blobn", "Asked only on a cache miss,\nabout 3 requests in 100", 700, 396, 240, 40,
               size=11, align="center"))
 tier(c, "svc", "Web tier", "App Service\nHybridCache L1", "azure/app-service.svg", 210, 480)
-tier(c, "rd", "Cache tier", "Azure Cache for Redis", "azure/cache-redis.svg", 210, 700,
+tier(c, "rd", "Cache tier", "Azure Managed Redis", "azure/managed-redis.svg", 210, 700,
      note="Dish page JSON, 5 minutes\nRatings summary, 10 minutes\nDeal counter: plates left",
      note_color=TEXT)
 tier(c, "db", "Data tier", "Azure SQL Database", "azure/sql-database.svg", 210, 920,

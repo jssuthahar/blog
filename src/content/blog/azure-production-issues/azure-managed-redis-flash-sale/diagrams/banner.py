@@ -2,8 +2,8 @@
 
 Run from the repo root, then export at scale 2:
 
-    python3 src/content/blog/azure-production-issues/azure-cache-for-redis-flash-sale/diagrams/banner.py \
-            src/content/blog/azure-production-issues/azure-cache-for-redis-flash-sale/diagrams
+    python3 src/content/blog/azure-production-issues/azure-managed-redis-flash-sale/diagrams/banner.py \
+            src/content/blog/azure-production-issues/azure-managed-redis-flash-sale/diagrams
 """
 import sys, pathlib
 _p = pathlib.Path(__file__).resolve()
@@ -21,6 +21,6 @@ banner(c,
               ("Azure SQL, 12 ms of CPU each", "the same query, every single time", "warn"),
               ("Timeouts and a 9-second page", "", "bad")],
        vias=["no cache", "CPU 100%"])
-out = pathlib.Path(sys.argv[1]) / "azure-cache-for-redis-flash-sale-cover.drawio"
+out = pathlib.Path(sys.argv[1]) / "azure-managed-redis-flash-sale-cover.drawio"
 out.write_text(wrap("Cover", c, pad=0))
 print("banner source written")

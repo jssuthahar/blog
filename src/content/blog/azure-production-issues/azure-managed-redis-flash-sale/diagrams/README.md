@@ -25,8 +25,8 @@ re-export from the repo root:
 ```bash
 /Applications/draw.io.app/Contents/MacOS/draw.io \
   --export --format png --scale 2 \
-  --output src/content/blog/azure-production-issues/azure-cache-for-redis-flash-sale/images/<name>.png \
-  src/content/blog/azure-production-issues/azure-cache-for-redis-flash-sale/diagrams/<name>.drawio
+  --output src/content/blog/azure-production-issues/azure-managed-redis-flash-sale/images/<name>.png \
+  src/content/blog/azure-production-issues/azure-managed-redis-flash-sale/diagrams/<name>.drawio
 ```
 
 Flag order matters. `--export --format ... --output ... <input>` works;
@@ -41,8 +41,8 @@ rectangle baked into each diagram instead.
 from the repo root:
 
 ```bash
-python3 src/content/blog/azure-production-issues/azure-cache-for-redis-flash-sale/diagrams/generate.py \
-        src/content/blog/azure-production-issues/azure-cache-for-redis-flash-sale/diagrams
+python3 src/content/blog/azure-production-issues/azure-managed-redis-flash-sale/diagrams/generate.py \
+        src/content/blog/azure-production-issues/azure-managed-redis-flash-sale/diagrams
 ```
 
 Two things that will bite you if you edit the generator:

@@ -1,30 +1,30 @@
 ---
-title: 'The Flash Sale That Hit the Database: When to Use Azure Cache for Redis'
-seoTitle: 'When to Use Azure Cache for Redis'
-description: 'When to use Azure Cache for Redis, from a flash sale that sent Azure SQL the same query 2,200 times a second. What to cache, and what to keep out.'
-highlight: "A flash sale is not a lot of different work. It is the same read, repeated. Put that read in Azure Cache for Redis and let the database answer it once, but keep anything that decides money, like stock left and the price at checkout, in the database. Caching the wrong thing is worse than caching nothing."
+title: 'The Flash Sale That Hit the Database: When to Use Azure Managed Redis'
+seoTitle: 'When to Use Azure Managed Redis (AMR)'
+description: 'When to use Azure Managed Redis, which replaces Azure Cache for Redis, learned from a flash sale that hit Azure SQL 2,200 times a second.'
+highlight: "A flash sale is not a lot of different work. It is the same read, repeated. Put that read in Azure Managed Redis and let the database answer it once, but keep anything that decides money, like stock left and the price at checkout, in the database. Caching the wrong thing is worse than caching nothing."
 publishedAt: 2026-09-29
-cover: './images/azure-cache-for-redis-flash-sale-cover.png'
+cover: './images/azure-managed-redis-flash-sale-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Azure, real-world production issues" above the title "The flash sale that hit the database" and the lines "400,000 taps. One dish page. The same answer, computed every time.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "GET /api/items/biryani-99, 2,200 times a second", an arrow labelled "no cache" to an amber box reading "Azure SQL, 12 ms of CPU each, the same query, every single time", and an arrow labelled "CPU 100%" to a red box reading "Timeouts and a 9-second page".'
 category: azure
 categories: ['architecture', 'engineering']
-tags: ['Azure', 'Azure Cache for Redis', 'Redis', 'Azure SQL', 'SQL Server', 'Caching', 'ASP.NET Core', 'System Design', 'Performance']
+tags: ['Azure', 'Azure Managed Redis', 'Azure Cache for Redis', 'Redis', 'Azure SQL', 'SQL Server', 'Caching', 'ASP.NET Core', 'System Design']
 series: 'azure-production-issues'
 seriesOrder: 2
 draft: false
 faq:
-  - q: 'When should I use Azure Cache for Redis?'
+  - q: 'When should I use Azure Managed Redis?'
     a: 'Use it when many users read the same data far more often than it changes, and the data can be a few seconds or minutes old: product details, menus, ratings summaries, category lists, session data. It turns thousands of identical database reads into one read plus fast memory lookups.'
   - q: 'When should I not use Redis as a cache?'
     a: 'Do not use it as the only copy of data you cannot lose, for data that is different for every user and rarely re-read, or for values that must be exact when money moves, such as the final price at checkout. Also skip it when the database is not the bottleneck. A cache you do not need is one more thing to invalidate.'
   - q: 'What happens to the cache when a product price changes?'
     a: 'Write the new price to the database first, then delete the cache key. Do not update the cached value, because two racing updates can leave the older one in Redis. The next read rebuilds the entry from the database, and checkout always reads the price from the database, never from the cache.'
-  - q: 'What happens if Azure Cache for Redis goes down?'
+  - q: 'What happens if Azure Managed Redis goes down?'
     a: 'If you built it as cache-aside, requests fall back to the database and the site gets slower but stays correct. Set short Redis timeouts, keep a small in-process cache in front of Redis, and cap how many requests may reach the database at once, so a Redis outage does not turn into a database outage.'
   - q: 'Why does Azure SQL hit 100% CPU during a traffic spike?'
     a: 'Usually because one cheap query runs thousands of times a second. A 12 ms query is fine once; at 2,200 runs a second it needs about 26 vCores of CPU. Find it with sys.dm_exec_query_stats ordered by execution_count, then cache its result so the database answers it once instead of scaling up to pay for the repeats.'
-  - q: 'Is Azure Cache for Redis being retired?'
-    a: 'Yes. Microsoft is retiring the Basic, Standard and Premium tiers on 30 September 2028, and the Enterprise tiers on 31 March 2027, in favour of Azure Managed Redis. New builds should start on Azure Managed Redis. The caching patterns and the StackExchange.Redis client code stay the same.'
+  - q: 'Azure Managed Redis or Azure Cache for Redis: which should I use?'
+    a: 'Azure Managed Redis for anything new. Azure Cache for Redis retires: Basic, Standard and Premium on 30 September 2028, Enterprise on 31 March 2027. AMR runs the Redis Enterprise stack on port 10000 with Microsoft Entra ID by default, and StackExchange.Redis code carries over with a new host name.'
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -42,7 +42,7 @@ The strange part is that nothing is down. Every health check is green. No errors
 
 The deal was meant to sell out in fifteen minutes. At this rate it will take all afternoon.
 
-Two separate problems are hiding inside those nine seconds. This article is the one that hits the database, and how Azure Cache for Redis fixes it. The photos are the other one, and they need a completely different fix.
+Two separate problems are hiding inside those nine seconds. This article is the one that hits the database, and how Azure Managed Redis (AMR), the successor to Azure Cache for Redis, fixes it. The photos are the other one, and they need a completely different fix.
 
 <Callout type="tip" title="A scenario, on a real app you can run">
 This incident is a scenario played out on MSDevBuild Eats, the open-source reference app used across this blog. The architecture, the queries and the code are real; the traffic numbers are illustrative, sized to show exactly where this design breaks.
@@ -153,7 +153,7 @@ None of this is special to food delivery. Think about Big Billion Days on Flipka
 
 Every one of them sees the same product name, the same description, the same star rating. Only a few numbers change: the price when the deal starts, and the stock count as it drops.
 
-So the question is not "how do we handle millions of users?" It is narrower. How do we stop the database doing the same work millions of times? That is the job Azure Cache for Redis exists for. Knowing exactly what to put in it, and what to keep out, is the difference between a sale that sells out and a sale that times out.
+So the question is not "how do we handle millions of users?" It is narrower. How do we stop the database doing the same work millions of times? That is the job Azure Managed Redis exists for. Knowing exactly what to put in it, and what to keep out, is the difference between a sale that sells out and a sale that times out.
 
 ## The post-mortem, and the questions in the order they came
 
@@ -168,13 +168,13 @@ The rest of this article answers them in that order. If you would rather see it 
 
 <ShortHighlight slugs={['azure-redis-cache-flash-sale']} />
 
-## When to use Azure Cache for Redis
+## When to use Azure Managed Redis
 
-Use Azure Cache for Redis when many users read the same data far more often than it changes, and a few seconds of staleness hurts nobody. The dish page is exactly that.
+Use Azure Managed Redis when many users read the same data far more often than it changes, and a few seconds of staleness hurts nobody. The dish page is exactly that.
 
 "Should we just have used Redis?" is the first question in the room, and the answer is yes. But the useful answer is *for what*, because the wrong things in Redis cause worse outages than this one.
 
-Azure Cache for Redis is an in-memory key-value store that sits in your Azure region, next to your API. Your API asks Redis first. If the answer is there, the database never hears about it. If it is not, the API reads the database once and puts the answer in Redis for the next caller. This is called cache-aside.
+Azure Managed Redis is an in-memory key-value store that sits in your Azure region, next to your API. Your API asks Redis first. If the answer is there, the database never hears about it. If it is not, the API reads the database once and puts the answer in Redis for the next caller. This is called cache-aside.
 
 Reach for it when all four of these are true:
 
@@ -196,6 +196,23 @@ Reach for it when all four of these are true:
 | Deal counter: plates left | As a fast gate, not the record | Until the deal ends |
 | The price a customer is charged | No | Read the database at checkout |
 | Cart, addresses, payment details | No | Per-user, read the database |
+
+## Azure Managed Redis or Azure Cache for Redis?
+
+Use Azure Managed Redis for anything you build now. Azure Cache for Redis is being retired: the Basic, Standard and Premium tiers on 30 September 2028, and the Enterprise tiers on 31 March 2027, according to the [retirement FAQ](https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/retirement-faq). Most tutorials and Stack Overflow answers still say "Azure Cache for Redis", so here is what actually changes:
+
+| | Azure Cache for Redis | Azure Managed Redis (AMR) |
+| --- | --- | --- |
+| Status | Retiring, 2027 and 2028 | Current, the target for new builds |
+| Engine | Redis community edition | Redis Enterprise stack |
+| Host name | `name.redis.cache.windows.net` | `name.region.redis.azure.net` |
+| Port | 6380 over TLS | 10000 |
+| Default sign-in | Access keys | Microsoft Entra ID |
+| Tiers | Basic, Standard, Premium, Enterprise | Balanced, Memory Optimized, Compute Optimized, Flash Optimized |
+| Scaling out | Premium clustering | Clustering built in, OSS clustering policy by default |
+| Your .NET code | `StackExchange.Redis` | the same client, a new host and port |
+
+For a read-heavy cache like this dish page, the **Balanced** tier is the usual starting point: it pairs memory and vCPU at 4:1, which suits many small, fast reads.
 
 ## When not to use Redis
 
@@ -221,7 +238,7 @@ The most common misuse of Redis is hiding a slow query. The page gets fast, the 
 
 </figure>
 
-## The Redis fix: cache-aside with one caller per key
+## The Azure Managed Redis fix: cache-aside with one caller per key
 
 Here is the fix. The API is ASP.NET Core on App Service, and it uses `HybridCache` from `Microsoft.Extensions.Caching.Hybrid` with Redis behind it, for one reason more than any other: it lets only one request per instance build a missing entry, while the others wait for that result. Plain `IDistributedCache` does not, and without that, a key expiring at the peak sends every waiting request to the database at the same moment. That is called a cache stampede, and it is exactly what happened at 12:00.
 
@@ -231,6 +248,7 @@ using Azure.Identity;
 using Microsoft.Extensions.Caching.Hybrid;
 using StackExchange.Redis;
 
+// Azure Managed Redis: "msdevbuild-cache.centralindia.redis.azure.net:10000"
 var redisOptions = ConfigurationOptions.Parse(builder.Configuration["Redis:Endpoint"]!);
 await redisOptions.ConfigureForAzureWithTokenCredentialAsync(new DefaultAzureCredential());
 redisOptions.AbortOnConnectFail = false;   // start the app even if Redis is not reachable
@@ -249,7 +267,7 @@ builder.Services.AddHybridCache(o =>
 });
 ```
 
-Redis authenticates with the App Service managed identity through `Microsoft.Azure.StackExchangeRedis`, so there is no access key in configuration to leak or rotate. It also sits behind a private endpoint with public access off, the same way every data service does in [how Azure protects a mobile app](/blog/azure-mobile-app-layers). The two timeouts are the part people skip. The client default is five seconds, and a five-second wait on a cache is worse than going straight to the database.
+Azure Managed Redis uses Microsoft Entra ID by default, so the App Service managed identity signs in through `Microsoft.Azure.StackExchangeRedis` and there is no access key in configuration to leak or rotate. It also sits behind a private endpoint with public access off, the same way every data service does in [how Azure protects a mobile app](/blog/azure-mobile-app-layers). The two timeouts are the part people skip. The client default is five seconds, and a five-second wait on a cache is worse than going straight to the database.
 
 The endpoint barely changes:
 
@@ -268,7 +286,7 @@ app.MapGet("/api/items/{id}", async (string id, HybridCache cache,
 
 <figure>
 
-![UML sequence diagram with four lifelines: 500 dish page requests on one App Service instance, HybridCache as the in-process L1, Azure Cache for Redis as the shared L2, and Azure SQL Database. Step 1, the requests call GetOrCreateAsync for item:biryani-99 five hundred times. Step 2, HybridCache has an L1 miss, makes one factory call, and 499 callers wait on it. Step 3, it sends GET item:biryani-99 to Redis. Step 4, Redis returns nil because the key expired. Step 5, one query costing 12 ms of CPU goes to Azure SQL. Step 6, Azure SQL returns the dish page. Step 7, HybridCache sets the key in Redis for five minutes. Step 8, the same answer returns to all 500 callers. A red note says that without step 2, step 5 runs 500 times on this instance alone, which is exactly what happened at 12:00.](./images/redis-cache-aside-single-flight-sequence-diagram.png)
+![UML sequence diagram with four lifelines: 500 dish page requests on one App Service instance, HybridCache as the in-process L1, Azure Managed Redis as the shared L2, and Azure SQL Database. Step 1, the requests call GetOrCreateAsync for item:biryani-99 five hundred times. Step 2, HybridCache has an L1 miss, makes one factory call, and 499 callers wait on it. Step 3, it sends GET item:biryani-99 to Redis. Step 4, Redis returns nil because the key expired. Step 5, one query costing 12 ms of CPU goes to Azure SQL. Step 6, Azure SQL returns the dish page. Step 7, HybridCache sets the key in Redis for five minutes. Step 8, the same answer returns to all 500 callers. A red note says that without step 2, step 5 runs 500 times on this instance alone, which is exactly what happened at 12:00.](./images/redis-cache-aside-single-flight-sequence-diagram.png)
 
 <figcaption>Figure 3 — cache-aside with one caller per key. Step 2 is the whole difference between a cache and a cache stampede.</figcaption>
 
@@ -278,7 +296,7 @@ The single-caller guarantee is per instance. With eight instances, a key expirin
 
 <figure>
 
-![Architecture diagram after the fix. A solid frame of 400,000 phones with the Android and iOS app and Flutter web sends GET /api/items/biryani-99 to the web tier, App Service with a HybridCache L1 of 10 seconds, where hot keys are served from the instance's memory. On an L1 miss it asks the cache tier, Azure Cache for Redis, which holds dish page JSON for 5 minutes, the ratings summary for 10 minutes, and the deal counter of plates left. Only a Redis miss, one caller per instance, reaches the data tier, Azure SQL Database, which now sees cache misses and writes, not 400,000 people. The result, in green: dish page in 180 ms at the peak, and Azure SQL CPU under 15%.](./images/azure-cache-for-redis-flash-sale-architecture.png)
+![Architecture diagram after the fix. A solid frame of 400,000 phones with the Android and iOS app and Flutter web sends GET /api/items/biryani-99 to the web tier, App Service with a HybridCache L1 of 10 seconds, where hot keys are served from the instance's memory. On an L1 miss it asks the cache tier, Azure Managed Redis, which holds dish page JSON for 5 minutes, the ratings summary for 10 minutes, and the deal counter of plates left. Only a Redis miss, one caller per instance, reaches the data tier, Azure SQL Database, which now sees cache misses and writes, not 400,000 people. The result, in green: dish page in 180 ms at the peak, and Azure SQL CPU under 15%.](./images/azure-managed-redis-flash-sale-architecture.png)
 
 <figcaption>Figure 4 — the same push, three weeks later. The slot is filled, and the database sees misses and writes instead of people.</figcaption>
 
@@ -293,7 +311,7 @@ Here is where the 2,200 requests a second for `biryani-99` end up once all three
 | Layer | Answers per second for this dish | Why |
 | --- | --- | --- |
 | In-process memory (HybridCache L1) | about 2,199 | Each instance keeps the answer for 10 seconds |
-| Azure Cache for Redis | under 1 | Each instance asks Redis once every 10 seconds: 8 instances in 10 s |
+| Azure Managed Redis | under 1 | Each instance asks Redis once every 10 seconds: 8 instances in 10 s |
 | Azure SQL Database | about 0.03 | One query per instance when the 5-minute Redis entry expires: 8 in 300 s, at worst |
 
 That is 2,200 queries a second turned into roughly two queries a minute, for exactly the same traffic.
@@ -311,6 +329,8 @@ Side by side, for the same push to the same 400,000 people:
 | 5,000 plates | 1,100 sold in the first 40 minutes | sold out in 11 minutes |
 
 The rule that makes this a design and not a lucky tweak: database load is now **hot keys × instances ÷ cache lifetime**. Double the visitors and Azure SQL does the same work. Put twice as many dishes on sale and it does twice a very small amount.
+
+It protects Redis too. Under the default OSS clustering policy each key lives on one shard, so a single hot key cannot be spread across the cluster. The in-process copy is what keeps that one shard at under one read a second.
 
 It also changes what scaling out does. At 12:07, every new App Service instance was another caller hammering the database. With the cache in front, a new instance adds one query every five minutes and a lot of memory that can answer on its own, so scaling out finally adds capacity.
 
@@ -467,9 +487,6 @@ These come up in real interviews, usually phrased around Amazon or Flipkart. Eac
 5. **Your Redis cluster goes down during the sale. What happens?** Short timeouts, in-memory fallback, and a cap on database concurrency, so a cache outage does not become a database outage.
 6. **Your cache hit ratio is 99% but the site is still slow. Where do you look?** The 1% might be the expensive path, the hot key might sit on one Redis shard, or the slow part might not be data at all.
 
-<Callout type="note" title="Azure Cache for Redis is being retired">
-Microsoft is retiring the Basic, Standard and Premium tiers of Azure Cache for Redis on 30 September 2028, and the Enterprise tiers on 31 March 2027, in favour of [Azure Managed Redis](https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/retirement-faq). Start new builds there. Everything in this article, including the `StackExchange.Redis` client code and `HybridCache`, works the same on both.
-</Callout>
 
 ## What to do on day one, not after the sale
 
@@ -481,7 +498,7 @@ Microsoft is retiring the Basic, Standard and Premium tiers of Azure Cache for R
 ## Key takeaways
 
 - A flash sale is the same read repeated, so cache the read, not the traffic.
-- Use Azure Cache for Redis for shared, read-heavy data that can be seconds old.
+- Use Azure Managed Redis for shared, read-heavy data that can be seconds old.
 - Keep the price you charge, the cart and the only copy of anything in the database.
 - On a change, write the database and delete the key. Never update it.
 - Let one request per key rebuild a miss, and cap database reads so a Redis outage stays small.

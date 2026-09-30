@@ -11,7 +11,7 @@ categories: ['architecture', 'engineering']
 tags: ['Azure', 'Azure Front Door', 'CDN', 'Blob Storage', 'Caching', 'Flutter', 'System Design', 'Performance']
 series: 'azure-production-issues'
 seriesOrder: 3
-draft: true
+draft: false
 faq:
   - q: 'When should I use a CDN?'
     a: 'Use a CDN when many people download the same bytes: product photos, JavaScript and CSS bundles, fonts, icons, banners and videos. The CDN keeps copies at edge locations near your users, so the first request in a city fetches the file once and everyone after that gets it from nearby, without touching your servers.'
@@ -29,6 +29,8 @@ faq:
 
 import Callout from '../../../../components/mdx/Callout.astro';
 import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+When 400,000 people open the same product page at once, the photos can hurt you more than the database. This is a flash sale where they did, and how a CDN on Azure Front Door, the replacement for classic Azure CDN, fixed it.
 
 It is 12:30 on sale day, and you are still the engineer on call. The database is no longer timing out. It has been scaled from 8 vCores to 32, the errors have stopped, and the dish page data is coming back.
 
@@ -77,7 +79,7 @@ The servers are spending the biggest sale of the year as a file server.
 
 </figure>
 
-## What is the real problem?
+## The real problem: the same bytes, from far away
 
 Same bytes, sent from far away, every single time.
 
@@ -99,9 +101,9 @@ No shopping site serves them from its application servers. They come from a CDN,
 
 <ShortHighlight slugs={['azure-cdn-flash-sale-images']} />
 
-## When to use a CDN
+## When should you use a CDN on Azure?
 
-Use a CDN whenever many people download the same bytes: photos, scripts, styles, fonts, banners, video. A CDN (content delivery network) keeps copies of your files at edge locations around the world, close to the people downloading them. The first user in Chennai who asks for a photo makes the CDN fetch it from your origin once. The next ten thousand users in Chennai get it from the edge, and your servers never see those requests.
+Use a CDN whenever many people download the same bytes: photos, scripts, styles, fonts, banners, video. A CDN (content delivery network) keeps copies of your files at edge locations, data centres around the world close to the people downloading them. The first user in Chennai who asks for a photo makes the CDN fetch it once from your origin, the place the real file lives. That first request is a cache miss. The next ten thousand users in Chennai are cache hits: they get the copy from the edge, and your servers never see those requests.
 
 On Azure, "Azure CDN" now means **Azure Front Door Standard or Premium**. The classic Azure CDN from Microsoft stopped accepting new profiles in August 2025 and retires on 30 September 2027, and Front Door is the migration target. Same idea, one resource that does CDN caching, routing and WAF together. If you already put Front Door in front of your API for security, as in [how Azure protects a mobile app](/blog/azure-mobile-app-layers), the CDN is a route on the same profile, not a new service.
 
@@ -110,15 +112,15 @@ Use it when the same bytes go to many people:
 | Content | Through the CDN? | Cache for |
 | --- | --- | --- |
 | Product and dish photos | Yes | 1 year, with a versioned URL |
-| Fingerprinted JS and CSS bundles | Yes | 1 year |
+| Fingerprinted JS and CSS bundles (a hash in the filename) | Yes | 1 year |
 | Fonts, icons, logos | Yes | 1 year |
 | Promo banners and sale videos | Yes | Hours to days, versioned |
 | `index.html`, `flutter_bootstrap.js`, `main.dart.js` | Yes, but revalidated | `no-cache`, see below |
 | Public catalogue JSON the same for everyone | Sometimes | A few seconds at most |
 
-The fix moves the photos and the Flutter web build to Blob Storage behind Front Door, with one route for `/images/*` and `/assets/*`. That container holds only files meant for everyone, so it allows anonymous blob reads, and on Front Door Premium the storage account is reachable only through Private Link, so nobody can skip the CDN and pull from it directly.
+The fix moves the photos and the Flutter web build to Blob Storage behind Front Door, with one route for `/images/*` and `/assets/*`. That container holds only files meant for everyone, so it allows anonymous blob reads: anyone with the URL can download a file, no key needed. On Front Door Premium the storage account is reachable only through Private Link, a private connection from Front Door to storage, so nobody can skip the CDN and pull from it directly.
 
-Each file is uploaded with its caching header set, so Front Door and the browser both know how long to keep it. The first version of the fix kept the original filenames, so it used a cautious seven days:
+Each file is uploaded with its caching header set, so Front Door and the browser both know how long to keep it. The first version of the fix kept the original filenames, so it used a cautious seven days (`max-age` is in seconds, and 604800 seconds is seven days):
 
 ```bash
 az storage blob upload-batch \
@@ -130,14 +132,14 @@ az storage blob upload-batch \
 That was enough for the second sale. It was also the setting that caused the next problem, a week later.
 
 <Callout type="mistake" title="Flutter web does not fingerprint main.dart.js">
-Flutter web builds produce `main.dart.js` and `flutter_bootstrap.js` with the same filenames on every build. Give them a one-year cache and your next release is invisible until the cache expires. Serve those two files and `index.html` with `Cache-Control: no-cache`, which still lets the CDN keep a copy but makes it check for a newer one with a cheap conditional request.
+Flutter web builds produce `main.dart.js` and `flutter_bootstrap.js` with the same filenames on every build. Give them a one-year cache and your next release is invisible until the cache expires. Serve those two files and `index.html` with `Cache-Control: no-cache`, which still lets the CDN keep a copy but makes it check for a newer one first. That check is cheap: the CDN asks "has this changed?", and if it has not, the answer is a tiny `304 Not Modified` instead of the whole file.
 </Callout>
 
 <figure>
 
 ![Architecture diagram after the fix. A solid frame of 400,000 phones with the Android and iOS app and Flutter web sends every request to one hostname: the edge tier, Azure Front Door acting as the CDN. Front Door sends /images and /assets requests to a static origin, Blob Storage, on a cache miss only, which is about 3 requests in 100. It passes /api requests through without caching to the web tier, App Service with a HybridCache L1. On an L1 miss the web tier asks the cache tier, Azure Managed Redis, which holds dish page JSON for 5 minutes, the ratings summary for 10 minutes, and the deal counter of plates left. Only a Redis miss, one caller per instance, reaches the data tier, Azure SQL Database. The result, in green: dish page in 180 ms at the peak, and Azure SQL CPU under 15%.](./images/azure-front-door-cdn-redis-flash-sale-architecture.png)
 
-<figcaption>Figure 2 — the full picture for the second sale. Files stop at the edge, repeated reads stop at Redis, and the database sees what is left.</figcaption>
+<figcaption>Figure 2 — the full picture for the second sale. Files stop at the edge, repeated reads stop at Redis and the in-memory HybridCache from the database fix, and the database sees what is left.</figcaption>
 
 </figure>
 
@@ -210,7 +212,7 @@ The fix is to stop reusing URLs. Every uploaded photo is now saved under its con
 /images/items/biryani-99/3f9a1c.webp
 ```
 
-Because a hashed name never changes content, it can finally be cached for as long as a browser allows:
+Because a hashed name never changes content, it can finally be cached for a year, and `immutable` tells the browser not to even ask whether a newer copy exists:
 
 ```bash
 az storage blob upload \
@@ -248,14 +250,14 @@ The two fixes from this sale are easy to mix up, because both are "a cache". The
 ## Why the obvious fixes were wrong
 
 - **"Scale App Service up or out."** More servers doing a job servers should not do. The photos still travel from one region.
-- **"Make the Blob container public and link to it directly."** It takes the API out of the path, which helps, but every download still comes from one region and every byte is billed as storage egress.
+- **"Make the Blob container public and link to it directly."** It takes the API out of the path, which helps, but every download still comes from one region and every byte is billed as storage egress, the charge for data leaving Azure.
 - **"Cache the whole dish page at the CDN."** It would cache the price and the stock count too, and serve "32 left" long after they were gone.
 - **"Set a one-year cache on the same filename."** Fast, until the photo changes. Then nobody sees the new one for a year.
 - **"Purge the CDN when a photo changes."** It fixes the edge and misses every phone that already has the file.
 
 ## The guardrail: the hit ratio
 
-One query, on the Front Door access logs. On a normal day the image hit ratio should stay above 90%. If it drops, somebody is uploading files without a cache header, or reusing URLs, or a route lost its caching rule:
+The hit ratio is the share of requests the edge answers without going back to the origin. One query on the Front Door access logs tracks it. On a normal day the image hit ratio should stay above 90%. If it drops, somebody is uploading files without a cache header, or reusing URLs, or a route lost its caching rule:
 
 ```kusto
 AzureDiagnostics
@@ -296,9 +298,11 @@ Before the fix, every photo byte was App Service outbound traffic plus storage r
 - Never cache personal data, authenticated responses or numbers that change by the second.
 - Change a file by giving it a new URL. Purging reaches the CDN, not the phones.
 
-## The second sale
+## The next sale
 
-Rewind a week, to the day the first fix went live. Three weeks after the first sale, the second flash deal starts at 12:00. The restaurant partner opens the dish page and sends a screenshot. Four photos, all there, loaded before the price did.
+A month after the first sale, the next flash deal is booked for 12:00. At 9:40 that morning the restaurant partner uploads a new biryani photo. It gets a new hashed URL, and nobody purges anything.
+
+At 12:00 the partner opens the dish page and sends a screenshot. The new photo, four of them, all there, loaded before the price did.
 
 At 12:11 another one arrives. **SOLD OUT**.
 

@@ -1,0 +1,622 @@
+---
+title: 'One Hotel, Three Suppliers, Three JSON Shapes: Hotel Aggregator System Design'
+seoTitle: 'Hotel Aggregator Design: Supplier APIs'
+description: 'How a hotel aggregator integrates Expedia, Booking.com, Agoda and Trip.com when each returns different JSON: adapters, one model, hotel mapping.'
+highlight: "Never let a supplier's JSON reach your search results. Put one adapter per supplier behind a single canonical model: the total price for the stay with taxes, in major units with an ISO currency, deadlines in UTC, and your own master hotel ID. Fan out in parallel under a time budget, so a slow or changed supplier costs you its offers, not your search."
+publishedAt: 2026-10-02
+cover: './images/hotel-aggregator-system-design-supplier-integration-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, system design" above the title "One hotel, three suppliers, three JSONs" and the lines "Same beach resort in Goa. Three names, prices and shapes.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Supplier JSON, used as-is: per night or per stay, paise or rupees", an arrow labelled "no canonical model" to an amber box reading "Mapped inside the controller: one if-else block per supplier", and an arrow labelled "launch day" to a red box reading "A ₹212 hotel, listed three times, and a 9-second search".'
+category: azure
+categories: ['architecture', 'engineering']
+tags: ['System Design', 'Architecture', 'Integration', 'Adapter Pattern', 'ASP.NET Core', 'Azure', 'Azure SQL', 'Travel Tech']
+series: 'azure-production-issues'
+seriesOrder: 5
+draft: true
+faq:
+  - q: 'How does a hotel aggregator integrate multiple supplier APIs?'
+    a: 'It puts one adapter per supplier behind a single canonical data model. Each adapter handles one supplier''s authentication and JSON and converts every offer into the same shape. Search calls all adapters in parallel under a time budget, merges offers by a master hotel ID, and ranks them on a comparable total price.'
+  - q: 'What is a canonical data model in system integration?'
+    a: 'It is the one internal shape every external source is translated into before the rest of the system sees it. For hotels it fixes the rules: total price for the whole stay with taxes, major currency units with an ISO code, UTC deadlines, one board-basis enum and one hotel ID. Search, ranking and booking code only ever read that model.'
+  - q: 'How do you map the same hotel across different suppliers?'
+    a: 'Keep your own master hotel ID and a mapping table from each supplier''s hotel ID to it. New supplier hotels are matched offline: first by distance, within about 150 metres, then by a name and address similarity score. High scores map automatically, middle scores go to a person to review, and low scores become new master hotels.'
+  - q: 'How do you handle a slow hotel supplier API during search?'
+    a: 'Call every supplier in parallel and give the whole search a fixed time budget, such as 2.5 seconds. Cancel any supplier still running when the budget ends and return the offers you already have. Add per-supplier timeouts and a circuit breaker so one slow supplier cannot hold threads or connections for everyone else.'
+  - q: 'How should prices from different hotel suppliers be compared?'
+    a: 'Only after converting them to one basis: the total for the whole stay, all taxes included, in major units and one currency, with fees paid at the hotel added on top. Suppliers mix per-night and per-stay prices, minor and major units, and tax-inclusive and tax-exclusive totals, so raw numbers are never comparable.'
+  - q: 'What happens when a supplier changes its JSON response?'
+    a: 'With a tolerant reader, new fields are ignored and unknown codes map to an Unknown value and a counter instead of crashing the search. Archive every raw response, replay the recorded payloads through each adapter in automated tests, and alert when the share of offers an adapter rejects rises above normal.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+A hotel aggregation platform shows one list of hotels, but behind it sit suppliers like Expedia, Booking.com, Agoda and Trip.com, and every one of them returns completely different JSON. This is the system design that turns those shapes into one comparable answer, told through the morning it went wrong without it.
+
+It is 10:35 on a Tuesday, and you are the architect of a travel app. The team switched on a third hotel supplier at 10:00. A product manager has just posted a screenshot in the incident channel.
+
+The top result for Goa, 14 to 16 October, is the Sea Breeze Resort & Spa. **₹212 for two nights.**
+
+The same resort is listed again at position six for ₹13,688, and again at position eleven under a slightly different name. And the search that used to answer in under two seconds is now taking nine.
+
+<Callout type="tip" title="A scenario, with illustrative payloads">
+The travel platform and its launch morning are a scenario. Real supplier APIs such as Expedia's, Booking.com's, Agoda's and Trip.com's are available to partners under agreements, and their exact schemas are theirs to publish. So the three payloads in this article are **illustrative**: simplified shapes that show the kinds of differences you will meet, not any one supplier's contract. The architecture, the .NET code and the SQL are real and runnable.
+</Callout>
+
+## Launch morning, and three bugs from one missing layer
+
+| Time | What happened |
+| --- | --- |
+| 10:00 | Supplier C goes live, three weeks after Supplier B |
+| 10:20 | Search p95 climbs from 1.8 seconds to 9.1 |
+| 10:35 | The ₹212 screenshot. The resort sits at the top of every Goa search |
+| 10:50 | 1,400 travellers have tapped it. Every booking attempt re-quotes at over ₹18,000 and fails |
+| 11:10 | Support notices the same resort appears three times, under three names |
+| 11:30 | Supplier C is switched off. Search is back to 1.8 seconds |
+| 14:00 | One SQL query shows Supplier B has been wrong for three weeks, and nobody noticed |
+
+Nobody paid ₹212, because the booking step asked the supplier again and got the real price. That was luck, not design. The fake deal still cost an hour of conversions, a wave of angry reviews, and the trust of every traveller who tapped it.
+
+Three symptoms, and it is tempting to fix them one at a time. The ₹212 needs a currency fix, the duplicates need a name comparison, the slow search needs a timeout. All three have the same cause.
+
+## The SQL query that found the bug nobody reported
+
+Every offer shown in search was already logged to `dbo.SearchOffersLog`, one row per offer, with the price exactly as the traveller saw it. At 14:00 somebody asks a simple question: what does a typical two-night stay in Goa cost, according to each supplier?
+
+```sql
+SELECT DISTINCT
+       Supplier,
+       COUNT(*) OVER (PARTITION BY Supplier)                       AS offers,
+       PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ShownPrice)
+           OVER (PARTITION BY Supplier)                            AS median_shown_price
+FROM dbo.SearchOffersLog
+WHERE City = 'Goa'
+  AND Nights = 2
+  AND SearchedAt >= '2026-09-08';          -- the day Supplier B went live
+```
+
+| Supplier | offers | median_shown_price |
+| --- | --- | --- |
+| A | 41,880 | 12,900 |
+| B | 57,214 | 1,340,000 |
+| C | 3,902 | 198 |
+
+The same beach, the same dates, and three answers two orders of magnitude apart.
+
+**Supplier C** sends prices in US dollars. The controller read the number and put a rupee sign in front of it. That is the ₹212.
+
+**Supplier B** sends prices in minor units, paise, so ₹13,400 arrives as `1340000`. The controller never divided by 100. Every Supplier B hotel had been showing a hundred times its real price for three weeks. They sank to the bottom of every list, nobody tapped them, and nobody complained. The loud bug got fixed in an hour. The quiet one had been costing bookings since launch.
+
+<figure>
+
+![Architecture diagram of hotel search before the fix. A solid frame labelled "Goa, 14 to 16 October, 2 adults: one search" holds the Android and iOS app and the web. One arrow, GET /api/search, goes to the web tier: a Search API on App Service with one controller and three if-else blocks, and a red note that the mapping code for every supplier sits inside one endpoint, which waits for the slowest supplier before answering. Three arrows fan out to three grey supplier boxes: Supplier A, price per night in decimals; Supplier B, total per stay in paise; Supplier C, async, poll for results. The result, in red: a ₹212 hotel on top, the same hotel listed three times, and a 9-second search while Supplier C thinks.](./images/hotel-aggregator-direct-supplier-calls-architecture.png)
+
+<figcaption>Figure 1 — the search before the fix. Every supplier's JSON reaches the controller as it is, and the controller is the only thing standing between it and the traveller.</figcaption>
+
+</figure>
+
+## The real problem: every supplier speaks its own dialect
+
+The search API treated supplier JSON as if it were its own data. It was not. Each supplier describes the same hotel room with different words, different units and different assumptions, and the controller translated all three inline, with one `if` block per supplier.
+
+Here is the same room, the Deluxe Sea View at the Sea Breeze Resort, as three illustrative suppliers describe it.
+
+**Supplier A** nests rates inside rooms inside hotels, prices each night separately, and keeps taxes outside the price:
+
+```json
+{
+  "hotels": [{
+    "hotelCode": "A-55821",
+    "name": "Sea Breeze Resort & Spa",
+    "rooms": [{
+      "roomName": "Deluxe Sea View",
+      "rates": [{
+        "rateKey": "a7f3e1c0",
+        "board": "BB",
+        "currency": "INR",
+        "nightly": [
+          { "date": "2026-10-14", "amount": 5400.00 },
+          { "date": "2026-10-15", "amount": 6200.00 }
+        ],
+        "taxes": { "included": false, "amount": 2088.00 },
+        "cancellation": [{ "from": "2026-10-12T06:30:00Z", "penalty": 5400.00 }]
+      }]
+    }]
+  }]
+}
+```
+
+**Supplier B** returns one flat list of offers, a total for the whole stay in minor units, compact dates, and a cancellation deadline in the hotel's local time with no zone:
+
+```json
+{
+  "results": [{
+    "property_id": 88213,
+    "property_name": "Seabreeze Resort and Spa, Candolim",
+    "room": "DLX SV",
+    "meal": "BREAKFAST_INCLUDED",
+    "price": { "total": 1370400, "currency": "INR", "tax_inclusive": true },
+    "checkin": "20261014",
+    "nights": 2,
+    "refundable": "Y",
+    "free_cancel_until": "2026-10-12 18:00",
+    "offer_token": "b-4c9d2a"
+  }]
+}
+```
+
+**Supplier C** is asynchronous. You start a search, get an ID back, and poll until it completes. The price is in US dollars, a fee is payable at the hotel, and the cancellation policy is a sentence:
+
+```json
+{
+  "status": "COMPLETE",
+  "properties": [{
+    "id": "C|GOI|00417",
+    "title": "Sea Breeze Resort",
+    "geo": { "lat": 15.5176, "lng": 73.7626 },
+    "offers": [{
+      "id": "c-off-7712",
+      "roomType": { "code": "DSV", "text": "Deluxe Room, Sea View" },
+      "mealPlan": 2,
+      "amount": 212.40,
+      "currency": "USD",
+      "priceType": "STAY",
+      "payAtProperty": [{ "type": "RESORT_FEE", "amount": 12.00, "currency": "USD" }],
+      "cancellationText": "Free cancellation until 2 days before arrival."
+    }]
+  }]
+}
+```
+
+Put side by side, almost nothing lines up:
+
+| | Supplier A | Supplier B | Supplier C |
+| --- | --- | --- | --- |
+| Hotel ID | `A-55821` | `88213` | `C\|GOI\|00417` |
+| Hotel name | Sea Breeze Resort & Spa | Seabreeze Resort and Spa, Candolim | Sea Breeze Resort |
+| Price basis | per night, taxes extra | whole stay, taxes in | whole stay, fee at hotel |
+| Units | rupees | paise | US dollars |
+| Breakfast | `"BB"` | `"BREAKFAST_INCLUDED"` | `2` |
+| Cancellation | UTC deadline | local time, no zone | a sentence |
+| Search style | one call | one call | start, then poll |
+
+None of these suppliers is wrong. Each shape makes sense inside its own system. The mistake is letting any of them leak into yours.
+
+## The same problem every aggregator has
+
+Every business that sells other companies' inventory meets this on day one. Flight search engines read dozens of airline and GDS formats. Food delivery platforms read menus from every restaurant's point-of-sale system. Price comparison sites read every shop's feed. Payment platforms read every bank's settlement file.
+
+The answer is the same everywhere, and it has three parts: an **adapter** per source, one **canonical model** they all translate into, and a **master identity** for the thing being compared. The rest of this article builds all three. If you would rather see it first, it is a one-minute short video:
+
+<ShortHighlight slugs={['hotel-aggregator-supplier-adapters']} />
+
+## How does a hotel aggregator handle different supplier APIs?
+
+It never lets them meet. Every supplier gets its own adapter, a small component that knows that one supplier's authentication, request format, response JSON, units and quirks. Every adapter returns the same thing: offers in the platform's canonical model. Search, ranking, caching and booking only ever see that model.
+
+This is the adapter pattern at system scale, and in domain-driven design it has a name: an [anti-corruption layer](https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer). The adapters absorb each supplier's model so it cannot corrupt yours.
+
+<figure>
+
+![Architecture diagram after the fix. A solid frame of travellers searching Goa, on the Android and iOS app and the web, sends GET /api/search to the web tier: a Search API and orchestrator on App Service, with a 2.5-second budget and partial results. On its left, an arrow labelled "cache first" goes to Azure Managed Redis, which holds search results for 2 minutes and never the price at booking. On its right, an arrow labelled "master hotel ids" goes to Azure SQL Database, holding master hotels and SupplierHotelMap, one id per real hotel. Below, an arrow labelled "fan out, in parallel" goes to a frame of supplier adapters, one per supplier, all returning the canonical model: Adapter A for auth, mapping and normalising; Adapter B converting paise to rupees and dates; Adapter C starting a search, then polling. An arrow labelled "raw JSON" goes from the adapters to Blob Storage, which archives every raw response for 30 days for replay in mapping tests. Each adapter calls its own supplier API. The result, in green: one listing per hotel, one comparable price, and a search that answers in 2.5 seconds even when a supplier is slow.](./images/hotel-aggregator-supplier-adapter-architecture.png)
+
+<figcaption>Figure 2 — the platform after the fix. Supplier JSON stops at the adapters; everything above them speaks one model.</figcaption>
+
+</figure>
+
+## The canonical model: decide the rules once
+
+The canonical model is not a union of every supplier's fields. It is a short list of decisions, made once, that every adapter must obey:
+
+| Field | The rule |
+| --- | --- |
+| Price | Total for the whole stay, every tax included, in major units, with an ISO 4217 currency |
+| Pay at hotel | Its own amount, shown separately. Never dropped, never hidden in the total |
+| Stay dates | `DateOnly`, no time and no zone |
+| Deadlines | `DateTimeOffset` in UTC, converted from the hotel's own time zone |
+| Board | One enum. An unknown code maps to `Unknown` and is counted |
+| Cancellation | A "free until" instant, or non-refundable. Text that cannot be parsed means non-refundable |
+| Hotel | The master hotel ID only. Supplier IDs stay inside the adapter and the mapping table |
+| Rate key | An opaque string, handed back to the same adapter at booking |
+
+In C#, that is a handful of records:
+
+```csharp
+public sealed record Money(decimal Amount, string Currency);   // major units, ISO 4217
+
+public enum BoardBasis { RoomOnly, Breakfast, HalfBoard, FullBoard, AllInclusive, Unknown }
+
+public sealed record HotelOffer(
+    int MasterHotelId,
+    string Supplier,
+    string SupplierRateKey,          // opaque; only the supplier's adapter can book with it
+    string RoomName,                 // the supplier's words, shown as they are
+    BoardBasis Board,
+    Money Total,                     // whole stay, all taxes
+    Money? PayAtHotel,               // resort fees, city tax collected at check-in
+    DateTimeOffset? FreeCancellationUntil,   // UTC; null means non-refundable
+    DateTimeOffset QuotedAt)
+{
+    public decimal AllIn => Total.Amount + (PayAtHotel?.Amount ?? 0);   // same currency only
+}
+```
+
+The "unparseable means non-refundable" rule deserves a second look. It is a deliberately pessimistic default. Telling a traveller a room is refundable when it is not is a complaint and a chargeback. Telling them it is non-refundable when it is refundable costs, at worst, a booking. When the data is unclear, the claim you show must be the safe one.
+
+## One adapter per supplier
+
+Every adapter implements the same small interface:
+
+```csharp
+public interface ISupplierAdapter
+{
+    string Supplier { get; }
+    Task<SupplierSearchResult> SearchAsync(SearchRequest request, CancellationToken ct);
+    Task<PriceCheckResult> CheckPriceAsync(string rateKey, CancellationToken ct);
+    Task<BookingResult> BookAsync(BookingRequest request, CancellationToken ct);
+}
+```
+
+The interesting part is the mapping. Supplier B's adapter shows most of the traps in a few lines:
+
+```csharp
+internal sealed class SupplierBAdapter(
+    HttpClient http, IHotelMap hotels, IRawPayloadArchive archive, SupplierMetrics metrics)
+    : ISupplierAdapter
+{
+    public string Supplier => "B";
+
+    public async Task<SupplierSearchResult> SearchAsync(SearchRequest request, CancellationToken ct)
+    {
+        var body = new BSearchRequest(request.CityCode, request.CheckIn.ToString("yyyyMMdd"),
+                                      request.Nights, request.Adults);
+        using var response = await http.PostAsJsonAsync("v2/availability", body, ct);
+        response.EnsureSuccessStatusCode();
+
+        var raw = await response.Content.ReadAsStringAsync(ct);
+        await archive.SaveAsync(Supplier, request, raw, ct);          // every response, as sent
+
+        var dto = JsonSerializer.Deserialize<BSearchResponse>(raw, BJson.Options)!;
+        var offers = new List<HotelOffer>(dto.Results.Count);
+        foreach (var result in dto.Results)
+        {
+            if (Map(result) is { } offer) offers.Add(offer);
+            else metrics.Rejected(Supplier);                           // counted, never shown
+        }
+        return SupplierSearchResult.Ok(Supplier, offers);
+    }
+
+    private HotelOffer? Map(BResult r)
+    {
+        var hotel = hotels.Find(Supplier, r.PropertyId.ToString(CultureInfo.InvariantCulture));
+        if (hotel is null) return null;                                // not mapped yet
+
+        // B sends minor units. Not every currency has two decimals: JPY has none, KWD has three.
+        var total = new Money(r.Price.Total / CurrencyMinorUnits.Divisor(r.Price.Currency),
+                              r.Price.Currency);
+        if (!r.Price.TaxInclusive) return null;                        // never seen; reject, do not guess
+
+        var board = r.Meal switch
+        {
+            "ROOM_ONLY"          => BoardBasis.RoomOnly,
+            "BREAKFAST_INCLUDED" => BoardBasis.Breakfast,
+            "HALF_BOARD"         => BoardBasis.HalfBoard,
+            "FULL_BOARD"         => BoardBasis.FullBoard,
+            "ALL_INCLUSIVE"      => BoardBasis.AllInclusive,
+            _                    => BoardBasis.Unknown                  // tolerant reader: count it, keep going
+        };
+
+        DateTimeOffset? freeUntil = null;
+        if (r.Refundable == "Y" && r.FreeCancelUntil is { } local)
+        {
+            // "2026-10-12 18:00" is the hotel's wall clock, so convert it with the hotel's zone.
+            var wall = DateTime.ParseExact(local, "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+            var zone = TimeZoneInfo.FindSystemTimeZoneById(hotel.TimeZone);   // e.g. Asia/Kolkata
+            freeUntil = new DateTimeOffset(wall, zone.GetUtcOffset(wall)).ToUniversalTime();
+        }
+
+        return new HotelOffer(hotel.MasterHotelId, Supplier, r.OfferToken, r.Room, board,
+                              total, PayAtHotel: null, freeUntil, DateTimeOffset.UtcNow);
+    }
+}
+```
+
+Three habits in that code carry across every adapter:
+
+- **The adapter rejects what it does not understand.** A tax-exclusive total from a supplier that has only ever sent inclusive ones is a change nobody announced. Dropping that offer and counting it is safer than showing a wrong price.
+- **It tolerates what does not matter.** `System.Text.Json` ignores unknown properties by default, and an unknown meal code becomes `Unknown`. A supplier adding a field should never take your search down.
+- **It archives the raw response before touching it.** When a mapping bug appears, you want the exact bytes the supplier sent, not your interpretation of them.
+
+Supplier A's adapter sums its nightly prices and adds the tax block. Supplier C's adapter starts a search, polls with a short delay until the status is `COMPLETE`, converts `mealPlan: 2` to `Breakfast` from the supplier's code list, and parses "Free cancellation until 2 days before arrival" with a small set of known patterns. The resort fee stays in `PayAtHotel`, in dollars. Currency conversion does not happen in the adapter at all, because the adapter should report what the supplier said, not what it is worth today.
+
+Authentication differs too: an API key header for one supplier, an HMAC signature over the request for another, an OAuth token for a third. Each lives in a `DelegatingHandler` registered on that adapter's `HttpClient`, with the secret read from Key Vault through the app's managed identity. No other code knows which supplier signs how.
+
+<Callout type="mistake" title="One generic mapper driven by configuration">
+A common first design is a single "universal mapper" configured per supplier with JSON paths: price is at `$.price.total`, divide by 100, and so on. It works for the first two suppliers. Then one needs polling, another sums nightly rates, a third parses sentences, and the configuration becomes a programming language nobody can debug. Write each adapter as ordinary code, and share small helpers instead.
+</Callout>
+
+## How do you know two suppliers mean the same hotel?
+
+With your own master hotel ID and a mapping table, built offline and never guessed during a search. "Sea Breeze Resort & Spa", "Seabreeze Resort and Spa, Candolim" and "Sea Breeze Resort" are one building, and only a mapping step can say so.
+
+Each supplier publishes static content, names, addresses, coordinates and photos, through a separate content API or file. A nightly job reads it and matches every new supplier hotel against the master list:
+
+```sql
+CREATE TABLE dbo.MasterHotels (
+    MasterHotelId int IDENTITY CONSTRAINT PK_MasterHotels PRIMARY KEY,
+    Name          nvarchar(200) NOT NULL,
+    Address       nvarchar(400) NOT NULL,
+    Location      geography     NOT NULL,
+    TimeZone      varchar(64)   NOT NULL        -- IANA, e.g. Asia/Kolkata
+);
+
+CREATE SPATIAL INDEX SX_MasterHotels_Location ON dbo.MasterHotels (Location);
+
+CREATE TABLE dbo.SupplierHotelMap (
+    Supplier        varchar(20)  NOT NULL,
+    SupplierHotelId varchar(64)  NOT NULL,
+    MasterHotelId   int          NOT NULL REFERENCES dbo.MasterHotels,
+    MatchScore      decimal(3,2) NOT NULL,
+    MatchedBy       varchar(20)  NOT NULL,      -- auto, reviewer or provider
+    CONSTRAINT PK_SupplierHotelMap PRIMARY KEY (Supplier, SupplierHotelId)
+);
+```
+
+The first filter is distance. Azure SQL's `geography` type measures in metres, and the spatial index keeps the lookup fast:
+
+```sql
+DECLARE @here geography = geography::Point(15.5176, 73.7626, 4326);   -- lat, long, WGS 84
+
+SELECT TOP (5)
+       MasterHotelId, Name, Address,
+       Location.STDistance(@here) AS metres
+FROM dbo.MasterHotels
+WHERE Location.STDistance(@here) <= 150
+ORDER BY metres;
+```
+
+The candidates that come back are then scored on name and address in code. Normalise first: lower case, "&" to "and", strip words like "hotel", "resort" and the city name, drop punctuation. Then compare token sets. After normalising, "Sea Breeze Resort & Spa" and "Seabreeze Resort and Spa, Candolim" differ by one space.
+
+<figure>
+
+![Flowchart for mapping one supplier hotel. It starts with a supplier hotel arriving from the nightly content sync. First decision: already in SupplierHotelMap? Yes leads to a green box: use its MasterHotelId. No continues to the second decision: a master hotel within 150 metres? No leads to a grey box: create a new master hotel. Yes continues to the third decision: a name and address score of 0.90 or more? Yes leads to a green box: map it automatically. No continues to the fourth decision: a score of 0.70 or more? Yes leads to an amber box: the review queue, where a person decides. No leads to a grey box: create a new master hotel and flag it for review.](./images/hotel-mapping-master-hotel-id-flowchart.png)
+
+<figcaption>Figure 3 — the mapping decision, run offline for every new supplier hotel. Search only ever reads its result.</figcaption>
+
+</figure>
+
+The thresholds are tuned against hotels a person has already checked. The review queue is not a failure of the design; it is the design. A wrong automatic match merges two hotels, which is worse than showing one twice. Mapping hotels is also a product you can buy: companies such as GIATA sell cross-supplier hotel ID mappings, and many aggregators start there and keep their own review queue for the rest.
+
+Search never calls SQL for any of this. Each App Service instance loads the whole map into memory, a few hundred thousand rows of two strings and an integer, and refreshes it every few minutes. `hotels.Find` in the adapter is a dictionary lookup.
+
+## Fan out, under a time budget
+
+The nine-second search had nothing to do with JSON shapes. The controller called Supplier A, then B, then C, one after the other, and Supplier C's poll loop took seven seconds on a busy morning. A traveller waits for the slowest supplier, every time.
+
+The orchestrator calls every adapter at once and gives the whole search a budget:
+
+```csharp
+public sealed class SearchOrchestrator(
+    IEnumerable<ISupplierAdapter> adapters, OfferMerger merger, IFxRates fx,
+    HybridCache cache, ILogger<SearchOrchestrator> log)
+{
+    private static readonly TimeSpan Budget = TimeSpan.FromMilliseconds(2500);
+
+    public ValueTask<SearchResponse> SearchAsync(SearchRequest request, CancellationToken ct) =>
+        cache.GetOrCreateAsync(request.CacheKey, async token => await FanOutAsync(request, token),
+            new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(2) },
+            cancellationToken: ct);
+
+    private async Task<SearchResponse> FanOutAsync(SearchRequest request, CancellationToken ct)
+    {
+        using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        budget.CancelAfter(Budget);
+
+        var results = await Task.WhenAll(adapters.Select(a => CallAsync(a, request, budget.Token)));
+        return merger.Merge(request, results, await fx.SnapshotAsync(ct));
+    }
+
+    private async Task<SupplierSearchResult> CallAsync(
+        ISupplierAdapter adapter, SearchRequest request, CancellationToken ct)
+    {
+        try
+        {
+            return await adapter.SearchAsync(request, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            log.LogWarning("{Supplier} missed the search budget", adapter.Supplier);
+            return SupplierSearchResult.TimedOut(adapter.Supplier);
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "{Supplier} search failed", adapter.Supplier);
+            return SupplierSearchResult.Failed(adapter.Supplier);
+        }
+    }
+}
+```
+
+A supplier that times out or throws becomes an empty result with a status, never an exception that fails the whole search. The response lists which suppliers are missing, so the app can say "more prices loading" instead of pretending the list is complete.
+
+Each adapter's `HttpClient` also gets its own resilience pipeline from [`Microsoft.Extensions.Http.Resilience`](https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience), so a supplier that is down trips its own circuit breaker instead of holding connections for everyone:
+
+```csharp
+builder.Services.AddHttpClient<SupplierBAdapter>(c =>
+        c.BaseAddress = new Uri(builder.Configuration["Suppliers:B:BaseUrl"]!))
+    .AddHttpMessageHandler<SupplierBSigningHandler>()
+    .AddStandardResilienceHandler(o =>
+    {
+        o.AttemptTimeout.Timeout      = TimeSpan.FromSeconds(2);
+        o.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(2.5);   // never longer than the budget
+        o.Retry.MaxRetryAttempts      = 1;
+    });
+
+builder.Services.AddTransient<ISupplierAdapter>(sp => sp.GetRequiredService<SupplierBAdapter>());
+```
+
+<figure>
+
+![UML sequence diagram with six lifelines: the Search API caller, the orchestrator, Azure Managed Redis, and adapters A, B and C. Step 1, the caller searches Goa, 14 to 16 October, 2 adults. Step 2, the orchestrator sends GET search:goa:1014:1016:2a to Redis. Step 3, Redis returns nil, a miss. Step 4, the orchestrator starts a 2.5-second budget and fans out in parallel. Steps 5, 6 and 7 send a search to adapters A, B and C. Step 8, adapter A returns 38 offers in 0.9 seconds. Step 9, adapter B returns 51 offers in 1.4 seconds. Step 10, at 2.5 seconds the orchestrator cancels C and marks it timed out. Step 11, it sets the merged results in Redis for 2 minutes. Step 12, it returns 212 hotels to the caller in 2.5 seconds. A green note says a slow supplier costs its own offers, not the traveller's time.](./images/hotel-search-fan-out-time-budget-sequence-diagram.png)
+
+<figcaption>Figure 4 — one search, fanned out under a budget. The traveller waits 2.5 seconds at most, whatever Supplier C is doing.</figcaption>
+
+</figure>
+
+## Merge and rank on one comparable price
+
+With every offer in the canonical model, merging is a `GroupBy` on the master hotel ID, and ranking is a sort on a number that finally means the same thing everywhere:
+
+```csharp
+public SearchResponse Merge(SearchRequest request, SupplierSearchResult[] results, FxSnapshot fx)
+{
+    var hotels = results
+        .SelectMany(r => r.Offers)
+        .Select(o => o.InCurrency(request.Currency, fx))     // Total and PayAtHotel, one snapshot
+        .Where(o => _sanity.IsPlausible(o))                 // quarantines a ₹212 Sea Breeze
+        .GroupBy(o => o.MasterHotelId)
+        .Select(g => new HotelCard(g.Key, g.OrderBy(o => o.AllIn).ToList()))
+        .OrderBy(card => card.Offers[0].AllIn)
+        .ToList();
+
+    var missing = results.Where(r => r.Status != SupplierStatus.Ok).Select(r => r.Supplier).ToList();
+    return new SearchResponse(hotels, missing);
+}
+```
+
+Three details make the price honest:
+
+- **All-in, including pay-at-hotel fees.** A cheaper total with a large resort fee at check-in is not cheaper. Sorting on `Total` alone rewards suppliers that move money into fees.
+- **One FX snapshot per search.** Converting each offer at a slightly different rate can reorder two near-equal offers between page loads.
+- **A sanity check against the hotel's own history.** An all-in price below 30% of that hotel's median across all suppliers over the last day is quarantined and raises an alert. That single rule would have kept the ₹212 off the screen, whatever the bug behind it.
+
+Real ranking weighs more than price: review score, distance, cancellation terms, conversion history. But every one of those signals starts from offers that can be compared, which is what the canonical model buys you.
+
+## What changes at booking time
+
+Search results are a guess about availability; booking is the truth. Between the two, prices move and rooms sell out, so booking never trusts the search:
+
+1. **Price check.** The rate key goes back to the same adapter, which asks the supplier for a fresh quote. If the all-in price changed, the traveller sees the new price and confirms again.
+2. **Book with an idempotency key.** A retry after a timeout must not book two rooms. The same pattern as the [double tap that charged twice](/blog/duplicate-order-idempotency-key-azure-sql): a key from the app, and a unique index where the booking is written.
+3. **Store both references.** Your booking ID and the supplier's confirmation number, so support and reconciliation can find either.
+4. **Reconcile the unknowns.** If the supplier's booking call times out, the booking is neither confirmed nor failed. A background job asks the supplier by your reference until it knows.
+
+## What to cache, and for how long
+
+Hotel data changes at very different speeds, and each speed gets its own home:
+
+| Data | Where | How long |
+| --- | --- | --- |
+| Static content: names, photos, amenities, coordinates | Azure SQL and Blob Storage | Until the next nightly sync |
+| Supplier-to-master hotel map | Azure SQL, copied into each instance's memory | Refreshed every few minutes |
+| Merged search results for a city, dates and guests | Azure Managed Redis | 2 minutes; 30 seconds if a supplier was missing |
+| FX rates | In memory | One snapshot an hour |
+| Price check and booking | Nowhere | Never cached |
+
+The search cache works because travellers repeat themselves: Goa for the coming weekend is the same question for thousands of people. It is the same shape as the [flash sale that hit the database](/blog/azure-managed-redis-flash-sale), with one difference that matters: the cached price is only ever a search price. The price check always goes to the supplier.
+
+## When a supplier changes its JSON
+
+Suppliers change their APIs, sometimes with notice and sometimes without. The design assumes it will happen and makes it visible:
+
+- **Archive every raw response** to Blob Storage, with a lifecycle rule that deletes it after 30 days. When a mapping looks wrong, you replay the exact payload.
+- **Snapshot tests per adapter.** Recorded payloads from the archive run through each adapter in the pipeline, and the canonical output is compared with an approved snapshot. A supplier change shows up as a failing test on a real payload.
+- **A rejection rate per supplier.** Every offer an adapter drops is counted. A jump from 0.3% to 12% overnight means the supplier changed something.
+- **Unknown codes are data.** Each `BoardBasis.Unknown` is logged with the raw code, so the new value can be added to the adapter the same day.
+
+## How efficient is the new design?
+
+Search latency stops depending on the slowest supplier, and supplier traffic stops growing with every search. Adding a supplier stops touching search at all.
+
+Where the work for one search ends up:
+
+| Layer | Work | Why |
+| --- | --- | --- |
+| Azure Managed Redis | about 70 in 100 searches answered here | Popular city and date pairs repeat within two minutes |
+| Orchestrator | one fan-out per cache miss | Every adapter at once, not one after another |
+| Adapters | one call per supplier per miss, 2.5 s at most | The budget cancels the slow one |
+| Azure SQL | zero queries during search | The hotel map lives in memory; SQL serves the nightly job |
+
+Side by side, for the same morning:
+
+| | Launch morning | With adapters and a budget |
+| --- | --- | --- |
+| Search p95 | 9.1 seconds | 2.1 seconds, never above 2.5 |
+| Listings for the Sea Breeze Resort | 3 | 1, with three offers |
+| Prices shown | ₹212 and ₹13,40,000 for one room | ₹13,688 to ₹18,850 all-in, comparable |
+| Supplier calls per 1,000 searches | 3,000 | about 900 |
+| Adding a supplier | edit the search controller, redeploy search | one new adapter, a mapping backfill, no change to search |
+
+The rules that fall out of it: search latency is the **smaller of the budget and the slowest supplier**, and supplier calls are **searches × cache miss rate × suppliers**. A fourth supplier adds calls in proportion to cache misses, not to traffic, and adds no latency at all.
+
+## Why the obvious fixes were wrong
+
+- **"Fix the currency bug in the controller."** It fixes one bug, and the next supplier brings a different one. The controller should not know currencies exist.
+- **"De-duplicate by hotel name."** "Sea Breeze Resort" and "Seabreeze Resort and Spa, Candolim" do not match as strings, and two different hotels on one street often share half a name. Identity is a mapping problem, solved offline.
+- **"Raise the timeout."** A longer timeout makes the slow search slower. The traveller needs a budget, not patience.
+- **"Wait for all suppliers, then answer."** Then your search is exactly as reliable as your least reliable supplier.
+- **"Store supplier JSON as it is and translate on read."** Every reader then needs to know every supplier, which is the original problem copied into more places.
+- **"Cache the price for the booking step too."** Search prices are allowed to be two minutes old. The price a traveller pays is not.
+
+## The guardrail: one query and one rule
+
+The rejection rate per supplier, from the metrics the adapters emit:
+
+```kusto
+customMetrics
+| where timestamp > ago(1h) and name in ("offers_mapped", "offers_rejected")
+| extend supplier = tostring(customDimensions.supplier)
+| summarize mapped   = sumif(valueSum, name == "offers_mapped"),
+            rejected = sumif(valueSum, name == "offers_rejected") by supplier
+| extend rejectedPct = round(100.0 * rejected / (mapped + rejected), 1)
+```
+
+An alert fires when any supplier's `rejectedPct` goes above 2% for fifteen minutes. The rule that goes with it is organisational: no supplier goes live until its adapter has passed snapshot tests on at least a week of recorded payloads, and the SQL median query from the top of this article shows its prices within 20% of the others for the same city.
+
+## System design interview questions from this design
+
+1. **Design a hotel search that aggregates ten suppliers with different APIs.** They want adapters, a canonical model, a master hotel ID, parallel fan-out with a budget, and a price check at booking.
+2. **Two suppliers return the same hotel with different names and IDs. How do you show it once?** An offline mapping pipeline: distance, then name and address similarity, with a review queue in the middle band.
+3. **One supplier takes eight seconds. What does the traveller experience?** Nothing beyond the budget. Partial results, a "more prices loading" signal, and a circuit breaker when it keeps failing.
+4. **How do you compare prices across suppliers fairly?** One basis: whole stay, all taxes, major units, one currency snapshot, plus pay-at-hotel fees.
+5. **A supplier silently changes a field. How do you find out before customers do?** Rejection-rate alerts per adapter, unknown-code logging, and snapshot tests on archived payloads.
+6. **Why not cache availability for an hour?** Availability and prices move by the minute. Cache search for minutes, and always re-check the price before booking.
+
+## What to do on day one, not after the third supplier
+
+- Write the canonical model and its rules before the first adapter, even with one supplier.
+- Give every hotel a master ID from the first day, and keep supplier IDs out of every table except the map.
+- Call suppliers in parallel under a budget, and return partial results with a status.
+- Archive raw responses and build snapshot tests from them.
+- Log every offer's shown price, so the median query exists before you need it.
+
+## Key takeaways
+
+- Supplier JSON should never reach search, ranking or booking code. Adapters translate; everything else reads one model.
+- The canonical model is a set of rules: stay total with taxes, major units, ISO currency, UTC deadlines, one hotel ID.
+- Hotel identity is a mapping problem, solved offline with distance, name scoring and a review queue.
+- Fan out in parallel under a time budget, so a slow supplier costs its offers, not your search.
+- Search prices can be cached for minutes; the price a traveller pays is always re-checked with the supplier.
+
+## The fourth supplier
+
+Two months later, a fourth supplier signs. Its API is XML, not JSON, and it prices per person, not per room.
+
+Nobody touches search. One engineer writes the adapter in four days, runs it against a week of recorded payloads, and ships it behind a feature flag. The nightly mapping job matches 91% of its hotels automatically, and the review queue takes the next 6% in an afternoon.
+
+The median query from the top of this article runs once more before the flag is switched on. Four suppliers, one Goa, four medians within 12% of each other. The Sea Breeze Resort now has four offers on one card, and its top price is the same in the app, on the web and at checkout.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could design this platform on your own.
+
+1. **The cheap resort.** Supplier C quotes the Sea Breeze at USD 170 for the stay with a USD 60 resort fee; Supplier A quotes ₹17,200 all-in. At ₹84 to the dollar, which offer ranks first, and which field in the canonical model makes that decision possible?
+2. **A new meal code.** Supplier B starts sending `"meal": "BRUNCH_INCLUDED"` overnight. Walk one offer through the adapter. What does the traveller see, and which guardrail tells you by morning?
+3. **The twin towers.** Two hotels, "Sea Breeze Resort" and "Sea Breeze Residency", sit 90 metres apart and score 0.84 on names. What does Figure 3 do with a new supplier hotel matching both, and why is merging them automatically the worse mistake?
+4. **Two minutes of cache.** Supplier C timed out on a busy search, and the partial result went into Redis. What do the next travellers asking the same question see, and why is the cache lifetime for that result shorter?
+5. **The ₹212 that got through.** Suppose the sanity check had not existed. Which step would still have stopped anyone paying ₹212, and why is relying on it alone not good enough?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

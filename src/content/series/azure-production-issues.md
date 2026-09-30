@@ -1,9 +1,9 @@
 ---
-title: 'Real-World Production Issues Solved in Azure'
-description: 'Real Azure incidents from live systems — the symptom, the query that found the cause, the fix that held, and the guardrail that stopped it coming back.'
+title: 'Azure System Design'
+description: 'System design on Azure, one real-world problem at a time: what broke or what had to be built, the query or trade-off that decided it, and the design that held.'
 order: 7
 ---
 
-Every Azure architecture diagram looks calm. The interesting part starts at 2am, when the diagram is still correct and the system is still down. This series is a set of real incidents from systems carrying real users: an API returning 502 only after a deploy, a Cosmos DB container throttling one customer and nobody else, an App Service that ran out of outbound ports while CPU sat at eight percent, a Key Vault reference that worked for ninety days and then did not.
+Every Azure architecture diagram looks calm. The interesting part is the day it meets real users: a flash sale that sends 400,000 people to one page, a double tap that charges a customer twice, three hotel suppliers that describe the same room in three different ways. This series takes one of those problems at a time and designs the system that survives it.
 
-Each part follows the same shape, because that is how an incident actually goes: the symptom as the business reported it, what the metrics and logs said, the query that found the cause, the fix, and the guardrail that keeps it from happening twice. The Kusto queries and the configuration are copy-pasteable. The judgement calls — when to fix the code and when to fix the platform, what to alert on and what to ignore — are the part you cannot get from a doc page.
+Each part follows the same shape, because that is how design decisions are actually made: the problem as the business saw it, the query or measurement that showed what was really happening, the design that fixed it and why the obvious alternatives were wrong, how efficient the result is, and the guardrail that keeps it working. The SQL, KQL and C# are copy-pasteable. The judgement calls, what to cache and what never to, where a rule must live, when to wait and when to stop waiting, are the part you cannot get from a doc page. Every part ends with the system design interview questions it prepares you for.

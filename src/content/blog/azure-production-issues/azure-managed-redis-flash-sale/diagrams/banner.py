@@ -14,7 +14,7 @@ from drawio_kit import *   # noqa: F403
 
 c = []
 banner(c,
-       eyebrow="AZURE  ·  REAL-WORLD PRODUCTION ISSUES",
+       eyebrow="AZURE  ·  SYSTEM DESIGN",
        headline=["The flash sale", "that hit the database"],
        subhead=["400,000 taps. One dish page.", "The same answer, computed every time."],
        chain=[("GET /api/items/biryani-99", "2,200 times a second", "plain"),

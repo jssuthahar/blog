@@ -14,7 +14,7 @@ from drawio_kit import *   # noqa: F403
 
 c = []
 banner(c,
-       eyebrow="AZURE  ·  REAL-WORLD PRODUCTION ISSUES",
+       eyebrow="AZURE  ·  SYSTEM DESIGN",
        headline=["The flash sale that", "ran out of bandwidth"],
        subhead=["1.6 million downloads. One photo.", "Every byte from the same server."],
        chain=[("GET /images/biryani-99.jpg", "from Chennai, Mumbai and Delhi", "plain"),

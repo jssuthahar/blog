@@ -18,7 +18,7 @@ c = []
 c.append(box("canvas", "", 0, 0, W, H, "#FFFFFF", "none"))
 
 # --- left: what the article is -------------------------------------------
-c.append(text("eyebrow", "AZURE  ·  REAL-WORLD PRODUCTION ISSUES", 72, 96, 520, 24,
+c.append(text("eyebrow", "AZURE  ·  SYSTEM DESIGN", 72, 96, 520, 24,
               size=17, color=BLUE, bold=True))
 c.append(text("t1", "Securing a public API", 72, 150, 560, 62, size=52, bold=True))
 c.append(text("t2", "with no login", 72, 212, 560, 62, size=52, bold=True))

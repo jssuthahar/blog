@@ -17,3 +17,19 @@ ids, y = chain(c, [
 c.append(text("note", "A Skill here is not a code generator. It is a policy the AI will not violate,\nand the cheapest cost fix is the one Copilot never suggests in the first place.",
               60, y + 24, 560, 44, size=12, color=MUTED, align="center"))
 write(OUT, "azure-skill-bicep-default-versus-guarded", "Bicep baseline", c)
+
+
+# ================================================================ Figure 2 ===
+# Three gates at three stages. The Skill is the earliest and cheapest.
+c = []
+chain(c, [
+    ("In the editor: the Copilot Skill", "the insecure default is never typed"),
+    ("In CI: Bicep linter and PSRule", "template rules checked on every build"),
+    ("At deploy: Azure Policy", "deny or audit anything that reaches Azure"),
+    ("After deploy: Resource Graph queries", "find what slipped through, weekly"),
+], cx=300, top=40, w=420, h=64, gap=34, prefix="g")
+c.append(text("gl", "earliest, cheapest", 530, 60, 160, 24, size=11, color=MUTED))
+c.append(text("gr", "latest, most expensive", 530, 352, 180, 24, size=11, color=MUTED))
+c.append(box("gok", "✓ Each gate rarely fires, because the one above it held", 90, 450, 420, 48, GRN_F, GRN_S))
+c.append(edge("ge", "g4", "gok", ""))
+write(OUT, "azure-bicep-copilot-skill-three-gates", "Three gates", c)

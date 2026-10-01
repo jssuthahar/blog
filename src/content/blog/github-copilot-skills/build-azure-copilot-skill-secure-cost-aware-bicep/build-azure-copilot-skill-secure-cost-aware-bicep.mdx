@@ -1,44 +1,103 @@
 ---
 title: 'Building an Azure Copilot Skill: Secure, Cost-Aware Cloud Baselines with Bicep, Start to Finish'
-description: 'Build one GitHub Copilot Skill (SKILL.md) that guards your Azure Bicep — Managed Identity, private networking and cost tiers Copilot will not violate.'
+description: 'Build one GitHub Copilot Skill (SKILL.md) that guards your Azure Bicep: Managed Identity, private networking and cost tiers Copilot will not violate.'
 publishedAt: 2026-05-21
+updatedAt: 2026-10-01
 category: copilot
 categories: ['azure', 'devops']
 tags: ['GitHub Copilot', 'Copilot Skills', 'SKILL.md', 'Azure', 'Bicep', 'Infrastructure as Code', 'Managed Identity', 'Key Vault', 'Cloud Security', 'FinOps', 'AI-assisted development']
 seoTitle: 'GitHub Copilot Azure Skill for Bicep'
-highlight: 'An Azure Copilot Skill is not a code generator — it is a policy your AI will not violate. It lives at .github/skills/azure-service-baseline/SKILL.md and shifts security and cost catches left, into the editor: Managed Identity over keys, secrets in Key Vault, public network access off, and cheap tiers in non-prod, before any of it reaches a PR or a cloud bill.'
+highlight: 'An Azure Copilot Skill is not a code generator. It is a policy your AI will not violate. It lives at .github/skills/azure-service-baseline/SKILL.md and shifts security and cost catches left, into the editor: Managed Identity over keys, secrets in Key Vault, public network access off, and cheap tiers in non-prod, before any of it reaches a PR or a cloud bill.'
 cover: './images/build-azure-copilot-skill-secure-cost-aware-bicep-cover.png'
-coverAlt: 'Share banner headed GITHUB COPILOT - SKILLS and "Guardrails, not generated code", with the line "The cheapest cost fix is the one Copilot never suggests in the first place." On the right, a red box reads "What Copilot writes by default: sku P1v3, publicNetworkAccess Enabled" - correct, deployable, quietly expensive - and an arrow runs down through an amber box, "SKILL.md, azure-service-baseline: the security floor and the cost ceiling, written down once", into a green box, "What it writes instead: Managed Identity, Key Vault reference, sku B1", caught in the editor, not in the bill.'
+coverAlt: 'Share banner headed GITHUB COPILOT - AGENTS.MD and "Guardrails, not generated code", with the line "The cheapest cost fix is the one Copilot never suggests in the first place." On the right, a red box reads "What Copilot writes by default: sku P1v3, publicNetworkAccess Enabled" - correct, deployable, quietly expensive - and an arrow runs down through an amber box, "SKILL.md, azure-service-baseline: the security floor and the cost ceiling, written down once", into a green box, "What it writes instead: Managed Identity, Key Vault reference, sku B1", caught in the editor, not in the bill.'
 series: 'agents-md-instructions'
 seriesOrder: 7
 featured: true
 draft: false
 faq:
   - q: 'Can a GitHub Copilot Skill enforce cloud security policy?'
-    a: 'Yes, at authoring time. A Skill encodes hard rules — Managed Identity over keys, secrets in Key Vault, public network access disabled — that Copilot follows when it writes Bicep, so the insecure default never gets typed. It is a preventive control in the editor, not runtime enforcement: pair it with Azure Policy.'
+    a: 'Yes, at authoring time. A Skill encodes hard rules (Managed Identity over keys, secrets in Key Vault, public network access disabled) that Copilot follows when it writes Bicep, so the insecure default never gets typed. It is a preventive control in the editor, not runtime enforcement: pair it with Azure Policy.'
   - q: 'Does an Azure Copilot Skill replace Azure Policy or Bicep linting?'
     a: 'No, and it should not try to. Azure Policy enforces at deploy and run time; the Bicep linter and PSRule check the template; a Copilot Skill shifts the same rules left into the moment code is written. They are three gates at three stages. The Skill catches the mistake earliest and cheapest, but the other two still guarantee it.'
   - q: 'Where do Copilot Skills live in an infrastructure repo?'
-    a: 'Each Skill is a folder under .github/skills at the root of your IaC repo, with a SKILL.md inside — for example .github/skills/azure-service-baseline/SKILL.md. It sits beside your Bicep modules, gets committed, and is reviewed in pull requests, so every engineer deploys against the same baseline.'
+    a: 'Each Skill is a folder under .github/skills at the root of your IaC repo, with a SKILL.md inside, for example .github/skills/azure-service-baseline/SKILL.md. It sits beside your Bicep modules, gets committed, and is reviewed in pull requests, so every engineer deploys against the same baseline.'
   - q: 'Can a Copilot Skill enforce cost rules and SKUs?'
     a: 'Yes. Put explicit tier rules in the Skill: default non-prod compute to cheap SKUs like App Service B1, require written sign-off before any Premium or P-tier plan, and mandate cost-center and owner tags. Copilot then defaults to the cheap, tagged option and flags the expensive one instead of silently picking it.'
   - q: 'Why won''t my Azure Copilot Skill activate?'
-    a: 'The description is almost always the problem. Copilot matches your task against each Skill description, so a vague line like "helps with Azure" never fires. Name the real trigger words — "deploy", "bicep", "provision", "app service", "storage account" — and exclude application-code tasks so it does not fire on the wrong work.'
+    a: 'The description is almost always the problem. Copilot matches your task against each Skill description, so a vague line like "helps with Azure" never fires. Name the real trigger words ("deploy", "bicep", "provision", "app service", "storage account") and exclude application-code tasks so it does not fire on the wrong work.'
+  - q: 'How do I find expensive or public Azure resources that are already deployed?'
+    a: 'Query Azure Resource Graph. One query lists App Service plans on Premium SKUs in non-production resource groups; another lists storage accounts whose publicNetworkAccess is not Disabled. Run them with az graph query or in the portal, weekly, to catch what slipped past the Skill, the linter and Azure Policy.'
 ---
 
-A P1v3 App Service plan sat in one of our test subscriptions for four months before anyone noticed. Someone had copied a [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) block from a production template, changed the resource name, and shipped it to a throwaway environment nobody looked at. It served maybe a hundred requests a day. It cost more than the developer laptop it was tested from. We found it during a quarterly cost review, not because anything broke — nothing broke, that was the problem.
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
 
-That plan was not a mistake of skill. It was a mistake of default. The convenient thing to copy was the expensive thing, and no one in the loop was paid to stop and ask "does a test environment need a premium plan?" The same shape shows up everywhere in cloud work: a storage account left with public blob access because that was the sample, a connection string pasted into `appsettings.json` because it worked on the first try, an oversized SKU because it was already in the file.
+An Azure Copilot Skill is one `SKILL.md` file that turns your cloud security and cost policy into rules GitHub Copilot follows while it writes [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview): Managed Identity over keys, secrets in Key Vault, public network access off, cheap tiers outside production. This is a build-along from an empty file to a tested guardrail, and it starts with the kind of resource the Skill exists to prevent.
 
-Now add GitHub Copilot to that team. Ask it to "provision a storage account for the orders service" and it will happily give you one. Correct Bicep. Deployable. And, unless you tell it otherwise, public network access left on, an access key in the output, no diagnostics, no tags. Copilot is not wrong about Azure. It knows the resource schema better than I do. It just does not know *our* Azure — the security floor and the cost ceiling we agreed on. So let us build the Skill that stops this for the whole team.
+Picture a test subscription for the API behind a food delivery app like MSDevBuild Eats. A P1v3 App Service plan has been running in it for four months. Someone copied a Bicep block from a production template, changed the resource name, and deployed it to a throwaway environment nobody looked at. It serves maybe a hundred requests a day, and it costs several times what a basic plan would. Nothing is broken. That is the problem.
 
-This is Part 4 of my GitHub Copilot Skills series. If you want the theory of what a Skill is and how it sits between prompts, instructions, and agents, read the [Copilot Skills deep dive](../github-copilot-skills-deep-dive) first. This article assumes you know what a Skill is. Here we build an Azure one in Bicep, from an empty file to a tested guardrail.
+It is not a mistake of skill. It is a mistake of default. The convenient thing to copy was the expensive thing, and nobody in the loop was asked "does a test environment need a premium plan?"
+
+Now add Copilot. Ask it to "provision a storage account for the orders service" and it gives you correct, deployable Bicep with, unless you say otherwise, public network access left on, an access key in the output, no diagnostics and no tags. Copilot knows the Azure resource schema. It does not know the security floor and the cost ceiling your team agreed on.
+
+<Callout type="tip" title="A scenario, with real Bicep">
+The subscription and its four months are a scenario. The Bicep, the Skill and the Resource Graph queries below are real and deployable; run the queries against your own subscriptions to see what they find.
+</Callout>
+
+## Four months of the convenient default
+
+| When | What happened |
+| --- | --- |
+| Month 1 | A production App Service block is copied into a test environment, SKU and all: P1v3 |
+| Month 1 | Copilot adds a storage account for test data. `publicNetworkAccess` is left unset, which means enabled |
+| Month 2 | An access key from that account ends up in a `.env` file and a shared Postman collection |
+| Month 3 | An incident in test needs logs. The resources never had diagnostics |
+| Month 4 | A quarterly cost review finds the plan. Nothing had ever failed, so nothing had ever been looked at |
+
+Every one of those resources passed review, because each one was correct Azure. None of them was the Azure the team had agreed to run.
+
+## The queries that found them
+
+Azure Resource Graph can ask every subscription at once what is actually deployed. Two queries cover the scenario's two worst defaults:
+
+```bash
+# App Service plans on Premium SKUs outside production
+az graph query -q "
+resources
+| where type =~ 'microsoft.web/serverfarms'
+| where tostring(tags.env) != 'prod'
+| where tostring(sku.tier) startswith 'Premium'
+| project name, resourceGroup, sku = tostring(sku.name), env = tostring(tags.env)"
+
+# Storage accounts that still accept traffic from the public internet
+az graph query -q "
+resources
+| where type =~ 'microsoft.storage/storageaccounts'
+| where tostring(properties.publicNetworkAccess) != 'Disabled'
+| project name, resourceGroup, allowSharedKeyAccess = properties.allowSharedKeyAccess"
+```
+
+`az graph query` needs the `resource-graph` CLI extension, and the same queries run unchanged in the Resource Graph Explorer in the portal. In the scenario, the first query returns the four-month-old P1v3 plan, and the second returns every storage account Copilot ever wrote without being told otherwise.
+
+These queries are the last gate, the one that finds problems after they cost money. The Skill in this article is the first.
+
+<figure>
+
+![Four gates in order, from earliest to latest. Gate 1, in the editor, the Copilot Skill, where the insecure default is never typed; labelled earliest and cheapest. Gate 2, in CI, the Bicep linter and PSRule, which check template rules on every build. Gate 3, at deploy, Azure Policy, which denies or audits anything that reaches Azure. Gate 4, after deploy, Resource Graph queries that find what slipped through, weekly; labelled latest and most expensive. The green outcome: each gate rarely fires, because the one above it held.](./images/azure-bicep-copilot-skill-three-gates.png)
+
+<figcaption>Figure 1 — four gates against a bad resource. The Skill is the first and cheapest; the Resource Graph queries above are the last.</figcaption>
+
+</figure>
+
+If you would rather see the idea first, it is a short video:
+
+<ShortHighlight slugs={['copilot-skill-azure-bicep-guardrails']} />
+
+For the theory of what a Skill is and how it loads on demand, read [why Copilot Skills exist](/blog/github-copilot-skills-deep-dive) first. Here we build an Azure one.
 
 ## Why an Azure Copilot Skill is different: guardrails, not generated code
 
-{/* SCREENSHOT: the portal screen you used — save as ./images/why-an-azure-copilot-skill-is-different-gu.png, then replace this line with: ![Why an Azure Copilot Skill is different: guardrails, not generated code](./images/why-an-azure-copilot-skill-is-different-gu.png) */}
-
-Here is the shift that makes this part unlike the others. In the .NET and Flutter walkthroughs, the Skill taught Copilot to *generate* something — a CQRS feature, a Riverpod screen. The value was in the code it produced. An Azure Skill is mostly the opposite. Its value is in the code it refuses to produce.
+Here is the shift that makes this Skill unlike the others. In the [.NET](/blog/build-first-github-copilot-skill-dotnet-clean-architecture) and [Flutter](/blog/build-flutter-github-copilot-skill-riverpod-firebase) walkthroughs, the Skill taught Copilot to *generate* something: a CQRS feature, a BLoC screen. The value was in the code it produced. An Azure Skill is mostly the opposite. Its value is in the code it refuses to produce.
 
 Think of it as a policy your AI will not violate. Provisioning a resource is easy; provisioning it *safely and cheaply* is a hundred small decisions where the convenient answer and the correct answer point in different directions. An Azure Copilot Skill encodes those decisions once, so Copilot picks the correct answer by default instead of the convenient one.
 
@@ -54,14 +113,14 @@ The real win is *when* the catch happens. Most teams have three gates against a 
 
 Notice the Skill is the leftmost gate. It shifts security and cost catches into the editor, before the pull request, before CI, long before the bill. That is the whole pitch: the cheapest security fix and the cheapest cost fix are the ones your AI never suggests in the first place.
 
-One thing I want to be honest about up front: **a Skill does not replace Azure Policy or Bicep linting, and it must not pretend to.** A Skill is a preventive control at authoring time. It has no enforcement power — a developer can ignore Copilot and type the insecure thing by hand. Azure Policy is your guarantee at deploy time; the linter is your guarantee in CI. The Skill just means the other two gates almost never have to reject anything, because the problem never got written. Left-shift, not replacement.
+One thing I want to be honest about up front: **a Skill does not replace Azure Policy or Bicep linting, and it must not pretend to.** A Skill is a preventive control at authoring time. It has no enforcement power. A developer can ignore Copilot and type the insecure thing by hand. Azure Policy is your guarantee at deploy time; the linter is your guarantee in CI. The Skill just means the other two gates almost never have to reject anything, because the problem never got written. Left-shift, not replacement.
 
 ## What you need before we start
 
 This is a hands-on build. Here is the setup I am assuming. Nothing exotic.
 
-- An **infrastructure-as-code repo** using **Bicep modules** — a `modules/` folder with reusable files (`app-service.bicep`, `storage.bicep`, and so on), stitched by a `main.bicep`.
-- A **naming and tagging convention** your team already agreed on. Mine is `<workload>-<service>-<env>` for names, and every resource carries `env`, `owner`, and `costCenter` tags.
+- An **infrastructure-as-code repo** using **Bicep modules**: a `modules/` folder with reusable files (`app-service.bicep`, `storage.bicep`, and so on), stitched by a `main.bicep`.
+- A **naming and tagging convention** your team already agreed on. A common one is `<workload>-<service>-<env>` for names, and every resource carries `env`, `owner`, and `costCenter` tags.
 - A central **Log Analytics workspace** for diagnostics. If you do not have one yet, that is the first module you should write.
 - GitHub Copilot with **Agent Skills** on your plan, in VS Code or Visual Studio, with the Bicep extension.
 - A repo you can commit to, because Skills are files in the repo.
@@ -138,7 +197,7 @@ without a security exception.
   not this Skill's.
 ```
 
-That "when NOT to use" block is the humility the Skill needs. It tells Copilot — and the next engineer reading the file — that this guardrail has edges.
+That "when NOT to use" block is the humility the Skill needs. It tells Copilot, and the next engineer reading the file, that this guardrail has edges.
 
 ### 3. Inputs the Skill requires
 
@@ -176,7 +235,7 @@ This is the heart of the Skill. These are stated as hard rules, not suggestions,
    to the central Log Analytics workspace. No resource ships dark.
 ```
 
-Rule 1 and rule 2 are the two that stop the exact pain from my intro — the pasted connection string and the leaked key. Rule 3 is the one that surprises developers, because it breaks naive connectivity, and I will come back to that in the gotchas. Rule 4 is the one nobody misses until an incident, and by then it is too late to collect the logs.
+Rule 1 and rule 2 are the two that stop the exact pain from the scenario: the pasted connection string and the leaked key. Rule 3 is the one that surprises developers, because it breaks naive connectivity, and I will come back to that in the gotchas. Rule 4 is the one nobody misses until an incident, and by then it is too late to collect the logs.
 
 ### 5. Cost rules
 
@@ -196,7 +255,7 @@ Security gets attention. Cost usually does not, until the review. So I give it e
    nobody will ever turn off.
 ```
 
-Rule 2 is the four-month-plan fix, encoded. The premium tier is not banned — sometimes non-prod genuinely needs it for a load test. It just cannot be the *silent* default anymore. It has to be a decision someone wrote down.
+Rule 2 is the four-month-plan fix, encoded. The premium tier is not banned. Sometimes non-prod genuinely needs it for a load test. It just cannot be the *silent* default anymore. It has to be a decision someone wrote down.
 
 ### 6. Reliability and convention rules
 
@@ -210,7 +269,7 @@ Rule 2 is the four-month-plan fix, encoded. The premium tier is not banned — s
   correct SKU for the environment, all three tags present.
 ```
 
-That last definition is the contract. When Copilot or a reviewer asks "is this done?", this is the answer. It also becomes the PR checklist later, which is deliberate — one definition, used at authoring time and at review time.
+That last definition is the contract. When Copilot or a reviewer asks "is this done?", this is the answer. It also becomes the PR checklist later, which is deliberate: one definition, used at authoring time and at review time.
 
 ### 7. The numbered workflow
 
@@ -234,13 +293,13 @@ Rules tell Copilot *what*. The workflow tells it *in what order*, which matters 
 
 ![Step flow contrasting Bicep output. What Copilot writes by default: a P1v3 sku, publicNetworkAccess enabled, and a connection string in an app setting. Then SKILL.md, the azure-service-baseline, holding the security floor and cost ceiling written down once. What it writes instead, shown in green: managed identity, a Key Vault reference, a private endpoint, and the smallest sku that fits.](./images/azure-skill-bicep-default-versus-guarded.png)
 
-<figcaption>Figure 1 — the same prompt, before and after the Skill exists.</figcaption>
+<figcaption>Figure 2 — the same prompt, before and after the Skill exists.</figcaption>
 
 </figure>
 
 ## The Bicep the Skill produces
 
-A Skill teaches best by example, so I embed production-shaped Bicep in it — not `Foo`/`Bar`, but the real shape Copilot should mirror. Three snippets carry most of the weight.
+A Skill teaches best by example, so I embed production-shaped Bicep in it. Not `Foo`/`Bar`, but the real shape Copilot should mirror. Three snippets carry most of the weight.
 
 **App Service with system-assigned Managed Identity and a Key Vault reference.** This is rule 1 and rule 2 made concrete. The identity is turned on, and the app setting reads a secret *from* Key Vault instead of holding one.
 
@@ -284,7 +343,7 @@ resource site 'Microsoft.Web/sites@2023-12-01' = {
 output principalId string = site.identity.principalId
 ```
 
-The part that matters is the `appSettings` value. It is a Key Vault reference, not a secret. The app's Managed Identity resolves it at runtime, so the secret never lands in the Bicep, the params, or the portal blade. The common mistake Copilot makes without this Skill is to add `value: 'sk-live-abc123...'` directly — deployable, and a leak the moment the template hits Git history.
+The part that matters is the `appSettings` value. It is a Key Vault reference, not a secret. The app's Managed Identity resolves it at runtime, so the secret never lands in the Bicep, the params, or the portal blade. The common mistake Copilot makes without this Skill is to add `value: 'sk-live-abc123...'` directly: deployable, and a leak the moment the template hits Git history.
 
 **Storage with public access disabled and a private endpoint.** This is rule 3. The two lines that do the security work are `publicNetworkAccess: 'Disabled'` and `allowBlobPublicAccess: false`. The private endpoint is what keeps it reachable from inside the VNet after you close the front door.
 
@@ -388,9 +447,9 @@ At this point you have the whole `azure-service-baseline/SKILL.md`: frontmatter,
 
 A Skill you have not tested is a guess. Here is how I check this one.
 
-I open the agent and give it the plain task from my intro: **"provision a storage account for the orders service in non-prod."** Without the Skill, Copilot gives me a `StorageV2` account with defaults — `publicNetworkAccess` unset (which means Enabled), no private endpoint, no diagnostics, no tags. Deployable and wrong.
+Open the agent and give it the plain task from the scenario: **"provision a storage account for the orders service in non-prod."** Without the Skill, Copilot gives me a `StorageV2` account with defaults: `publicNetworkAccess` unset (which means Enabled), no private endpoint, no diagnostics, no tags. Deployable and wrong.
 
-With the Skill active, the response changes shape. Copilot asks me to confirm the environment, sets `publicNetworkAccess: 'Disabled'` and `allowBlobPublicAccess: false`, adds the private endpoint, attaches diagnostics to the workspace, applies the three tags, and picks `Standard_LRS`. Then it runs its own checklist back at me. That is the guardrail doing its job — the insecure default was never typed.
+With the Skill active, the response changes shape. Copilot asks me to confirm the environment, sets `publicNetworkAccess: 'Disabled'` and `allowBlobPublicAccess: false`, adds the private endpoint, attaches diagnostics to the workspace, applies the three tags, and picks `Standard_LRS`. Then it runs its own checklist back at me. That is the guardrail doing its job. The insecure default was never typed.
 
 To prove the block directly, I sometimes ask it to "make the storage account publicly accessible so I can test quickly." A well-written Skill pushes back: it explains that public access needs an explicit commented exception, and offers the private-endpoint path instead. That friction is the point. The convenient shortcut now costs a conversation.
 
@@ -398,36 +457,76 @@ To prove the block directly, I sometimes ask it to "make the storage account pub
 
 ## Azure-specific gotchas the Skill should encode
 
-{/* SCREENSHOT: the portal screen you used — save as ./images/azure-specific-gotchas-the-skill-should-en.png, then replace this line with: ![Azure-specific gotchas the Skill should encode](./images/azure-specific-gotchas-the-skill-should-en.png) */}
+These are the four that cost real teams real hours. Bake each one into the Skill so Copilot carries the lesson instead of repeating it.
 
-These are the four that cost real teams real hours. I bake each one into the Skill so Copilot carries the scar tissue I collected the hard way.
+**Managed Identity vs keys, and why keys leak.** An access key is a bearer secret. Once it exists, it gets copied into a `.env`, a wiki page, a Postman collection, a Slack message, and a screenshot. You cannot rotate a key that lives in nine places. Managed Identity has no secret to leak. Azure issues and rotates the token for you. The Skill's rule 1 is not about elegance; it is about closing the nine copies.
 
-**Managed Identity vs keys — and why keys leak.** An access key is a bearer secret. Once it exists, it gets copied into a `.env`, a wiki page, a Postman collection, a Slack message, and a screenshot. You cannot rotate a key that lives in nine places. Managed Identity has no secret to leak — Azure issues and rotates the token for you. The Skill's rule 1 is not about elegance; it is about closing the nine copies.
+**Private endpoints break naive connectivity.** The first time you set `publicNetworkAccess: 'Disabled'`, something that used to connect will stop, usually a build agent or a developer laptop outside the VNet. That is not the Skill being wrong. It is the Skill surfacing an assumption you never made explicit. Encode the follow-on in the Skill: private access means the caller must be inside the network, so plan for a private DNS zone and a route from your CI runner. Better to hit that in the editor than in a 2 a.m. incident.
 
-**Private endpoints break naive connectivity.** The first time you set `publicNetworkAccess: 'Disabled'`, something that used to connect will stop, usually a build agent or a developer laptop outside the VNet. That is not the Skill being wrong — it is the Skill surfacing an assumption you never made explicit. Encode the follow-on in the Skill: private access means the caller must be inside the network, so plan for a private DNS zone and a route from your CI runner. Better to hit that in the editor than in a 2 a.m. incident.
+**The cost tier trap.** The scenario's four-month P1v3 plan is the canonical version, but the trap is general: expensive tiers get copied out of prod templates into non-prod because copying is faster than choosing. The Skill breaks the copy by making the *cheap* tier the default and the *expensive* tier the thing that needs a note. Defaults are policy. Make the safe, cheap choice the path of least resistance.
 
-**The cost tier trap.** My four-month P1v3 plan is the canonical version, but the trap is general: expensive tiers get copied out of prod templates into non-prod because copying is faster than choosing. The Skill breaks the copy by making the *cheap* tier the default and the *expensive* tier the thing that needs a note. Defaults are policy. Make the safe, cheap choice the path of least resistance.
+**Diagnostics you did not add until you needed them.** Nobody misses logs on a calm Tuesday. You miss them at 2 a.m. during an incident, when you go to Log Analytics and the resource has been shipping dark since day one. You cannot backfill logs. The Skill's rule 4 exists entirely because retroactive observability is impossible; a post-incident review with no logs has nothing to review.
 
-**Diagnostics you did not add until you needed them.** Nobody misses logs on a calm Tuesday. You miss them at 2 a.m. during an incident, when you go to Log Analytics and the resource has been shipping dark since day one. You cannot backfill logs. The Skill's rule 4 exists entirely because retroactive observability is impossible, and I have watched a post-incident review stall on exactly this.
+## How efficient is the Azure Skill?
 
-## Where this series goes next
+A guardrail Skill is paid for in tokens only when someone writes infrastructure, and it saves on the most expensive gate of all: the invoice.
 
-We now have three build-along Skills — the .NET and Flutter walkthroughs that generate code, and this Azure one that guards infrastructure. The natural Part 5 is the governance capstone: running a *shared team Skill library* across all three. That raises real questions I want to work through — how you version Skills, how you review a Skill change in a PR when it silently affects every future deployment, and how you measure activation across .NET, Flutter, and Azure to know which Skills actually earn their keep.
+| | Without the Skill | With the Skill |
+| --- | --- | --- |
+| Where the P1v3 is caught | a quarterly cost review, after four months | in the editor, before it is typed |
+| Storage accounts with public access | every one Copilot wrote | none, unless a commented exception says so |
+| Access keys in `.env` files | whenever someone needed one | none; Managed Identity has no key to copy |
+| Resources without diagnostics | found during an incident | none; the checklist requires them |
+| Findings from the weekly Resource Graph queries | many | rare, and each one is a real exception |
 
-That is the bigger idea underneath this whole series. A well-written Skill is not a convenience. It is organizational knowledge made executable — the security floor, the cost ceiling, and the architecture your team agreed on, captured in a file your AI reads on every task instead of a review comment nobody reuses.
+The rule underneath: **each gate costs more to fire than the one before it**. A rule the Skill enforces costs a few hundred tokens while Bicep is being written. The same rule enforced by a cost review costs four months of a premium plan.
+
+## Questions a tech lead will ask about this
+
+1. **"We have Azure Policy. Why a Skill?"** Policy rejects at deploy time, after the pull request, the review and the pipeline. The Skill stops the resource being written wrongly in the first place, so Policy rarely has to say no.
+2. **"Can a developer ignore the Skill?"** Yes. That is why it is the first gate, not the only one. Policy and the Resource Graph queries still hold.
+3. **"What if prod really needs a Premium plan?"** The Skill does not forbid it. It makes it the choice that needs a written reason, so the P1v3 in test becomes the exception somebody has to explain.
+4. **"How do we know it is working?"** The weekly Resource Graph queries should return fewer rows every week. If they do not, the Skill is not firing, or people are working around it.
+5. **"Where do tags come from?"** From the Skill's convention rules. The first query depends on `tags.env`, so tagging is not cosmetic; it is what lets you find anything later.
+
+## What to do on day one
+
+- Run the two Resource Graph queries across your subscriptions and write down the counts.
+- Write the Skill's security and cost rules from what those queries found.
+- Make the cheap tier the default and the premium tier the one that needs a comment.
+- Require the `env`, `owner` and `costCenter` tags, so the queries keep working.
+- Schedule the queries weekly; their count is the Skill's scorecard.
 
 ## Key takeaways
 
 - An Azure Copilot Skill is guardrails, not a generator: its value is the insecure, expensive code it refuses to write.
 - It shifts security and cost catches left, into the editor, before the PR and the bill.
-- It complements Azure Policy and Bicep linting — three gates at three stages, not a replacement.
+- It complements Azure Policy and Bicep linting: three gates at three stages, not a replacement.
 - Encode hard rules: Managed Identity over keys, secrets in Key Vault, public access disabled with private endpoints, central diagnostics on everything.
 - Make the cheap tier the default and the premium tier the thing that needs a written reason.
-- The description is the activation trigger — name the resource verbs and exclude application code.
+- The description is the activation trigger. Name the resource verbs and exclude application code.
 - The validation checklist doubles as your PR gate: one definition of "done", used twice.
 
-## Conclusion
+## The next storage account
 
-Ship one real guardrail Skill this week. Not a perfect one — a real one. Take the single rule that has bitten your team hardest, whether that is a leaked key, an open storage account, or a forgotten premium plan, and encode it in an `azure-service-baseline/SKILL.md`. Commit it. Watch Copilot stop suggesting the thing you were tired of catching in review.
+A month after the Skill is merged, a developer asks Copilot to "provision a storage account for the order export files in test".
 
-The cheapest security fix and the cheapest cost fix are the same kind of fix: the one your AI never suggests violating. For the concepts under all of this, go back to the [Copilot Skills deep dive](../github-copilot-skills-deep-dive), and if you work across stacks, the .NET and Flutter walkthroughs show the same technique aimed at application code. Build the Azure one, and your infrastructure gets a floor that holds even at 2 a.m.
+The Skill loads. Copilot asks which environment, then writes `publicNetworkAccess: 'Disabled'`, `allowBlobPublicAccess: false`, a private endpoint, diagnostics to the central workspace, the three tags and `Standard_LRS`. It runs its checklist back as the last lines of the answer.
+
+That Friday, the first Resource Graph query returns nothing. The second returns two storage accounts, both from before the Skill existed, and both are on a cleanup ticket.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this build-along prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could write the baseline for any Azure estate.
+
+1. **Set up blob storage.** A developer types "set up blob storage for invoices" and gets the insecure default with no checklist. Which part of the Skill failed, and what do you change?
+2. **The untagged plan.** A P1v3 plan with no `env` tag is running somewhere. Why does the first Resource Graph query miss it, and which Skill rule would have prevented that?
+3. **Policy says no.** Azure Policy denies a deployment that the Skill should have shaped correctly. Which two gates failed, and what does that tell you?
+4. **The CI runner.** After the Skill disables public network access, the pipeline can no longer reach the storage account. Is the Skill wrong? What should it say about private DNS and runners?
+5. **The four-month plan.** Using the efficiency table, explain in one paragraph why the same rule costs a few hundred tokens at gate 1 and four months of a premium plan at gate 4.
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

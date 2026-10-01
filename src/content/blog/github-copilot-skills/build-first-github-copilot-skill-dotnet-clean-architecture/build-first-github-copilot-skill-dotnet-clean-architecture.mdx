@@ -1,21 +1,22 @@
 ---
 title: 'Building Your First GitHub Copilot Skill: A .NET Clean Architecture SKILL.md, Start to Finish'
-description: 'A build-along for .NET developers — create one GitHub Copilot Skill (SKILL.md) that enforces Clean Architecture, CQRS and your API contract.'
+description: 'A build-along for .NET developers: create one GitHub Copilot Skill (SKILL.md) that enforces Clean Architecture, CQRS and your API contract.'
 publishedAt: 2026-05-17
+updatedAt: 2026-10-01
 cover: './images/build-first-github-copilot-skill-dotnet-clean-architecture-cover.png'
-coverAlt: 'Share banner headed GITHUB COPILOT · SKILLS with the title "The description is the trigger" and the line "Copilot reads that one line on every task. Get it wrong and the Skill never loads." above the MSDEVBUILD wordmark and the author name. On the right, a three-step chain: a warn box reading "description: one line", read on every single task; then a plain box reading "Matches the task?", only then is skill.md loaded; then a good box reading "Clean Architecture enforced", rules the agent can check itself against.'
+coverAlt: 'Share banner headed GITHUB COPILOT · AGENTS.MD with the title "The description is the trigger" and the line "Copilot reads that one line on every task. Get it wrong and the Skill never loads." above the MSDEVBUILD wordmark and the author name. On the right, a three-step chain: a warn box reading "description: one line", read on every single task; then a plain box reading "Matches the task?", only then is skill.md loaded; then a good box reading "Clean Architecture enforced", rules the agent can check itself against.'
 category: copilot
 categories: ['ai', 'engineering']
 tags: ['GitHub Copilot', 'Copilot Skills', 'SKILL.md', 'Clean Architecture', 'CQRS', 'MediatR', 'FluentValidation', '.NET', 'AI-assisted development']
 seoTitle: 'GitHub Copilot Skill for .NET (SKILL.md)'
-highlight: 'A Copilot Skill is only as good as its description. That one line is the activation trigger — Copilot reads it on every task and loads the full SKILL.md only when the description matches. Get the description sharp and the rest of your Clean Architecture rules follow automatically.'
+highlight: 'A Copilot Skill is only as good as its description. That one line is the activation trigger. Copilot reads it on every task and loads the full SKILL.md only when the description matches. Get the description sharp and the rest of your Clean Architecture rules follow automatically.'
 series: 'agents-md-instructions'
 seriesOrder: 5
 featured: true
 draft: false
 faq:
   - q: 'Where do GitHub Copilot Skills live in a repo?'
-    a: 'Each Skill lives in its own folder under .github/skills, with a SKILL.md file inside — for example .github/skills/dotnet-cqrs-feature/SKILL.md. The folder is version-controlled and reviewed in pull requests like any other file, so the whole team shares the same Skill.'
+    a: 'Each Skill lives in its own folder under .github/skills, with a SKILL.md file inside, for example .github/skills/dotnet-cqrs-feature/SKILL.md. The folder is version-controlled and reviewed in pull requests like any other file, so the whole team shares the same Skill.'
   - q: 'Why won''t my Copilot Skill activate?'
     a: 'Almost always the description is too vague. Copilot matches the task against each Skill''s description, so if yours says "helps with backend code" it never fires. Rewrite it to name the exact trigger words a developer would use, such as "add command", "new endpoint", or "add query", and it will activate.'
   - q: 'How big should a SKILL.md be?'
@@ -24,29 +25,81 @@ faq:
     a: 'Skills are read by the Copilot agent, which runs in VS Code, Visual Studio, and the GitHub coding agent. The agent inspects available Skills, activates the ones whose descriptions match the task, and follows their steps. Availability moves quickly, so confirm your Copilot plan and IDE version support Agent Skills.'
   - q: 'How is a Skill different from copilot-instructions.md?'
     a: 'copilot-instructions.md is always loaded on every suggestion, so it must stay small and general. A Skill is loaded only when its description matches the task, so it can hold deep, specific method knowledge without taxing every request. Use instructions for who you are; use Skills for how you do a particular job.'
+  - q: 'What sections go in a SKILL.md file?'
+    a: 'Frontmatter with a name and a trigger-rich description, then purpose, when to use and when not to use, inputs required, non-negotiable rules, a numbered workflow, real code examples, a validation checklist, and the expected output as a file list. The description decides whether the rest is ever read.'
 ---
 
-Last month Bhavin pinged me with a screenshot. He had asked GitHub Copilot to add a new endpoint to our orders service, and it had cheerfully written the entire thing inside the controller. Business logic, a raw `DbContext` call, an `if (order == null) return NotFound()`, and an anonymous object as the response. It compiled. It even worked. And it was wrong in five different ways that our team had agreed never to do.
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
 
-I had explained all of this to Copilot before. In chat. On a different feature. Two weeks earlier. The knowledge was real, but it lived in a throwaway prompt nobody could reuse.
+A GitHub Copilot Skill for .NET is one `SKILL.md` file that teaches Copilot how your team builds a Web API feature: Clean Architecture layers, CQRS with MediatR, FluentValidation, one response contract, and the tests. This is a build-along. We start from an empty file and end with a tested Skill that stops the most common mistake Copilot makes in an ASP.NET Core codebase: putting the whole feature in the controller.
 
-In the [Copilot Skills deep dive](../github-copilot-skills-deep-dive) I explained the *why* behind Skills — how they sit between prompts, instructions, and agents, and why progressive disclosure matters. This article is the opposite. No theory. We are going to build one complete, production-shaped `SKILL.md` from an empty file to a working, tested Skill that fixes exactly the mistake Bhavin hit. By the end you will have a Skill that teaches Copilot to build a .NET feature the way your team actually builds it.
+Picture a developer on the team that builds the orders API behind a food delivery app like MSDevBuild Eats. They ask Copilot to add a new endpoint, and Copilot writes the entire thing inside the controller: business logic, a raw `DbContext` call, an `if (order == null) return NotFound()`, and an anonymous object as the response. It compiles. It even works. And it is wrong in five ways the team agreed never to do.
 
-If you have not read the concept piece, skim it first. I am going to assume you already know what a Skill is. Here we just build one.
+The tech lead had explained all of this to Copilot before, in chat, on a different feature, two weeks earlier. The knowledge was real. It lived in a prompt nobody could reuse.
+
+[Why Copilot Skills exist](/blog/github-copilot-skills-deep-dive) covered the *why*: where Skills sit between prompts, instructions and agents, and why progressive disclosure matters. This article is the opposite. No theory. One complete, production-shaped `SKILL.md`, built step by step, and tested against the exact mistake above.
+
+## One week of the same five mistakes
+
+| Day | What happened |
+| --- | --- |
+| Mon | "Add a CreateOrder endpoint." The action queries `DbContext` directly and returns an anonymous object |
+| Tue | Review asks for a Command, a handler, a validator and `ApiResponse<T>`. The rework takes the afternoon |
+| Wed | "Add a GetOrderById query." Same shape: logic in the controller, `NotFound()` inline, no test |
+| Thu | A second developer, a different feature, the same five review comments |
+| Fri | The tech lead turns the review comments into a Skill, the one this article builds |
+
+## The command that found the controllers doing too much
+
+Before writing the Skill, measure the problem. Controllers in this architecture should only send requests through `IMediator`. Anything else in them is a rule already broken:
+
+```bash
+# Controllers touching the database directly
+grep -rlE 'DbContext|SaveChangesAsync|\.Include\(' src/Api/Controllers
+
+# Controllers deciding not-found themselves instead of the handler
+grep -rnE 'return NotFound\(\)' src/Api/Controllers
+
+# Actions returning anonymous objects instead of ApiResponse<T>
+grep -rnE 'return (Ok|Created)\(new \{' src/Api/Controllers
+```
+
+At the end of the scenario week, the three commands returned:
+
+| Rule broken | Matches |
+| --- | --- |
+| Controller touching `DbContext` | 3 controllers |
+| `NotFound()` decided in the controller | 5 actions |
+| Anonymous object instead of `ApiResponse<T>` | 4 actions |
+
+Twelve matches, all from the same week, all written by Copilot from a reasonable default. After the Skill, run them again after every feature. They should return nothing.
+
+<figure>
+
+![Two step flows side by side for the request "add a GetOrderById query". On the left, no Skill, with the method living only in chat: step 1, Copilot writes the controller action, the most common ASP.NET shape; step 2, DbContext is called in the action with no Query and no handler; step 3, if order is null return NotFound, with an anonymous object as the body; step 4, no validator and no test, because nothing asked for them. The red outcome: it works and breaks five team rules. On the right, the dotnet-cqrs-feature Skill loaded because "add" and "query" match its description: step 1, a GetOrderByIdQuery record returning ApiResponse of OrderDto; step 2, a handler that reads through the repository and returns not-found as an ApiResponse; step 3, a thin action that only calls IMediator.Send; step 4, xUnit tests including not-found, because the checklist asked for them. The green outcome: the checklist passes on the first try.](./images/dotnet-copilot-skill-thin-controller-before-after.png)
+
+<figcaption>Figure 1 — the same request, with and without the Skill. The only difference is a file Copilot loads because two words matched.</figcaption>
+
+</figure>
+
+If you would rather see the idea first, it is a short video:
+
+<ShortHighlight slugs={['copilot-skill-dotnet-thin-controller']} />
 
 ## What you need before we start
 
-This is a hands-on build, so here is the setup I am assuming. Nothing exotic.
+This is a hands-on build. The setup it assumes is nothing exotic.
 
 - A .NET Web API using Clean Architecture with CQRS. If you use MediatR, FluentValidation, and an `ApiResponse<T>` wrapper, you will feel right at home. If you use something similar, adjust the rules to match.
-- GitHub Copilot with Agent Skills available on your plan, in VS Code or Visual Studio.
+- GitHub Copilot with Agent Skills available on your plan, in VS Code or Visual Studio. Microsoft's guide to [using Agent Skills with GitHub Copilot](https://learn.microsoft.com/en-us/visualstudio/ide/copilot-agent-skills?view=visualstudio) covers the IDE side.
 - A repo you can commit to, because Skills are files in the repo.
 
 One honest note before we go: Agent Skills is a fast-moving area, and exact availability and folder conventions shift between Copilot releases. Treat the paths here as the current shape, and confirm against your Copilot version. The *thinking* is stable even when the plumbing moves.
 
 ### Where the Skill file lives
 
-A Skill is a folder with a `SKILL.md` inside it, under `.github/skills`. Here is the layout we are building toward.
+A Skill is a folder with a `SKILL.md` inside it, under `.github/skills`. The layout we are building toward:
 
 ```text
 your-api/
@@ -73,7 +126,7 @@ Create the file `.github/skills/dotnet-cqrs-feature/SKILL.md` and write nothing 
 
 So if the description is weak, nothing else you write matters. The Skill never fires.
 
-Here is a weak description, the kind I wrote on my first attempt:
+A weak description, the kind I wrote on my first attempt:
 
 ```markdown
 ---
@@ -84,7 +137,7 @@ description: Helps with backend .NET development and coding standards.
 
 That reads fine to a human and fails completely with Copilot. "Backend development" matches almost any task and none of them sharply. It gave me inconsistent activation for a week before I understood why.
 
-Here is the strong version. Notice it names the concrete trigger words a developer would actually type.
+The strong version names the concrete trigger words a developer would actually type.
 
 ```markdown
 ---
@@ -98,11 +151,11 @@ description: >
 ---
 ```
 
-The difference is not politeness, it is precision. A strong description does three things: it states the job, it lists what the Skill enforces, and it spells out the phrases that should wake it up. When Bhavin types "add a query to get an order by id", the words "add query" and "get an order" line up with this description and the Skill activates.
+The difference is not politeness, it is precision. A strong description does three things: it states the job, it lists what the Skill enforces, and it spells out the phrases that should wake it up. When a developer types "add a query to get an order by id", the words "add query" and "get an order" line up with this description and the Skill activates.
 
 In short: write the description last in your head and first in the file, and treat it as a matching rule, not a summary.
 
-## When should a [Copilot Skill](https://docs.github.com/en/copilot/customizing-copilot/creating-a-custom-skill) refuse to run?
+## Step 2: When should the Skill stay out of the way?
 
 Now we give the Skill body a spine. The first section tells Copilot what this Skill is for and, just as much, when to stay out of the way. The "when not to use" part saves you from a Skill that muscles into tasks it should not touch.
 
@@ -131,7 +184,7 @@ I learned the value of "when not to use" the hard way. An early Skill of mine ke
 
 ![Step flow of the five parts of a SKILL.md file. The description is one line and is the activation trigger Copilot reads on every task. Purpose and when not to use it keeps the Skill from firing on everything. Inputs name the project, layer and entity. Rules give the non-negotiables, such as Domain referencing nothing and no EF types above Infrastructure. The numbered workflow, shown in green, gives the order files get created in.](./images/skill-md-anatomy-dotnet-clean-architecture.png)
 
-<figcaption>Figure 1 — the five parts of a SKILL.md, and which one decides whether the other four ever run.</figcaption>
+<figcaption>Figure 2 — the five parts of a SKILL.md, and which one decides whether the other four ever run.</figcaption>
 
 </figure>
 
@@ -152,7 +205,7 @@ If any of these is unclear, ask one short question before writing code.
 
 That last line matters more than it looks. Without it, Copilot fills gaps with assumptions. With it, Copilot asks "is this a Command or a Query?" and you avoid a whole wrong file.
 
-## Step 4: Add the rules — your non-negotiables
+## Step 4: Add the rules, your non-negotiables
 
 This is the heart of the Skill. These are the architecture rules I would say out loud in a code review. Writing them here means I never have to say them again.
 
@@ -189,7 +242,7 @@ The order is deliberate. DTOs first so the shapes exist, then the request and ha
 
 ## Step 6: Add real code examples
 
-Now we show Copilot exactly what "correct" looks like. This is where most Skills go weak — people write abstract `Foo`/`Bar` snippets and Copilot produces abstract code back. Use real, production-shaped examples with real names. I use an orders feature because that was Bhavin's actual task.
+Now we show Copilot exactly what "correct" looks like. This is where most Skills go weak. People write abstract `Foo`/`Bar` snippets and Copilot produces abstract code back. Use real, production-shaped examples with real names. I use an orders feature because that was the task in the scenario.
 
 First, the command and handler:
 
@@ -251,7 +304,7 @@ public sealed class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
 }
 ```
 
-Then the controller, kept intentionally thin. This is the exact code Bhavin's version got wrong, so it earns its place in the Skill.
+Then the controller, kept intentionally thin. This is the exact code Monday's version got wrong, so it earns its place in the Skill.
 
 ```csharp
 // Api/Controllers/OrdersController.cs
@@ -321,7 +374,7 @@ Before finishing, confirm every item:
 - [ ] xUnit tests cover happy path, validation failure, and not-found.
 ```
 
-Here is the same checklist as a table, which is how I keep it in my head when reviewing:
+The same checklist as a table, the way I keep it in my head when reviewing:
 
 | Check | Correct | Common failure |
 |---|---|---|
@@ -334,8 +387,6 @@ Here is the same checklist as a table, which is how I keep it in my head when re
 | Tests | Happy, invalid, not-found | No tests at all |
 
 ## Step 8: Add the expected output
-
-{/* SCREENSHOT: the actual output on your screen — save as ./images/step-8-add-the-expected-output.png, then replace this line with: ![Step 8: Add the expected output](./images/step-8-add-the-expected-output.png) */}
 
 Finish the Skill by telling Copilot what a correct result looks like as files. This removes ambiguity about "am I done". When the file list matches, the feature is structurally complete.
 
@@ -350,26 +401,26 @@ A correct result for a new "CreateOrder" feature produces:
 - tests/Application.Tests/Orders/CreateOrderHandlerTests.cs
 ```
 
-That is the whole Skill. Frontmatter, purpose, when-not-to-use, inputs, rules, workflow, examples, checklist, expected output. You now have a complete, assembled `SKILL.md`. Commit it and let us test it for real.
+That is the whole Skill. Frontmatter, purpose, when-not-to-use, inputs, rules, workflow, examples, checklist, expected output. You now have a complete, assembled `SKILL.md`. Commit it and test it for real.
 
 ## Testing the Skill: give Copilot a real task
 
-A Skill you have not tested is a guess. So let us run the exact scenario from the top of this article. Open Copilot Chat in agent mode and give it a fresh task:
+A Skill you have not tested is a guess. So run the exact scenario from the top of this article. Open Copilot Chat in agent mode and give it a fresh task:
 
 > Add a GetOrderById query to the orders API.
 
-Here is what good activation looks like. Copilot should recognise the words "add" and "query", match them against your `dotnet-cqrs-feature` description, and pull in the Skill. You will see it produce, in order:
+Good activation looks like this. Copilot should recognise the words "add" and "query", match them against your `dotnet-cqrs-feature` description, and pull in the Skill. You will see it produce, in order:
 
 1. A `GetOrderByIdQuery` record implementing `IRequest<ApiResponse<OrderDto>>`.
 2. A handler that reads through the repository and returns a not-found `ApiResponse` when the order is missing.
 3. A thin controller action wired through `IMediator`.
 4. xUnit tests including the not-found case, because the Skill told it to.
 
-If you get that, the Skill works. The knowledge that used to live in my head, and in a lost chat message, now runs itself.
+If you get that, the Skill works. The knowledge that used to live in a lost chat message now runs itself.
 
 ### How to tell the description failed to trigger
 
-Sometimes you ask for a query and Copilot writes logic straight into the controller anyway. That is the tell that the Skill did not activate. Do not start editing the rules — the rules are fine, they were never loaded. The problem is the description did not match.
+Sometimes you ask for a query and Copilot writes logic straight into the controller anyway. That is the tell that the Skill did not activate. Do not start editing the rules. The rules are fine; they were never loaded. The problem is the description did not match.
 
 Two quick fixes, in order:
 
@@ -398,22 +449,80 @@ Copilot pulls that reference in only when the task is about error handling. The 
 
 ## Where to go from here
 
-You now have one working Skill. The real payoff comes from a small, focused library of them. Here is the path I took, and the one I would suggest.
+You now have one working Skill. The real payoff comes from a small, focused library of them. The path that works:
 
-Start by turning today's Skill into a set. One Skill per job, not one giant Skill for everything. On my current work that means a `dotnet-cqrs-feature` Skill, a separate `dotnet-integration-test` Skill, and later a `flutter-feature` Skill and an `azure-bicep-module` Skill. Each stays sharp because each does one thing.
+Start by turning today's Skill into a set. One Skill per job, not one giant Skill for everything. For a .NET API that usually means a `dotnet-cqrs-feature` Skill, a separate `dotnet-integration-test` Skill, and later one per other stack the team owns. Each stays sharp because each does one thing.
 
 Treat Skills as code. Review them in pull requests. When a convention changes, the Skill changes in the same PR, so the AI and the humans learn the new rule at the same moment. A Skill that drifts out of date is worse than no Skill, because it confidently produces the old pattern.
 
-If you are rolling this out across a team, pair the Skill with a small always-on instructions file. I wrote about that split in [Copilot custom instructions](../github-copilot-custom-instructions) — the short version is that instructions carry who you are and Skills carry how you do a specific job. They work best together.
+If you are rolling this out across a team, pair the Skill with a small always-on instructions file. That split is covered in [Copilot custom instructions](/blog/github-copilot-custom-instructions); the short version is that instructions carry who you are and Skills carry how you do a specific job. They work best together.
 
 The Flutter and Azure Skills follow the same recipe you just used: description as trigger, rules, workflow, real examples, checklist. Only the content changes. If you can write one for .NET, you can write one for any stack your team owns.
 
-## Conclusion
+## How efficient is the Skill?
 
-Bhavin's controller problem was never really Copilot's fault. The knowledge to do it right existed on our team. It just had no home the AI could read. A `SKILL.md` gives it that home.
+The Skill costs its description on every request and its body only on backend feature work. The saving is the rework the checklist prevents.
 
-You have now built one from an empty file: a sharp description that triggers it, rules that hold the line, a workflow that repeats, real examples that set the quality bar, and a checklist that decides when a feature is done. That is not a toy. That is the same file I ship.
+| | Size | Paid on |
+| --- | --- | --- |
+| The `description` | about 330 characters, roughly 85 tokens | every request |
+| The full `SKILL.md` with examples | about 7,000 characters, roughly 1,750 tokens | only when a feature task matches |
 
-So here is my push. Do not save this for "someday". Pick the one architecture rule Copilot breaks most often in your repo this week, and write a Skill that fixes exactly that. Ship it, review it in a PR, and watch the next feature come back correct on the first try. One real Skill this week beats a perfect plan next quarter.
+For one feature in the scenario week, before and after the Skill:
 
-If you want the concepts behind everything you just built, go back to the [Copilot Skills deep dive](../github-copilot-skills-deep-dive). Then come back here and build the second one.
+| | Monday, no Skill | Friday, Skill loaded |
+| --- | --- | --- |
+| Files produced | 1, the controller | 6, the expected-output list |
+| `grep` matches for broken rules | 4 | 0 |
+| Review comments about architecture | 5 | 0 |
+| Review rounds | 2 | 1 |
+
+The rule underneath: **the Skill is paid for once per matching task; a missing Skill is paid for once per review**. At about 1,750 tokens a feature, the Skill costs less than one review comment takes to write.
+
+## Questions a tech lead will ask about this
+
+1. **"Why not put these rules in copilot-instructions.md?"** Because the examples and checklist are about 1,750 tokens, and they only matter when someone adds a feature. The instructions file would carry them on every request.
+2. **"How do we know the Skill fired?"** Read what came back. A thin controller and a handler mean it loaded; logic in the controller means the description did not match.
+3. **"Who maintains it?"** Whoever owns the API's architecture. When a convention changes, the Skill changes in the same pull request.
+4. **"Does it replace code review?"** No. It removes the architecture comments from review, so review can spend its time on the logic.
+5. **"Can the three `grep` commands go into CI?"** Yes, and they should. The Skill makes the right shape likely; the check makes the wrong one fail.
+
+## What to do on day one
+
+- Collect the last month's architecture review comments. They are the Skill's rules.
+- Write the description first, from the words people type when they ask for this work.
+- Use one real feature from your codebase for every example.
+- End the Skill with a checklist and an expected-output file list.
+- Run the three `grep` commands in CI so a missed activation cannot reach `main`.
+
+## Key takeaways
+
+- A Skill's description is its activation trigger; write it as a matching rule, not a summary.
+- Rules as flat statements, a numbered workflow, real examples, a checklist, an expected output: that is the whole recipe.
+- Test the Skill on the exact task that went wrong, and treat bad output on the first prompt as an activation problem.
+- Keep `SKILL.md` under about 500 lines and move detail into a `reference/` folder.
+- Pair it with a CI check for the rules that must never break.
+
+## The next endpoint
+
+The following Monday, the same developer asks Copilot to "add an UpdateOrderStatus command to the orders API".
+
+"Add" and "command" match the description. Copilot creates the command record, a handler, a FluentValidation validator, a one-line controller action and three xUnit tests, in the order the workflow lists them. The three `grep` commands return nothing.
+
+Review takes ten minutes, and every comment is about the status rules themselves. The tech lead closes the chat window without typing a single explanation.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this build-along prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could write a Skill for any stack.
+
+1. **The silent Skill.** A developer types "fetch an order by its id" and gets logic in the controller. Which part of the Skill failed, and exactly what would you add to fix it?
+2. **The 700-line Skill.** Your Skill has grown past 700 lines and Copilot follows only the first half. Using the failure modes and the efficiency section, what do you move where?
+3. **The missing validator.** Copilot builds everything except the FluentValidation class. Which two sections of the Skill should have caught that, and which `grep` could you add to CI for it?
+4. **Instructions or Skill?** "Never return raw EF entities from an endpoint" and "how to build a Command with its validator and tests". Where does each go, and why?
+5. **The migration task.** A developer asks Copilot to "add a migration for the order status column" and the Skill tries to add a MediatR handler. What went wrong, and which section stops it?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

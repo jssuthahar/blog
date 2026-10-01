@@ -30,3 +30,30 @@ c.append(box("res", "Code that reads like the rest of the repo", 220, y + 30, 30
 c.append(edge("er", ids[-1], "res"))
 c.append(text("note", "The difference is specificity, not length.", 220, y + 90, 300, 22, size=11, color=MUTED, align="center"))
 write(OUT, "agents-md-anatomy-sections", "AGENTS.md anatomy", c)
+
+
+# ================================================================ Figure 1 ===
+# The /init draft committed as-is versus the same file after a human edit.
+c = []
+c.append(text("lh", "The /init draft, committed as-is", 70, 20, 360, 28, size=15, bold=True, align="center"))
+c.append(text("lu", "what the code looks like today", 70, 48, 360, 22, size=12, color=MUTED, align="center"))
+chain(c, [
+    ("Stack and folders: correct", "inferred from pubspec.yaml and lib/"),
+    ("State: two patterns listed", "it saw an old Provider import"),
+    ("Business rules: none", "they live in people's heads"),
+    ("Security: none", "nothing about personal data in logs"),
+], cx=250, top=90, w=360, h=64, gap=32, prefix="l")
+c.append(box("lbad", "✗ An agent logs a customer's phone number", 70, 474, 360, 48, RED_F, RED_S))
+c.append(edge("le", "l4", "lbad", ""))
+
+c.append(text("rh", "The same file, edited by a person", 530, 20, 360, 28, size=15, bold=True, align="center"))
+c.append(text("ru", "what the team decided it should be", 530, 48, 360, 22, size=12, color=MUTED, align="center"))
+chain(c, [
+    ("Stack and folders: kept", "the draft got these right"),
+    ("State: one pattern", "BLoC / Cubit, not Riverpod, not Provider"),
+    ("Business rules: written down", "totals from Cart, promos via Promo"),
+    ("Security: written down", "never log names, phones or addresses"),
+], cx=710, top=90, w=360, h=64, gap=32, prefix="r")
+c.append(box("rok", "✓ Hard rules an agent can check itself against", 530, 474, 360, 48, GRN_F, GRN_S))
+c.append(edge("re", "r4", "rok", ""))
+write(OUT, "agents-md-generated-draft-vs-edited-file", "Draft vs edited", c)

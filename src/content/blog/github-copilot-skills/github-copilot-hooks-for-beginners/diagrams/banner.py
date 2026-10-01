@@ -8,7 +8,7 @@ from drawio_kit import *   # noqa: F403
 # Banners are 1200x630 exactly, so wrap() must not add its usual padding.
 c = []
 banner(c,
-    eyebrow='GITHUB COPILOT · HOOKS',
+    eyebrow='GITHUB COPILOT  ·  AGENTS.MD',
     headline=['Outside the model,', 'so it cannot drift'],
     subhead=['A hook is a shell script at a fixed point', 'in the session. Deterministic, every time.'],
     chain=[('Agent proposes a command', 'Probabilistic. Usually right.', 'warn'), ('Hook runs, outside the model', 'Same input, same answer, always', 'plain'), ('Blocked before it runs', 'Not reviewed after the fact', 'good')],

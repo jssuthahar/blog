@@ -2,12 +2,13 @@
 title: '400K AI Tokens a Month: My Daily GitHub Copilot Workflow That Makes the Budget Last'
 description: 'A 400K monthly AI token budget sounds generous until agent mode eats it in a week. Here is the daily Copilot workflow I use to make it last the month.'
 publishedAt: 2026-05-30
+updatedAt: 2026-10-01
 category: copilot
 categories: ['ai', 'engineering']
 tags: ['GitHub Copilot', 'AI tokens', 'token budget', 'ChatGPT', 'Claude Code', 'AI-assisted development', 'developer productivity', 'Copilot agent mode']
 seoTitle: 'AI Token Budget for GitHub Copilot'
-cover: './images/400KAITokens.jpg'
-coverAlt: 'A 400,000 token monthly allowance is roughly 19,000 tokens per working day, which is about four file-heavy'
+cover: './images/ai-token-budget-daily-copilot-workflow-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "GitHub Copilot, AGENTS.md" above the title "400K tokens a month" and the line "About 19,000 a day. Choose the mode before you type.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "One thread, four files pinned, arguing with an agent for 14 turns", an arrow labelled "agent by reflex" to an amber box reading "Every turn resends everything, about 225,000 tokens", and an arrow labelled "one bug" to a red box reading "61% gone on day nine, and three weeks still to go".'
 highlight: 'A 400,000 token monthly allowance is roughly 19,000 tokens per working day, which is about four file-heavy chat turns or one third of a single agent-mode task. It is enough only if you route by task: unmetered tools for questions that carry no company code, inline Copilot for work inside one file, and agent mode reserved for the two or three multi-file jobs a month that actually deserve it.'
 series: 'agents-md-instructions'
 seriesOrder: 12
@@ -17,32 +18,74 @@ faq:
   - q: 'Is 400,000 AI tokens per month enough for a developer?'
     a: 'It is enough for chat-assisted coding and not enough for agent-first coding. Spread over 21 working days it is about 19,000 tokens a day, which covers four or five chat turns with files attached, or roughly a third of one multi-file agent task. If agent mode is your default habit you will run out in the second week.'
   - q: 'How many tokens does one line of code cost?'
-    a: 'Around 10 tokens per line is a reliable planning number for C#, Dart, or TypeScript, so a 300-line file costs about 3,000 tokens every time it enters the context. Comment-heavy code and long identifiers push it higher, and minified or generated files are far worse per line of value.'
+    a: 'Measured with the GPT-4o tokenizer on a real Flutter app, Dart came in at about 6.5 tokens per line, so a 300-line file is roughly 2,000 tokens every time it enters the context. Dense C# or TypeScript runs higher; budget up to 10 per line. Measure your own codebase once with a tokenizer.'
   - q: 'Why does a long AI chat cost so much more than a short one?'
-    a: 'Every turn resends the whole conversation, so cost grows with the square of the turn count rather than linearly. Ten turns over the same two attached files can cost five to six times what the first turn cost. Starting a fresh chat per task is the single largest saving available to you.'
+    a: 'Every turn resends the whole conversation and every attached file, so a thread''s total grows with the square of its length. Eight turns over two attached files cost around ten times the first turn. Starting a fresh chat per task is the single largest saving available to you.'
   - q: 'Should I send company code to a free ChatGPT account to save tokens?'
     a: 'No. Route by data sensitivity first and cost second. Unmetered consumer tools are for questions that contain no proprietary code, no customer data, and no internal architecture. Anything touching your repository stays inside the tool your company approved, even when the metered budget is tight.'
   - q: 'Do inline Copilot completions count against a token budget?'
     a: 'It depends entirely on how your company meters access. Seat-based GitHub Copilot plans count premium requests rather than raw tokens, while a company gateway in front of Azure OpenAI or the Anthropic API usually counts every token including completions. Ask your admin which model you are on before you optimise anything.'
+  - q: 'When should I use Copilot agent mode instead of chat?'
+    a: 'For planned, multi-file work that is worth a budget: a feature across layers, a migration touching many call sites, or a test backfill. Agent runs read and resend large parts of the repository, so ration them to two or three a month on a metered plan, and use chat on a selection for everything that fits inside one file.'
 ---
 
-Nine working days into last month I checked my usage dashboard and I had spent 61% of my token allowance. Not on anything clever. I had spent it arguing with an agent about a `HttpClient` registration, in one very long chat thread, with four files pinned to the context.
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
 
-I get 400,000 AI tokens a month at work. When that number landed in my inbox it sounded generous. Four hundred thousand of anything sounds generous. It took me two months to work out that it is a small budget, and one more month to work out that the fix is not typing less. The fix is deciding, before I type, which mode of Copilot the task belongs to, and whether it needs Copilot at all.
+A 400,000-token monthly AI allowance is about 19,000 tokens per working day: roughly two chat turns with a couple of files attached, or a fraction of one agent run. It lasts the month only if you choose the mode before you type: no model at all, an unmetered tool for generic questions, Copilot on a selection for work in one file, and agent mode for the few multi-file jobs that deserve it. This is the daily workflow that makes it last.
 
-That decision happens twenty or thirty times a day, and it is the whole ball game. Inline completion, chat on a selection, and agent mode are not three levels of the same feature. They differ in cost by two orders of magnitude. Getting that choice right, every time, is the difference between a budget that lasts the month and one that runs out on the ninth.
+Nine working days into a month, the usage dashboard said 61% was gone. Not on anything clever. On one chat, arguing with an agent about an `HttpClient` registration, with four files pinned to the context for fourteen turns.
 
-This is Part 12 of my Copilot and AI-instructions series. The earlier parts were about making Copilot write code the way your team writes it. This one is about the thing nobody put in the docs: what happens when Copilot comes with a meter attached, and what a normal working day looks like when you respect it. If the word "token" is still fuzzy, start with [what a token is and how AI cost is calculated](../what-is-ai-token-cost-calculated), because everything below is arithmetic built on it. The next part, [15 habits that cut token usage](../save-ai-tokens-tips-copilot-context), covers the mechanics of shrinking each request. Read this one first, because choosing the right mode beats micro-optimising by a wide margin.
+Four hundred thousand of anything sounds generous. It took two months to see it is a small daily budget, and one more to see that the fix is not typing less. The fix is deciding, before typing, which mode of Copilot the task belongs to, and whether it needs Copilot at all.
+
+That decision happens twenty or thirty times a day. Inline completion, chat on a selection and agent mode are not three levels of one feature; they differ in cost by orders of magnitude.
+
+If the word "token" is still fuzzy, start with [what a token is and how AI cost is calculated](/blog/what-is-ai-token-cost-calculated): everything below is arithmetic built on it, including the measured file sizes.
+
+## Nine days, one thread
+
+| Day | What happened |
+| --- | --- |
+| 1 to 7 | Normal work: completions, a few chat questions. About 5% of the month |
+| 8, 10:00 | An `HttpClient` registration bug. Agent mode, four service files pinned |
+| 8, all day | The agent gets it wrong on turn 3. The fix is explained on turn 4, again on turn 6 |
+| 9, 11:00 | Turn 14. The bug is fixed |
+| 9, 14:00 | Dashboard: 61% used. Three weeks of the month left |
+
+## The estimate that explained it
+
+The cost of a thread is its fixed part, sent on every turn, plus the history, which grows every turn. With four files of about 1,500 tokens each, a 902-token instructions file, around 4,000 tokens of system prompt and tool definitions, and replies of about 600 tokens:
+
+```python
+def thread_cost(fixed, turns, history_per_turn=700, reply=600):
+    """Input for every turn, including all earlier turns, plus the replies."""
+    return sum(fixed + history_per_turn * (k - 1) for k in range(1, turns + 1)) + reply * turns
+
+fixed = 4000 + 902 + 4 * 1500 + 50      # system + tools, instructions, 4 files, question
+print(thread_cost(fixed, 14))           # ≈ 225,000 tokens
+```
+
+About 225,000 tokens: 56% of the month, from one thread. The other 5% was a normal week. Nothing in the thread was wasteful turn by turn. The thread itself was the waste. All of it.
+
+<figure>
+
+![Flowchart for routing a task before you type. It starts with a task arriving. First decision: does a deterministic tool give the exact answer? Yes leads to Tier 0, the IDE refactor, the CLI or the docs, with no tokens. No continues to the second decision: can it be asked without any company code? Yes leads to Tier 1, an unmetered chat rewritten against generic code. No continues to the third decision: does it fit inside one open file or selection? Yes leads to Tier 2, Copilot on the selection in one short thread. No continues to the fourth decision: is it planned multi-file work worth a budget? Yes leads to Tier 3, agent mode, with instructions and Skills in place. No leads to: split it until a piece fits Tier 2.](./images/copilot-token-budget-route-task-by-tier-flowchart.png)
+
+<figcaption>Figure 1 — route the task before you type. Each "yes" leaves to the cheapest tier that can do the job.</figcaption>
+
+</figure>
+
+If you would rather see the idea first, it is a short video:
+
+<ShortHighlight slugs={['copilot-token-budget-route-by-tier']} />
 
 ## Is 400,000 tokens a month actually enough?
 
-{/* SCREENSHOT: the screen you were on for this section — save as ./images/is-400-000-tokens-a-month-actually-enough.png, then replace this line with: ![Is 400,000 tokens a month actually enough](./images/is-400-000-tokens-a-month-actually-enough.png) */}
-
-Let me answer with arithmetic rather than opinion.
+The answer is arithmetic, not opinion.
 
 Twenty-one working days in a typical month gives me **about 19,000 tokens per day**. To turn that into something I can feel, I need two conversion rules I now use constantly.
 
-**Rule one: roughly 10 tokens per line of code.** English prose runs near four characters per token. Code runs closer to three, because identifiers split and punctuation costs a token each. For the C#, Dart, and TypeScript I work in, a line averages 30 to 40 characters, so 10 tokens a line is a good planning figure. A 300-line service class is about 3,000 tokens. Every time it enters the context.
+**Rule one: measure tokens per line once.** The Dart in the food delivery app measured about 6.5 tokens per line with the GPT-4o tokenizer; denser C# or TypeScript runs higher, so budget up to 10. At 6.5, a 300-line class is about 2,000 tokens. Every time it enters the context.
 
 **Rule two: every turn pays for the whole conversation again.** This is the one that quietly destroyed my first two months. A chat is stateless underneath. Turn 5 does not send your fifth question, it sends questions 1 through 5, all five answers, and every attached file, again. Cost grows with the square of the turn count, not in a straight line.
 
@@ -52,8 +95,8 @@ Put those together and the day looks like this.
 |---|---|---|
 | Inline completion, single line | 100 – 400 | Hundreds |
 | Short question, no files attached | 500 – 1,500 | ~15 |
-| One question with two 300-line files attached | 6,000 – 8,000 | 2 or 3 |
-| An 8-turn chat over those same two files | 40,000 – 60,000 | Two and a half days of budget |
+| One question with two 300-line files attached | 8,000 – 10,000 | 2 |
+| An 8-turn chat over those same two files | 85,000 – 95,000 | Four to five days of budget |
 | One agent task: read repo, edit 4 files, run tests twice | 60,000 – 150,000 | 3 to 8 days of budget |
 
 So the honest verdict on 400,000 a month, for a working developer:
@@ -70,7 +113,7 @@ One caveat before the routing model, and it matters more than anything else here
 
 ![Step flow dividing a token allowance. Four hundred thousand tokens a month becomes about nineteen thousand tokens per working day across twenty-one days with no rollover, which is about four file-heavy chat turns or roughly one third of a single agent-mode run.](./images/token-budget-month-to-day-to-turn.png)
 
-<figcaption>Figure 1 — the allowance divided down to something you can actually plan against.</figcaption>
+<figcaption>Figure 2 — the allowance divided down to something you can actually plan against.</figcaption>
 
 </figure>
 
@@ -110,7 +153,7 @@ Agent mode. New feature across data, domain, and presentation layers. A migratio
 
 This tier is expensive and it is also where AI is worth the most. I do not avoid it. I ration it. I plan for **two or three agent runs a month**, and I prepare for them like a deployment, because an agent run that fails halfway costs the same as one that succeeds.
 
-The preparation is exactly what the earlier articles in this series were about, and it turns out those files are a cost control as much as a quality control. An agent with a [good custom instructions file](../github-copilot-custom-instructions) does not spend 20,000 tokens exploring your folder structure to guess at your conventions, because the conventions are stated. An agent with [a proper Skill](../github-copilot-skills-deep-dive) gets the shape right on the first attempt instead of the third. Every correction round trip you avoid is a full context resend you did not pay for. I wrote those files to stop architectural drift. They ended up saving more budget than any prompt trick I know.
+The preparation is exactly what the earlier articles in this series were about, and it turns out those files are a cost control as much as a quality control. An agent with a [good custom instructions file](/blog/github-copilot-custom-instructions) does not spend 20,000 tokens exploring your folder structure to guess at your conventions, because the conventions are stated. An agent with [a proper Skill](/blog/github-copilot-skills-deep-dive) gets the shape right on the first attempt instead of the third. Every correction round trip you avoid is a full context resend you did not pay for. I wrote those files to stop architectural drift. They ended up saving more budget than any prompt trick I know.
 
 ### The routing table
 
@@ -160,24 +203,73 @@ Three things, and only one of them is about tokens.
 
 ## How I plan the month
 
-I split 400,000 into four weekly buckets rather than one monthly pool, because a monthly pool always gets spent in the first half.
+I split 400,000 into weekly buckets rather than one monthly pool, because a monthly pool always gets spent in the first half.
 
-- **Roughly 90,000 per week** for normal Tier 2 work: completions, selections, tests, small fixes.
+- **Roughly 40,000 per week** for normal Tier 2 work: completions, selections, tests, small fixes. Four weeks is 160,000.
 - **One Tier 3 agent run per fortnight**, budgeted at 100,000, chosen deliberately. The work with the worst ratio of tedium to thinking wins.
-- **A 40,000 reserve**, untouched until the last week. Production incidents do not respect budgets, and reading unfamiliar code fast is exactly when AI earns its keep.
+- **A 40,000 reserve**, untouched until the last week. The three lines add up to the full 400,000. Production incidents do not respect budgets, and reading unfamiliar code fast is exactly when AI earns its keep.
 
-The reserve is the part I would recommend hardest. The first month I ran out, I ran out on a Tuesday with a broken integration and no allowance left to help me read someone else's service. That is a bad way to learn this lesson.
+The reserve is the part I would recommend hardest. Running out on a day when an integration breaks, with no allowance left to help read someone else's service, is a bad way to learn this lesson.
 
-If your company gives you a different number, the shape still holds. Divide by 21, convert to lines of code at 10 tokens a line, and you will know within a minute whether you can afford to be casual about agent mode. Most developers I have shown this to cannot.
+If your company gives you a different number, the shape still holds. Divide by 21, convert to lines of code at your measured tokens per line, and you will know within a minute whether you can afford to be casual about agent mode. Most developers cannot.
+
+## How efficient is routing by tier?
+
+The same nine days, the same bug, handled by tier instead of by reflex:
+
+| | Agent by reflex | Routed by tier |
+| --- | --- | --- |
+| How the bug was handled | agent mode, four files pinned, 14 turns | Tier 2: the registration method selected, three short threads |
+| Tokens for the bug | about 225,000 | about 30,000 |
+| Share of the month after day nine | 61% | about 13% |
+| Agent runs left for planned work | none, realistically | two or three |
+
+The rule underneath: **the cost of a task is set by the tier you pick, not by how carefully you type**. The same bug costs about seven times more in the wrong tier. Seven.
+
+## Questions a tech lead will ask about this
+
+1. **"Should we ban agent mode?"** No. Plan it. Two or three well-prepared agent runs a month are where AI saves the most time.
+2. **"Is it safe to use a free chat tool for Tier 1?"** Only for questions with no company code, customer data or internal names in them. Sensitivity first, cost second.
+3. **"How do we know how we are metered?"** Ask four questions: do completions count, do input and output cost the same, is cached input discounted, and does the pool reset monthly.
+4. **"Why do instruction files save budget?"** Because an agent that knows your conventions does not spend tokens exploring or correcting. Every avoided correction is a whole-thread resend you did not pay for.
+5. **"What is the single habit to teach first?"** Close the thread and restate the question instead of arguing with a wrong answer.
+
+## What to do on day one
+
+- Divide your allowance by the working days in the month and write the daily number down.
+- Measure tokens per line on your own code once.
+- Pin the routing table where you can see it.
+- Keep a reserve for the last week; incidents do not respect budgets.
+- When an answer is wrong on turn 3, start a new thread with a better first prompt.
 
 ## Key takeaways
 
-{/* SCREENSHOT: the screen you were on for this section — save as ./images/key-takeaways.png, then replace this line with: ![Key takeaways](./images/key-takeaways.png) */}
-
-- 400,000 tokens a month is about 19,000 a day, which is a small daily allowance once you convert it into lines of code at roughly 10 tokens per line.
+- 400,000 tokens a month is about 19,000 a day, which is a small daily allowance once you convert it into lines of code at your measured rate, about 6.5 per line of Dart.
 - It is enough for assistant-style coding and clearly not enough for agent-first coding. The variable is how much repository you attach and how many times you resend it.
 - Conversation history is resent on every turn, so a long thread costs far more than the same questions asked in separate threads.
 - Route work in tiers: deterministic tools first, unmetered chat for generic questions, Copilot for work inside an open file, agent mode reserved for two or three planned jobs a month.
 - Sensitivity outranks cost. A tight budget is never a reason to paste company code into an unapproved tool.
 - Instruction and Skill files are a budget control, not just a quality control, because they remove the exploration and the correction rounds you would otherwise pay for.
 - Ask your admin how you are metered before optimising. Request-based and token-based plans reward opposite habits.
+
+## The next bug
+
+Three weeks later, another registration bug, this time in the notification service. The developer reads the failing test, selects the one method, and asks chat a single specific question. The first answer misses a constraint, so they close the thread and ask again with it included. The second answer is right. Done.
+
+Two threads, three turns in total, about 18,000 tokens. The dashboard is at 58% with a week to go, and the reserve is untouched.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could plan any developer's AI month.
+
+1. **The rename.** A developer asks agent mode to rename `OrderService` to `OrderCoordinator` across the solution. Which tier should this have been, and what did it cost them?
+2. **The regex.** A question about a regular expression involves a sample of real customer email addresses. Which tier does it belong to, and what do you change before asking?
+3. **The argument.** Turn 3 is wrong. Using the thread cost function, explain why explaining the fix on turn 4 costs more than starting a new thread.
+4. **Two metering models.** Your company counts premium requests, not tokens. Which habits in this article still matter, and which matter less?
+5. **The reserve.** Why keep 40,000 tokens untouched until the last week, and what kind of task is it for?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

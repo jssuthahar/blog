@@ -24,7 +24,7 @@ c = []
 c.append(box("canvas", "", 0, 0, W, H, "#FFFFFF", "none"))
 
 # --- left: what the article is -------------------------------------------
-c.append(text("eyebrow", "GITHUB COPILOT  ·  SKILLS", 72, 96, 520, 24,
+c.append(text("eyebrow", "GITHUB COPILOT  ·  AGENTS.MD", 72, 96, 520, 24,
               size=17, color=BLUE, bold=True))
 c.append(text("t1", "Guardrails,", 72, 150, 600, 62, size=52, bold=True))
 c.append(text("t2", "not generated code", 72, 212, 600, 62, size=52, bold=True))

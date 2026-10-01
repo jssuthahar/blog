@@ -8,7 +8,7 @@ from drawio_kit import *   # noqa: F403
 # Banners are 1200x630 exactly, so wrap() must not add its usual padding.
 c = []
 banner(c,
-    eyebrow='GITHUB COPILOT · SKILLS',
+    eyebrow='GITHUB COPILOT  ·  AGENTS.MD',
     headline=['The description', 'is the trigger'],
     subhead=['Copilot reads that one line on every task.', 'Get it wrong and the Skill never loads.'],
     chain=[('description: one line', 'Read on every single task', 'warn'), ('Matches the task?', 'Only then is SKILL.md loaded', 'plain'), ('Clean Architecture enforced', 'Rules the agent can check itself against', 'good')],

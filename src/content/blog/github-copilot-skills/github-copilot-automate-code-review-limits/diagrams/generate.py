@@ -28,3 +28,31 @@ c.append(edge("er", ids[-1], "res"))
 c.append(text("note", "Copilot cannot automate code review 100%. It can take the whole first layer off your plate.",
               120, y + 90, 480, 22, size=11, color=MUTED, align="center"))
 write(OUT, "code-review-two-jobs-mechanical-and-judgement", "Two jobs", c)
+
+
+# ================================================================ Figure 2 ===
+# The refund pull request: every mechanical check passes, the judgment
+# question is the only one that fails it.
+c = []
+c.append(text("lh", "The mechanical layer: all green", 60, 20, 380, 28, size=15, bold=True, align="center"))
+c.append(text("lu", "feat: cancel order and refund", 60, 48, 380, 22, size=12, color=MUTED, align="center"))
+chain(c, [
+    ("flutter analyze", "0 issues"),
+    ("flutter test", "all passing, including the new use case"),
+    ("dependency rule", "lib/domain still pure Dart"),
+    ("pr-review-mechanical Skill", "0 blocking, 2 naming suggestions"),
+], cx=250, top=90, w=380, h=64, gap=32, prefix="l")
+c.append(box("lbad", "✗ Merged: refund = order.subtotal", 60, 474, 380, 48, RED_F, RED_S))
+c.append(edge("le", "l4", "lbad", ""))
+
+c.append(text("rh", "The judgment layer: one question", 520, 20, 380, 28, size=15, bold=True, align="center"))
+c.append(text("ru", "asked by a person who knows the business", 520, 48, 380, 22, size=12, color=MUTED, align="center"))
+chain(c, [
+    ("\"What did the customer pay?\"", "not what the dishes cost"),
+    ("order.total", "subtotal + fees - promo discount"),
+    ("A test for a promo order", "refund equals what was charged"),
+    ("A named reviewer approves", "someone is accountable for the rule"),
+], cx=710, top=90, w=380, h=64, gap=32, prefix="r")
+c.append(box("rok", "✓ refund = order.total, and a test that proves it", 520, 474, 380, 48, GRN_F, GRN_S))
+c.append(edge("re", "r4", "rok", ""))
+write(OUT, "copilot-code-review-refund-mechanical-vs-judgment", "Refund PR", c)

@@ -1,43 +1,98 @@
 ---
 title: 'The Complete AGENTS.md Playbook: Build AI Coding Agents That Work Like Your Best Engineer'
 seoTitle: 'The Complete AGENTS.md Playbook'
-description: 'What belongs in an AGENTS.md file — architecture, security, testing, AI rules — plus what to leave out, common mistakes and a reusable template.'
+description: 'What belongs in an AGENTS.md file (architecture, security, testing, AI rules), plus what to leave out, common mistakes and a reusable template.'
 highlight: "A good AGENTS.md isn't a longer file, it's a more specific one. The difference between an agent that writes code like a stranger and one that writes code like it's been on your team for a year comes down to about a dozen sections, each answering one narrow question instead of vaguely covering everything."
 publishedAt: 2026-05-03
+updatedAt: 2026-10-01
 category: copilot
-tags: ['GitHub Copilot', 'AGENTS.md', 'AI Coding Agents', 'Enterprise', 'Best Practices', 'Flutter']
-cover: './images/agents-md-complete-playbook.png'
-coverAlt: 'An open playbook illustration showing AGENTS.md sections on one page and a real config example on the facing page, with a checklist of coding standards, security, and testing rules alongside'
+tags: ['GitHub Copilot', 'AGENTS.md', 'AI Coding Agents', 'Enterprise', 'Security', 'Flutter']
+cover: './images/agents-md-complete-playbook-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "GitHub Copilot, AGENTS.md" above the title "The complete AGENTS.md playbook" and the line "Generate the draft. Then write what only people know.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "/init draft, committed as-is: stack and folders, nothing else", an arrow labelled "no human edit" to an amber box reading "No business rules, no security: the parts no scan can infer", and an arrow labelled "one week" to a red box reading "A phone number in the logs, and a promo priced in a widget".'
 series: 'agents-md-instructions'
 seriesOrder: 3
 featured: true
 draft: false
 faq:
   - q: 'Can GitHub Copilot generate AGENTS.md automatically?'
-    a: "Yes. Type /init in Copilot Chat and it does a good job on what it can see — dependencies, folder structure, patterns already consistent in the code. What it cannot see is your security policy, which of two competing patterns you want going forward, or a rule that lives only in someone's memory. Generate, then edit by hand."
+    a: "Yes. Type /init in Copilot Chat and it does a good job on what it can see: dependencies, folder structure, patterns already consistent in the code. What it cannot see is your security policy, which of two competing patterns you want going forward, or a rule that lives only in someone's memory. Generate, then edit by hand."
   - q: 'Should I write AGENTS.md by hand or let Copilot generate it?'
-    a: "Do both, in that order — generate first, then correct by hand. A blank file wastes the time Copilot would save you on the inferable parts. But shipping its draft as-is is risky, because it describes what your code looks like today, not what you decided it should look like. The human edit is what makes it correct."
+    a: "Do both, in that order. Generate first, then correct by hand. A blank file wastes the time Copilot would save you on the inferable parts. But shipping its draft as-is is risky, because it describes what your code looks like today, not what you decided it should look like. The human edit is what makes it correct."
   - q: 'How often should AGENTS.md be updated?'
-    a: "The same week a convention changes — not in some later cleanup sprint. A file that describes patterns the team abandoned months ago is worse than no file at all, because it actively steers new code toward decisions that are no longer correct."
+    a: "The same week a convention changes, not in some later cleanup sprint. A file that describes patterns the team abandoned months ago is worse than no file at all, because it actively steers new code toward decisions that are no longer correct."
   - q: 'Should AGENTS.md include business logic?'
-    a: "Rarely, and only as a boundary, not an explanation. 'Never charge a card before an order is confirmed' belongs in the file because it's a rule the agent must not break. The reasoning behind your pricing strategy or a roadmap doesn't — that belongs in a product doc, and putting it here makes the file harder to maintain."
+    a: "Rarely, and only as a boundary, not an explanation. 'Never charge a card before an order is confirmed' belongs in the file because it's a rule the agent must not break. The reasoning behind your pricing strategy or a roadmap doesn't. That belongs in a product doc, and putting it here makes the file harder to maintain."
+  - q: 'What sections should an AGENTS.md file have?'
+    a: 'At minimum: a project overview, architecture rules, the one approved state and data pattern, error handling, testing, and off-limits paths. Serious projects add security guidelines, business rules the agent must never break, and AI-specific instructions such as reuse before creating. Each section should answer one narrow question.'
+  - q: 'What should never go in AGENTS.md?'
+    a: 'Secrets, API keys and credentials, real customer data, long explanations of why a decision was made, business strategy, and any rule that contradicts your linter or CI. The file is committed and read by every agent, so anything in it is effectively published to every tool and every future clone.'
 ---
 
-Most AGENTS.md guides stop at "here's what the file looks like." That's the easy 20%.
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
 
-The hard part is the content inside each section — and knowing which sections earn their place at all. That's what decides whether your agent produces code your team would have written anyway, or code that technically works but gets rewritten in review.
+An AGENTS.md file is the set of rules every AI coding agent reads before it writes code in your repository. A good one is not longer than a bad one; it is more specific, and it contains the rules no tool can infer from the code. This playbook covers every section worth having, what to keep out, how far Copilot's `/init` gets you, and a template to copy.
 
-This is the long version. What actually belongs in a serious AGENTS.md, what doesn't, the mistakes that show up again and again, whether you can just let Copilot write it, and a full template at the end you can copy and cut down.
+Most AGENTS.md guides stop at "here's what the file looks like". That is the easy part. The hard part is what goes inside each section, and which sections earn their place at all. Why a team needs the file at all is covered in [the pain points AGENTS.md removes](/blog/agents-md-pain-points-workload-savings); this is the how. The fastest way to see why the inside matters is a week in which a team skipped that part.
+
+<Callout type="tip" title="A scenario, on a real app you can run">
+This week is a scenario played out on MSDevBuild Eats, the open-source Flutter food delivery app used across this blog. Its [`AGENTS.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/AGENTS.md) is real, and the audit below runs against it.
+
+- **Source code**: [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web**: [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`)
+- **Android build**: [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
+</Callout>
+
+## One week with a generated file
+
+| Day | What happened |
+| --- | --- |
+| Mon | A developer runs `/init`, reads the draft, finds nothing obviously wrong, and commits it |
+| Tue | An agent builds a partner "export today's orders" button and adds `debugPrint(order.toJson())` for debugging. Every order carries the customer's name, phone number and address |
+| Wed | An agent adds a festival promo and calculates the discount inside the checkout widget, next to the button |
+| Thu | Review catches both. The lint that forbids `print` does not catch `debugPrint`, and nothing in the file mentioned personal data or promos |
+| Fri | The tech lead runs the audit below and edits the file by hand |
+
+The draft was not wrong. Everything in it was true: the stack, the folders, the packages. It simply described what the code looks like, and nothing a person had decided. The two mistakes of the week both lived in that gap.
+
+## The audit that measured the gap
+
+A useful AGENTS.md is made of hard rules. A weak one is made of descriptions and vague advice. You can count the difference:
+
+```bash
+f=AGENTS.md
+echo "sections:     $(grep -c '^## ' $f)"
+echo "vague lines:  $(grep -ciE 'best practice|clean code|as appropriate|where possible' $f)"
+echo "hard rules:   $(grep -ciE '\bnever\b|\bmust\b|\bdo not\b|don.t' $f)"
+echo "security:     $(grep -ciE 'secret|api key|password|credential|token' $f)"
+echo "commands:     $(grep -cE '^\s*(flutter|dart|npm|dotnet) ' $f)"
+```
+
+| | The `/init` draft in this scenario | The app's committed AGENTS.md |
+| --- | --- | --- |
+| Sections | 6 | 9 |
+| Vague lines | 5 | 0 |
+| Hard rules | 2 | 11 |
+| Security mentions | 0 | 1 |
+| Runnable commands | 2 | 4 |
+
+The right-hand column is the real file, measured today. It shows what the human edit added: three sections, eleven hard rules, no vague lines. It also shows something honest: the committed file still has **one** security mention, and that line is a statement that the app needs no API keys, not a rule. The export button could be written against it today. The worked example at the end of this playbook adds the missing section.
+
+<figure>
+
+![Two step flows side by side. On the left, the /init draft committed as-is, what the code looks like today: step 1, stack and folders correct, inferred from pubspec.yaml and lib; step 2, state with two patterns listed, because it saw an old Provider import; step 3, business rules none, they live in people's heads; step 4, security none, nothing about personal data in logs. The red outcome: an agent logs a customer's phone number. On the right, the same file edited by a person, what the team decided it should be: step 1, stack and folders kept, the draft got these right; step 2, state with one pattern, BLoC or Cubit, not Riverpod, not Provider; step 3, business rules written down, totals from Cart and promos via Promo; step 4, security written down, never log names, phones or addresses. The green outcome: hard rules an agent can check itself against.](./images/agents-md-generated-draft-vs-edited-file.png)
+
+<figcaption>Figure 1 — the generated draft and the edited file. The first half of each column is the same; the half that matters is the half only people can write.</figcaption>
+
+</figure>
 
 ## What AGENTS.md is, and why you need it now
 
-{/* SCREENSHOT: the screen you were on for this section — save as ./images/what-agents-md-is-and-why-you-need-it-now.png, then replace this line with: ![What AGENTS.md is, and why you need it now](./images/what-agents-md-is-and-why-you-need-it-now.png) */}
-
-AGENTS.md is a plain-text file your AI coding agent reads automatically, before it writes anything. It describes how your project is actually built — the architecture, the conventions, the boundaries, the things a new contributor would otherwise learn the hard way.
+AGENTS.md is a plain-text file your AI coding agent reads automatically, before it writes anything. It describes how your project is actually built: the architecture, the conventions, the boundaries, the things a new contributor would otherwise learn the hard way.
 
 It's not a persona. It's not something you invoke. It's context loaded behind the scenes, every session, the same way for every developer touching the repo.
 
-Why it matters now is pretty mechanical. Agents write a real share of new code today, and every generation is a decision — which state pattern, which error style, which folder something belongs in. With no shared file, every one of those decisions gets made independently, by whichever session happens to be running. Multiply that across a team, or across your own sessions six months apart, and inconsistency stops being a risk. It's the default.
+Why it matters now is pretty mechanical. Agents write a real share of new code today, and every generation is a decision. Which state pattern, which error style, which folder something belongs in. With no shared file, every one of those decisions gets made independently, by whichever session happens to be running. Multiply that across a team, or across your own sessions six months apart, and inconsistency stops being a risk. It's the default.
 
 ## README.md vs. AGENTS.md
 
@@ -50,7 +105,7 @@ People mix these up constantly, so let's be precise.
 | Contains | Install steps, setup, deployment | Architecture, conventions, boundaries |
 | Read by | People, once, at the start | Agents, automatically, every session |
 
-An out-of-date README is an annoyance — someone loses ten minutes finding the real install command. An out-of-date AGENTS.md is worse. It silently steers every future AI-generated feature toward the wrong pattern, for as long as it stays wrong.
+An out-of-date README is an annoyance. Someone loses ten minutes finding the real install command. An out-of-date AGENTS.md is worse. It silently steers every future AI-generated feature toward the wrong pattern, for as long as it stays wrong.
 
 ## How agents actually use the file
 
@@ -64,9 +119,13 @@ It's also why editing the file mid-session fixes nothing. Start a new session so
 
 ![Layered diagram. An agent opens the repo knowing the language but nothing about this codebase, then passes down through three layers of AGENTS.md. Stack and layout gives the framework, versions, package manager and where the layers live. Conventions gives the patterns already chosen for state, errors, naming and testing. Hard rules gives constraints the agent can check itself against, including the specific thing never to do rather than generic advice, and the exact command that proves it. The result is code that reads like the rest of the repo.](./images/agents-md-anatomy-sections.png)
 
-<figcaption>Figure 1 — what each section of the file is actually for. Specificity, not length.</figcaption>
+<figcaption>Figure 2 — what each section of the file is actually for. Specificity, not length.</figcaption>
 
 </figure>
+
+If you would rather see the idea first, generating and then editing the file is a short video:
+
+<ShortHighlight slugs={['agents-md-generate-then-edit']} />
 
 ## The anatomy of a well-designed AGENTS.md
 
@@ -86,7 +145,7 @@ That one is lifted from my [food delivery app](https://github.com/jssuthahar/foo
 
 ### Architecture rules
 
-Name the architecture out loud — Clean Architecture, MVVM, Feature-First, whatever's actually in use. Say it in a way that leaves no room for a "reasonable" alternative.
+Name the architecture out loud: Clean Architecture, MVVM, Feature-First, whatever's actually in use. Say it in a way that leaves no room for a "reasonable" alternative.
 
 ```markdown
 Clean Architecture, three layers, dependencies point inward only.
@@ -117,7 +176,7 @@ The small, constant rules a linter won't give you: prefer `const` constructors, 
 
 ### Naming conventions
 
-State the case convention per context — classes, files, variables, constants. "Follow standard conventions" means something different in every language, and it gets read differently every time.
+State the case convention per context: classes, files, variables, constants. "Follow standard conventions" means something different in every language, and it gets read differently every time.
 
 ### Error handling standards
 
@@ -131,7 +190,7 @@ shared Logger service, never with print() or console.log().
 
 ### Security guidelines
 
-This is the section most AGENTS.md files skip, and it's the one that costs the most when it's missing. Say what must never happen — hardcoded secrets, credentials in client-side code, unsanitized input reaching a query. These feel obvious to you. They aren't obvious to a model that has no view into your compliance requirements.
+This is the section most AGENTS.md files skip, and it's the one that costs the most when it's missing. Say what must never happen: hardcoded secrets, credentials in client-side code, unsanitized input reaching a query. These feel obvious to you. They aren't obvious to a model that has no view into your compliance requirements.
 
 ```markdown
 Never hardcode API keys or secrets — use environment configuration.
@@ -141,7 +200,7 @@ Payment data never touches application logs, structured or otherwise.
 
 ### Performance expectations
 
-Only where it's genuinely a constraint — image loading strategy, pagination, list virtualization for long lists. Skip this if performance isn't a distinguishing concern. Padding it with generic advice only weakens the sections that matter more.
+Only where it's genuinely a constraint, such as image loading strategy, pagination, list virtualization for long lists. Skip this if performance isn't a distinguishing concern. Padding it with generic advice only weakens the sections that matter more.
 
 ### Testing requirements
 
@@ -174,11 +233,11 @@ This section does the most actual work, so it's worth its own explanation. Gener
 
 ### Approved and forbidden libraries
 
-Name what's already in use, and explicitly rule out the common alternatives an agent might otherwise reach for. "Use Riverpod" is good. "Use Riverpod, not Provider or Bloc" closes the door the first version leaves open.
+Name what's already in use, and explicitly rule out the common alternatives an agent might otherwise reach for. "Use BLoC" is good. "Use BLoC, not Riverpod or Provider" closes the door the first version leaves open.
 
 ### Business rules the AI must never violate
 
-Narrow, boundary-only. Not an explanation of your business — a hard constraint the agent respects no matter how a prompt is worded.
+Narrow, boundary-only. Not an explanation of your business. A hard constraint the agent respects no matter how a prompt is worded.
 
 ```markdown
 - Never mark an order as paid without a confirmed payment gateway response
@@ -188,7 +247,7 @@ Narrow, boundary-only. Not an explanation of your business — a hard constraint
 
 ## Things that should never go in the file
 
-Worth stating as clearly as what belongs, because the failure mode here is different. This isn't a weaker file — it's a liability.
+Worth stating as clearly as what belongs, because the failure mode here is different. This isn't a weaker file. It's a liability.
 
 | Keep out | Why |
 | --- | --- |
@@ -204,7 +263,7 @@ If you remember nothing else, remember these. They're the habits that separate a
 
 1. **Be specific enough that a violation would be obvious in review.** If a rule is vague enough that you can't tell whether code broke it, the agent can't either.
 2. **One rule per line, one idea per rule.** Long compound sentences hide the actual instruction. Short bullets get followed.
-3. **Name one approved pattern, not a menu.** "Use Riverpod for state" beats "we generally use Riverpod but Bloc is fine too." The second one is permission to be inconsistent.
+3. **Name one approved pattern, not a menu.** "Use BLoC for state" beats "we generally use BLoC but Riverpod is fine too." The second one is permission to be inconsistent.
 4. **Write rules as constraints, not preferences.** "Never throw across a repository boundary" lands harder than "try to avoid throwing across boundaries."
 5. **Keep it short on purpose.** Every line competes for attention. If a section isn't earning its place, cut it.
 6. **Only write down what you've actually decided.** Don't use the file to quietly win an architecture debate the team never had. That surfaces fast in review and it poisons trust in the rest of the file.
@@ -213,19 +272,19 @@ If you remember nothing else, remember these. They're the habits that separate a
 
 ## Common mistakes teams make writing this file
 
-**Treating specificity as optional.** "Follow best practices" and "write clean code" show up constantly and mean almost nothing — best practices differ by team, by language, and sometimes by which senior engineer you ask. Every vague line is a line the agent has to interpret, and it'll interpret it differently in different sessions.
+**Treating specificity as optional.** "Follow good practice" and "write clean code" show up constantly and mean almost nothing; what counts as good differs by team, by language, and sometimes by which senior engineer you ask. Every vague line is a line the agent has to interpret, and it'll interpret it differently in different sessions.
 
 **Writing it once and calling it done.** A file describing last year's architecture actively misdirects new code toward decisions that already got reversed.
 
-**Scope creep.** The file grows to cover onboarding, culture, meeting notes, roadmap context — because once someone's already editing it, everything nearby feels like it belongs. It doesn't. If a line isn't a coding rule or a boundary, it's probably in the wrong document.
+**Scope creep.** The file grows to cover onboarding, culture, meeting notes, roadmap context, because once someone's already editing it, everything nearby feels like it belongs. It doesn't. If a line isn't a coding rule or a boundary, it's probably in the wrong document.
 
 **Rules that sound official but were never agreed on.** It's tempting to use the file to settle an architecture debate no one actually settled. That surfaces fast in review, and it undermines the whole file once one section turns out to be somebody's personal preference dressed up as policy.
 
 ## Can Copilot generate this file for you?
 
-Yes — partly. And "partly" is the whole answer, so it's worth being precise about the line.
+Yes, partly. And "partly" is the whole answer, so it's worth being precise about the line.
 
-Type `/init` in Copilot Chat and it scans the repo and drafts a file from what it finds. It's genuinely good at the inferable parts: your dependencies, an existing consistent folder structure, a pattern that's already used uniformly across the code. (Same trick works for [Copilot's own custom instructions file](../github-copilot-custom-instructions), which is the smaller, Copilot-specific cousin of this one.)
+Type `/init` in Copilot Chat and it scans the repo and drafts a file from what it finds. It's genuinely good at the inferable parts: your dependencies, an existing consistent folder structure, a pattern that's already used uniformly across the code. (Same trick works for [Copilot's own custom instructions file](/blog/github-copilot-custom-instructions), the smaller, Copilot-specific cousin of this one.)
 
 What it can't know:
 
@@ -234,40 +293,40 @@ What it can't know:
 - Business rules that live only in someone's head or an old Slack thread
 - Which conventions are deliberate versus just what happened to get typed first
 
-So the honest answer to "should I generate it or write it by hand?" is **both** — generate first, then correct by hand. A blank file wastes the time Copilot would save you on the boring parts. But shipping Copilot's draft untouched is risky, because it describes what your code looks like today, not what you've decided it should look like. The draft is a first pass. The human edit is what makes it correct.
+So the honest answer to "should I generate it or write it by hand?" is **both**: generate first, then correct by hand. A blank file wastes the time Copilot would save you on the boring parts. But shipping Copilot's draft untouched is risky, because it describes what your code looks like today, not what you've decided it should look like. The draft is a first pass. The human edit is what makes it correct.
 
 ### If you let Copilot generate it: the checklist
 
 Run through every one of these before you commit the generated file. This is where the "human edit" actually happens:
 
 - [ ] **Read every line.** Don't trust it because it's plausible. Plausible is exactly the failure mode.
-- [ ] **Check which pattern it picked.** If your code has both Provider and Riverpod, Copilot may have documented whichever it saw first — not the one you're standardizing on. Fix it.
+- [ ] **Check which pattern it picked.** If your code has both BLoC and a leftover Provider import, Copilot may document both, or whichever it saw first. Name the one you're standardizing on.
 - [ ] **Add the security section.** Copilot almost never infers this. Write your real constraints: secrets handling, input validation, what must never be logged.
 - [ ] **Add business rules by hand.** These live nowhere in the code, so Copilot cannot invent them. If you don't add them, they don't exist.
 - [ ] **Delete the filler.** Generated drafts pad with generic "write clean code" advice. Cut anything that isn't specific enough to catch a violation in review.
 - [ ] **Confirm no secrets or real data got scooped up.** If the scan pulled an example key or a real endpoint into the draft, remove it now, before it's in git history forever.
 - [ ] **Resolve conflicts with your linter and CI.** Anything the draft says that fights your existing config becomes a standing argument the agent can't win. Reconcile them.
 - [ ] **Name owners and off-limits folders.** Add who owns the file and which folders (generated code, migrations) the agent must never touch.
-- [ ] **Test it on a fresh session.** Ask a clean agent to describe the stack and conventions back. If it's wrong, the file is wrong — fix it before you rely on it.
+- [ ] **Test it on a fresh session.** Ask a clean agent to describe the stack and conventions back. If it's wrong, the file is wrong. Fix it before you rely on it.
 
 Do that, and you've kept the time Copilot saved you without inheriting the risk of trusting a draft blind.
 
 ## Keeping it in sync with the actual project
 
-The practical version: treat AGENTS.md edits like code changes, not documentation edits. Same PR, same review. Ideally a lightweight rule — any PR that changes a core pattern (swapping a library, moving folders) updates the file in the *same* PR, not later. "Later" is where these files go stale.
+The practical version: treat AGENTS.md edits like code changes, not documentation edits. Same PR, same review. Ideally a lightweight rule: any PR that changes a core pattern (swapping a library, moving folders) updates the file in the *same* PR, not later. "Later" is where these files go stale.
 
 ## Enterprise governance for AI coding agents
 
 At team scale, a few extra habits matter beyond writing the file well:
 
-- **Ownership.** Someone specific owns the root file — usually whoever owns architecture decisions. Nested, squad-specific files can be owned by that squad, with the root file as the shared baseline.
+- **Ownership.** Someone specific owns the root file, usually whoever owns architecture decisions. Nested, squad-specific files can be owned by that squad, with the root file as the shared baseline.
 - **Review, not unilateral edits.** Changes go through the same review as code, precisely because a quiet edit here changes behavior for every developer's agent sessions at once, not just the editor's.
 - **Version history.** It's just a file in the repo, so `git blame` already gives you an audit trail. Use it. When a rule changes, the commit message should say why.
 - **Pair it with human onboarding.** AGENTS.md complements onboarding, it doesn't replace it. It answers "how do I write code that fits," not "why do we do things this way." Pair it with whatever your team already does for the second question.
 
 ## A complete AGENTS.md template
 
-Everything above, assembled into one file. Delete whatever doesn't apply — most projects won't need all of it.
+Everything above, assembled into one file. Delete whatever doesn't apply; most projects won't need all of it.
 
 ```markdown
 # AGENTS.md
@@ -337,7 +396,7 @@ Do not use: [explicitly ruled-out alternatives]
 
 ## A worked example: Flutter food delivery
 
-To make this concrete, here's a chunk of the `AGENTS.md` from my [food delivery app](https://github.com/jssuthahar/food-delivery-app). Not an illustration — this is the committed file, and you can open the code behind every rule in it:
+To make this concrete, here's a chunk of the `AGENTS.md` from my [food delivery app](https://github.com/jssuthahar/food-delivery-app). Not an illustration: this is the committed file, and you can open the code behind every rule in it:
 
 ```markdown
 ## Architecture
@@ -365,7 +424,23 @@ translate to a Failure through mapErrorToFailure, in exactly one place.
   Never silently replace the basket.
 ```
 
-Notice how specific these are. None of them say "write secure code." Every line is something an agent can actually check itself against — and several of them, like the `get_it` rule, are things no agent could ever infer by reading the code.
+The audit found the gap this file still has. Here is the security section it should gain, written the same way:
+
+```markdown
+## Security (hard constraints)
+- Never log an Order, User or Address object, or any field from them:
+  names, phone numbers, delivery addresses. Log ids only.
+- debugPrint counts as logging. So does an exception message built
+  from those fields.
+- Never commit a real Firebase project config, API key or test password.
+  lib/firebase_options.dart is generated and stays out of review diffs.
+- Demo accounts use @msdevbuild.com addresses only. Never seed a real
+  customer's details, even in local data.
+```
+
+Tuesday's export button breaks the first two lines of that section, which is exactly why they need to exist.
+
+Notice how specific these are. None of them say "write secure code." Every line is something an agent can actually check itself against, and several of them, like the `get_it` rule, are things no agent could ever infer by reading the code.
 
 That last one is worth pausing on. `get_it` is in the dependency list and blocs are in every feature folder, so the obvious conclusion is to register the blocs too. It's wrong, and an agent finds that out only if you write it down. If you want to see whether the rules held, the app is running as a [live web build](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`) and an [Android build](https://appdistribution.firebase.dev/i/00432c5aa60de58b) from the same codebase.
 
@@ -373,7 +448,7 @@ That last one is worth pausing on. `get_it` is in the dependency list and blocs 
 
 | Do | Don't |
 | --- | --- |
-| Write rules as explicit constraints an agent can check itself against | Write vague guidance like "follow best practices" |
+| Write rules as explicit constraints an agent can check itself against | Write vague guidance like "write clean code" |
 | Name exactly one approved pattern for state and data | Offer a menu of "any of these is fine" options |
 | Keep every section short — cut anything not earning its place | Let the file swell to onboarding, culture, and roadmap notes |
 | Update the file in the same PR that changes the pattern it describes | Let it drift for a "cleanup sprint" that never comes |
@@ -390,15 +465,59 @@ That last one is worth pausing on. `get_it` is in the dependency list and blocs 
 - [ ] No secrets, credentials, or real customer data anywhere in the file
 - [ ] Off-limits folders (generated code, migrations) are listed explicitly
 - [ ] Someone specific owns updates, and changes go through review
-- [ ] You tested it — a fresh agent session asked to describe the stack back gets it right
+- [ ] You tested it: a fresh agent session asked to describe the stack back gets it right
+
+## How efficient is a good AGENTS.md?
+
+The file costs a fixed amount on every agent request. Every hard rule in it removes one class of mistake from every future request. That trade is what makes specificity cheap and vagueness expensive.
+
+| | The `/init` draft | The edited file |
+| --- | --- | --- |
+| Size | about 60 lines | 108 lines, 4,548 characters |
+| Cost per agent request | roughly 600 tokens | roughly 1,100 tokens |
+| Hard rules an agent can check | 2 | 11, plus 4 security rules once added |
+| Mistakes of the scenario week it would have stopped | 0 of 2 | 2 of 2 |
+
+About 500 extra tokens per request bought eleven rules. A vague line costs the same tokens as a hard rule and stops nothing, which is why the audit counts them separately.
+
+The rule underneath: **pay tokens for rules, never for descriptions**. A line the agent could have inferred from the code is a line you pay for on every request and get nothing back.
+
+## Questions a tech lead will ask about this
+
+1. **"Can't we just ship the `/init` output?"** Ship it as a first commit, then edit it the same week. It gets the stack right and the decisions wrong.
+2. **"Why a security section? We have a linter."** The linter catches `print`, not `debugPrint` of an order. The file is where "never log personal data" lives in words an agent reads before it writes.
+3. **"How long should it be?"** As long as the hard rules need and no longer. The audit's "vague lines" count should be zero.
+4. **"Who owns it?"** Whoever owns the architecture. Changes go through review, because one edit changes every agent session on the team.
+5. **"How do we know it works?"** Run the audit, then open a fresh agent session and ask it to list the rules back. Both should match what you intended.
 
 ## Key takeaways
 
-{/* SCREENSHOT: the screen you were on for this section — save as ./images/key-takeaways.png, then replace this line with: ![Key takeaways](./images/key-takeaways.png) */}
+- The difference between a useless AGENTS.md and an effective one is specificity, not length.
+- `/init` writes the half that describes the code. The half that decides, business rules and security, only a person can write.
+- Security, business-rule boundaries and AI-specific instructions are the sections most files skip and most projects need.
+- Never put secrets, real customer data or long reasoning in the file. Keep it to rules and boundaries.
+- Audit the file: count sections, vague lines, hard rules and security rules, and update it in the same pull request that changes a pattern.
 
-- The difference between a useless AGENTS.md and a genuinely effective one is specificity, not length — a dozen sharp rules beat a hundred vague ones.
-- Security, business-rule boundaries, and AI-specific instructions are the sections most guides skip and most projects actually need.
-- Never put secrets, real customer data, or long strategic reasoning in the file. Keep it to rules and boundaries.
-- Copilot's `/init` drafts the inferable parts well, but only a human can pick which existing pattern is right and write down the business rules that live nowhere else — so generate first, then edit by hand against the checklist.
-- Treat it as living, reviewed code — update it in the same PR that changes the pattern it describes, not later.
-- Once the file is right, the next layer up is [Copilot Skills](../github-copilot-skills-deep-dive) — task-specific knowledge that loads only when the work matches, instead of on every request.
+## The Friday edit
+
+On Friday the tech lead spends forty minutes on the file. The Provider line goes. The business rules go in, word for word from what the team already knew. The security section goes in, the one shown in the worked example above.
+
+The following Tuesday, an agent builds the rider's "today's deliveries" export. It logs the order ids and nothing else. The Wednesday promo change goes through `Promo.discountFor`. The audit reads nine sections, zero vague lines, fifteen hard rules, four security rules.
+
+Neither mistake from the week before appears in review. Nobody had to remember to catch them.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this playbook prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could write this file for any team.
+
+1. **The honest draft.** `/init` produces a file with every fact correct and no mistakes. Using the audit, explain how a file with no wrong lines can still let Tuesday's export button through.
+2. **The linter overlap.** Your AGENTS.md says "never use print" and your lint config already enforces `avoid_print`. Is the line wasted? Which section of "things that should never go in the file" is closest to it, and what would you write instead?
+3. **The two state libraries.** The codebase has BLoC in 14 features and Riverpod in one. A generated draft lists both. What do you change, where, and what else must happen outside the file?
+4. **Token budget.** A teammate wants to paste the product roadmap into AGENTS.md "for context". Using the efficiency section, what does it cost and what does it buy?
+5. **The customer's phone.** Write the one rule that would have stopped the export button, then name a second place, outside AGENTS.md, that should enforce it.
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

@@ -1,45 +1,69 @@
 ---
 title: 'AGENTS.md in 2026: The Pain Points It Removes and the Workload It Saves'
 seoTitle: 'AGENTS.md: The One File You Need'
-description: 'AI agents write more code each month than teams can review by hand. AGENTS.md is the one file that keeps it consistent — solo, team or enterprise.'
-highlight: 'This problem is not about your framework, your team size, or your tool. It shows up any time an AI agent writes code without shared context. A solo dev sees it as messy inconsistency in their own project. A team sees it as three "correct" versions of the same feature.'
+description: 'AI agents write more code each month than teams can review by hand. AGENTS.md is the one file that keeps it consistent: solo, team or enterprise.'
+highlight: 'AGENTS.md is one file at the root of your repository that every AI coding agent reads before it writes code. Without it, each session and each tool makes its own reasonable choice, and one feature ends up built three ways. With it, Copilot, Cursor, Codex and Claude Code all start from the same architecture, and a rule change is one edit.'
 faq:
   - q: 'What is the difference between AGENTS.md and copilot-instructions.md?'
-    a: 'Scope and audience. copilot-instructions.md is read by GitHub Copilot only and lives at one fixed path in the repo root. AGENTS.md is an open, vendor-neutral standard read natively by Codex, Cursor, Copilot, Windsurf, Aider and others, and supports nested files per monorepo package. You can run both with no conflict.'
+    a: 'Scope and audience. copilot-instructions.md is read by GitHub Copilot and lives at one fixed path. AGENTS.md is an open, vendor-neutral file read by Codex, Cursor, Copilot, Windsurf, Aider and others, and supports nested files per folder or monorepo package. You can keep both with no conflict.'
   - q: 'Does Claude Code read AGENTS.md?'
-    a: 'Not natively — Claude Code uses its own CLAUDE.md file. The documented workaround is to symlink the two with "ln -s AGENTS.md CLAUDE.md", or put the line @AGENTS.md inside CLAUDE.md so it imports the shared rules. Native support has been requested but not shipped, so check the current docs.'
+    a: 'When this was written it did not read it natively; Claude Code uses its own CLAUDE.md. The documented workaround is a symlink, ln -s AGENTS.md CLAUDE.md, or the line @AGENTS.md inside CLAUDE.md so it imports the shared rules. Support may have changed since, so check the current Claude Code docs.'
   - q: 'Which AI coding tools read AGENTS.md natively?'
-    a: 'OpenAI Codex, Cursor, GitHub Copilot, Windsurf, Aider, Cline, Continue, Goose and Zed all pick it up with no per-tool configuration, because they agreed on the same filename and location. Claude Code is the notable exception and needs a symlink or an import line.'
+    a: 'OpenAI Codex, Cursor, GitHub Copilot, Windsurf, Aider, Cline, Continue, Goose and Zed pick it up with no per-tool configuration, because they agreed on the same filename and location. Claude Code is the notable exception and needs a symlink or an import line.'
+  - q: 'Where do I put AGENTS.md in a monorepo?'
+    a: 'Put one at the repository root for rules every package shares, and add another AGENTS.md inside any package with its own stack or conventions. Agents use the file closest to the code being edited, so the nested file adds to or overrides the root one for that folder only.'
+  - q: 'Do I still need copilot-instructions.md if I have AGENTS.md?'
+    a: 'Not if everyone reads AGENTS.md. Copilot reads it too, so a single AGENTS.md is enough for a mixed-tool team. Keep copilot-instructions.md only for Copilot-specific guidance, such as how Copilot should write pull request summaries, and avoid repeating the shared rules in both files.'
   - q: 'How much time does AGENTS.md actually save?'
-    a: 'There is no controlled study, so treat any exact figure as a guess. An honest range is 20-40% less time lost to inconsistency-driven rework and review friction. The lower end fits smaller projects that adopt it early; the higher end fits larger ones that let drift run for months.'
+    a: 'There is no controlled study, so treat any exact figure as a guess. The savings show up first in code review, as fewer "why is this different?" comments, then in rework and onboarding. Measure it on your own repo by counting competing patterns and convention comments before and after.'
 publishedAt: 2026-05-02
-updatedAt: 2026-07-26
+updatedAt: 2026-09-30
 category: copilot
 tags: ['GitHub Copilot', 'AGENTS.md', 'Agent Mode', 'AI Coding Agents', 'Team Workflow']
-cover: './images/agents-md-food-delivery-enterprise.png'
-coverAlt: 'Diagram showing three competing state management approaches from different developers converging into one shared AGENTS.md standard'
+cover: './images/agents-md-pain-points-workload-savings-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "GitHub Copilot, AGENTS.md" above the title "Three agents, three conventions" and the line "One feature, built three ways in one sprint.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Copilot, Cursor, Claude Code: each with its own rules file, or none", an arrow labelled "no shared file" to an amber box reading "Favourites built three ways: BLoC, Riverpod and setState", and an arrow labelled "one sprint" to a red box reading "Nine review comments: why is this different?".'
 series: 'agents-md-instructions'
-# github-copilot-custom-instructions.mdx
 seriesOrder: 2
 featured: true
 draft: false
 ---
 
-AI coding agents now write a big share of the code we ship. GitHub, Anthropic, and OpenAI have all shared numbers that point the same way.
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
 
-But there's a part nobody talks about enough. What happens when more than one person writes code with an agent? Or even one person, working across many sessions, with nothing tying those sessions together?
+AGENTS.md is one file at the root of your repository that every AI coding agent reads before it writes code. It exists because an agent will not stay consistent with itself, or with the agent on the next developer's laptop, unless something tells it how. This is what that inconsistency looks like on a real app, and what the file saves.
 
-Here's the short answer: **an agent will not stay consistent with itself unless you tell it how.** This is true whether you're a team of ten or one person working across a few weekends. AGENTS.md is the fix. It works just as well on a small hobby project as it does on a codebase with hundreds of contributors.
+Picture the MSDevBuild Eats team starting a sprint. One developer uses GitHub Copilot, one has switched to Cursor, one is trying Claude Code. Each is asked for a piece of the same new feature: let customers save favourite restaurants.
 
-## The same problem, at every scale
+By Friday the feature works. It is also written three different ways.
 
-**Solo developer.** In January, you ask your agent to build a login screen. It picks one way to manage state, one folder structure, one style of error handling. In April, you work on a new feature in the *same* project and ask again — and you get a different answer. The agent didn't get worse. Nothing carried your January decision forward. Now you're digging through your own project, trying to figure out which pattern is the "real" one.
+<Callout type="tip" title="A scenario, on a real app you can run">
+This sprint is a scenario played out on MSDevBuild Eats, the open-source Flutter food delivery app used across this blog. The repository ships a real [`AGENTS.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/AGENTS.md), and the commands below run against it.
 
-**Small team (3 to 10 developers).** Here the problem shows up fast. One person's agent reaches for Redux. Another's reaches for Context. A third pulls in a state library nobody else has used. Three reasonable choices for the same problem. Duplicate API clients start showing up, because no agent can see what already exists two folders away. In code review, none of it looks like a bug. It looks like three people who never talked to each other — which, in a way, is exactly what happened.
+- **Source code**: [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web**: [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/)
+- **Android build**: [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
+</Callout>
 
-**Enterprise (dozens to hundreds of developers).** Same as the small-team case, but it keeps growing instead of staying small. Different squads may not even know they picked different conventions — until a shared feature forces two patterns to meet. Onboarding gets harder, not easier. A new hire isn't learning one set of rules. They're trying to guess which of several competing ones is actually the current one.
+## One sprint, three tools, three "correct" versions
 
-The root cause is the same at every size: an AI agent makes a reasonable local decision with **zero view of what already happened elsewhere** — whether "elsewhere" is another developer's session, or your own, three months ago.
+| Day | What happened |
+| --- | --- |
+| Mon | The Copilot developer adds a `FavouritesCubit`, matching the BLoC used everywhere else |
+| Tue | The Cursor developer builds the favourites list screen. Cursor reaches for Riverpod and adds it to `pubspec.yaml` |
+| Wed | The Claude Code developer adds the heart button on the restaurant card with a `StatefulWidget` and `setState` |
+| Thu | Each part talks to favourites through its own helper. There are now two ways to load the same list |
+| Fri | The pull request: **nine review comments** that all ask a version of "why is this different from everywhere else?" |
+
+Nobody did anything wrong. Each agent made a reasonable local choice with zero view of what the others had done. Each tool also had its own idea of the rules: Copilot read `.github/copilot-instructions.md`, Cursor had no rules file, and Claude Code had none either.
+
+That is the whole problem, and it does not depend on team size.
+
+**Solo developer.** In January you ask an agent for a login screen. It picks one way to manage state, one folder structure, one style of error handling. In April you ask again in the same project and get a different answer. Nothing carried January's decision forward.
+
+**Small team.** Three developers, three reasonable choices for the same problem, and duplicate helpers because no agent can see what already exists two folders away.
+
+**Enterprise.** The same thing, at a size where squads do not know they chose differently until a shared feature makes two patterns meet.
 
 <figure>
 
@@ -49,37 +73,76 @@ The root cause is the same at every size: an AI agent makes a reasonable local d
 
 </figure>
 
+## The commands that showed the drift
+
+On Friday the tech lead stops reading the pull request line by line and asks the repository a different question: how many ways do we manage state now?
+
+```bash
+# Features using the house pattern: BLoC or Cubit
+grep -rlE 'extends (Bloc|Cubit)<' lib/features | cut -d/ -f3 | sort -u | wc -l
+
+# Anything using Riverpod, which the app does not use
+grep -rlE 'riverpod|ConsumerWidget|StateNotifier' lib pubspec.yaml
+
+# Screens holding state with setState
+grep -rl 'setState(' lib/features
+```
+
+On the favourites branch the answers come back as three lines where there should be one:
+
+| Pattern | Where |
+| --- | --- |
+| BLoC / Cubit | every feature, including `favourites/bloc/favourites_cubit.dart` |
+| Riverpod | `pubspec.yaml` and `favourites/presentation/favourites_screen.dart` |
+| `setState` | `restaurant/presentation/widgets/favourite_heart.dart` |
+
+Run the same three commands on `main` and the Riverpod one returns nothing. The `setState` one does return files, and every hit is local form state: a checkbox, a selected emoji, a carousel page, a quantity stepper. That is fine. What is not fine is `setState` holding a feature's data, which is what the favourites heart did. It is also a sign the rule needs one more word: "not `setState` *for business state*". The drift arrived in one sprint, from three tools that each followed their own defaults.
+
+## The real problem: every agent starts from zero
+
+An AI agent does not remember yesterday's session, and it cannot see another developer's. Every session starts from the training data and whatever files are open. If the repository does not say "we use BLoC", the agent picks whichever state library fits the prompt best, and three prompts can easily give three answers.
+
+Per-tool rules files help only the people using that tool. The Copilot developer was consistent with the app because `copilot-instructions.md` said so. Cursor and Claude Code never read that file.
+
 ## What AGENTS.md actually fixes
 
-It's one file. The agent reads it automatically before it writes anything. It tells the agent the architecture, the one approved way to handle state and data, where things belong, and what already exists so it doesn't rebuild it.
+It is one Markdown file at the root of the repository. Agents read it automatically before they write anything. It tells them the architecture, the one approved way to handle state and data, where things belong, and what already exists so they do not rebuild it.
 
-It doesn't matter if you write Dart, TypeScript, C#, or Python. It doesn't matter if you're a team of one or two hundred. The fix is the same because the problem is the same.
+It does not matter whether you write Dart, TypeScript, C# or Python, or whether you are a team of one or two hundred. The fix is the same because the problem is the same.
 
-Think of it like this. There's a big difference between handing someone repo access and saying "go," and actually walking them through how the project is built. An AI agent needs that walkthrough *every session*, because it doesn't remember yesterday's conversation on its own. AGENTS.md is that walkthrough — written once, read automatically every time after.
+There is a difference between handing someone repository access and saying "go", and walking them through how the project is built. An agent needs that walkthrough every session. AGENTS.md is that walkthrough, written once and read automatically every time after.
+
+If you would rather see it first, the idea is a short video:
+
+<ShortHighlight slugs={['agents-md-one-file-every-agent']} />
 
 ## How is this different from copilot-instructions.md?
 
-If you read the earlier post on custom instructions, you already know `.github/copilot-instructions.md`. So it's fair to ask why we need a second file that seems to do the same job.
-
-Short answer: they overlap in purpose, but differ in scope and in who reads them.
+They overlap in purpose and differ in scope and in who reads them. [Copilot custom instructions](/blog/github-copilot-custom-instructions) are the Copilot-only version of the same idea.
 
 | | `.github/copilot-instructions.md` | `AGENTS.md` |
 | --- | --- | --- |
-| Who reads it | GitHub Copilot only | Codex, Cursor, Copilot, Windsurf, Aider, and more — natively |
-| Where it lives | Fixed path, repo root only | Root, plus optional nested files per subfolder/monorepo package |
-| Origin | GitHub/Copilot-specific convention | Open, vendor-neutral standard |
-| Claude Code | Not applicable — Copilot-only anyway | Needs a symlink or `@AGENTS.md` import; doesn't read it natively either |
-| Best fit | Copilot-only, no plans to mix tools | Using, or might use, more than one AI coding tool |
+| Who reads it | GitHub Copilot | Codex, Cursor, Copilot, Windsurf, Aider and more, natively |
+| Where it lives | One fixed path | The root, plus optional nested files per folder or package |
+| Origin | A GitHub convention | An open, vendor-neutral standard |
+| Claude Code | Not applicable | Through a symlink or an `@AGENTS.md` import |
+| Best fit | A Copilot-only team | Anyone using, or likely to use, more than one tool |
 
-If everyone on your team uses Copilot and plans to stay there, `copilot-instructions.md` is simpler and does the job.
+If everyone uses Copilot and plans to stay there, `copilot-instructions.md` is simpler. The moment a second tool shows up, AGENTS.md stops being the extra file and becomes the one that saves you from maintaining three near-identical instruction files that drift apart.
 
-But the moment a second tool shows up — someone tries Cursor, someone tests Claude Code — AGENTS.md stops being the "extra" file. It becomes the file that saves you from maintaining two or three near-identical instruction files that slowly drift apart.
+You can run both. Copilot reads AGENTS.md as well as its own file, so the cleanest setup is shared rules in AGENTS.md and only Copilot-specific guidance, like how to write pull request summaries, in `copilot-instructions.md`.
 
-You can run both at the same time with no conflict. Copilot reads its own file. Other tools read the standard one. The only real cost is remembering to update both when a shared rule changes.
+<figure>
+
+![Architecture diagram. An amber box, AGENTS.md at the repository root, holding the stack, architecture, state, errors, tests and off-limits rules. An arrow labelled "adds folder rules" goes to a grey box, packages/api/AGENTS.md, a nested file where the closest file wins. Arrows from the root file go to four tools: GitHub Copilot, Cursor and OpenAI Codex, which read it natively, and Claude Code, drawn dashed, which reads it through CLAUDE.md with a symlink or @AGENTS.md. All four arrows converge on a green box: one set of rules, whichever tool a developer opens, and a rule change is one edit, not three.](./images/agents-md-one-file-every-ai-coding-agent.png)
+
+<figcaption>Figure 2 — one file, every agent. Claude Code reaches it through a redirect; a nested file adds rules for one folder.</figcaption>
+
+</figure>
 
 ## A generic example, not tied to any framework
 
-Here's roughly what a small one looks like, stripped down to the shape that works for any stack or team size:
+Here is the shape that works for any stack or team size:
 
 ```markdown
 # AGENTS.md
@@ -113,63 +176,126 @@ unit test per new function in /src/api or /src/store.
 - Don't add new npm dependencies without flagging it in the PR description
 ```
 
-Swap the details and the same shape works for a Django backend, a Spring Boot service, a Flutter app, an Angular frontend — anything, solo or shared. The sections stay the same: stack, architecture, the one approved pattern for state and data, error handling, testing, and what's off-limits.
+Swap the details and the same shape works for a Django backend, a Spring Boot service, a Flutter app or an Angular frontend. The sections stay: stack, architecture, the one approved pattern for state and data, error handling, testing, and what is off-limits.
 
-If you want to see the Flutter version of exactly this file, the [`AGENTS.md` in my food delivery app](https://github.com/jssuthahar/food-delivery-app/blob/main/AGENTS.md) is committed and readable — same six sections, filled in for a Clean Architecture Flutter app with BLoC. The [app itself runs in the browser](https://jssuthahar.github.io/food-delivery-app/) if you want to see what the rules produced before you read them.
+For the Flutter version, open the [`AGENTS.md` in the food delivery app](https://github.com/jssuthahar/food-delivery-app/blob/main/AGENTS.md). It has nine sections, the same ones as above plus setup commands, hard business rules and conventions, filled in for a Clean Architecture Flutter app with BLoC. Its state management section is the line that would have stopped the favourites sprint: "BLoC / Cubit … Not Riverpod, not Provider, not `setState`."
 
 ## Creating the file, step by step
 
-The simplest version costs nothing. Create a file named `AGENTS.md` at the root of your repo. Plain text. No special tools. That's the whole setup. Any tool that reads it will pick it up from that spot automatically.
+The simplest version costs nothing. Create a file named `AGENTS.md` at the root of your repository. Plain Markdown, no tools, no config. Every agent that reads it picks it up from there.
 
-If you use VS Code with Copilot, there's a faster way. Open Copilot Chat and type `/init`.
+In VS Code with Copilot there is a faster way: open Copilot Chat and type `/init`.
 
-![Chat Configure Instructions](./images/CopilotInit.png)
+![Copilot Chat in VS Code after running /init, drafting an instructions file from the workspace](./images/CopilotInit.png)
 
-It scans the repo and writes a first draft based on what it finds — dependencies, folder structure, whatever config already exists. Treat the output as a draft, not a finished file. It's good at spotting patterns that are already consistent in your code. But it can't tell you which pattern to pick if your codebase already has two or three competing ones. That call is still yours — on a solo project as much as a team one.
+It scans the repository and drafts a first version from what it finds: dependencies, folder structure, existing config. Treat it as a draft. It is good at spotting patterns that are already consistent, but it cannot tell you which one to keep if the codebase already has two or three competing ones. That call is still yours.
 
-For a monorepo, or a project with very different sub-projects, add more `AGENTS.md` files inside subfolders. The file closest to the code being edited wins over the root one. Keep shared rules in the root file, and put sub-project details in the nested ones.
+For a monorepo, or sub-projects with different stacks, add more `AGENTS.md` files inside subfolders. The file closest to the code being edited wins. Keep shared rules at the root and sub-project details in the nested files.
 
+## Claude Code and AGENTS.md
 
-## Whether this is only for GitHub Copilot
+AGENTS.md is an open standard, and a long list of tools read it natively: OpenAI Codex, Cursor, GitHub Copilot, Windsurf, Aider, Cline, Continue, Goose, Zed and more. No per-tool setup.
 
-No. And that's the whole reason AGENTS.md exists as its own thing, separate from `copilot-instructions.md`.
-
-It's an open, vendor-neutral standard. A long list of tools read it natively: OpenAI Codex, Cursor, GitHub Copilot, Windsurf, Aider, Cline, Continue, Goose, Zed, and more. No per-tool setup. No config. The file just gets picked up, because everyone agreed on the same filename and location.
-
-There's one important exception, and it's easy to get wrong: **Claude Code does not read AGENTS.md natively.** It uses its own file, `CLAUDE.md`. As of the latest Claude Code release at the time of writing, Anthropic hasn't added native AGENTS.md support. There's a long-running GitHub issue with thousands of upvotes asking for it, with no promised date.
-
-The workaround, documented by Anthropic themselves, is one of these two:
+The exception is easy to get wrong: when this was written, **Claude Code did not read AGENTS.md natively**. It reads its own file, `CLAUDE.md`. The documented workaround is one of these:
 
 ```bash
-# Option 1: symlink, Claude Code reads AGENTS.md through CLAUDE.md
+# Option 1: a symlink, so Claude Code reads AGENTS.md through CLAUDE.md
 ln -s AGENTS.md CLAUDE.md
 ```
 
 ```markdown
-# Option 2: import syntax inside CLAUDE.md
+# Option 2: an import line inside CLAUDE.md
 @AGENTS.md
 ```
 
-Either way, you keep one main file, and Claude Code reads the same rules through the redirect. This area moves fast, so check the current docs before you commit to either workaround — native support could land at any time.
+Either way you keep one source of rules. This area moves fast, so check the current Claude Code docs before you pick one; native support may have arrived since.
 
-## So how much workload does this actually save?
+## When AGENTS.md is not the fix
 
-There's no controlled study behind this. Anyone who gives you a confident savings number is guessing, same as everyone else. What's more useful is knowing *where* the savings show up:
+Use AGENTS.md for any rule an agent would otherwise guess. Do not expect it to do three things.
 
-- **Code review time drops the most.** When every session writes code against the same architecture, reviewers stop asking "why is this different from everywhere else" and start reviewing the actual logic. That architectural-mismatch comment is usually the first thing to shrink.
+- **Clean up drift that already exists.** It stops *new* drift. Three state libraries already in the codebase stay there until someone removes two of them. Budget that as its own task; the discovery approach in [understanding a legacy codebase with Copilot](/blog/github-copilot-understand-legacy-codebase-discovery) is a good way to find every variant first.
+- **Enforce a rule.** It guides; it does not block. If Riverpod must never be merged, add a check in CI that fails when `riverpod` appears in `pubspec.yaml`.
+- **Hold secrets or environment details.** Every agent reads it, and it is committed. Keys, connection strings and internal URLs never belong in it.
 
-- **Rework drops next.** Fewer features get built on the wrong pattern in the first place, so fewer need a partial rebuild later. This one is harder to measure, because it depends on how much drift already existed. A project six months into inconsistency has far more to clean up than one that catches it early.
+<Callout type="mistake" title="One rules file per tool">
+The instinct on a mixed team is to give every tool its own file: `copilot-instructions.md`, `.cursorrules`, `CLAUDE.md`. It works for a month. Then someone updates one of them, the other two drift, and the agents disagree again, now with three files to blame. Keep one source, AGENTS.md, and point the other tools at it.
+</Callout>
 
-- **Ramp-up time drops, but it takes longer to notice.** New hire or not — even you, coming back to an old side project — reading one file beats reverse-engineering several competing patterns. Real effect, slow to measure, because there's no clean baseline to compare against.
+## How much workload does it actually save?
 
-If you want an honest range instead of a fake exact number: **expect 20–40% less time lost to inconsistency-driven rework and review friction.** The lower end is for smaller projects that catch this early. The higher end is for larger ones that let drift run for months. Treat it as an estimate from watching patterns, not a benchmark you can cite.
+There is no controlled study, and anyone quoting a confident percentage is guessing. What you can do is measure it on your own repository, the way the favourites sprint was measured. The file costs almost nothing to run and saves the same kinds of work every sprint.
+
+What the file costs:
+
+| | Size |
+| --- | --- |
+| The food delivery app's AGENTS.md | 108 lines, 4,548 characters |
+| Added to each agent request | roughly 1,100 tokens |
+| Time to write a first version | an hour, with `/init` for the draft |
+
+What changed for the favourites feature, rebuilt the following sprint with AGENTS.md in place and every tool pointed at it:
+
+| | Without AGENTS.md | With AGENTS.md |
+| --- | --- | --- |
+| State patterns in the feature | 3 | 1 |
+| New dependencies nobody agreed | 1 (Riverpod) | 0 |
+| Ways to load favourites | 2 | 1 |
+| Review comments about conventions | 9 | 1 |
+| Rules files to keep in sync | 3 (or none) | 1, plus a symlink |
+
+Where the savings show up, in the order you will notice them:
+
+- **Code review time drops first.** Reviewers stop asking "why is this different?" and review the logic.
+- **Rework drops next.** Fewer features get built on the wrong pattern, so fewer need a partial rebuild.
+- **Ramp-up drops, slowly.** A new developer, or you returning to an old side project, reads one file instead of reverse-engineering competing patterns.
+
+The rule underneath: **the cost is one file read per request; the saving grows with the number of tools and people writing code**. One developer on one tool saves a little. Three developers on three tools save a sprint's worth of "why is this different?".
+
+## Questions a tech lead will ask about this
+
+1. **"We already have copilot-instructions.md. Why another file?"** Because only Copilot reads it. The first time someone opens Cursor or Claude Code, the rules stop applying.
+2. **"Won't AGENTS.md and copilot-instructions.md contradict each other?"** Only if the shared rules live in both. Put them in AGENTS.md and keep the Copilot file for Copilot-only guidance.
+3. **"Does it fix the Riverpod screen we already merged?"** No. It stops the next one. Removing the existing one is a separate task.
+4. **"How do we stop someone ignoring it?"** You cannot, with a Markdown file. A CI check on `pubspec.yaml` and a lint on imports turn the important rules from advice into a failed build.
+5. **"Who updates it?"** Whoever changes a convention, in the same pull request that changes the code.
+
+## What to do on day one of a mixed-tool team
+
+- Create `AGENTS.md` at the root, and draft it with `/init` if you use Copilot.
+- Move the shared rules out of any tool-specific file into AGENTS.md.
+- Symlink `CLAUDE.md` to it, or add `@AGENTS.md` to `CLAUDE.md`.
+- Add a CI check for the one or two rules that must never break.
+- Run the three `grep` commands above once a sprint, and watch for a second answer.
 
 ## Key takeaways
 
-- This isn't a framework problem or a team-size problem. It happens any time an AI agent writes code without shared context — solo or at enterprise scale.
-- Solo, the drift shows up as inconsistency with your own earlier decisions. On a team, it shows up as competing "correct" versions of the same thing.
-- AGENTS.md fixes it by giving every session the same architectural context before it writes anything.
-- It's genuinely open and tool-agnostic — read natively by Codex, Cursor, Copilot, Windsurf, Aider, and more — with one exception: Claude Code needs a symlink or import to read the same file.
-- It stops *new* drift. It doesn't fix code that's already inconsistent — budget separate time for that.
-- Workload savings are real but hard to measure precisely. Expect the biggest win in code review time, with rework and ramp-up improving more slowly.
-- Next: [the complete playbook](/blog/agents-md-complete-playbook) goes section by section through what belongs in the file, and [Copilot custom instructions](/blog/github-copilot-custom-instructions) covers the smaller Copilot-only version of the same idea.
+- The problem is not your framework or team size. It appears whenever an agent writes code without shared context.
+- Per-tool rules files only reach the people using that tool. AGENTS.md reaches every agent.
+- Copilot, Codex, Cursor and many others read AGENTS.md natively; Claude Code needs a symlink or an import line.
+- AGENTS.md stops new drift. Existing drift needs its own cleanup, and critical rules need a CI check.
+- Measure the savings on your own repo: count competing patterns and convention comments before and after.
+
+## The next sprint
+
+Two weeks later, the same three developers pick up the next feature: order notes for the rider. The repository now has an `AGENTS.md`, a `CLAUDE.md` symlinked to it, and a CI check that fails if `riverpod` appears in `pubspec.yaml`.
+
+Copilot, Cursor and Claude Code each build their part. All three reach for a Cubit. All three load order data through the existing `GetOrderById` use case.
+
+The pull request gets one comment about conventions, a missing `const`. The `grep` commands return one line each, and the favourites cleanup ticket is the only place Riverpod still appears.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could set this up for any mixed-tool team.
+
+1. **The quiet Claude Code session.** A developer adds a thorough AGENTS.md, then uses Claude Code for a week and still gets `setState` screens. What is missing, and what are the two ways to fix it?
+2. **The monorepo.** Your repository has a Flutter app in `/app` and an ASP.NET Core API in `/api`. Where do the files go, and which rules belong at the root?
+3. **The grep that still answers.** A month after adding AGENTS.md, the Riverpod `grep` still returns two files. Did the file fail? What does it tell you, and what should happen next?
+4. **Two files, one rule.** The team's `copilot-instructions.md` says "use Cubit for simple screens" and AGENTS.md says "use Bloc for every screen". What happens, and how do you set the files up so it cannot happen again?
+5. **The secret.** Someone adds the Firebase project ID and a test user's password to AGENTS.md "so the agent can run the app". What is wrong, and where should that information live?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

@@ -2,142 +2,149 @@
 title: 'What Is GitHub Copilot Custom Instructions? (And Why Your Project Needs One)'
 seoTitle: 'Copilot Custom Instructions'
 description: 'GitHub Copilot custom instructions explained with a real Flutter app you can clone: what the file is, why every project needs one, and beginner mistakes.'
-highlight: 'Custom instructions are one file — .github/copilot-instructions.md — that Copilot reads before every single suggestion in your repo. Skip it and Copilot guesses your conventions from scratch each time; write it once and every suggestion matches your codebase from day one.'
+highlight: 'Custom instructions are one file, .github/copilot-instructions.md, that Copilot reads before every suggestion in your repo. Skip it and Copilot guesses your conventions from the open file each time; write it once and every suggestion starts from your stack, your architecture and your off-limits list.'
 publishedAt: 2026-05-01
-updatedAt: 2026-07-31
+updatedAt: 2026-09-30
 category: copilot
 tags: ['GitHub Copilot', 'Custom Instructions', 'AI Coding Assistant', 'C#', '.NET MAUI', 'Flutter', 'Web API', '.NET 10']
-cover: './images/copilot-instructions-before-after.png'
-coverAlt: 'Side-by-side code comparison showing mismatched suggestions without a copilot-instructions.md file versus matching suggestions with one'
-# agents-md-pain-points-workload-savings.mdx
+cover: './images/github-copilot-custom-instructions-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "GitHub Copilot, AGENTS.md" above the title "Copilot custom instructions" and the line "One file, read before every suggestion in your repo.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "No .github/copilot-instructions.md: Copilot guesses from the open file", an arrow labelled "no file" to an amber box reading "setState, try/catch in the bloc: the common pattern, not yours", and an arrow labelled "first PR" to a red box reading "11 of 14 review comments are about conventions".'
 series: 'agents-md-instructions'
 seriesOrder: 1
 featured: true
 draft: false
 faq:
   - q: 'What is a copilot-instructions file?'
-    a: 'It is a repository-level guidance file, usually stored at .github/copilot-instructions.md, that tells GitHub Copilot how your project is structured, which tools and conventions to prefer, and which rules to avoid breaking.'
+    a: 'It is a repository-level guidance file, stored at .github/copilot-instructions.md, that tells GitHub Copilot how your project is structured, which libraries and conventions to use, and which files it must not touch. Copilot adds it to every chat request in that repository automatically.'
   - q: 'Where should I put custom instructions for GitHub Copilot?'
-    a: 'Put them in .github/copilot-instructions.md at the root of the repository so GitHub Copilot can read them automatically for that project.'
+    a: 'Put them in .github/copilot-instructions.md at the root of the repository. For rules that apply to only part of the code, add files under .github/instructions/ named something.instructions.md, with an applyTo pattern in the front matter that says which paths they cover.'
   - q: 'Do I need one for every project?'
-    a: 'You should have one for each repository with its own stack and conventions, because Copilot performs better when it sees project-specific guidance instead of guessing from the current file alone.'
+    a: 'Yes, one per repository with its own stack and conventions. Copilot cannot tell a Flutter repo from a .NET MAUI repo by feel, and without a file it falls back to the most common pattern it has seen, which is rarely the one your team chose.'
+  - q: 'How long should copilot-instructions.md be?'
+    a: 'Short enough to read in two minutes, usually under a page. It is sent with every request, so every line costs tokens each time. Write rules, not prose: the stack, the architecture boundaries, the conventions Copilot would otherwise guess wrong, and what is off-limits.'
+  - q: 'Why does Copilot ignore my custom instructions?'
+    a: 'Usually because the chat was opened before the file was saved, so start a new chat after editing it. Other causes are vague rules such as "write clean code", a file in the wrong path, or rules that contradict each other. Rules that must never be broken belong in a linter as well.'
   - q: 'Is there a real project I can practise custom instructions on?'
     a: 'Yes. Clone the MSDevBuild Eats Flutter food delivery app at github.com/jssuthahar/food-delivery-app. It ships a real .github/copilot-instructions.md, runs offline with no API keys, and has a live web build and an Android build so you can compare the code against a working app.'
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
 
-Two developers join the same project on the same day. Both clone the repo, both open VS Code, both start getting Copilot suggestions within a minute. By lunch, one of them has barely touched what Copilot wrote for him. The other has rewritten half of it: wrong HTTP client, wrong test framework, a folder structure Copilot invented that doesn't exist anywhere in the actual project.
+GitHub Copilot custom instructions are one file, `.github/copilot-instructions.md`, that Copilot reads before every suggestion it makes in your repository. Without it, Copilot guesses your stack and conventions from whatever file is open. This is what that guess costs on a real Flutter app, and how to write the file that stops it.
 
-Same Copilot. Same model version. The only real difference between the two of them is a file called `copilot-instructions.md` sitting in one repo and not the other.
+Picture two developers joining the MSDevBuild Eats team on the same Monday. Both clone the repo, both open VS Code, both get Copilot suggestions within a minute. By Wednesday, one of them has barely touched what Copilot wrote. The other has rewritten half of it: the wrong state management, error handling in the wrong layer, an import the architecture forbids.
+
+Same Copilot. Same model. The only difference is that one of them was working in a clone where `.github/copilot-instructions.md` had been deleted.
 
 <Callout type="tip" title="Follow along in a real app, not a snippet">
-Everything below is written against **MSDevBuild Eats**, a Flutter food delivery app I built — customer, restaurant partner and rider in one codebase, Clean Architecture, BLoC, 40-odd use cases. It runs with no API keys and no Firebase project, so you can clone it and have Copilot working inside it in about two minutes.
+Everything below is written against **MSDevBuild Eats**, the open-source Flutter food delivery app used across this blog: customer, restaurant partner and rider in one codebase, Clean Architecture, BLoC, 40-odd use cases. It runs with no API keys and no Firebase project, so you can clone it and have Copilot working inside it in about two minutes.
 
-- **Source code** — [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
-- **Live web** — [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (sign in with `customer@msdevbuild.com` / `demo1234`)
-- **Android build** — [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b) through Firebase App Distribution
+- **Source code**: [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web**: [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (sign in with `customer@msdevbuild.com` / `demo1234`)
+- **Android build**: [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b) through Firebase App Distribution
 
-Open the live app in one tab and the repo in another while you read. The instructions file discussed here is the one actually committed at [`.github/copilot-instructions.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/copilot-instructions.md).
+The instructions file discussed here is the one actually committed at [`.github/copilot-instructions.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/copilot-instructions.md).
 </Callout>
 
-## My own wake-up call with this
+## One week, and the corrections nobody counted
 
-I ignored this file for a long time, longer than I'd like to admit. At one point I had three projects going at once — a Web API backend, a .NET MAUI app for one client, a Flutter app for another — and I was using Copilot the exact same way in all three. Open a controller in the Web API project, get suggestions that looked half-borrowed from the MAUI app. Wrong patterns, wrong assumptions about lifecycle. One time it suggested `StatefulWidget` boilerplate inside a C# file, because I'd had a Flutter tab open a few minutes before.
+The scenario is a first task for the new developer without the file: add loyalty points to the cart and show them in the price breakdown.
 
-Copilot wasn't broken. I was giving it nothing to go on and expecting it to somehow keep four different codebases straight in its head. So one morning I sat down and wrote a proper `copilot-instructions.md` for each project — I basically just answered "what would I tell a new developer on their first day" for each one. The suggestions got noticeably better almost immediately. Not flawless. But close enough that I stopped fighting it constantly. That's the actual reason I'm writing this. It's a file that takes maybe five minutes and would've saved me weeks of low-grade annoyance if I'd bothered earlier.
+| Day | What happened |
+| --- | --- |
+| Mon 10:00 | Clone, `flutter pub get`, Copilot Chat open. The first screen it scaffolds is a `StatefulWidget` with `setState` |
+| Mon 15:00 | The loyalty calculation lands in the widget, next to the button that displays it |
+| Tue 11:00 | The repository call is wrapped in a `try/catch` inside `CartBloc` |
+| Tue 16:00 | A helper imports a data source straight into `lib/features/cart/` |
+| Wed 10:00 | The pull request goes up. **14 review comments** |
+| Wed 14:00 | Rework. The reviewer repeats three of the same comments on the fixes |
+| Thu 17:00 | Merged, on the third review round |
+
+None of those suggestions was wrong Flutter. Each one is a pattern Copilot has seen thousands of times. It was wrong for *this* repository, and nothing in the repository said so where Copilot could read it.
+
+I had my own version of this week, long before this app existed. I had a Web API backend, a .NET MAUI app and a Flutter app open in the same month, and I used Copilot the same way in all three. Open a controller in the Web API and get suggestions that looked half-borrowed from the MAUI app. Once it suggested `StatefulWidget` boilerplate inside a C# file, because a Flutter tab had been open a few minutes earlier. Copilot was not broken. I was giving it nothing to go on. Nothing at all.
+
+## The command that counted the damage
+
+On Wednesday the tech lead reads the fourteen comments and asks a fair question: how many of these are about the feature, and how many are about how this app is built? The diff answers it:
+
+```bash
+# Added lines only, in the pull request, that break the three rules the app lives by
+git diff main...feature/loyalty-points -- lib/ | grep '^+' | grep -cE 'setState\('
+git diff main...feature/loyalty-points -- lib/ | grep '^+' | grep -cE '\} catch \('
+git diff main...feature/loyalty-points -- lib/features/ | grep '^+' | grep -cE "import '.*/data/"
+```
+
+| Rule broken | Added lines |
+| --- | --- |
+| `setState` instead of a BLoC event | 6 |
+| `try/catch` in a bloc instead of `Result<T>` | 3 |
+| A feature importing from `lib/data/` | 2 |
+
+Eleven lines. Eleven of the fourteen review comments. The other three were about the feature itself. The review spent most of its time teaching the architecture, one comment at a time, to a developer who would learn it, and to a tool that would forget it by the next chat.
+
+<figure>
+
+![Two step flows side by side for the same request, add loyalty points to the cart. On the left, without copilot-instructions.md: step 1, Copilot reads the open file and whatever it saw in training; step 2, it picks the common Flutter pattern, a StatefulWidget with setState; step 3, error handling where it is typed, a try/catch inside the bloc; step 4, data reached from the UI, an import from lib/data. The red outcome: 11 of 14 review comments are conventions. On the right, with copilot-instructions.md, the same request in a new chat: step 1, Copilot reads the file first; step 2, it knows the state rule, a CartEvent and not setState; step 3, it knows the error contract, Result and no throw across the boundary; step 4, it knows where rules live, points priced on the Cart entity. The green outcome: approved on the first review.](./images/copilot-custom-instructions-before-after-pull-request.png)
+
+<figcaption>Figure 1 — the same request, twice. Only the first box differs, and everything after it follows from that.</figcaption>
+
+</figure>
 
 ## What is GitHub Copilot custom instructions?
 
-It's a plain text file, `.github/copilot-instructions.md`, that tells Copilot how your project works before it writes anything. Rather than guessing your stack and conventions from whatever file happens to be open at that moment, Copilot reads this file automatically and carries it into every chat, every suggestion, every session. You don't have to remind it.
+It is a plain Markdown file, `.github/copilot-instructions.md`, that tells Copilot how your project works before it writes anything. Rather than guessing your stack from whatever file is open, Copilot adds this file to every chat request in the repository automatically. You never have to paste it or remind it.
 
-I've started thinking of it like the onboarding doc you'd hand a new hire on day one. Except this particular new hire actually reads the whole thing every single time, instead of skimming the first page and forgetting the rest by Friday.
+Think of it as the onboarding document you would hand a new developer on day one, except this reader actually reads the whole thing every single time, instead of skimming the first page and forgetting the rest by Friday.
 
 ## Why does it matter so much for your project?
 
-Copilot has no idea what "normal" looks like on your team until you spell it out. It's seen millions of repos during training, every possible way to structure a project, name a variable, write a test. So left with no guidance, it just picks one. Not necessarily yours.
+Copilot has no idea what "normal" looks like on your team until you write it down. It has seen millions of repositories, and every way to structure a project, name a variable or write a test. Left with no guidance, it picks the most common one. Not necessarily yours.
 
-That mismatch doesn't show up as one big failure. It shows up as constant small friction: `fetch` when your team wraps everything in a custom HTTP client, Jest syntax when the project actually runs on Vitest. None of it is dramatic on its own. It's just a lot of tiny corrections, and it's usually the real reason behind the complaint "Copilot doesn't get our codebase," when what actually happened is nobody ever told it.
+That mismatch rarely shows up as one big failure. It shows up as constant small friction: `fetch` when your team wraps every call in its own HTTP client, Jest syntax when the project runs on Vitest, `setState` in an app built on BLoC. None of it is dramatic on its own. Together it is the real reason behind "Copilot doesn't get our codebase". Nobody ever told it.
 
-<div style="margin: 32px 0;">
-  <svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated comparison showing a Copilot suggestion being corrected without instructions versus matching immediately with instructions" style="width: 100%; height: auto; border-radius: 10px;">
-    <title>Same prompt, two outcomes</title>
-    <rect width="900" height="320" rx="10" fill="#1b2118" />
-    <text x="225" y="34" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" fill="#c9614a">without copilot-instructions.md</text>
-    <text x="675" y="34" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" fill="#8fbf92">with copilot-instructions.md</text>
-    <line x1="450" y1="10" x2="450" y2="300" stroke="#2c3527" stroke-width="1" stroke-dasharray="5 5" />
+If you would rather see the idea first, the loyalty-points week is a short video, and so is why Copilot needs telling at all:
 
-    <rect x="40" y="55" width="370" height="230" rx="8" fill="#232a1f" stroke="#3c4536" />
-    <text x="60" y="90" font-family="ui-monospace,monospace" font-size="14" fill="#8a9280">// user: add a request to fetch users</text>
-    <text x="60" y="125" font-family="ui-monospace,monospace" font-size="15" fill="#c9614a" opacity="0">
-      <animate attributeName="opacity" values="0;1;1;0.3;0" keyTimes="0;0.1;0.45;0.55;0.6" dur="5s" repeatCount="indefinite" />
-      <tspan x="60" dy="0">fetch('/api/users')</tspan>
-    </text>
-    <text x="60" y="155" font-family="ui-monospace,monospace" font-size="12" fill="#c9614a" opacity="0">
-      <animate attributeName="opacity" values="0;0;1;0.3;0" keyTimes="0;0.15;0.45;0.55;0.6" dur="5s" repeatCount="indefinite" />
-      <tspan x="60" dy="0">✗ wrong client — no auth headers</tspan>
-    </text>
-    <text x="60" y="125" font-family="ui-monospace,monospace" font-size="15" fill="#8fbf92" opacity="0">
-      <animate attributeName="opacity" values="0;0;0;0;1;1;0" keyTimes="0;0.55;0.6;0.65;0.75;0.95;1" dur="5s" repeatCount="indefinite" />
-      <tspan x="60" dy="0">httpClient.get('/api/users')</tspan>
-    </text>
-    <text x="60" y="155" font-family="ui-monospace,monospace" font-size="12" fill="#8fbf92" opacity="0">
-      <animate attributeName="opacity" values="0;0;0;0;0;1;0" keyTimes="0;0.6;0.65;0.7;0.8;0.95;1" dur="5s" repeatCount="indefinite" />
-      <tspan x="60" dy="0">manually corrected — took a re-prompt</tspan>
-    </text>
-
-    <rect x="490" y="55" width="370" height="230" rx="8" fill="#232a1f" stroke="#5a7a5c" />
-    <text x="510" y="90" font-family="ui-monospace,monospace" font-size="14" fill="#8a9280">// user: add a request to fetch users</text>
-    <text x="510" y="125" font-family="ui-monospace,monospace" font-size="15" fill="#8fbf92" opacity="0">
-      <animate attributeName="opacity" values="0;1;1;1;0.3;0" keyTimes="0;0.1;0.45;0.9;0.95;1" dur="5s" repeatCount="indefinite" />
-      <tspan x="510" dy="0">httpClient.get('/api/users')</tspan>
-    </text>
-    <text x="510" y="155" font-family="ui-monospace,monospace" font-size="12" fill="#8fbf92" opacity="0">
-      <animate attributeName="opacity" values="0;0;1;1;0.3;0" keyTimes="0;0.15;0.45;0.9;0.95;1" dur="5s" repeatCount="indefinite" />
-      <tspan x="510" dy="0">✓ matches your wrapper — first try</tspan>
-    </text>
-
-    <text x="450" y="310" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#6b7461">same prompt, same model — only the instructions file differs</text>
-  </svg>
-</div>
+<ShortHighlight slugs={['copilot-instructions-eleven-of-fourteen', 'copilot-context-window']} />
 
 ## Creating the file in VS Code
 
-Two ways to do it. I'd start with the first one even if you're planning to rewrite most of it by hand afterward.
+Two ways to do it. Start with the first one even if you plan to rewrite most of it by hand.
 
-**Letting Copilot draft it (this is the fast path):**
+**Letting Copilot draft it, the fast path:**
 
 1. Open Copilot Chat inside VS Code
 2. Type `/init` and send it
-3. It scans your workspace — package files, folder layout, whatever config it can find — and drafts `.github/copilot-instructions.md` based on that
-4. Sometimes it'll ask a question or two if something's genuinely ambiguous, like which test runner you're using if it spots two
-5. Then go through the draft yourself. It's a first pass, not a finished file — cut the vague parts, add anything it can't infer on its own (like what's off-limits), and fix whatever it got wrong
+3. It scans your workspace, package files, folder layout and whatever config it finds, and drafts `.github/copilot-instructions.md`
+4. It may ask a question if something is genuinely ambiguous, like which test runner you use if it spots two
+5. Then read the draft yourself. It is a first pass: cut the vague parts, add what it cannot infer, like what is off-limits, and fix what it got wrong
 
-![Custom instructions are one file](./images/CopilotInit.png)
+![Copilot Chat in VS Code after running /init, drafting a copilot-instructions.md file from the workspace](./images/CopilotInit.png)
 
 **Writing it yourself:**
 
-1. Command Palette (Ctrl+Shift+P, or Cmd+Shift+P on a Mac)
-2. Run `Chat: Configure Instructions...` — older builds label this `Chat: Open Customizations`
+1. Open the Command Palette: Ctrl+Shift+P, or Cmd+Shift+P on a Mac
+2. Run `Chat: Configure Instructions...`; older builds label this `Chat: Open Customizations`
 
-![Chat Configure Instructions](./images/CopilotInstruction.png)
+![The VS Code Command Palette showing the Chat: Configure Instructions command](./images/CopilotInstruction.png)
 
-3. VS Code creates the file and opens it for you
-4. Fill it in using the categories further down this post
+3. VS Code creates the file and opens it
+4. Fill it in using the categories below
 
-Once it exists, it's just always on — nothing to enable. If you edit it partway through a session, open a new chat afterward so the update actually takes effect.
+Once it exists, it is always on. Nothing to enable. If you edit it partway through a session, open a new chat so the update takes effect.
 
 <figure>
 
 ![Decision flowchart. You start typing in the repo. If there is no .github/copilot-instructions.md, Copilot guesses from the open file. If there is, Copilot reads it before producing the suggestion. If the suggestion still does not match your conventions you reject it and retype the same correction again; otherwise you get a suggestion that fits this repo.](./images/copilot-instructions-read-before-every-suggestion.png)
 
-<figcaption>Figure 1 — where the file sits in the loop. It is read before the suggestion, not after.</figcaption>
+<figcaption>Figure 2 — where the file sits in the loop. It is read before the suggestion, not after.</figcaption>
 
 </figure>
 
 ## What actually goes into the file
 
-Roughly: whatever you'd tell a new developer during their first week, minus the small talk.
+Whatever you would tell a new developer in their first week, minus the small talk.
 
 | Category | Example |
 | --- | --- |
@@ -145,13 +152,13 @@ Roughly: whatever you'd tell a new developer during their first week, minus the 
 | Structure | "Components live in /Components, services in /Services." |
 | Conventions | "Use PascalCase for public members, no underscores." |
 | Testing | "Tests are xUnit, run with `dotnet test`, one test class per service." |
-| Boundaries | "Never modify anything in /Migrations — that's Entity Framework's." |
+| Boundaries | "Never modify anything in /Migrations; that is Entity Framework's." |
 
-I work across a few different stacks, so here are three real examples instead of one generic one. The first is the file from the food delivery app, and you can open the repo alongside it to see every rule it describes.
+Here are three real examples across three stacks. The first is from the food delivery app, and you can open the repo alongside it to check every rule.
 
 ### Example: the Flutter food delivery app
 
-This one is worth walking through line by line, because each rule in it exists for a reason you can go and verify in the repo.
+Each rule in this file exists for a reason you can go and verify in the repo.
 
 ```markdown
 # Copilot instructions
@@ -201,13 +208,15 @@ Clean Architecture, three layers, dependencies point inward only.
 
 Three of those lines carry most of the weight:
 
-**"Not Riverpod, not Provider, not setState."** Flutter has four popular ways to hold state and Copilot has seen all of them. Ask for a new screen without this line and roughly half the time you get a `StatefulWidget` with `setState`, which is a straight contradiction of how every other screen in the app works. Naming what you *don't* use turns out to matter more in Flutter than in any other stack I write in.
+**"Not Riverpod, not Provider, not setState."** Flutter has four popular ways to hold state, and Copilot has seen all of them. Without this line, a request for a new screen often comes back as a `StatefulWidget` with `setState`, which contradicts how every other screen in the app works. Naming what you *don't* use matters more in Flutter than in any other stack I write in.
 
-**"Return `Result<T>` — never throw across the repository boundary."** The whole error contract in this app depends on it. Data sources throw, repositories catch once in `mapErrorToFailure`, and everything above that gets `Success<T>` or `FailureResult<T>` in the type signature. Copilot's default instinct is a `try/catch` in the bloc, which quietly puts error handling in three layers instead of one.
+**"Return `Result<T>`, never throw across the repository boundary."** The app's whole error contract depends on it. Data sources throw, repositories catch once in `mapErrorToFailure`, and everything above gets `Success<T>` or `FailureResult<T>` in the type signature. Copilot's default instinct is a `try/catch` in the bloc, which quietly spreads error handling across three layers instead of one.
 
-**"Blocs are not registered in get_it."** This is the kind of rule nobody can infer from reading one file. `get_it` is right there in the dependency list, blocs are right there in every feature folder, and the obvious conclusion is wrong. It's exactly the sort of thing you'd say out loud to a new developer in their first week and then never think about again.
+**"Blocs are not registered in get_it."** Nobody can infer this from one file. `get_it` is in the dependency list, blocs are in every feature folder, and the obvious conclusion is wrong. It is exactly what you would say out loud to a new developer in their first week and then never think about again.
 
 ### Example: C# Web API
+
+This one matches the feature-folder layout from [structuring a .NET Minimal API project](/blog/minimal-api-project-structure); if your API follows that layout, the Structure lines are already written for you.
 
 ```markdown
 # Copilot instructions
@@ -251,11 +260,11 @@ This is a .NET MAUI app (Android + iOS) using MVVM with CommunityToolkit.Mvvm.
 - Don't suggest Xamarin.Forms syntax — this is MAUI, not the old framework
 ```
 
-Three different stacks, same underlying idea: write down the facts Copilot would otherwise have to guess at, for the specific project it's sitting in right now.
+Three stacks, one idea: write down the facts Copilot would otherwise guess at, for the project it is sitting in right now.
 
 ## Trying this on a real project
 
-Reading an instructions file teaches you the shape of one. Watching Copilot change its answer because of one teaches you why it's worth writing. Twenty minutes, no accounts, no keys:
+Reading an instructions file teaches you its shape. Watching Copilot change its answer because of one teaches you why it is worth writing. Twenty minutes, no accounts, no keys:
 
 ```bash
 git clone https://github.com/jssuthahar/food-delivery-app
@@ -264,79 +273,152 @@ flutter pub get
 flutter run -d chrome
 ```
 
-Sign in as `customer@msdevbuild.com` / `demo1234`. There's no server behind it — a seeded in-memory backend with 20 restaurants and 100 dishes stands in, and it even walks your order from confirmed to delivered on a timer.
+Sign in as `customer@msdevbuild.com` / `demo1234`. There is no server behind it: a seeded in-memory backend with 20 restaurants and 100 dishes stands in, and it walks your order from confirmed to delivered on a timer.
 
 Then run the comparison:
 
-1. **Delete the instructions file first** — `rm .github/copilot-instructions.md`. You want to see the default behaviour before you see the corrected one.
+1. **Delete the instructions file first**: `rm .github/copilot-instructions.md`. You want the default behaviour before the corrected one.
 2. **Open a fresh Copilot Chat** and ask: *"add a loyalty points field to the cart and show it in the price breakdown."*
-3. **Read what comes back.** In my run it reached for `setState` inside the cart widget, computed the points in the UI layer, and wrapped the repository call in a `try/catch`. Three separate violations of how the app is built, none of them obviously wrong if you'd never seen the codebase.
-4. **Restore the file** — `git checkout .github/copilot-instructions.md` — open a *new* chat, and ask the exact same question.
+3. **Read what comes back.** In my run it reached for `setState` inside the cart widget, computed the points in the UI layer, and wrapped the repository call in a `try/catch`. Three violations of how the app is built, none of them obviously wrong if you had never seen the codebase.
+4. **Restore the file** with `git checkout .github/copilot-instructions.md`, open a *new* chat, and ask the exact same question.
 5. **Read it again.** Now it adds a `CartEvent`, puts the calculation on the `Cart` entity next to the rest of the pricing, and returns `Result<T>` instead of throwing.
 
 Same question, same model, same repo. The only variable is whether Copilot knew where it was.
 
-Two things worth doing while the repo is open, because they make the code concrete rather than abstract:
+Two more things worth doing while the repo is open:
 
-- **Try the [live web build](https://jssuthahar.github.io/food-delivery-app/)** and place an order, then find the code that ran it. The order status timeline you watched is `OrderStatus` in `lib/domain/entities/` — a state machine the customer timeline, the partner's "advance order" button and the rider's job card all read from.
-- **[Install the Android build](https://appdistribution.firebase.dev/i/00432c5aa60de58b)** and put it next to the web tab. Identical Dart, one responsive layer. When your instructions file says "never import from `lib/data/`", that constraint is what lets one codebase serve both without a fork.
+- **Try the [live web build](https://jssuthahar.github.io/food-delivery-app/)** and place an order, then find the code that ran it. The order status timeline is `OrderStatus` in `lib/domain/entities/`, a state machine that the customer timeline, the partner's "advance order" button and the rider's job card all read from.
+- **[Install the Android build](https://appdistribution.firebase.dev/i/00432c5aa60de58b)** and put it next to the web tab. Identical Dart, one responsive layer. "Never import from `lib/data/`" is what lets one codebase serve both without a fork.
+
+## When one file is not enough
+
+Use custom instructions for anything Copilot would otherwise guess: the stack, the boundaries, the conventions, the off-limits list. Stop relying on them alone in four situations.
+
+**When a rule must never be broken.** Instructions guide; they do not enforce. The food delivery app is proof: its file says features never import from `lib/data/`, and yet three older screens in `lib/features/` still do. Nothing stopped them. A rule that must hold goes into a lint or an architecture test as well, where a build fails instead of a review comment being written.
+
+**When a rule only applies to part of the code.** Add path-specific files under `.github/instructions/`, named something like `bloc.instructions.md`, with an `applyTo` glob in the front matter. Copilot adds them only when it is working on matching files, so the main file stays short.
+
+**When the codebase is old and the rules are unwritten.** On a legacy system nobody can write the file from memory. Let an agent read the code first and draft the rules from what it finds, the approach in [GitHub Copilot agents for legacy applications](/blog/github-copilot-agents-for-legacy-applications), then edit that draft like any other.
+
+**When the file starts to grow.** Every line is sent with every request. A one-page file is cheap; a ten-page file is a tax on every question, and the rules that matter get lost among the ones that do not.
+
+<Callout type="mistake" title='"Follow good practice and write clean code"'>
+The most common first line in an instructions file, and the least useful. "Clean" means something different in every language and every team, so it tells Copilot nothing it can act on. It is like telling someone to "cook something good" instead of handing them the recipe. Write the rule itself: "Return `Result<T>`, never throw across the repository boundary."
+</Callout>
+
+## How efficient is it?
+
+The file costs a fixed amount on every request, and saves a correction every time one of its rules would otherwise have been broken. For this app, the numbers look like this.
+
+The cost side:
+
+| | Size |
+| --- | --- |
+| The file | 75 lines, 3,575 characters |
+| Added to each chat request | roughly 900 tokens |
+| Your time to write it | an hour, with `/init` doing the first draft |
+
+The saving side, for the loyalty points task in this scenario:
+
+| | Without the file | With the file |
+| --- | --- | --- |
+| Copilot suggestions kept as written | 3 of 9 | 8 of 9 |
+| Lines breaking a house rule | 11 | 0 |
+| Review comments about conventions | 11 of 14 | 0 of 3 |
+| Review rounds | 3 | 1 |
+| Time to merge | Monday to Thursday | the same day |
+
+The rule underneath: **the cost is paid per request, the saving is paid per rule break avoided**. A 900-token file that stops one `setState` rewrite has paid for itself many times over. A file padded with prose nobody needed pays the same cost and saves nothing extra.
 
 ## Do's and don'ts
 
 | Do | Don't |
 | --- | --- |
-| Keep it under a page — specific and short beats thorough and vague | Write a full architecture document; it needs rules, not a wiki |
+| Keep it under a page: specific and short beats thorough and vague | Write a full architecture document; it needs rules, not a wiki |
 | State conventions as plain rules ("use async/await, not .Result") | Bury conventions inside paragraphs of prose |
-| List what's off-limits — generated code, migrations, secrets | Assume it'll "just know" not to touch sensitive files |
-| Update it the same week your conventions change | Let it sit for six months — a stale file actively misleads |
-| Test it: start a fresh chat and ask it to describe your stack back to you | Write it once and never check whether it's actually following it |
+| List what is off-limits: generated code, migrations, secrets | Assume it will "just know" not to touch sensitive files |
+| Update it the same week your conventions change | Let it sit for six months; a stale file actively misleads |
+| Test it: start a fresh chat and ask it to describe your stack back to you | Write it once and never check whether Copilot follows it |
 
 ## Common mistakes beginners make
 
-The one I see most is a line like *"follow best practices and write clean code."* Sounds like guidance, isn't really any; "best practices" means something different in every language and every team, so it tells Copilot almost nothing concrete. It's the same as telling someone to "cook something good" instead of just handing them a recipe.
+The first is treating it as a one-off task. Write it in week one, never touch it again, and six months later it is still confidently pointing Copilot at a library you migrated off in March.
 
-Second: treating this as a one-and-done task. Write it during week one of the project, never touch it again, and six months later it's still confidently pointing Copilot at a library you migrated off of back in March.
+The second is scope creep: stuffing business context, project history and roadmap notes into a file that should answer one question, how do I write code that fits this repo. If it is not a coding convention, it belongs in a different document.
 
-Third, scope creep — stuffing business context, project history, and roadmap notes into a file that's only supposed to answer one question: how do I write code that fits this repo. If it's not a coding convention, it probably belongs in a different doc entirely.
-
-And the one that actually got me: assuming Copilot will somehow "just know" which project it's looking at when you're juggling more than one. It won't. A Flutter widget and a MAUI view can look close enough at a glance — both have some kind of widget tree, both have some flavor of state management — that without a file spelling out which is which, Copilot will happily mix patterns from one into the other. Every project gets its own file. Even the ones only you will ever open.
+The third is the one that caught me: assuming Copilot will "just know" which project it is in when you work on more than one. A Flutter widget and a MAUI view look close enough, both with some kind of view tree and some flavour of state management, that without a file saying which is which, Copilot mixes patterns from one into the other. Every project gets its own file, even the ones only you will ever open.
 
 ## Whether this is only for GitHub Copilot
 
-Not really, no. Not anymore. The filename is Copilot's, but the concept has spread past it.
+Not anymore. The filename is Copilot's, but the idea has spread past it.
 
-What actually surprised me while digging into this: VS Code's chat customization panel (`Chat: Open Customizations`) has an agent-type dropdown now, and Claude is one of the options sitting right next to local agents and Copilot CLI. VS Code can read `CLAUDE.md` directly too, through a setting called `chat.useClaudeMdFile`, and it understands `.claude/rules` files in Claude's own rules format. So Copilot isn't the only thing in VS Code paying attention to project instructions anymore — depending on what you've got enabled, Claude reads its own version of the same idea.
+VS Code's chat customization panel has an agent-type dropdown now, and Claude is one of the options next to local agents and Copilot CLI. VS Code can read `CLAUDE.md` directly through a setting called `chat.useClaudeMdFile`, and it understands `.claude/rules` files too. So depending on what you have enabled, more than one assistant in the same editor is looking for project instructions.
 
-Then there's `AGENTS.md`, which I covered in [an earlier post](/blog/agents-md-pain-points-workload-savings) and then took apart properly in [the full playbook](/blog/agents-md-complete-playbook) — built specifically to be tool-agnostic, read by Copilot, Claude, Codex, and others without any extra configuration on your end. If a repo has both a `copilot-instructions.md` and an `AGENTS.md`, your personal user-level instructions still win over both, but the two repo-level files can sit there together without stepping on each other.
-
-How I'd actually decide which to set up:
+There is also `AGENTS.md`, a tool-agnostic file at the repository root that Copilot, Claude, Codex and other agents read without extra configuration. If a repository has both `copilot-instructions.md` and `AGENTS.md`, your personal user-level instructions still take priority over both, and the two repository files sit side by side without conflict.
 
 | Your situation | What to set up |
 | --- | --- |
 | Only using Copilot | `.github/copilot-instructions.md` is enough |
-| Using Copilot and Claude inside VS Code | Turn on `chat.useClaudeMdFile` and keep both, or just consolidate into `AGENTS.md` |
-| Team mixes Copilot, Cursor, Claude Code, whatever else | `AGENTS.md` at the root — one file, everything reads it |
+| Using Copilot and Claude inside VS Code | Turn on `chat.useClaudeMdFile` and keep both, or consolidate into `AGENTS.md` |
+| Team mixes Copilot, Cursor, Claude Code and others | `AGENTS.md` at the root: one file, every tool reads it |
 
 ## How this compares across AI coding tools
 
-If you've touched more than one AI assistant, you've already run into some version of this file — everyone landed on roughly the same idea, just under a different filename.
+Every assistant landed on roughly the same idea, under a different filename:
 
 | Tool | Instructions file |
 | --- | --- |
 | GitHub Copilot | `.github/copilot-instructions.md` |
 | Cursor | `.cursorrules` (or `.cursor/rules/`) |
-| Claude Code / Claude Projects | `CLAUDE.md` or project-level instructions |
-| Tool-agnostic standard | `AGENTS.md`, increasingly read by multiple tools including Copilot |
+| Claude Code and Claude Projects | `CLAUDE.md` or project-level instructions |
+| Tool-agnostic standard | `AGENTS.md`, read by several tools including Copilot |
 
-The underlying idea doesn't change from tool to tool — hand the model your project's context once, in a file, instead of typing it out in every prompt. Copilot-only setup, `copilot-instructions.md` covers it. Mixed toolchain, `AGENTS.md` is worth the extra ten minutes.
+The idea does not change from tool to tool: hand the model your project's context once, in a file, instead of typing it into every prompt.
+
+## Questions a tech lead will ask about this
+
+1. **"Why not just review harder?"** Review catches the break after it is written, once per pull request. The file prevents it before it is written, once per request, for free after the first hour.
+2. **"Who owns the file?"** The same people who own the architecture. Changes to it go through review like code, because a wrong rule is followed as faithfully as a right one.
+3. **"Will it stop Copilot breaking our boundaries?"** It makes breaks rarer. It does not make them impossible. Anything that must never happen also needs a lint or a test.
+4. **"How do we know it works?"** Ask Copilot in a fresh chat to describe your stack and rules. Then run the same prompt with and without the file, as in the comparison above.
+5. **"One file or several?"** One short file for rules that apply everywhere, and path-specific `.instructions.md` files for the parts of the code with their own rules.
+
+## What to do on day one of a new repository
+
+- Run `/init`, then edit the draft down to rules you would actually enforce in review.
+- Name what the project does *not* use, not just what it does.
+- List the off-limits paths: generated code, migrations, config written by tools.
+- Put the rules that must never break into a linter too.
+- Open a new chat after every edit, and ask Copilot to repeat the rules back.
 
 ## Key takeaways
 
-- Custom instructions are one file — `.github/copilot-instructions.md` — read automatically before every suggestion
-- Without it, Copilot guesses your stack and conventions fresh, every single time
-- Type `/init` in Copilot Chat for a fast first draft, then edit it by hand
-- Keep it short, specific, and written as rules, not prose — one file per project, even if you juggle several
-- Name what you *don't* use ("not Riverpod, not setState") — in a stack with several popular options, that line does more work than any other
-- Clone [the food delivery app](https://github.com/jssuthahar/food-delivery-app), delete its instructions file, ask Copilot the same question twice — the difference is the whole argument
-- It's not locked to Copilot forever: VS Code can read CLAUDE.md for the Claude agent too, and AGENTS.md works across tools entirely
-- It's the first thing anyone learning Copilot should set up, before [skills](/blog/github-copilot-skills-deep-dive), agents, or anything more advanced
+- Custom instructions are one file, `.github/copilot-instructions.md`, sent with every Copilot request in the repository.
+- Without it, Copilot picks the most common pattern it has seen, which is rarely the one your team chose.
+- Keep it short and written as rules; every line is paid for on every request.
+- Name what you do not use. In a stack with several popular options, that line does the most work.
+- Instructions guide and lints enforce. Rules that must never break need both.
+
+## The second week
+
+The following Monday, the new developer picks up the next ticket: show a "reorder" button on past orders. This time the instructions file is back in the clone.
+
+Copilot's first suggestion adds a `ReorderRequested` event to the orders bloc and a use case that returns `Result<Order>`. Nothing in `lib/features/` imports from `lib/data/`. The pull request goes up on Tuesday morning with three review comments, all about the button's wording.
+
+It is merged before lunch. The tech lead's only note on the review thread: "Nothing to teach this time."
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could set this up for any team.
+
+1. **The edited file.** You add "never use setState" to the file halfway through a chat, then ask for a new screen in the same chat. Copilot uses `setState`. Why, and what do you do?
+2. **The three old imports.** The food delivery app's file forbids importing `lib/data/` from `lib/features/`, yet three screens do. Did the file fail? What would you add so a fourth one can never be merged?
+3. **The ten-page file.** A teammate pastes the whole architecture wiki into `copilot-instructions.md` "so Copilot knows everything". Using the efficiency section, what does that cost on every request, and what happens to the rules that matter?
+4. **Two stacks, one repo.** A repository holds a Flutter app in `/app` and an ASP.NET Core API in `/api`. How would you structure the instructions so each half gets the right rules?
+5. **Copilot plus Claude.** Half the team uses Copilot and half uses Claude Code in the same repository. Which file or files do you set up, and why does that keep one set of rules instead of two?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

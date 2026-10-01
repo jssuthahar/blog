@@ -1,56 +1,108 @@
 ---
 title: 'Building a Flutter Copilot Skill: Clean Architecture with BLoC and Firebase, Start to Finish'
-description: 'Build one GitHub Copilot Skill (SKILL.md) so Copilot writes Flutter the way your app does — layered folders, BLoC state, Firebase behind a repository.'
+description: 'Build one GitHub Copilot Skill (SKILL.md) so Copilot writes Flutter the way your app does: layered folders, BLoC state, Firebase behind a repository.'
 publishedAt: 2026-05-19
 cover: './images/build-flutter-github-copilot-skill-riverpod-firebase-cover.png'
-coverAlt: 'Share banner headed GITHUB COPILOT · SKILLS with the title "Stop Firestore inside build()" and the line "One sharp description, and Copilot stops writing the Flutter anti-pattern." above the MSDEVBUILD wordmark and the author name. On the right, a three-step chain: a bad box reading "Firestore call inside build()", rebuilds, re-reads, bills you; then a warn box reading ".github/skills/<name>/SKILL.md", riverpod provider, repository, result; then a good box reading "A provider, every time", the pattern, not a suggestion.'
-updatedAt: 2026-07-31
+coverAlt: 'Share banner headed GITHUB COPILOT · AGENTS.MD with the title "Stop Firestore inside build()" and the line "One sharp description, and Copilot stops writing the Flutter anti-pattern." above the MSDEVBUILD wordmark and the author name. On the right, a three-step chain: a bad box reading "Firestore call inside build()", rebuilds, re-reads, bills you; then a warn box reading ".github/skills/flutter-feature", repository, use case, Cubit, Result; then a good box reading "A Cubit and a bloc_test, every time", the pattern, not a suggestion.'
+updatedAt: 2026-10-01
 category: copilot
 categories: ['mobile', 'ai']
 tags: ['GitHub Copilot', 'Copilot Skills', 'SKILL.md', 'Flutter', 'BLoC', 'Cubit', 'Firebase', 'Firestore', 'Clean Architecture', 'AI-assisted development', 'mobile']
 seoTitle: 'GitHub Copilot Skill for Flutter (SKILL.md)'
-highlight: 'A Flutter Copilot Skill lives at .github/skills/<name>/SKILL.md and its description is the activation trigger. Get that one line sharp and Copilot stops calling Firestore inside build() — it writes a domain contract, a repository, a Cubit, and a bloc_test, on the first try.'
+highlight: 'A Flutter Copilot Skill lives at .github/skills/<name>/SKILL.md and its description is the activation trigger. Get that one line sharp and Copilot stops calling Firestore inside build(). It writes a domain contract, a repository, a Cubit, and a bloc_test, on the first try.'
 series: 'agents-md-instructions'
 seriesOrder: 6
 featured: true
 draft: false
 faq:
   - q: 'Where do GitHub Copilot Skills live in a Flutter repo?'
-    a: 'Each Skill is a folder under .github/skills at the root of your Flutter project, with a SKILL.md inside — for example .github/skills/flutter-feature/SKILL.md. It sits beside pubspec.yaml, gets committed, and is reviewed in pull requests like any other file, so the whole team shares one Skill.'
+    a: 'Each Skill is a folder under .github/skills at the root of your Flutter project, with a SKILL.md inside, for example .github/skills/flutter-feature/SKILL.md. It sits beside pubspec.yaml, gets committed, and is reviewed in pull requests like any other file, so the whole team shares one Skill.'
   - q: 'Why won''t my Flutter Copilot Skill activate?'
-    a: 'The description is almost always too vague. Copilot matches your task against each Skill''s description, so "helps with Flutter code" never fires. Name the words a developer actually types — "add screen", "new feature", "Firestore", "cubit" — and it activates. If it still misses, reference the Skill by name once to confirm the body works.'
+    a: 'The description is almost always too vague. Copilot matches your task against each Skill''s description, so "helps with Flutter code" never fires. Name the words a developer actually types ("add screen", "new feature", "Firestore", "cubit") and it activates. If it still misses, reference the Skill by name once to confirm the body works.'
   - q: 'Can a Copilot Skill enforce BLoC and a layered folder structure?'
     a: 'Yes. A Skill holds hard rules and a numbered workflow, so you can require a pure-Dart lib/domain, a lib/data implementation, and state in a Bloc or Cubit rather than setState. Add real code from your repo and a validation checklist, and Copilot mirrors that structure on new features.'
   - q: 'How do I keep Firebase out of the widget layer?'
     a: 'Put a rule in the Skill that the UI never touches FirebaseFirestore and only calls a repository interface from the domain layer. The Firestore code lives in lib/data behind that interface. The widget reads a Cubit, so its logic can be tested with a mocked use case and no emulator.'
   - q: 'Is there a real Flutter repo where I can see this Skill applied?'
-    a: 'Yes. The MSDevBuild Eats food delivery app at github.com/jssuthahar/food-delivery-app uses exactly this layering — pure-Dart domain, BLoC and Cubit state, Firebase behind a repository interface. It runs offline with no API keys, and has a live web build and an Android build you can install.'
+    a: 'Yes. The MSDevBuild Eats food delivery app at github.com/jssuthahar/food-delivery-app uses exactly this layering: pure-Dart domain, BLoC and Cubit state, Firebase behind a repository interface. It runs offline with no API keys, and has a live web build and an Android build you can install.'
+  - q: 'Why is calling Firestore inside build() a problem in Flutter?'
+    a: 'build() can run many times a second, so a Firestore query or snapshots() call inside it can read the same data over and over, cost money per read, and cause jank. It also ties the widget to Firestore, so the screen cannot be tested without an emulator. Load data in a Cubit through a repository instead.'
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
 
-Last week Devisri sent me a Flutter screen to review. She had asked GitHub Copilot to build an orders list, and Copilot did — in one file. `FirebaseFirestore.instance.collection('orders').snapshots()` was called straight inside the widget's `build()` method. State lived in a `setState` call. There was no repository, no bloc, and no test. It ran fine on her Pixel. It would have fallen over the first time the widget rebuilt under load, and it was untestable without a live Firestore emulator.
+A Flutter Copilot Skill is one `SKILL.md` file that teaches GitHub Copilot how your app builds a feature: a pure-Dart domain, a repository in front of Firebase, a Cubit or Bloc for state, and a `bloc_test` for every bloc. This is a build-along from an empty file to a tested Skill, using the real one from the MSDevBuild Eats food delivery app.
 
-I have seen this exact shape a dozen times. Copilot is not wrong about Flutter. It knows the APIs. It just does not know *our* Flutter: a pure-Dart domain layer, BLoC for state, Firebase locked behind a repository. That knowledge lived in my head and in review comments nobody could reuse. So let us build the Skill that fixes this for the whole team.
+Picture a developer on the app's team asking Copilot to build an orders list. Copilot does, in one file. `FirebaseFirestore.instance.collection('orders').snapshots()` is called straight inside the widget's `build()` method. The orders live in `setState`. There is no repository, no bloc, no test. It runs fine on a Pixel. It would read Firestore again on every rebuild under load, and it cannot be tested without a live emulator.
+
+Copilot is not wrong about Flutter. It knows the APIs. It does not know *this app's* Flutter, and that knowledge lived in review comments nobody could reuse.
 
 <Callout type="tip" title="Follow along in a real app, not a snippet">
-Every code sample below is taken from **MSDevBuild Eats**, a Flutter food delivery app I built — customer, restaurant partner and rider in one codebase, Clean Architecture, BLoC, 40-odd use cases. It runs with no API keys and no Firebase project, so you can clone it and have Copilot working inside it in about two minutes.
+Every code sample below is taken from **MSDevBuild Eats**, the open-source Flutter food delivery app used across this blog: customer, restaurant partner and rider in one codebase, Clean Architecture, BLoC, 40-odd use cases. It runs with no API keys and no Firebase project, so you can clone it and have Copilot working inside it in about two minutes.
 
-- **Source code** — [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
-- **Live web** — [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (sign in with `customer@msdevbuild.com` / `demo1234`)
-- **Android build** — [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b) through Firebase App Distribution
+- **Source code**: [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web**: [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (sign in with `customer@msdevbuild.com` / `demo1234`)
+- **Android build**: [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b) through Firebase App Distribution
 
 Place an order in the live app, then read the Orders code in the repo. The Skill in this article is the file that makes Copilot write more of it in the same shape.
 </Callout>
 
-This is Part 3 of my Copilot Skills series. If you want the theory — what a Skill is, how progressive disclosure works, why it sits between prompts and agents — read the [Copilot Skills deep dive](../github-copilot-skills-deep-dive) first. If you want the same build-along in C#, see [the .NET version of this walkthrough](../build-first-github-copilot-skill-dotnet-clean-architecture). Here we build the Flutter one. No theory. An empty file to a working, tested Skill.
+For the theory, what a Skill is and why it loads on demand, read [why Copilot Skills exist](/blog/github-copilot-skills-deep-dive) first. For the same build-along in C#, see [the .NET version](/blog/build-first-github-copilot-skill-dotnet-clean-architecture). Here we build the Flutter one.
+
+## One week of screens in one file
+
+| Day | What happened |
+| --- | --- |
+| Mon | "Build an orders list." `snapshots()` inside `build()`, orders in `setState`, no test |
+| Tue | Review asks for a repository, a use case, a Cubit and a `bloc_test`. Half a day of rework |
+| Wed | "Add a favourites page from Firestore." The same one-file shape |
+| Thu | Someone tries to test the empty state and needs a seeded Firestore emulator on a device |
+| Fri | The tech lead turns the review comments into the Skill this article builds |
+
+## The command that shows where the line is
+
+Three `grep` commands tell you whether a Flutter codebase is keeping Firebase out of its UI:
+
+```bash
+# Features that talk to Firestore directly (should be zero)
+grep -rlE "FirebaseFirestore|cloud_firestore" lib/features | wc -l
+
+# Features with a Bloc or Cubit
+grep -rlE "extends (Bloc|Cubit)<" lib/features | wc -l
+
+# Tests that exercise a bloc without an emulator
+grep -rl "blocTest" test | wc -l
+```
+
+On the food delivery app's `main` branch today:
+
+| Check | Result |
+| --- | --- |
+| Feature files importing Firestore | 0 |
+| Bloc and Cubit files in `lib/features` | 13 |
+| Test files using `blocTest` | 2 |
+
+The first line is the one that matters, and it is zero: nothing in `lib/features` knows Firestore exists. Monday's screen would have made it one. The third line is honest in the other direction: thirteen blocs and two test files that use `blocTest`. The Skill's "every bloc gets a bloc_test" rule is what closes that gap for new code.
+
+<figure>
+
+![Two step flows side by side for the request "add an orders screen backed by Firestore". On the left, no Skill, one file does everything: step 1, snapshots inside build, a Firestore read on every rebuild; step 2, setState holds the orders, business state in the widget; step 3, no repository and no use case, so the UI knows Firestore's shape; step 4, no test without an emulator, so no test at all. The red outcome: runs on a phone, breaks under load. On the right, the flutter-feature Skill loaded because "add screen" and "Firestore" match: step 1, an OrderRepository in lib/domain with Firestore only in lib/data; step 2, a GetOrderHistory use case, so the bloc asks for one thing; step 3, an OrdersCubit with a BlocBuilder, so build only renders; step 4, a bloc_test with a mocked use case that runs in milliseconds with no emulator. The green outcome: the correct shape and a test, first try.](./images/flutter-copilot-skill-orders-screen-before-after.png)
+
+<figcaption>Figure 1 — the same request with and without the Skill. The right-hand column is what the three grep commands measure.</figcaption>
+
+</figure>
+
+If you would rather see the idea first, it is a short video:
+
+<ShortHighlight slugs={['copilot-skill-flutter-firestore-build']} />
 
 ## What you need before we start
 
 This is a hands-on build, so here is the setup I am assuming. It is exactly what the food delivery repo already has, which is why I use it throughout.
 
 - A Flutter app with a **layered structure**: `lib/domain` (pure Dart), `lib/data`, and `lib/features/{feature}`.
-- **BLoC** for state — `flutter_bloc`, with a `Cubit` when a screen has one action and a full `Bloc` when it has several events. If you use Riverpod, the rules change but the recipe holds.
+- **BLoC** for state: `flutter_bloc`, with a `Cubit` when a screen has one action and a full `Bloc` when it has several events. If you use Riverpod, the rules change but the recipe holds.
 - **Firebase / Firestore** reached *only* through a repository interface, never from a widget.
 - GitHub Copilot with Agent Skills on your plan, in VS Code or the JetBrains plugin.
 - A repo you can commit to, because Skills are files in the repo.
@@ -59,7 +111,7 @@ One honest note. Agent Skills is a fast-moving area, and exact availability and 
 
 ### Where does the Skill file live in a Flutter project?
 
-A Skill is a folder with a `SKILL.md` inside it, under `.github/skills` at the root of your Flutter repo — right next to `pubspec.yaml`. Here is the layout we are building toward, using the real folder names from the food delivery app.
+A Skill is a folder with a `SKILL.md` inside it, under `.github/skills` at the root of your Flutter repo, right next to `pubspec.yaml`. Here is the layout we are building toward, using the real folder names from the food delivery app.
 
 ```text
 food_delivery_app/
@@ -88,7 +140,7 @@ Keep the folder name and the `name` in the frontmatter the same. Six months from
 
 Create `.github/skills/flutter-feature/SKILL.md` and write nothing but the header first. I do this on purpose. The frontmatter, and the `description` inside it, is the most important part of the whole file. It is the activation trigger. Copilot reads the description of every Skill on every task and loads the full body *only* when the description matches the work.
 
-So if the description is weak, nothing else you write matters. The Skill never fires. I cover the *why* behind this at length in [the .NET walkthrough](../build-first-github-copilot-skill-dotnet-clean-architecture); here I will keep it short.
+So if the description is weak, nothing else you write matters. The Skill never fires. [The .NET walkthrough](/blog/build-first-github-copilot-skill-dotnet-clean-architecture) covers the *why* at length; here it stays short.
 
 Here is a weak description, the kind I wrote on my first try:
 
@@ -116,7 +168,7 @@ description: >
 ---
 ```
 
-The difference is precision, not politeness. A strong description states the job, lists what the Skill enforces, and spells out the phrases that should wake it up. When Devisri types "add an orders screen backed by Firestore", the words "add screen" and "Firestore" line up with this description and the Skill activates.
+The difference is precision, not politeness. A strong description states the job, lists what the Skill enforces, and spells out the phrases that should wake it up. When a developer types "add an orders screen backed by Firestore", the words "add screen" and "Firestore" line up with this description and the Skill activates.
 
 In short: write the description as a matching rule, not a summary.
 
@@ -143,13 +195,13 @@ data/, a Cubit or Bloc for state, a screen that only renders, and a test.
 - Backend, .NET, or Azure work — those have their own Skills.
 ```
 
-I learned the value of "when not to use" the hard way. An early Skill of mine kept trying to add a Cubit to a `pubspec.yaml` dependency bump, because I never told it where its job ended. Three lines fixed it. On mobile teams this matters more than on backend — a lot of Flutter tickets are pure config, and you do not want a feature Skill firing on a version bump.
+I learned the value of "when not to use" the hard way. An early Skill of mine kept trying to add a Cubit to a `pubspec.yaml` dependency bump, because I never told it where its job ended. Three lines fixed it. On mobile teams this matters more than on backend. A lot of Flutter tickets are pure config, and you do not want a feature Skill firing on a version bump.
 
 <figure>
 
-![Decision flowchart. You ask Copilot for a screen that loads orders. If there is no Flutter Skill in .github/skills, you get a Firestore call inside build() that rebuilds, re-reads and bills you. If the Skill description does not match the task, the Skill sits there and never loads. When it does match, the Skill loads its Riverpod provider, repository and Result rules, and you get a provider, a repository and no I/O in build().](./images/flutter-skill-stops-firestore-in-build.png)
+![Decision flowchart. You ask Copilot for a screen that loads orders. If there is no Flutter Skill in .github/skills, you get a Firestore call inside build() that rebuilds, re-reads and bills you. If the Skill description does not match the task, the Skill sits there and never loads. When it does match, the Skill loads its repository, use case, Cubit and Result rules, and you get a Cubit, a repository and no I/O in build().](./images/flutter-skill-stops-firestore-in-build.png)
 
-<figcaption>Figure 1 — two gates between a request and the Flutter anti-pattern.</figcaption>
+<figcaption>Figure 2 — two gates between a request and the Flutter anti-pattern.</figcaption>
 
 </figure>
 
@@ -170,7 +222,7 @@ If any of these is unclear, ask one short question before writing code.
 
 That last line matters more than it looks. Without it, Copilot fills gaps with assumptions and hands you a screen wired to a `products` collection when you meant `orders`. With it, Copilot asks "which Firestore collection?" and you avoid a whole wrong file.
 
-## Step 4: Add the rules — your non-negotiables
+## Step 4: Add the rules, your non-negotiables
 
 This is the heart of the Skill. These are the rules I would say out loud in a review. Writing them here means I never have to say them again.
 
@@ -197,7 +249,7 @@ This is the heart of the Skill. These are the rules I would say out loud in a re
 
 Keep rules as flat statements. "Do X." "Never do Y." Copilot follows crisp, testable rules far better than paragraphs. I once wrote a rule as a soft hint ("try to keep Firebase out of widgets") and got `snapshots()` in `build()` anyway. Changed it to "The UI NEVER calls FirebaseFirestore directly" and the behaviour flipped.
 
-The rule about `get_it` is the one nobody can infer. `get_it` is right there in the dependency list, blocs are right there in every feature folder, and the obvious conclusion — register the blocs too — is wrong. Rules like that are exactly what a Skill is for.
+The rule about `get_it` is the one nobody can infer. `get_it` is right there in the dependency list, blocs are right there in every feature folder, and the obvious conclusion (register the blocs too) is wrong. Rules like that are exactly what a Skill is for.
 
 ## Step 5: Add the numbered workflow
 
@@ -217,11 +269,11 @@ Rules say what must be true. The workflow says what order to do things in. This 
 8. Run the validation checklist below before finishing.
 ```
 
-The order is deliberate: the contract exists first, then the implementation, then the use case, then state, then the screen, then the test. When Copilot follows this order it rarely doubles back, because each step depends only on steps already done. The domain layer has no idea Firestore exists — that is the point.
+The order is deliberate: the contract exists first, then the implementation, then the use case, then state, then the screen, then the test. When Copilot follows this order it rarely doubles back, because each step depends only on steps already done. The domain layer has no idea Firestore exists. That is the point.
 
 ## Step 6: Add real code examples
 
-Now we show Copilot exactly what "correct" looks like. This is where most Skills go weak — people write abstract `Foo`/`Bar` snippets and Copilot returns abstract code. Use real, production-shaped examples with real names. Everything below is lifted from the Orders feature in the [food delivery repo](https://github.com/jssuthahar/food-delivery-app), so you can open the file next to the article.
+Now we show Copilot exactly what "correct" looks like. This is where most Skills go weak. People write abstract `Foo`/`Bar` snippets and Copilot returns abstract code. Use real, production-shaped examples with real names. Everything below is lifted from the Orders feature in the [food delivery repo](https://github.com/jssuthahar/food-delivery-app), so you can open the file next to the article.
 
 First, the **domain**, meaning the repository interface. Notice there is not a single Firebase import, and every method hands back a `Result`.
 
@@ -271,7 +323,7 @@ factory OrderModel.fromJson(Map<String, dynamic> json) => OrderModel(
 
 Two things earn their place here. `guard()` is the single point where a thrown `AppException` becomes a domain `Failure`, so error translation happens once instead of in every repository method. And the mapping defaults every optional field rather than letting a `null` cast blow up in production. A common mistake is `json['subtotal'] as double`, which throws the moment Firestore hands back an `int`. `(json['subtotal'] as num).toDouble()` survives both.
 
-Now the **state** — a `Cubit` and its state class. This is where loading, data, and error live, off the widget.
+Now the **state**: a `Cubit` and its state class. This is where loading, data, and error live, off the widget.
 
 ```dart
 // lib/features/orders/bloc/orders_cubit.dart
@@ -309,7 +361,7 @@ class OrdersCubit extends Cubit<OrdersState> {
 }
 ```
 
-Three things I always encode in the Skill. The cubit depends on a use case, not on a repository and certainly not on Firestore — that indirection is what a test mocks. `fold` forces both paths to be handled, so a Firestore error becomes a rendered error state instead of an unhandled exception. And `silent: true` exists because pull-to-refresh should not drop the screen back to skeletons; I have shipped the version that flickers and been asked about it in the same demo.
+Three things I always encode in the Skill. The cubit depends on a use case, not on a repository and certainly not on Firestore. That indirection is what a test mocks. `fold` forces both paths to be handled, so a Firestore error becomes a rendered error state instead of an unhandled exception. And `silent: true` exists because pull-to-refresh should not drop the screen back to skeletons; I have shipped the version that flickers and been asked about it in the same demo.
 
 The state class is where the small conveniences live, which keeps the widget dumb:
 
@@ -374,7 +426,7 @@ Widget build(BuildContext context) {
 }
 ```
 
-Look at what is *not* here. No Firestore. No `setState`. No sorting, no filtering, no business logic. The cubit is created by `BlocProvider` at the screen that owns it, so its lifetime matches the route — that is why it is not in `get_it`. `sl<GetOrderHistory>()` pulls the use case out of the service locator, which is the only thing the screen resolves. And `ListView.builder` builds rows lazily, so a 5,000-order history does not build 5,000 widgets at once.
+Look at what is *not* here. No Firestore. No `setState`. No sorting, no filtering, no business logic. The cubit is created by `BlocProvider` at the screen that owns it, so its lifetime matches the route, which is why it is not in `get_it`. `sl<GetOrderHistory>()` pulls the use case out of the service locator, which is the only thing the screen resolves. And `ListView.builder` builds rows lazily, so a 5,000-order history does not build 5,000 widgets at once.
 
 Finally the **test**, a `bloc_test` with a mocked use case. No emulator, runs in milliseconds.
 
@@ -418,7 +470,7 @@ void main() {
 }
 ```
 
-This test is the whole payoff of the `Result` rule. The failure case is a one-line `Result.failure(...)` — no emulator, no network, no fake exception plumbing. Give Copilot this example and it stops writing screens that can only be tested by hand on a device.
+This test is the whole payoff of the `Result` rule. The failure case is a one-line `Result.failure(...)`: no emulator, no network, no fake exception plumbing. Give Copilot this example and it stops writing screens that can only be tested by hand on a device.
 
 ## Step 7: Add a validation checklist
 
@@ -453,8 +505,6 @@ Here is the same checklist as a table, which is how I hold it in my head during 
 
 ## Step 8: Add the expected output
 
-{/* SCREENSHOT: the actual output on your screen — save as ./images/step-8-add-the-expected-output.png, then replace this line with: ![Step 8: Add the expected output](./images/step-8-add-the-expected-output.png) */}
-
 Finish the Skill by telling Copilot what a correct result looks like as files. This removes any doubt about "am I done". When the file list matches, the feature is structurally complete.
 
 ```markdown
@@ -470,7 +520,7 @@ A correct result for a new "Orders" feature produces:
 - test/bloc/orders_cubit_test.dart
 ```
 
-That is the whole Skill. Frontmatter, purpose, when-not-to-use, inputs, rules, workflow, real examples, checklist, expected output. You now have a complete, assembled `SKILL.md` — the same shape as the .NET one, only the content is Flutter. Commit it and let us test it for real.
+That is the whole Skill. Frontmatter, purpose, when-not-to-use, inputs, rules, workflow, real examples, checklist, expected output. You now have a complete, assembled `SKILL.md`, the same shape as the .NET one, only the content is Flutter. Commit it and let us test it for real.
 
 ## How do I know the Skill actually fired?
 
@@ -487,11 +537,11 @@ Here is what good activation looks like. Copilot recognises "add", "screen", and
 5. An `OrdersScreen` with `BlocProvider` and `BlocBuilder` rendering loading, data, and empty.
 6. A `bloc_test` with a mocked use case.
 
-If you get that, the Skill works. The knowledge that used to live in my review comments now runs itself.
+If you get that, the Skill works. The knowledge that used to live in review comments now runs itself.
 
 ### How to tell the description failed to trigger
 
-Sometimes you ask for a screen and Copilot puts `snapshots()` straight in `build()` anyway. That is the tell that the Skill did not activate. Do not start editing the rules — they are fine, they were never loaded. The problem is the description did not match.
+Sometimes you ask for a screen and Copilot puts `snapshots()` straight in `build()` anyway. That is the tell that the Skill did not activate. Do not start editing the rules. They are fine; they were never loaded. The problem is the description did not match.
 
 Two quick fixes, in order:
 
@@ -506,26 +556,71 @@ A .NET Skill and a Flutter Skill share a shape but not their traps. Here are the
 
 **Rebuild cost.** The single biggest Flutter performance mistake is doing work inside `build()`. `build()` can run many times a second. If a screen queries Firestore or builds a big widget tree on every rebuild, the app janks. The rule "build() stays cheap" plus `ListView.builder` for long lists is what keeps frames under 16ms. With BLoC there is a second lever Copilot never reaches for on its own: `BlocBuilder`'s `buildWhen`, so a state change that only affects a badge does not repaint the whole list.
 
-**Bloc lifetime.** A bloc created by `BlocProvider` is closed for you when the route is popped. A bloc registered as a singleton in `get_it` is not — it lives for the whole app, holding a stream subscription for a screen nobody is looking at. That is why the rule says blocs stay out of the service locator, and why only the three genuinely app-wide ones (session, basket, theme) are hoisted to the root. On a mobile device with a real memory ceiling, a screen you open and close a hundred times should not leave a hundred live listeners behind.
+**Bloc lifetime.** A bloc created by `BlocProvider` is closed for you when the route is popped. A bloc registered as a singleton in `get_it` is not. It lives for the whole app, holding a stream subscription for a screen nobody is looking at. That is why the rule says blocs stay out of the service locator, and why only the three genuinely app-wide ones (session, basket, theme) are hoisted to the root. On a mobile device with a real memory ceiling, a screen you open and close a hundred times should not leave a hundred live listeners behind.
 
-**Event transformers for search.** The moment a feature has a search box, Copilot will write a bloc that fires a query on every keystroke. In the repo, search uses `bloc_concurrency`'s `restartable()` with a 320 ms debounce, so only the newest query is ever in flight. Encode it as a rule — "search events use restartable() with a debounce" — or you will pay for it in Firestore reads.
+**Event transformers for search.** The moment a feature has a search box, Copilot will write a bloc that fires a query on every keystroke. In the repo, search uses `bloc_concurrency`'s `restartable()` with a 320 ms debounce, so only the newest query is ever in flight. Encode it as a rule ("search events use restartable() with a debounce") or you will pay for it in Firestore reads.
 
-**Keeping Firebase out of the UI so tests stay fast.** This is the one that pays off every single day. When Firestore lives only in `lib/data` behind an interface, your bloc tests run against a mocked use case with no emulator. On Devisri's original one-file screen, testing the empty state meant seeding a real collection and running on a device. With the split, the same test is a `blocTest` that runs in milliseconds in CI. That difference is the reason the whole team writes tests now instead of skipping them.
+**Keeping Firebase out of the UI so tests stay fast.** This is the one that pays off every single day. When Firestore lives only in `lib/data` behind an interface, your bloc tests run against a mocked use case with no emulator. On Monday's one-file screen, testing the empty state meant seeding a real collection and running on a device. With the split, the same test is a `blocTest` that runs in milliseconds in CI. That difference is why a team starts writing bloc tests instead of skipping them.
 
-## Where this series goes next
+## How efficient is the Flutter Skill?
 
-You now have one working Flutter Skill. The real payoff is a small, focused library of them, one Skill per job. On my current work that means this `flutter-feature` Skill, a separate `flutter-form-validation` Skill, and the `dotnet-cqrs-feature` Skill from Part 2 living in its own repo.
+The real `flutter-feature/SKILL.md` in the app is 4,640 characters, roughly 1,160 tokens, and its description is about 430 characters, roughly 110 tokens. The description rides on every request; the body loads only when someone asks for a screen, a page or anything Firestore.
 
-Part 4 goes to the cloud: an Azure Skill that encodes how we provision and deploy — the same recipe of description-as-trigger, rules, workflow, and real examples, only the stack is Bicep and pipelines instead of Dart. The moment you have three or four of these, treat them like code. Review each Skill in a pull request. When a Flutter convention changes, the Skill changes in the same PR, so the AI and the humans learn the new rule at the same moment. A Skill that drifts out of date is worse than none, because it confidently produces the old pattern.
+| | Monday, no Skill | After the Skill |
+| --- | --- | --- |
+| Files for an orders screen | 1 | 6: entity, repository, implementation, use case, Cubit, screen, plus a test |
+| Firestore reads per screen rebuild | 1 | 0; the Cubit loads once |
+| Can the empty state be tested in CI? | No, it needs an emulator | Yes, a `blocTest` in milliseconds |
+| Review comments about architecture | 6 | 0 |
 
-That shared, PR-reviewed Skill library is where a mobile team stops repeating the same review comment forever. Enterprise GitHub Copilot on a mobile team is not about typing faster. It is about every new screen arriving in the shape the team already agreed on.
+The rule underneath: **a Flutter Skill costs about 110 tokens on every request and 1,160 on the requests that build a screen; a screen without it costs a Firestore read on every rebuild, forever**.
 
-## Conclusion
+## Questions a tech lead will ask about this
 
-Devisri's one-file screen was never really Copilot's fault. The knowledge to build it right existed on our team — layered folders, BLoC, Firebase behind a repository. It just had no home the AI could read. A `SKILL.md` gives it that home.
+1. **"Our lint rules already exist. Why a Skill?"** A lint catches `print`. It does not know that orders should come through a use case. The Skill carries the method; the lint carries the syntax.
+2. **"What about setState?"** Local UI state, a checkbox, a page index, a quantity stepper, is fine in `setState`; the app does exactly that. Feature data is not. Say it that precisely in the rules.
+3. **"How do we know it fired?"** Ask for a screen and count the files. One file means it did not load.
+4. **"Does it work for Riverpod teams?"** The recipe does; the rules change. Name your state library and the ones you do not use.
+5. **"Where does the Firestore mapping go?"** In `lib/data`, and in a `reference/` file in the Skill folder if the mapping rules are long.
 
-You have now built one from an empty file: a sharp description that triggers it, rules that hold the line, a workflow that repeats, real Dart examples that set the quality bar, and a `bloc_test` that proves the split was worth it. That is not a toy. It is the file I ship on a real Flutter project, and the code behind every example is sitting in [the food delivery repo](https://github.com/jssuthahar/food-delivery-app) if you want to read the rest of it.
+## What to do on day one
 
-So here is my push. Pick the one thing Copilot gets wrong most often in your Flutter repo this week — Firebase in `build()`, `setState` where a cubit belongs, a screen with no test — and write a Skill that fixes exactly that. Ship it, review it in a PR, and watch the next screen come back correct on the first try. One real Flutter Skill this week beats a perfect plan next quarter.
+- Run the three `grep` commands and write down the numbers.
+- Write the description from the words your team types: "add screen", "Firestore", "list".
+- Use one real feature from your app for every example in the Skill.
+- Make "every bloc gets a bloc_test" a rule, and check it with the third `grep`.
+- Put the Firestore-in-features check in CI so it stays at zero.
 
-If you want the concepts behind everything you just built, go back to the [Copilot Skills deep dive](../github-copilot-skills-deep-dive). If you want the same recipe in C#, read [the .NET walkthrough](../build-first-github-copilot-skill-dotnet-clean-architecture). The [BLoC documentation](https://bloclibrary.dev/) is worth a pass too if the `Cubit` versus `Bloc` split is new to you. Then come build the next one for your own stack.
+## Key takeaways
+
+- A Flutter Skill lives at `.github/skills/flutter-feature/SKILL.md`, and its description decides whether it ever loads.
+- The rules that matter most: Firebase only in `lib/data`, state in a Bloc or Cubit, and `build()` that only renders.
+- Test it on the exact request that went wrong, and treat bad output as an activation problem first.
+- Keeping Firestore out of widgets is what makes bloc tests possible without an emulator.
+- Measure the line with `grep`, and keep the first number at zero in CI.
+
+## The next screen
+
+The following Monday, the same developer asks Copilot to "add a page listing a rider's past deliveries from Firestore".
+
+"Add", "page" and "Firestore" match the description. Copilot writes a `DeliveryRepository` contract in `lib/domain`, the Firestore implementation in `lib/data`, a `GetDeliveryHistory` use case, a `DeliveriesCubit`, a screen with `BlocBuilder`, and a `blocTest` that covers loading, data and empty with a mocked use case.
+
+The first `grep` still returns zero. The third one returns three. Review is about the empty-state wording.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this build-along prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could write a Skill for any Flutter app.
+
+1. **The orders list page.** A developer types "orders list page" and gets `snapshots()` in `build()`. Which section failed, and what exactly do you change?
+2. **The singleton bloc.** Copilot registers `OrdersCubit` in `get_it` as a singleton. Which Flutter gotcha is that, and what does it cost on a phone after a hundred visits to the screen?
+3. **setState, again.** Your rules say "not setState" and the first `grep` of your codebase shows nine files using it. Are they all violations? How would you reword the rule?
+4. **Search as you type.** A new search screen fires a Firestore query on every keystroke. Which rule was missing from the Skill, and what does it save?
+5. **Two test files.** The third `grep` returns two files for thirteen blocs. Using the efficiency section and the checklist, what changes for the next screen, and what do you do about the other eleven?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>
+
+For the `Cubit` versus `Bloc` split, the [BLoC documentation](https://bloclibrary.dev/) is worth a read.

@@ -137,5 +137,6 @@
     "azure mobile app security best practices",
     "az-204 azure security"
   ],
-  "publishedAt": "2026-08-16"
+  "publishedAt": "2026-08-16",
+  "article": "azure-mobile-app-layers"
 }

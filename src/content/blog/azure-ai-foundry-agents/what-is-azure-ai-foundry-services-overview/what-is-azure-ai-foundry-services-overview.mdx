@@ -18,7 +18,7 @@ faq:
   - q: 'What is the difference between Azure AI Foundry and Azure OpenAI?'
     a: 'Azure OpenAI is a model endpoint. Foundry is the platform around models: agents, tools, memory, evaluation, tracing and publishing, plus models from vendors other than OpenAI. If all you need is chat completions or embeddings, an Azure OpenAI resource is simpler and enough.'
   - q: 'What is the difference between a prompt agent and a hosted agent?'
-    a: 'A prompt agent is defined by configuration — model, instructions, tools — and Foundry runs it, with no compute of yours involved. A hosted agent is your own code in a container that Foundry runs with a managed endpoint, identity and scaling. Start with a prompt agent.'
+    a: 'A prompt agent is defined by configuration (model, instructions, tools) and Foundry runs it, with no compute of yours involved. A hosted agent is your own code in a container that Foundry runs with a managed endpoint, identity and scaling. Start with a prompt agent.'
   - q: 'Do I need Foundry to build an AI agent?'
     a: 'No. You can run the tool-calling loop yourself against any model endpoint. Foundry gives you the agent as a versioned resource, a playground non-developers can test in, conversation state you did not write, and tracing into Application Insights. That is the part you would otherwise build twice.'
   - q: 'What is Foundry classic?'
@@ -28,6 +28,7 @@ faq:
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
 
 The first serious conversation I had about this platform went badly, because three of us in the room meant three different things by "Foundry". One meant the portal. One meant the model endpoint. One meant the agent runtime. All three were partly right, which is the worst kind of confusion.
 
@@ -57,7 +58,7 @@ Once a resource exists, its **Keys and Endpoint** page shows you the other half 
 
 ![The Keys and Endpoint page of a Foundry resource in the Azure portal, showing Key 1, Key 2, the region, and the Foundry API endpoint under tabs for Foundry, OpenAI and AI Services](./images/FoundaryURL.png)
 
-Note what that page gives you and what it does not. The API endpoint there belongs to the **resource** — `https://your-resource.services.ai.azure.com/`. The project endpoint is that same host with `/api/projects/your-project` on the end, and it is the one your code uses. The three tabs are worth a look too, because the same resource answers on a Foundry, an OpenAI and an AI Services address depending on which SDK is calling it.
+Note what that page gives you and what it does not. The API endpoint there belongs to the **resource**: `https://your-resource.services.ai.azure.com/`. The project endpoint is that same host with `/api/projects/your-project` on the end, and it is the one your code uses. The three tabs are worth a look too, because the same resource answers on a Foundry, an OpenAI and an AI Services address depending on which SDK is calling it.
 
 The two keys on that page are real and they work. This series does not use them. Every call goes through Microsoft Entra ID instead, because a key cannot tell you which customer is asking, and in an app where one user must never see another user's orders, that is the only question that matters.
 
@@ -70,6 +71,9 @@ The mental model that helped me most: **Azure OpenAI is an endpoint, Foundry is 
 <figcaption>Figure 1 — one project endpoint, four things behind it. If you need none of them, Azure OpenAI on its own is still the right answer.</figcaption>
 
 </figure>
+
+<ShortHighlight slugs={['azure-ai-foundry']} />
+
 
 ## What sits inside the resource
 
@@ -91,7 +95,7 @@ The catalogue is where that table stops being abstract:
 
 ![The Microsoft Foundry portal model catalogue showing 196 models filtered to those available in the project, with cards for GPT, Claude, DeepSeek, Grok, Kimi, Qwen, Mistral and Microsoft MAI models alongside filters for collection, source, supported features and region](./images/ModlCatalog.png)
 
-Nearly two hundred models in one project, from vendors who compete with each other, behind one endpoint and one bill. That is the part people underestimate about Foundry, and it is why the "which model" argument is worth having later rather than earlier — swapping one for another is a configuration change, not a migration. Note the left navigation too: **Models**, **Agents**, **Tools**, **Services**. Those four are the platform, and the rest of this series lives in the first three.
+Nearly two hundred models in one project, from vendors who compete with each other, behind one endpoint and one bill. That is the part people underestimate about Foundry, and it is why the "which model" argument is worth having later rather than earlier; swapping one for another is a configuration change, not a migration. Note the left navigation too: **Models**, **Agents**, **Tools**, **Services**. Those four are the platform, and the rest of this series lives in the first three.
 
 Three of these deserve more than a table row.
 
@@ -150,7 +154,7 @@ There are two generations in circulation. Anything using `PersistentAgentsClient
 
 This is the section I wish more platform overviews had.
 
-**If you only need chat completions or embeddings**, use an Azure OpenAI resource directly — [a RAG pipeline in .NET](/blog/azure-openai-rag-dotnet) is built exactly that way, with no Foundry in sight. Fewer concepts, one endpoint, lower latency. A summariser or a classifier does not need an agent runtime.
+**If you only need chat completions or embeddings**, use an Azure OpenAI resource directly: [a RAG pipeline in .NET](/blog/azure-openai-rag-dotnet) is built exactly that way, with no Foundry in sight. Fewer concepts, one endpoint, lower latency. A summariser or a classifier does not need an agent runtime.
 
 **If your "agent" has one tool and no conversation**, write the tool-calling loop yourself. It is about forty lines. You are not gaining much from the platform.
 
@@ -158,7 +162,7 @@ This is the section I wish more platform overviews had.
 
 **If your data cannot leave a specific boundary**, check regional availability and the networking options before you design around Foundry. Private networking and bring-your-own resources exist, but they change the setup meaningfully and are worth confirming early.
 
-For a purely retrieval-shaped problem, answering questions from documents with no actions taken, a plain RAG pipeline is often the better tool and I have written that one up separately: [building a RAG pipeline in .NET with Azure OpenAI](../azure-openai-rag-dotnet).
+For a purely retrieval-shaped problem, answering questions from documents with no actions taken, a plain RAG pipeline is often the better tool and I have written that one up separately: [building a RAG pipeline in .NET with Azure OpenAI](/blog/azure-openai-rag-dotnet).
 
 ## What it costs, roughly
 

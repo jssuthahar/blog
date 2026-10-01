@@ -137,5 +137,6 @@
     "devsecops azure checklist",
     "az-500 azure security"
   ],
-  "publishedAt": "2026-08-17"
+  "publishedAt": "2026-08-17",
+  "article": "hacker-vs-azure-defences"
 }

@@ -137,5 +137,6 @@
     "backend security for mobile developers",
     "az-204 secure api"
   ],
-  "publishedAt": "2026-08-23"
+  "publishedAt": "2026-08-23",
+  "article": "secure-mobile-api-five-steps"
 }

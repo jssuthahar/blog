@@ -3,6 +3,7 @@ title: 'From Search Box to AI Agent: Microsoft Foundry (Azure AI Foundry) for a 
 seoTitle: 'AI Agents Explained with Azure AI Foundry'
 description: 'The business case for an AI agent on an app that already exists, what an agent really is, and the architecture that keeps it inside its lane.'
 highlight: "An agent is a model that has been given a set of functions it is allowed to ask you to run. It does not run your code and it cannot reach your database. Once you see it that way, the design question stops being 'how smart is the model' and becomes 'which functions am I willing to expose, and to whom'."
+updatedAt: 2026-10-01
 publishedAt: 2026-08-05
 cover: './images/azure-ai-foundry-ai-agent-food-delivery-app-cover.png'
 coverAlt: 'Share banner headed AZURE AI FOUNDRY · AGENTS with the title "It asks. It never runs." and the line "An agent is a model handed a list of functions it is allowed to request." above the MSDEVBUILD wordmark and the author name. On the right, a three-step chain: a warn box reading "Model decides it needs data", it cannot reach your database; then a plain box reading "Returns a function_call", name, call_id, arguments; then a good box reading "Your API validates, then runs it", your code, your rules, your roles.'
@@ -24,21 +25,22 @@ faq:
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
 
-A customer opened our food delivery app and typed "spicy food under RM20" into the search box.
+A customer opened MSDevBuild Eats and typed "spicy food under RM20" into the search box.
 
-The app returned nothing. Not a weak match, not a wrong price — an empty state, on a catalogue that has seventeen spicy dishes under RM20 sitting in it. Nothing was broken. The search worked exactly as designed, and the design was the problem.
+The app returned nothing. Not a weak match, not a wrong price: an empty state, on a catalogue that has seventeen spicy dishes under RM20 sitting in it. Nothing was broken. The search worked exactly as designed, and the design was the problem.
 
 This series puts Azure AI Foundry agents on top of an application that already exists, with all of its roles, endpoints and awkward history intact. No greenfield, no toy chatbot. The app is MSDevBuild Eats, a Flutter food delivery platform with three role experiences shipped from one codebase: customer ordering, restaurant partner dashboard, delivery rider queue.
 
-[Part 1 mapped the platform](../what-is-azure-ai-foundry-services-overview): what Foundry is, which services live inside it, and when you do not need it. This part is the other half of the groundwork, and the last one with no code to copy. It covers why the feature was worth building, what an agent actually is underneath, and the architecture the rest of the series fills in. Skip it and the later parts will read like configuration.
+[Part 1 mapped the platform](/blog/what-is-azure-ai-foundry-services-overview): what Foundry is, which services live inside it, and when you do not need it. This part is the other half of the groundwork, and the last one with no code to copy. It covers why the feature was worth building, what an agent actually is underneath, and the architecture the rest of the series fills in. Skip it and the later parts will read like configuration.
 
 <Callout type="tip" title="Follow along in a real app, not a snippet">
 Every Dart file path and class name in this series is from this repository. It runs with no API keys and no Firebase project, so you can clone it and be at the same screen I am in about ninety seconds.
 
-- **Source code** — [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
-- **Live web** — [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`)
-- **Android build** — [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
+- **Source code**: [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web**: [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`)
+- **Android build**: [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
 
 Sign in as `partner@msdevbuild.com` and `rider@msdevbuild.com` (same password) to see the other two dashboards.
 </Callout>
@@ -152,6 +154,9 @@ Here is the loop, in order, for one customer sentence.
 
 </figure>
 
+<ShortHighlight slugs={['foundry-agent-search-box-seventeen-dishes']} />
+
+
 The three middle boxes are a second round trip. That is what people miss when estimating cost and latency: one user turn with one tool call is at least two model invocations, not one, and a turn that needs two tools costs three.
 
 Two properties of this loop matter more than the rest.
@@ -178,26 +183,11 @@ Do not do that. Calling Foundry from the mobile client means shipping a credenti
 
 The other components, briefly. **Flutter** owns presentation and holds the auth token. **Foundry Agent Service** owns the model, the agent definition as a versioned resource, and conversation state. **The tool executor** is a small dispatch layer in your API mapping a tool name to a C# method. **Business APIs** are the endpoints you already shipped, unchanged. **The database** never learns that any of this happened.
 
-If you have built a retrieval pipeline before, the grounding instinct carries over from [building a RAG pipeline in .NET](../azure-openai-rag-dotnet). The difference is that retrieval reads while an agent acts, and acting is what changes the security model.
+If you have built a retrieval pipeline before, the grounding instinct carries over from [building a RAG pipeline in .NET](/blog/azure-openai-rag-dotnet). The difference is that retrieval reads while an agent acts, and acting is what changes the security model.
 
-## What the rest of this series builds
+## What comes before any code
 
-Each part is a working piece, in the order I actually built them.
-
-| Part | What you end up with |
-| --- | --- |
-| 3 | The ASP.NET Core API the agent will call, testable with curl |
-| 4 | A Foundry project, a deployed model, and an agent you can talk to in the playground |
-| 5 | Nine function tools and the run loop, in ASP.NET Core |
-| 6 | JWT identity, role-scoped tools, and prompt injection defences |
-| 7 | Firebase token validation, and the API deployed to Azure with no secrets |
-| 8 | The Flutter chat client, with confirmation for anything that writes |
-| 9 | Streaming responses, so the wait reads as progress |
-| 10 | Tracing, tests, token cost control, and what breaks under load |
-| 11 | The same tools exposed over MCP, reusable by any agent or client |
-| 12 | Three specialist agents with handoff routing between them |
-
-The backend API comes first, because the reference app has no server and every tool in this series is a thin wrapper over one method in it.
+The reference app has no server, and every tool an agent calls should be a thin wrapper over one tested API method. So the work starts with two decisions, not with a prompt: which model each step of the pipeline actually needs, covered in [choosing the right model in Microsoft Foundry](/blog/azure-ai-foundry-choose-right-model), and which API methods the agent will be allowed to ask for.
 
 ## Key takeaways
 

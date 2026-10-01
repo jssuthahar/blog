@@ -137,5 +137,6 @@
     "how tokens work explained simply",
     "az-204 authentication"
   ],
-  "publishedAt": "2026-08-22"
+  "publishedAt": "2026-08-22",
+  "article": "secure-login-journey"
 }

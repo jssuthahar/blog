@@ -1,6 +1,6 @@
 ---
 title: 'The AI Engineering Team'
-description: 'Thirty AI agents for a real software project — purpose, prompts, hooks and skills for each, with Flutter, Firebase and Riverpod as the running example.'
+description: 'Thirty AI agents for a real software project: purpose, prompts, hooks and skills for each, with Flutter, Firebase and BLoC as the running example.'
 order: 3
 ---
 

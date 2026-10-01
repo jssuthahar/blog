@@ -1,0 +1,369 @@
+---
+title: 'AI Agents for Testing, Code Review, Performance and UI Review'
+seoTitle: 'AI Agents for Testing and Review'
+description: 'The four AI agents that check the work (UI review, testing, code review and performance) with the prompts and hooks that make findings trustworthy.'
+highlight: 'A test suite can be green and still never check the rule that matters, because tests written from the code assert what the code already does. Give the testing agent the requirements first and the code second, make every code review finding cite a rule, hand the performance agent measurements instead of questions, and have the UI agent fill a state matrix for every screen.'
+publishedAt: 2026-09-23
+updatedAt: 2026-10-01
+category: engineering
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Code Review', 'Testing', 'Flutter', 'Performance', 'UI Review', 'BLoC']
+series: 'ai-agent-team'
+seriesOrder: 4
+cover: './images/ai-agents-testing-code-review-performance-ui-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "The AI Engineering Team" above the title "93 green tests, one rule untested" and the line "Tests written from the code cannot disagree with it.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Testing agent reads the code first, asserts what it already does", an arrow labelled "green" to an amber box reading "Every cancel test starts from placed, the rule is never exercised", and an arrow labelled "the fix" to a green box reading "Requirements first, code second, a test that can fail".'
+draft: true
+faq:
+  - q: 'Should an AI testing agent read the code it is testing?'
+    a: 'Only after it has named a test for every acceptance criterion. An agent that reads the implementation first writes tests that assert what the code does, which pass forever and catch nothing. Give it the requirements, then let it read the code only to wire the tests up.'
+  - q: 'Can an AI code review agent replace a human reviewer?'
+    a: 'No. It reliably catches rule violations: a call in the wrong layer, a missing error state, an untested branch. It cannot tell you the feature solves the wrong problem or that an abstraction will hurt in six months. Give it the mechanical layer so people have attention left for the rest.'
+  - q: 'Why does an AI performance agent give generic advice?'
+    a: 'Because it was given no numbers. Without a profile or a baseline it can only recite general Flutter advice. Hand it frame timings, a rebuild count, a build size or a trace, and it starts ranking real findings by measured cost.'
+  - q: 'What should a UI review agent check that a designer would not?'
+    a: 'The states nobody designs: loading, empty, error and offline. Mockups show the happy path, so the other states get invented on the day by whoever writes the widget. A failed load that renders as an empty list is the classic result.'
+  - q: 'How do you stop an AI review agent from producing noise?'
+    a: 'Require every finding to cite the rule it violates, from AGENTS.md or an ADR, and drop anything it cannot cite. Uncited findings are style opinions, and a review full of style opinions gets skimmed along with the real findings.'
+  - q: 'Is test coverage a good measure of AI-written tests?'
+    a: 'No. Coverage says which lines ran, not which promises were checked. A better measure is whether every acceptance criterion has a test that names it, which a short pre-push hook can enforce.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+A test suite can be green and still never check the rule that matters, because tests written from the code assert what the code already does. Four agents check the work, and each one is only as good as what it is pointed at: the testing agent at the requirements, the code review agent at recorded rules, the performance agent at measurements, and the UI review agent at a state matrix for every screen.
+
+MSDevBuild Eats has 93 tests across nine files. All green. And the rule from [the planning and analyst agents](/blog/ai-agents-project-planning-business-analyst-architect), that an order can be cancelled only before the kitchen starts cooking, is not checked by any of them.
+
+<Callout type="tip" title="A real repository, open alongside">
+Everything counted in this article is in **MSDevBuild Eats**, an open-source Flutter food delivery app with bloc tests, widget tests and shared state views. It runs with no API keys.
+
+- **Source code**: [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web**: [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`)
+</Callout>
+
+## Green, and silent on the rule
+
+Picture the week the cancel feature is "tested".
+
+| Day | What happened |
+| --- | --- |
+| Mon | A testing agent is asked to "add tests for cancelling an order" with the repository open |
+| Tue | It reads `cancelOrder`, sees a status change and a timeline note, and asserts both |
+| Wed | Coverage goes up. The suite is green |
+| Thu | A new admin tool calls `cancelOrder` on an order that is already preparing. It works |
+| Fri | Someone asks which test should have caught it. None was ever going to |
+
+## The command that shows what the tests check
+
+```bash
+grep -c "test(\|testWidgets(\|blocTest" test/*/*.dart | awk -F: '{s+=$2} END {print s}'
+grep -n "cancelling records\|cancellation note" -A3 test/data/demo_backend_test.dart test/domain/order_lifecycle_test.dart
+```
+
+```text
+93
+test/data/demo_backend_test.dart:259:    test('cancelling records a reason on the timeline', () async {
+test/data/demo_backend_test.dart-260-      final Order target = (await orders.getOrdersForRestaurant('r-06'))
+test/data/demo_backend_test.dart-261-          .valueOrNull!
+test/data/demo_backend_test.dart-262-          .firstWhere((Order o) => o.status == OrderStatus.placed);
+test/domain/order_lifecycle_test.dart:77:    test('a cancellation note is preserved on the timeline', () {
+test/domain/order_lifecycle_test.dart-78-      final Order cancelled = order().advanceTo(
+test/domain/order_lifecycle_test.dart-79-        OrderStatus.cancelled,
+test/domain/order_lifecycle_test.dart-80-        note: 'Restaurant closed',
+```
+
+Two tests cancel an order. Both start from `placed`: one picks a placed order explicitly, and the other uses a helper whose default status is `placed`. Both check that a note lands on the timeline. Neither tries to cancel a `preparing` order, so the suite has no opinion about the one rule cancellation exists to enforce.
+
+That is not a weak suite. It is a suite written from the implementation, and **a test written from the implementation cannot disagree with the implementation.** It is a description, not a check.
+
+<figure>
+
+![Two step flows side by side. On the left, tests from the implementation, reading the code and asserting what it does: 93 tests, all green, across unit, bloc, widget and data; two cancellation tests, both starting from a placed order; nothing cancels a preparing order, so the rule is never exercised; the suite agrees with the code, whatever the code does. The red outcome: a green suite with the one rule untested. On the right, tests from the requirement, criteria first and code only to wire up: AC-3 in cancel-order.md says that given a preparing order, cancel is refused; a test named after AC-3 is written before the code is read; it fails against the repository, because cancelOrder accepts any status; it is reported, not patched, as behaviour no criterion allows. The green outcome: the suite can now disagree with the code.](./images/ai-testing-agent-requirements-vs-implementation.png)
+
+<figcaption>Figure 1 — the same feature, tested from the code and tested from the requirement.</figcaption>
+
+</figure>
+
+<ShortHighlight slugs={['ai-review-agents-green-tests-untested-rule']} />
+
+## The Testing Agent
+
+Acceptance criteria in, tests out. The order of the inputs is the whole design of this agent.
+
+There is a second ordering that matters for legacy code. When code already exists and you do not trust it, you first write tests that capture current behaviour, so you can tell whether a change altered anything. That technique, characterization testing, has a different purpose. For new code, requirements first.
+
+**What it gets:** the requirements file with its Given/When/Then criteria and their IDs, plus the fake repository the Flutter agent produced.
+
+**What it returns:** tests named after the criterion they prove, one behaviour per test, and an explicit list of criteria it could not test and why. That list is the part to read first.
+
+```markdown
+<!-- .ai/prompts/testing.md -->
+Source of truth: docs/requirements/{feature}.md. Read it first.
+Do NOT read the implementation until every criterion has a test name.
+
+For each acceptance criterion:
+- One test, named `AC-{id}: {behaviour}`.
+- Use the fake repository. No network, no emulator.
+- Include the edge cases from the requirements table, not just the
+  happy path.
+
+Then, separately:
+1. Criteria you could not test, and what is missing (a seam, a fake, a hook).
+2. Behaviour the code has that NO criterion covers. This list is the
+   interesting one: it is either an undocumented requirement or a bug.
+
+Never change production code to make a test pass. Report the obstacle.
+```
+
+Point 2 is where this agent pays for itself. Pointed at the cancel requirement, the test for AC-3 ("given a preparing order, cancel is refused") fails against `cancelOrder`, which accepts any status. The agent does not patch the repository. It reports the gap, and the fix goes through the architect's rule on the entity.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-push: every acceptance criterion has a test that names it
+fail=0
+for doc in docs/requirements/*.md; do
+  feature=$(basename "$doc" .md)
+  for id in $(grep -oE '^AC-[0-9]+' "$doc" | sort -u); do
+    grep -rq "$id" test/ || {
+      echo "testing: $id in $feature has no test naming it."; fail=1; }
+  done
+done
+exit $fail
+```
+
+Coverage tells you which lines ran. This tells you which promises are checked. Only one of them catches a cooking order being cancelled.
+
+| | |
+| --- | --- |
+| **Skills** | Flutter widget and unit testing · fakes over mocks · characterization testing for legacy code |
+| **Triggers on** | A merged requirements file, any behaviour change |
+| **Fails the build when** | An acceptance criterion has no test referencing its ID |
+
+## The UI/UX Review Agent
+
+Mockups show the happy path with realistic data. The four states that make an app feel finished (loading, empty, error, offline) get invented on the day by whoever writes the widget. This agent's job is not taste. It is states and consistency.
+
+MSDevBuild Eats has shared state views in `lib/core/widgets/state_views.dart`: `LoadingView`, `EmptyView`, `ErrorView` and `OfflineBanner`. Most of its 22 screens use them. The rider dashboard is a good example of what the agent finds in the rest:
+
+<figure>
+
+![Fan-out diagram. The hub is rider_dashboard_screen.dart, the UI review agent's state matrix. Four branches: loading uses LoadingView and is handled; empty uses a private _IdleCard instead of the shared EmptyView; error shows a snackbar and then "No jobs right now"; offline shows a "You are offline" card and is handled. They converge on the finding: a failed load looks like a quiet day, so render RiderStatus.failure with ErrorView.](./images/ai-ui-review-agent-state-matrix-rider-dashboard.png)
+
+<figcaption>Figure 2 — one real screen's state matrix. Three states handled; the error state is not.</figcaption>
+
+</figure>
+
+`RiderState` has a `failure` status, but the screen never renders it. A failed load shows a snackbar for a few seconds and then the normal layout, where an empty job list reads "No jobs right now". To a rider, a broken connection and a quiet afternoon look identical.
+
+**What it gets:** the screen's widget code, the shared state views, the design tokens, and a screenshot if there is one. The token file is what turns "this spacing looks off" into "this uses 14, the scale has 12 and 16".
+
+**What it returns:** a state matrix showing what the user sees in each of the four states, findings ranked by severity, and every hard-coded value that should be a token.
+
+```markdown
+<!-- .ai/prompts/ui-review.md -->
+Review this screen against lib/core/widgets/state_views.dart and the
+design tokens.
+
+For the screen, fill in a state matrix (loading, empty, error, offline)
+and say what the user sees in each. If a state is unhandled, say what
+they see today. "Looks like an empty list" is a finding.
+
+Then list:
+1. Values not drawn from the token scale (spacing, colour, radius, type).
+2. Anything inconsistent with the pattern in lib/features/orders/presentation/.
+3. Text that will overflow at 200% font scale or in a longer translation.
+
+Rank findings: broken > inconsistent > preference.
+Report nothing in the preference band unless asked.
+```
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: every changed screen references the shared state views
+for f in $(git diff --cached --name-only --diff-filter=ACM \
+           | grep -E 'lib/features/.*_screen\.dart$'); do
+  for state in LoadingView EmptyView ErrorView; do
+    grep -q "$state" "$f" || {
+      echo "ui: $f does not render $state. Add it, or list the screen in"
+      echo "    docs/ui/state-exceptions.md with the reason (login, splash)."
+      grep -q "$(basename "$f")" docs/ui/state-exceptions.md 2>/dev/null || exit 1
+    }
+  done
+done
+```
+
+The exceptions file matters. Login and splash screens have no list to be empty, and a hook with no way to say "not applicable" gets switched off within a week.
+
+| | |
+| --- | --- |
+| **Skills** | Your design tokens · Flutter layout · state matrix review |
+| **Triggers on** | A new screen, a change to a shared widget |
+| **Fails the build when** | A changed screen skips a shared state view and is not a listed exception |
+
+## The Code Review Agent
+
+Most review comments repeat. "This should sit behind the repository." "Pull this string into the constants file." "What happens when this future throws?" Same comments, same rules, different pull requests, every month.
+
+That is the work this agent takes: the mechanical layer of review, so people still have attention when they reach the part that needs judgement. The limits are real and covered in [what Copilot code review can and cannot automate](/blog/github-copilot-automate-code-review-limits). An agent will not tell you the feature solves the wrong problem, or that this abstraction will hurt in six months. Those reviews matter most, and they stay human.
+
+**What it gets:** the diff, `AGENTS.md`, and the ADRs. Rules only. No general style guide.
+
+**What it returns:** findings, each citing the rule it breaks. Anything it cannot cite is dropped. MSDevBuild Eats ships this as the `pr-review-mechanical` skill.
+
+```markdown
+<!-- .ai/prompts/code-review.md -->
+Review this diff against AGENTS.md and docs/adr/.
+
+Every finding MUST cite the rule it violates, by file and section.
+If you cannot cite a rule, do not report it. Style preferences are noise,
+and a review full of noise gets skimmed past the real findings.
+
+Report in this order:
+1. Violations of a recorded rule, with the rule quoted.
+2. Error paths with no handling, and futures with no catch.
+3. Behaviour changed with no test touched.
+
+Do NOT comment on formatting. The formatter owns that.
+Do NOT suggest a rewrite of code that follows the rules and works.
+
+End with: what a human reviewer should look at that you could not judge.
+```
+
+That last line changes how review starts. The agent hands the person a short list of what it knows it cannot assess, and the conversation begins there instead of at line one.
+
+```bash
+#!/usr/bin/env bash
+# CI step: cited rule violations block, everything else comments
+findings=$(ai-review --diff origin/main...HEAD --rules AGENTS.md --json)
+
+blocking=$(echo "$findings" | jq '[.[] | select(.cites != null)] | length')
+echo "$findings" | jq -r '.[] | "\(.file):\(.line) \(.message) [\(.cites // "uncited")]"'
+
+if [ "$blocking" -gt 0 ]; then
+  echo "review: $blocking rule violation(s). See AGENTS.md."
+  exit 1
+fi
+```
+
+`ai-review` stands in for whichever review tool you run; the shape is what matters. Cited findings block, uncited ones only comment.
+
+| | |
+| --- | --- |
+| **Skills** | Your AGENTS.md rules · ADR set · language idioms |
+| **Triggers on** | Every pull request |
+| **Fails the build when** | A finding cites a recorded rule the diff breaks |
+
+## The Performance Optimization Agent
+
+Ask an agent "why does the order list stutter?" with no numbers and you get a page of correct, useless advice: use `const` constructors, avoid rebuilding large subtrees, consider `ListView.builder`. All true, none aimed at the problem.
+
+Give it numbers and it ranks. A useful first input in MSDevBuild Eats is a count anyone can run: 14 `BlocBuilder`s in `lib/features`, 3 of them with a `buildWhen`. That is not a finding on its own; most rebuilds are cheap. It is a list of places for the profiler to look. The DevTools rebuild counts then say which of the 11 actually matter, for example a list where one status update rebuilds every visible row.
+
+**What it gets:** a measurement. Frame timings from DevTools, a rebuild profile, a build size breakdown, a cold start trace. Something with numbers in it.
+
+**What it returns:** findings ranked by measured cost, each with one specific change and what to re-measure afterwards.
+
+```markdown
+<!-- .ai/prompts/performance.md -->
+Baseline: {frame timings / rebuild counts / size report / trace}
+Target device: {device}. Symptom: {what a user notices}
+
+Rank findings by measured cost, highest first. For each:
+- The number that proves it is a problem.
+- One change, scoped to the smallest possible diff.
+- What to re-measure, and what number means it worked.
+
+If the measurement does not support a finding, say the measurement
+is insufficient and name the profile you need. Do not fall back
+to general advice.
+```
+
+The last instruction is what makes this agent useful instead of a search engine. The [Flutter performance documentation](https://docs.flutter.dev/perf) already exists and is good. What you need is a ranking against your numbers.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-push: release size may not drift silently
+BASE=perf/baseline-size.json
+flutter build apk --release --analyze-size --target-platform android-arm64 \
+  --split-debug-info=build/symbols > /dev/null
+
+current=$(jq '[.children[].value] | add' build/apk-code-size-analysis.json)
+baseline=$(jq '.total' "$BASE")
+growth=$(( (current - baseline) * 100 / baseline ))
+
+if [ "$growth" -gt 5 ]; then
+  echo "perf: release size grew ${growth}% over baseline ($baseline -> $current)."
+  echo "Either justify it and update $BASE, or find what you added."
+  exit 1
+fi
+```
+
+Size is not the only thing worth gating, but it regresses quietly and is trivial to measure. Frame timing gates need a real device in CI, which most teams do not have on day one.
+
+| | |
+| --- | --- |
+| **Skills** | Flutter DevTools · BlocBuilder rebuild scope · build size analysis |
+| **Triggers on** | A reported symptom, a release build, a new dependency |
+| **Fails the build when** | Release size grows more than 5% over the recorded baseline |
+
+## Mistakes worth skipping
+
+- **Letting the testing agent read the implementation first.** A green suite that describes the code. It feels like progress for weeks.
+- **Letting the review agent report style opinions.** Within a fortnight people skim its comments, which means they skim the real findings too. Requiring a citation fixes it in one prompt change.
+- **Asking the performance agent for advice instead of a ranking.** No numbers in, no numbers out.
+- **Treating UI review as taste.** It is a state matrix and a token scale, and a script can check most of both.
+
+## What changes with these four?
+
+| Check | Without the agent | With it |
+| --- | --- | --- |
+| Cancel rule | 93 green tests, rule never exercised | AC-3 test fails against `cancelOrder` and is reported |
+| Rider dashboard error | A failed load reads "No jobs right now" | State matrix flags error as unhandled |
+| Review comments | The same three comments every month | Cited findings only, plus a list for the human |
+| Performance | General advice | Ranked findings against measured rebuilds |
+
+## Questions a tech lead will ask about this
+
+1. **"Our coverage is high. Why isn't that enough?"** Coverage counts lines that ran. The cancel rule was never asserted, at any coverage number.
+2. **"Should the testing agent fix the bugs it finds?"** No. It reports them. A testing agent that edits production code to make its tests pass has stopped testing.
+3. **"Will a review agent replace our reviewers?"** It replaces the comments they type every week, not the judgement they bring.
+4. **"What do we give the performance agent first?"** One DevTools capture of the slowest screen, and the symptom a user would describe.
+5. **"Do login and splash screens need an empty state?"** No. List them as exceptions, so the hook stays on for every screen that does.
+
+## What to do on day one
+
+- Pick one requirement and check whether any test exercises its edge case, not just the happy path.
+- Rename tests after the criterion they prove.
+- Fill a state matrix for your three busiest screens.
+- Add "cite the rule or drop the finding" to your review prompt.
+- Record a release size baseline before the next dependency lands.
+
+## Key takeaways
+
+- A test written from the implementation cannot disagree with it. Requirements first, code second.
+- Ask the testing agent for behaviour no criterion covers. That list is either a missing requirement or a bug.
+- Make every review finding cite a rule. Uncited findings are noise, and noise hides the real ones.
+- A performance agent with no measurement produces documentation. Hand it numbers and it produces a ranking.
+- Loading, empty, error and offline are the four states nobody designs and every user eventually sees.
+
+## The next feature
+
+The restaurant pause feature arrives with five acceptance criteria. The testing agent names five tests before it opens a Dart file, and one of them fails: placing an order while the restaurant is paused still succeeds. It reports the gap. The UI agent's state matrix for the partner screen flags the paused state as unhandled. Both are fixed before review.
+
+The suite is green again, and this time it means something.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
+
+1. **The missing test.** Write the name and the three lines of a test that would have failed against `cancelOrder` today.
+2. **The quiet day.** In the rider dashboard, what does a rider see after a failed load, and which state view fixes it?
+3. **The uncited finding.** A review agent reports "this method is too long". Is it reported, dropped, or downgraded under the citation rule? Why?
+4. **Coverage.** Your coverage rises from 60% to 85% and the cancel bug still ships. Explain how both are true.
+5. **Eleven builders.** 11 of 14 `BlocBuilder`s have no `buildWhen`. What do you give the performance agent before you change any of them?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

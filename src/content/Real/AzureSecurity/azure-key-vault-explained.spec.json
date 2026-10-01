@@ -137,5 +137,6 @@
     "azure security secret management",
     "az-204 key vault"
   ],
-  "publishedAt": "2026-08-15"
+  "publishedAt": "2026-08-15",
+  "article": "azure-key-vault-explained"
 }

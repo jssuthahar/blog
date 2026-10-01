@@ -137,5 +137,6 @@
     "system design security",
     "az-305 security architecture"
   ],
-  "publishedAt": "2026-08-19"
+  "publishedAt": "2026-08-19",
+  "article": "insecure-vs-secure-architecture"
 }

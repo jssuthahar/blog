@@ -1,0 +1,399 @@
+---
+title: 'AI Agents for Dependency, License, Copyright and Privacy Compliance'
+seoTitle: 'AI License and Privacy Agents'
+description: 'Four AI agents for the risks that arrive from outside your code (dependencies, open source licenses, copyright and privacy) with real blocking hooks.'
+highlight: 'A package added to save two hours can cost four days to remove five months later, because by then it has spread. Licence risk compounds with time, not size. Make every new dependency carry a written reason, run the licence deny list as a hook on the resolved tree, record every asset''s source, and derive the store privacy declaration from a data inventory.'
+publishedAt: 2026-09-30
+updatedAt: 2026-10-01
+category: engineering
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Dependency Management', 'Open Source Licenses', 'Copyright', 'Privacy', 'Compliance', 'Flutter', 'SPDX']
+series: 'ai-agent-team'
+seriesOrder: 7
+cover: './images/ai-agents-dependency-license-copyright-privacy-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "The AI Engineering Team" above the title "Two hours on day one. Four days later." and the line "Dependency, licence, copyright and privacy agents.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "A package added to save two hours, no reason written down", an arrow labelled "five months" to a red box reading "Spread into three features, then a denied licence", and an arrow labelled "the fix" to a green box reading "A reason per package, a deny list, caught on the day it is added".'
+draft: true
+faq:
+  - q: 'Should license checking be an AI agent or a script?'
+    a: 'A script, for the check itself. Matching licence identifiers in a resolved dependency tree against a deny list is deterministic, so a hook does it faster and cannot be argued out of a finding. Keep the agent for the judgement: whether a licence fits how you actually ship.'
+  - q: 'Why do transitive dependencies matter for license compliance?'
+    a: 'Because the licence you accepted is the direct one. A permissive package can pull in a copyleft dependency two levels down, and it ships in your binary just the same. Scan the resolved tree, not the file you edited.'
+  - q: 'What is the difference between license compliance and copyright compliance?'
+    a: 'Licence compliance asks whether you may ship a dependency and on what terms. Copyright compliance asks whether the code, images, fonts or sample data in your repository are substantially somebody else''s work in the first place, and whether you recorded where each one came from.'
+  - q: 'How do you keep a Play Store data safety declaration accurate?'
+    a: 'Treat the declaration as a promise and the app as the evidence, and derive the declaration from a data inventory so the two cannot disagree. Most inaccuracies are drift: the form was filled in honestly, and an SDK or a new event started collecting something afterwards.'
+  - q: 'When should a small team add a dependency management agent?'
+    a: 'The first time nobody can explain why a package is in the manifest. Before that, the manifest is short enough to read. After that, the cost of removing something grows every week nobody looks at it.'
+  - q: 'How do you find unused packages in a Flutter project?'
+    a: 'Count the files that import each package declared in pubspec.yaml. A package imported by zero files is dead weight, and one imported by a single file is the cheapest to remove. A short shell loop over the dependencies section and grep for package:name/ does it in a second.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+A package added to save two hours can cost four days to remove five months later, because by then it has spread into three features. **Licence risk compounds with time, not with size.** Four agents cover the risks that arrive through things you chose to install. Each new dependency carries a written reason. The licence deny list runs as a hook on the resolved tree. Every asset's source is recorded. The store privacy declaration is derived from a data inventory.
+
+Picture eleven days before launch. Someone doing something unrelated notices a package in `pubspec.yaml` under a licence the store build cannot ship. It was added five months earlier to save an afternoon, and nobody reviewed it, because adding a dependency does not feel like a decision. It feels like typing a line.
+
+The licence is not what costs four days. The spread is.
+
+<Callout type="tip" title="The four agents, committed and runnable">
+All four are in **MSDevBuild Eats**, an open-source Flutter app, written against its real packages and assets: [`.ai/prompts/dependencies.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/dependencies.md), [`license-review.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/license-review.md), [`copyright.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/copyright.md) and [`privacy.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/privacy.md). The files the hooks check against are committed too: `docs/dependencies.md`, `ATTRIBUTIONS.md` and `privacy/data-inventory.md`.
+</Callout>
+
+One honest note before the agents: neither an architect nor an AI agent is a lawyer. Everything below is about catching problems early enough to ask a lawyer a cheap question instead of an expensive one.
+
+## Five months, one package
+
+| When | What happened |
+| --- | --- |
+| Month 1 | A package solves an immediate problem. One line in `pubspec.yaml`, no review |
+| Months 2 to 4 | It is imported in three features, because it is already there |
+| Month 5 | Eleven days before launch, its licence turns out to be one the store build cannot ship |
+| Month 5 + 4 days | Removed. Three features rewritten under launch pressure |
+
+None of this gets reported the way a bug does. You find it because somebody was looking at something else.
+
+## The command that shows what each package is for
+
+The dependency agent's first input is one loop: for every package in `dependencies:`, how many files in `lib/` import it?
+
+```bash
+for p in $(awk '/^dependencies:/{f=1;next} /^dev_dependencies:/{f=0} f && /^  [a-z_]+:/{print $1}' pubspec.yaml | tr -d ':'); do
+  printf "%-22s %s\n" "$p" "$(grep -rl "package:$p/" lib | wc -l | tr -d ' ')"
+done
+```
+
+```text
+flutter                57
+flutter_bloc           26
+bloc                   17
+bloc_concurrency       1
+equatable              31
+get_it                 1
+go_router              18
+google_fonts           1
+cached_network_image   1
+shimmer                1
+url_launcher           1
+intl                   1
+uuid                   0
+collection             1
+shared_preferences     1
+connectivity_plus      1
+firebase_core          2
+firebase_auth          1
+cloud_firestore        1
+firebase_storage       1
+cloud_functions        1
+firebase_messaging     2
+```
+
+Two real findings in MSDevBuild Eats, from a second's work:
+
+- **`uuid` is imported by no file in `lib/`.** Its row in `docs/dependencies.md` still says it provides IDs for demo-backend entities in `data/datasources/local/`, with a removal cost of "very low, a counter would do". The reason on file has drifted from the code. The package is dead weight.
+- **Fourteen packages are imported in exactly one file.** For most, that is good design: `cloud_firestore` lives only in the Firestore data source, `shared_preferences` only in local storage. For a few, such as `shimmer` and `connectivity_plus`, one file is also the removal cost, and that is the moment to ask whether the package still earns its place.
+
+<figure>
+
+![Two step flows side by side. On the left, one line with no reason, because adding a package feels like typing: in month 1 a package saves two hours and nobody reviews a pubspec line; in months 2 to 4 it spreads and is imported in three features; in month 5 a denied licence is found by accident before launch; it takes four days to remove, with three features rewritten under pressure. The red outcome: licence risk compounds with time. On the right, one line with a reason, enforced by a hook at the moment of adding: pre-commit requires a row in dependencies.md saying why it is here and what removal costs; pre-push runs a deny list on the resolved tree, where transitive packages count too; the agent counts imports per package, uuid in 0 files and fourteen packages in 1 file; the package is removed while it is in one file, two hours rather than four days. The green outcome: caught on the day it was added.](./images/ai-dependency-agent-licence-risk-compounds.png)
+
+<figcaption>Figure 1 — the same package, added without a reason and with one.</figcaption>
+
+</figure>
+
+<ShortHighlight slugs={['ai-supply-chain-agents-two-hours-four-days']} />
+
+## Why do these problems get worse if you wait?
+
+All four risks are cheap on the day they arrive and expensive later, and none announces itself. A dependency spreads. A licence obligation follows every release. An asset's origin is forgotten. A privacy declaration drifts away from what the app does.
+
+Each job splits the way [the first part of this series](/blog/ai-coding-agent-team-software-project) recommends: the part a script can check becomes a hook, and the agent keeps what a list cannot answer.
+
+<figure>
+
+![Fan-out diagram. Things you chose to install, meaning packages, assets, SDKs and the data they touch, split into four jobs. Dependencies: a hook requires a reason per package, and the agent reports import count and removal cost. Licences: a hook runs the deny list on the resolved tree, and the agent judges the shipping model and attribution. Copyright: a hook requires an ATTRIBUTIONS.md row per asset, and the agent flags unknown provenance. Privacy: a hook requires an inventory row for any personal field, and the agent derives the store declaration from the inventory. They converge on: hooks enforce the list, agents answer what a list cannot.](./images/ai-supply-chain-agents-hook-and-agent-split.png)
+
+<figcaption>Figure 2 — each supply-chain job, split into the hook that enforces and the agent that judges.</figcaption>
+
+</figure>
+
+## The Dependency Management Agent
+
+Projects accumulate packages through arithmetic, not carelessness. Several developers over several weeks, each solving an immediate problem the quickest way, each choice reasonable on its afternoon. What builds up is a manifest nobody can fully explain.
+
+This agent's job is not to update everything. Running `flutter pub outdated` and upgrading the lot is how you spend a Friday discovering which packages broke you. Its job is **classification**: what each dependency is for, how far it has spread, and what it costs to remove.
+
+**What it gets:** the manifest, the lock file, and the import counts above.
+
+**What it returns:** an inventory with usage count and removal cost per package, a maintenance signal for each, an update order that starts with the safest, and the packages used in one place for one function.
+
+```markdown
+<!-- .ai/prompts/dependencies.md -->
+Manifest: {pubspec.yaml}. Lock: {pubspec.lock}
+Import counts per package: {loop output}
+
+Produce a table: package | why it is here | files importing it |
+last release | removal cost (hours) | replaceable by the SDK?
+
+Then:
+1. Packages imported in ZERO files. Remove, or explain.
+2. Packages imported in ONE file for ONE function. The cheapest to
+   remove and the most likely to be regretted.
+3. Anything with no release in 18 months, and what depends on it.
+4. An update order, safest first, with the ones that need a test run.
+5. Where docs/dependencies.md says something the code no longer does.
+
+Do not recommend upgrading everything. Recommend an order.
+```
+
+Point 5 is the one that finds `uuid`. A justification is written once; code moves every day.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: a new dependency needs a written reason
+new=$(git diff --cached -U0 pubspec.yaml | grep '^+ ' \
+      | grep -vE '^\+\s*#' | awk -F: '{print $1}' | tr -d '+ ')
+
+for pkg in $new; do
+  grep -q "^| \`$pkg\`" docs/dependencies.md || {
+    echo "deps: '$pkg' added with no entry in docs/dependencies.md."
+    echo "One line: why it is here, and what it would take to remove."
+    exit 1
+  }
+done
+```
+
+One line of justification at the moment of adding. That is the entire intervention, and it is the check MSDevBuild Eats runs today. It would have caught the month-one package on the day it arrived.
+
+| | |
+| --- | --- |
+| **Skills** | Dependency analysis · semantic versioning · transitive tree reading |
+| **Triggers on** | Any manifest change |
+| **Fails the build when** | A package is added with no written justification |
+
+## The Open Source License Compliance Agent
+
+This is the clearest case in the series of something that should be a hook rather than an agent. An agent reviewing licences works, roughly. It is also slow, costs tokens every run, and can hedge about a licence that is not ambiguous at all. Matching licence identifiers against a deny list is deterministic, so it is a script.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-push: the deny list is deterministic, so it is a hook
+DENY='GPL-2.0|GPL-3.0|AGPL|SSPL|CC-BY-NC|BUSL'
+violations=$(dart pub global run license_checker --json 2>/dev/null \
+  | jq -r --arg d "$DENY" '.[]? | select(.license | test($d)) |
+      "\(.name) [\(.license)] via \(.parent // "direct")"')
+
+if [ -n "$violations" ]; then
+  echo "license: packages under a denied licence are in the resolved tree:"
+  echo "$violations" | sed 's/^/  /'
+  echo "Transitive counts. It ships in the binary either way."
+  exit 1
+fi
+```
+
+One honest caveat from the real version in MSDevBuild Eats: it only runs if `license_checker` is installed, and skips quietly otherwise. A hook that skips when its tool is missing passes on every fresh clone. Install the tool in CI, or make the hook fail when it is absent.
+
+The agent answers the three questions a list cannot. *Does this licence fit how we ship?* The same package can be fine in a server you host and a problem in a binary you distribute through a store; the APK and the web bundle in MSDevBuild Eats ship differently. *What does attribution actually require?* A NOTICE file, a settings screen, both or neither. *What do we replace it with?* Alternatives under acceptable licences, with the migration cost of each.
+
+**What it gets:** the resolved tree with [SPDX identifiers](https://spdx.org/licenses/), how you ship, and the licence policy.
+
+```markdown
+<!-- .ai/prompts/license-review.md -->
+Resolved dependency tree with SPDX identifiers: {tree}
+How we ship: {app store binary / web bundle / self-hosted server}
+Policy: deny {list}. Attribution required for {list}.
+
+The deny-list check is already done by a hook. Do NOT repeat it.
+Answer only the questions a list cannot:
+
+1. Any licence whose obligations change because of HOW we ship.
+   Explain the difference in one sentence.
+2. For every attribution-required package: exactly what we must publish,
+   and where it has to appear.
+3. For anything on the deny list: two replacement candidates each,
+   with the migration cost and what we lose.
+4. Licences you are not confident about. Name them and stop.
+   That is the list we take to a lawyer.
+
+Never say a licence is "generally acceptable". Either it fits our
+policy and shipping model, or it goes to a person.
+```
+
+Point 4 is a feature. An agent that flags four packages for a lawyer has done its job; one that reassures you about all of them has not.
+
+| | |
+| --- | --- |
+| **Skills** | SPDX identifiers · copyleft obligations · attribution requirements · distribution models |
+| **Triggers on** | Every push, and any change to how the product is distributed |
+| **Fails the build when** | A denied licence appears anywhere in the resolved tree |
+
+## The Copyright Compliance Agent
+
+The question people ask most since assistants started writing code is whether generated code is substantially somebody else's. In practice, copyright trouble arrives more often through assets: an icon set "free for commercial use" that needed attribution nobody read, a font licensed for design files but not for a shipped app.
+
+MSDevBuild Eats keeps this simple on purpose, and `ATTRIBUTIONS.md` says why. No restaurant or dish photography is bundled; the seed catalogue uses emoji. The only bundled images are the app's own logo files. The font is Inter, under the SIL Open Font License. And the seed data names real Klang Valley restaurants: names only, "no logos, no menu copy, no review text. Adding any of those would need permission and a row in this file."
+
+That last note is the copyright agent's real output: not a scan, but a recorded boundary the next contributor can see.
+
+**What it gets:** the asset list with stated sources, and the diff for any large generated block.
+
+**What it returns:** `ATTRIBUTIONS.md` entries, flags on assets with no known provenance, and flags on code distinctive enough for a person to look at.
+
+```markdown
+<!-- .ai/prompts/copyright.md -->
+Assets added: {file list, with stated source where known}
+Generated code in this change: {diff}
+
+For assets:
+1. Anything with no stated source. List it. Unknown provenance is
+   the finding. Do not guess where a file came from.
+2. For each known source: the exact attribution required, and where
+   it must appear (about screen, NOTICE file, store listing).
+3. Fonts and icon sets: is the licence valid for a SHIPPED app bundle,
+   or only for design files?
+
+For code:
+4. Any block distinctive enough that it likely came from one specific
+   source. Flag it for a person. Do not assert infringement.
+
+Produce ATTRIBUTIONS.md rows as your output.
+```
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: no asset enters the repo without provenance
+for f in $(git diff --cached --name-only --diff-filter=A \
+           | grep -iE '\.(png|jpg|jpeg|svg|ttf|otf|woff2?)$'); do
+  grep -q "$(basename "$f")" ATTRIBUTIONS.md || {
+    echo "copyright: $f has no entry in ATTRIBUTIONS.md."
+    echo "Record where it came from and the licence, now, while you know."
+    exit 1
+  }
+done
+```
+
+"Now, while you know" is the point. Six months later nobody remembers which zip a font arrived in.
+
+| | |
+| --- | --- |
+| **Skills** | Asset licensing · font and icon terms · attribution formats |
+| **Triggers on** | Any new asset, any large generated block |
+| **Fails the build when** | An asset is committed with no attribution entry |
+
+## The Privacy and Compliance Agent
+
+Two earlier agents produce output this one has to approve. [The monitoring agent](/blog/ai-agents-devops-release-monitoring-analytics) wants a user identifier on every error report, because debugging is easier with one. The analytics agent proposes events carrying an address, because a product question was about delivery areas. Both are reasonable requests, and neither is theirs to decide.
+
+**A store declaration is a promise, and the app is the evidence.** Most inaccuracies are drift, not dishonesty: the form was right in week six, an SDK arrived in week eight, nobody updated it.
+
+MSDevBuild Eats avoids drift structurally. `privacy/data-inventory.md` lists every field, why it exists, where it goes, how long it stays and whether it is personal, and the store declaration is derived from it. It also carries a useful cross-check. The inventory says the phone number is "attached to an order for the rider". The rules reviewed by [the security agents](/blog/ai-agents-security-cybersecurity-penetration-testing) let any rider read any order. The inventory's promise is narrower than the rules' behaviour, and that disagreement is exactly what this agent should report.
+
+**What it gets:** the analytics spec, the error context spec, the third-party SDK list, the rules, and the markets you ship to.
+
+**What it returns:** the data inventory, the store declaration derived from it, the consent requirements, and anything collected that no purpose justifies.
+
+```markdown
+<!-- .ai/prompts/privacy.md -->
+Analytics spec: analytics/events.yaml. Error context: {fields}
+Third-party SDKs: {list, with what each one sends home}
+Access rules: {firestore.rules}. Markets: {jurisdictions}
+
+Produce:
+1. A data inventory: field | why collected | where it goes |
+   who can read it | retention | is it personal data in each market.
+2. The store data safety declaration derived FROM that inventory,
+   so the two cannot disagree.
+3. Any field whose "who can read it" in the rules is wider than
+   the inventory says.
+4. Anything collected with no purpose that justifies it.
+5. Where consent is required before collection, and what the app
+   does when consent is refused. That path must exist.
+
+Never approve a personal identifier in an error report or an
+analytics event. Propose a stable pseudonymous ID instead.
+```
+
+Point 3 is what ties privacy to security. A declaration is only as true as the rules behind it.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: a personal field needs an inventory entry
+for f in $(git diff --cached -U0 analytics/events.yaml \
+           | grep '^+' | grep -oE 'personal:\s*true' -B2 \
+           | grep -oE '^\+\s+- name: [a-z_]+' | awk '{print $NF}'); do
+  grep -q "$f" privacy/data-inventory.md || {
+    echo "privacy: event field '$f' is marked personal but is not in"
+    echo "privacy/data-inventory.md, so the store declaration will drift."
+    exit 1
+  }
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Data inventory · store data safety forms · consent flows · SDK data behaviour |
+| **Triggers on** | A new event, a new SDK, a rules change, a new market |
+| **Fails the build when** | Personal data is collected with no inventory entry |
+
+## Mistakes worth skipping
+
+- **An agent where a deny list belongs.** Slower, costlier, and capable of hedging about a licence that is not ambiguous.
+- **Scanning direct dependencies only.** The direct package was permissive. What it pulled in was not.
+- **A hook that skips when its tool is missing.** It passes on every machine that never installed the tool.
+- **Worrying about generated code and ignoring the assets folder.** Most real copyright trouble comes in a designer's zip file.
+- **Filling in the privacy declaration once.** Accurate on the day, wrong two weeks later.
+
+## What changes with these four?
+
+| Risk | Found by accident | Found on the day |
+| --- | --- | --- |
+| A package with a denied licence | Month 5, four days to remove | Pre-push fails on the push that adds it |
+| A package nobody uses | Never | Import count of zero, removed the same day |
+| An image with no known source | When a takedown arrives | Pre-commit refuses it without an `ATTRIBUTIONS.md` row |
+| A declaration narrower than the rules | When a user notices | Privacy agent compares inventory to rules |
+
+## Questions a tech lead will ask about this
+
+1. **"Do we need a lawyer?"** For the licences the agent cannot classify, yes. The agents make that list short and early.
+2. **"Why not let the agent check licences on every push?"** Because a script does it faster, cheaper, and cannot be talked out of a finding.
+3. **"How do we find unused packages?"** Count imports per declared package. Zero is a removal, one is a question.
+4. **"Is generated code a copyright risk?"** It can be, and generation-time duplicate filters are the right tool. Assets are the more common risk.
+5. **"Who decides whether errors carry a user ID?"** The privacy agent's inventory, and a person who owns the decision. Not the monitoring agent.
+
+## What to do on day one
+
+- Run the import-count loop on your own manifest.
+- Remove every package imported by zero files.
+- Add the `docs/dependencies.md` hook so the next package arrives with a reason.
+- Install the licence tool in CI so the deny list never skips.
+- Compare your privacy declaration to your access rules, field by field.
+
+## Key takeaways
+
+- Licence risk compounds with time. The same package costs two hours on day one and four days after five months.
+- The deny list is deterministic, so it belongs in a hook. Keep the agent for shipping model, attribution and replacement.
+- Scan the resolved tree. What ships is everything underneath the line you added.
+- Written reasons drift too. Check them against what the code imports.
+- Derive the store declaration from a data inventory, and check the inventory against the rules.
+
+## The next package
+
+A month later someone adds a charting package for the partner dashboard. The commit fails until `docs/dependencies.md` has a row: why it is here, and that removing it would mean drawing two bars by hand. The push runs the deny list on the resolved tree; one transitive package is flagged as unclassified and goes on the short list for a person to check. It turns out fine.
+
+Two hours, on the day it was added, with nothing left to discover eleven days before launch.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
+
+1. **The zero.** `uuid` is imported by no file but has a reason in `docs/dependencies.md`. Which is wrong, the code or the reason, and what does the agent recommend?
+2. **The quiet hook.** The licence hook passes on a new laptop. Give two reasons that could be, one of them good and one of them dangerous.
+3. **Two shipping models.** Why might the same package be fine in the web bundle and need a second look in the APK?
+4. **The restaurant names.** The seed data uses real restaurant names. What does `ATTRIBUTIONS.md` allow, and what would need permission?
+5. **The phone number.** The inventory says the phone goes to "the rider". Which file disagrees, and which agent should catch it?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

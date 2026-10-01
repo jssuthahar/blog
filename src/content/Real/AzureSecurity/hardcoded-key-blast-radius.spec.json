@@ -137,5 +137,6 @@
     "managed identity instead of keys",
     "azure security best practices keys"
   ],
-  "publishedAt": "2026-08-18"
+  "publishedAt": "2026-08-18",
+  "article": "hardcoded-key-blast-radius"
 }

@@ -1,0 +1,338 @@
+---
+title: 'Security, Cybersecurity and Penetration Testing AI Agents'
+seoTitle: 'AI Agents for App Security'
+description: 'Three AI security agents that disagree on purpose (code security, system cybersecurity and penetration testing) with prompts and hooks.'
+highlight: 'A Firestore rule can read correctly and still let any rider read every customer''s phone number, because a review uses one identity and an attack needs two. Split security into three agents: one reviews code and the deployed rules with an exploit path per finding, one ranks credentials by blast radius, and one writes attack tests that run in CI.'
+publishedAt: 2026-09-28
+updatedAt: 2026-10-01
+category: copilot
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Security', 'Cybersecurity', 'Penetration Testing', 'Firebase', 'Firestore Rules', 'Threat Modelling', 'OWASP']
+series: 'ai-agent-team'
+seriesOrder: 6
+cover: './images/ai-agents-security-cybersecurity-penetration-testing-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "The AI Engineering Team" above the title "Read the rules. Then attack them." and the line "Security, cybersecurity and penetration testing agents.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "The rules read fine, riders need to see orders", an arrow labelled "one identity" to a red box reading "Any rider, any order, every customer''s phone and address", and an arrow labelled "two identities" to a green box reading "A second rider in the emulator, the attack fails on every push".'
+draft: true
+faq:
+  - q: 'What is the difference between a security agent and a cybersecurity agent?'
+    a: 'A security agent reviews the code and rules you wrote: authorization logic, input handling, what a request is allowed to do. A cybersecurity agent reviews the system around that code: identity, secrets, CI, third parties, and how far an attacker gets once one credential leaks.'
+  - q: 'Can an AI agent replace a penetration tester?'
+    a: 'No. It covers the repetitive layer well (broken object-level authorization, missing checks, enumeration), which is most of what a first pen test finds. It will not chain three small weaknesses into one attack. Before you handle payments at scale, hire a person.'
+  - q: 'Why can an AI security review miss open Firestore rules?'
+    a: 'Two common reasons. It reviewed the rules file in the repository while production ran an older deployment, or it read a rule that sounds right with only one identity in mind. Pin the review to the deployed rules and test every rule with a second signed-in user of the same role.'
+  - q: 'How do you stop a security agent from producing a list of generic risks?'
+    a: 'Require an exploit path for every finding: who signs in, what request they send, and what comes back that should not. A finding that names a category without a path is a reminder that the category exists, and it buries the findings that matter.'
+  - q: 'What should the output of an AI penetration testing agent be?'
+    a: 'Attack tests that stay in CI, not a report. A report describes one afternoon. A suite that signs in as one user, asks for another user''s data and fails the build when it succeeds keeps working every time someone edits the rules.'
+  - q: 'Is a Firebase API key in a mobile app a security problem?'
+    a: 'No. The Firebase web API key identifies the project and is public by design; the security rules are the boundary. A cybersecurity agent should say so and move on, and spend its attention on credentials with real blast radius, such as a CI service account or a signing key.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+A Firestore rule can read correctly and still let any rider read every customer's phone number, because a review uses one identity and an attack needs two. Security needs three agents that disagree on purpose: one reviews the code and the deployed rules with an exploit path for every finding, one ranks credentials by blast radius, and one writes attack tests that run on every push.
+
+MSDevBuild Eats has three roles: customer, restaurant partner and rider. Riders need to see orders, because they collect and deliver them. The rule that allows it reads sensibly:
+
+```javascript
+allow read: if signedIn() && (
+  resource.data.userId == request.auth.uid ||
+  ownsRestaurant(resource.data.restaurantId) ||
+  isRider()
+);
+```
+
+Read it once and it says "customers, the restaurant, and riders can read an order". Read it as an attacker and it says something else.
+
+<Callout type="tip" title="Three security agents against real rules">
+The rules, prompts and workflows in this article are committed in **MSDevBuild Eats**, an open-source Flutter app: [`firebase/firestore.rules`](https://github.com/jssuthahar/food-delivery-app/blob/main/firebase/firestore.rules), [`.ai/prompts/security-review.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/security-review.md), [`.ai/prompts/cybersecurity.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/cybersecurity.md) and [`.ai/prompts/pentest.md`](https://github.com/jssuthahar/food-delivery-app/blob/main/.ai/prompts/pentest.md).
+
+Each prompt carries a "do not report this" clause. The catalogue is world-readable by design and the missing Firebase API key is deliberate. An agent that flags both every week gets ignored by the third.
+</Callout>
+
+## A clean review, and an open door
+
+| When | What happened |
+| --- | --- |
+| Week 2 | The orders rule is written so riders can see the orders they deliver |
+| Week 6 | A security review reads the rules file. "Customers, owners and riders": looks right |
+| Week 9 | The app only ever asks for the orders a rider is assigned to, so nothing goes wrong in use |
+| Week 12 | Someone signs in as a second rider and asks for an order they were never assigned. It comes back, with the customer's name, phone number and address |
+
+A permissive rule and a correctly behaving app look identical from inside the app. Only a second identity shows the difference.
+
+## The command that turns a reading into an exploit path
+
+```bash
+grep -n "isRider()" firebase/firestore.rules
+grep -n "customerName\|customerPhone\|deliveryAddress" lib/data/models/order_model.dart | head -3
+```
+
+```text
+32:    function isRider() {
+76:        isRider()
+84:        isRider() ||
+15:    required super.deliveryAddress,
+22:    super.customerName,
+23:    super.customerPhone,
+```
+
+`isRider()` checks the caller's role and never compares the order to the caller. Every order document carries `customerName`, `customerPhone` and `deliveryAddress`. Put together, that is an exploit path, not a category: **sign in as any rider, read `orders/{any id}`, receive a stranger's name, phone number and home address.** Line 84 does the same for updates.
+
+<figure>
+
+![Two step flows side by side. On the left, the rules read by one reviewer with one identity: "riders need to see orders" is a reasonable requirement; allow read with isRider() reads like it does exactly that; the app only asks for the right orders, so nothing ever goes wrong in use; the review comes back clean, because no second rider was ever tried. The red outcome: any rider reads any customer's phone. On the right, the rules attacked with two riders in the emulator: riderA is assigned order o-1 and riderB is not; riderB reads orders/o-1 and the test expects permission-denied; the test fails because the read succeeds, which is an exploit path rather than a category; the rule becomes isAssignedRider() and the test stays in CI on every push. The green outcome: the attack fails on every push.](./images/ai-pentest-agent-second-rider-identity.png)
+
+<figcaption>Figure 1 — the same rule, read with one identity and attacked with two.</figcaption>
+
+</figure>
+
+<ShortHighlight slugs={['ai-security-agents-read-then-attack']} />
+
+## Why three security agents instead of one?
+
+Because they ask different questions, need different inputs, and are supposed to contradict each other.
+
+| Agent | Question it asks | Input |
+| --- | --- | --- |
+| **Security** | Is this code, and are these rules, correct? | The diff, the deployed rules, the auth model |
+| **Cybersecurity** | If one credential leaks, how far does the attacker get? | Architecture, identity, secrets, CI, third parties |
+| **Penetration Testing** | Can I actually break what those two approved? | A staging or emulator environment, two test identities per role |
+
+Merge them and you get the generic security review everyone has read: a list of OWASP categories, no exploit paths, and a recommendation to follow secure coding practice. Three narrow agents produce three specific answers, and the disagreements between them are the useful part. The rider rule passes a read-through and fails an attack.
+
+## The Security Agent
+
+This agent reviews what you wrote: code, rules, authorization logic, input handling, and the places a client value is trusted that should not be.
+
+The constraint that makes it useful is the same shape as the one that fixed code review in [the testing and review agents](/blog/ai-agents-testing-code-review-performance-ui). There, every finding had to cite a rule. Here, **every finding has to carry an exploit path**: who signs in, what request they send, what comes back. No path, no finding.
+
+Without that constraint you get "consider validating user input", which is true of every app ever written. With it, you get the rider path above. One of those gets fixed the same day.
+
+**What it gets:** the diff, the rules **as deployed** rather than as committed, the auth model, and a one-line classification of what data is sensitive.
+
+**What it returns:** findings ranked by exploitability, each with the path, the fix, and the test that proves the fix.
+
+```markdown
+<!-- .ai/prompts/security-review.md -->
+Scope: this diff, plus the rules as currently DEPLOYED (attached).
+Sensitive data: {classification}. Auth model: {roles and how they are proved}
+
+For every finding, give:
+1. The exploit path. Concretely: who signs in, what request they send,
+   what they get back that they should not.
+2. Severity, justified by what the attacker gains, not by category name.
+3. The fix, as a diff.
+4. The test that fails before the fix and passes after.
+
+If you cannot write step 1, do not report the finding.
+
+Specific to Firebase:
+- `request.auth != null` is authentication, not authorization. So is a
+  role check alone. Treat both as findings unless a second condition
+  ties the document to the caller.
+- Check every rule against a second signed-in user of the SAME role,
+  not only against an anonymous one.
+```
+
+The last line is the rider finding, compressed. An anonymous user is denied by `signedIn()`, so an anonymous test passes. A second rider is not. How far this kind of review can be trusted is covered in [a Copilot security agent for legacy systems](/blog/github-copilot-security-agent-legacy-systems): the agent is a first pass, and the deterministic checks are what you rely on.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: new Android permissions need a written justification
+new=$(git diff --cached -U0 -- android/app/src/main/AndroidManifest.xml \
+      | grep '^+' | grep -oE 'android\.permission\.[A-Z_]+' | sort -u)
+
+for p in $new; do
+  grep -q "$p" docs/security/permissions.md || {
+    echo "security: new permission $p has no entry in docs/security/permissions.md"
+    echo "Write why it is needed and what it exposes, then commit again."
+    exit 1
+  }
+done
+```
+
+Permissions creep the way dependencies do. One library wants location, another wants contacts, and eighteen months later the store listing asks for things nobody can explain. MSDevBuild Eats runs this check today.
+
+| | |
+| --- | --- |
+| **Skills** | Firestore rules · [OWASP Mobile Top 10](https://owasp.org/www-project-mobile-top-10/) · auth models · secure input handling |
+| **Triggers on** | Every diff that touches rules, auth or data access |
+| **Fails the build when** | A permission appears with no written justification |
+
+## The Cybersecurity Agent
+
+Different job. This one does not read widget code. It asks what happens when something outside the code goes wrong.
+
+The classic contrast: someone spots the Firebase API key in the client bundle and raises it as an incident. It is not one. That key identifies the project, and [Firebase is designed on the assumption that it is public](https://firebase.google.com/docs/projects/api-keys); the rules are the boundary. Meanwhile a credential that can actually act on the project sits quietly in CI, and nobody raises it, because it is not visible in an app anyone can download.
+
+Teams fear the credential they can see and miss the one that can do damage. This agent ranks credentials by blast radius, not visibility.
+
+<figure>
+
+![Step flow ranking four credentials from highest to lowest blast radius. One, FIREBASE_SERVICE_ACCOUNT, which acts on the project from CI and has the highest blast radius. Two, the ANDROID_KEYSTORE secrets, which can sign an update that installs over the real app. Three, a test account password, which exposes one user's data if the rules hold. Four, the Firebase web API key, which is public by design because the rules are the boundary. A note below reads: ranked by what an attacker can do with it, not by how easy it is to see.](./images/ai-cybersecurity-agent-credentials-blast-radius.png)
+
+<figcaption>Figure 2 — the MSDevBuild Eats credentials, ranked by what an attacker could do with each.</figcaption>
+
+</figure>
+
+MSDevBuild Eats has exactly these. The Android workflow holds four keystore secrets and `FIREBASE_SERVICE_ACCOUNT`, used to push builds to App Distribution. The pull request workflow triggers on `pull_request`, not `pull_request_target`, so a fork cannot reach any of them. That is the kind of answer this agent exists to produce: specific, ranked, and honest about what is already fine.
+
+**What it gets:** the architecture, the identity model, every credential and where it lives, the CI configuration, and the third parties with access.
+
+**What it returns:** credentials ranked by blast radius, a rotation plan for the top three, and what an attacker gets from each.
+
+```markdown
+<!-- .ai/prompts/cybersecurity.md -->
+Architecture: {system}. Identity: {who authenticates, how, and to what}
+Credentials: {every key, token and service account, and where it lives}
+CI: {workflows, who can trigger them}. Third parties: {vendors and scope}
+
+Produce:
+1. Every credential ranked by BLAST RADIUS (what an attacker does with it),
+   not by how exposed it is. Say plainly which ones are public by design.
+2. For the top three: the rotation procedure, and what breaks during rotation.
+3. CI attack surface. Who can run a workflow, what secrets it sees, and
+   whether a fork's pull request can reach any of them.
+4. Third-party access nobody has reviewed in six months.
+5. What an attacker gets from a stolen device with the app installed.
+
+Do not report the presence of a public-by-design key as a vulnerability.
+Say why it is safe and move on.
+```
+
+Point 3 finds real problems in small teams, and the classic is a workflow triggered by `pull_request_target` that checks out the pull request's own code. That hands repository secrets to anyone who can open a pull request from a fork.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: the CI pattern that leaks secrets to forks
+for f in $(git diff --cached --name-only --diff-filter=ACM \
+           | grep -E '^\.github/workflows/.*\.ya?ml$'); do
+  grep -q 'pull_request_target' "$f" || continue
+  grep -qE 'ref:\s*\$\{\{\s*github\.event\.pull_request\.head' "$f" && {
+    echo "cybersecurity: $f runs pull_request_target and checks out fork code."
+    echo "That workflow can hand repository secrets to any fork. Split it."
+    exit 1
+  }
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Threat modelling · secret rotation · CI attack surface · identity and blast radius |
+| **Triggers on** | A new credential, a new vendor, any CI change |
+| **Fails the build when** | A workflow exposes secrets to untrusted code |
+
+## The Penetration Testing Agent
+
+The third agent's job is to disbelieve the first two. It runs against your own emulator or staging environment, with your own test accounts, on a system you own, and everything below assumes exactly that.
+
+The test that finds the rider problem is small. Sign in as rider B. Ask for an order assigned to rider A. Assert that it fails. A dozen lines.
+
+That test usually does not exist because writing it feels like paranoia. The rule has been read. But reading an authorization rule and knowing what it does is like reading a regular expression and knowing what it matches: easy to be confident, easy to be wrong.
+
+**What it gets:** the deployed rules, the API contract, and two test identities **per role** that own different data.
+
+**What it returns:** attack tests. **The output is a test suite, not a report.** A report describes one afternoon. A suite that runs on every push keeps working after the next person edits the rules.
+
+```markdown
+<!-- .ai/prompts/pentest.md -->
+Target: our own emulator or staging project, never production.
+Accounts: two per role (customerA/B, partnerA/B, riderA/B), different data.
+Scope: Firestore rules and the API contract attached.
+
+Write executable tests, one per attack, that FAIL if the attack succeeds:
+1. Object-level authorization. As each A, read and write every document
+   owned by the matching B. One test per collection per role.
+   This is the boring one and it is where real findings live.
+2. Field-level. Can a caller change a field only the server should set:
+   order status, price, role?
+3. Enumeration. Can a caller learn a document exists without reading it?
+4. Client-trust. Every value the client sends: what happens if it lies?
+
+Output runnable tests against the emulator, not prose.
+End with what you could NOT test and needs a person.
+```
+
+"Two per role" is the line that matters. With one rider account, the rider rule passes every test the agent can write.
+
+The honest limit belongs here. An agent doing this finds broken object-level authorization, missing checks and enumeration, which is most of what a first pen test finds anywhere. It will not chain three small weaknesses into one real attack. Before you take payments at scale, hire a person.
+
+```bash
+#!/usr/bin/env bash
+# CI on every push: the attack suite runs against the emulator
+firebase emulators:exec --only firestore,auth "npm run test:attacks" || {
+  echo "pentest: an attack succeeded. Someone edited the rules and"
+  echo "opened access. See the failing test for the exact request."
+  exit 1
+}
+```
+
+| | |
+| --- | --- |
+| **Skills** | Firebase emulator suite · authorization testing · enumeration and IDOR patterns |
+| **Triggers on** | Every push, every rules change, before every release |
+| **Fails the build when** | Any attack in the suite succeeds |
+
+## Mistakes worth skipping
+
+- **Reviewing the repository instead of production.** If the deployed rules are older than the committed ones, everything downstream is correct and useless. Pull the deployed rules before any review.
+- **Testing with one account per role.** The rider rule passes every single-rider test.
+- **Accepting findings without exploit paths.** A list of categories makes everyone feel diligent and changes nothing.
+- **Ranking credentials by visibility.** The public API key gets the afternoon; the CI service account gets nothing.
+- **Treating reading as testing.** Reading a rule is not knowing what it does.
+
+## What changes with three agents?
+
+| Finding | One review, one identity | Three agents |
+| --- | --- | --- |
+| Rider reads any order | "Looks right" | Exploit path from the security agent; failing test from the pen test agent |
+| Firebase API key in the bundle | Raised as an incident | Marked public by design, attention moves on |
+| `FIREBASE_SERVICE_ACCOUNT` in CI | Not mentioned | Ranked first, with a rotation plan |
+| Rules edited next month | Re-reviewed by eye, if anyone remembers | The attack suite fails the push |
+
+## Questions a tech lead will ask about this
+
+1. **"We reviewed the rules. Why test them?"** Because the rider rule passes a review and fails an attack. Reading is not testing.
+2. **"Is the API key in our app a breach?"** No. It identifies the project. The rules are the boundary; spend the time there.
+3. **"Which credential do we rotate first?"** The one with the largest blast radius, which is usually a CI service account, not the one that looks scary.
+4. **"Can the pen test agent run against production?"** No. Your own emulator or staging, your own accounts, always.
+5. **"Does this replace a professional pen test?"** It replaces the repetitive part of one. Hire a person before payments at scale.
+
+## What to do on day one
+
+- Search your rules for role checks that never compare the document to `request.auth.uid`.
+- Create two test accounts per role in the emulator.
+- Write the B-reads-A test for your most sensitive collection.
+- List every credential and rank it by what an attacker could do with it.
+- Check your workflows for `pull_request_target` with a fork checkout.
+
+## Key takeaways
+
+- A permissive rule and a correctly behaving app look identical from inside the app. Only a second identity reveals the difference.
+- Pin security review to what is deployed, and test with two identities of the same role.
+- Require an exploit path for every finding. Categories without paths bury the findings that matter.
+- Rank credentials by blast radius, not visibility.
+- A penetration testing agent should produce tests that live in CI, not a report that ages.
+
+## The next rules change
+
+A month later someone adds a `reviews` update rule so restaurants can reply to reviews. The pen test agent's suite already has partnerA and partnerB. The new test, partner B replying to a review of partner A's restaurant, fails on the first push. The rule gains an `ownsRestaurant` check before it merges.
+
+Nobody had to remember to review it.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
+
+1. **The exploit path.** Write the rider finding as the security agent must: who signs in, what request, what comes back.
+2. **The anonymous test.** Why does a test with an anonymous user pass against `isRider()`, and which test fails?
+3. **The scary key.** A colleague files an incident for the Firebase API key in the APK. What does the cybersecurity agent say, and what does it rank first instead?
+4. **Two per role.** Why does the pen test prompt ask for two accounts per role rather than two accounts in total?
+5. **Stale rules.** Production runs rules from four commits ago. Which agent's input was wrong, and how do you make sure it never is again?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

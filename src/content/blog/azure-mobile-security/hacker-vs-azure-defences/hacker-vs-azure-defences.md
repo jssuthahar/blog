@@ -3,7 +3,7 @@ title: 'Hacker vs Azure Defences: Five Attacks on a Mobile Backend, Five Control
 seoTitle: 'Hacker vs Azure: 5 Attacks, 5 Defences'
 description: 'Five common attacks on one Azure mobile backend and the control that stops each: WAF, Entra ID, an owner check, Key Vault and a private endpoint.'
 highlight: 'Five common attacks on a mobile backend map onto five Azure controls: Front Door WAF for junk traffic, Entra ID for missing tokens, an owner check in your API for a valid token asking for someone else''s data, Key Vault for leaked keys, and a private endpoint for direct database access. Miss one and the other four do not cover for it.'
-publishedAt: 2026-10-03s
+publishedAt: 2026-10-03
 updatedAt: 2026-10-01
 category: azure
 categories: ['mobile']

@@ -3,7 +3,7 @@ title: 'Hardcoded API Key Blast Radius: What Happens When a Mobile Key Leaks'
 seoTitle: 'Hardcoded API Key Blast Radius'
 description: 'The attacker costs you hours. Rotating a key baked into 40,000 installed apps costs you days, and that gap is the real price of a hardcoded secret.'
 highlight: 'A secret is only a secret if you can replace it in one place, right now, without asking anyone for permission. A key hardcoded into a mobile app fails that test: revoking it breaks every installed copy at once, and the repair waits on an app store review. Keep keys in Azure Key Vault behind your API, or use managed identity and have no key at all.'
-publishedAt: 2026-08-20
+publishedAt: 2026-10-02
 updatedAt: 2026-10-01
 category: azure
 categories: ['mobile']
@@ -12,7 +12,7 @@ series: 'azure-mobile-security'
 seriesOrder: 3
 cover: './images/hardcoded-key-blast-radius-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "Four hours to attack. Three days to rotate." and the line "A hardcoded key cannot be replaced without breaking every install.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Key inside the app, in every installed copy", an arrow labelled "an attacker" to a red box reading "Revoke it, every copy fails at once", and an arrow labelled "the fix" to a green box reading "Key in Key Vault, rotated in minutes".'
-draft: true
+draft: false
 faq:
   - q: 'Why does rotating a hardcoded API key break a mobile app?'
     a: 'The key is inside the shipped binary, so it is inside every installed copy. Revoking it to stop an attacker makes all of those copies fail at the same moment. The security fix becomes an outage, and the repair has to pass an app store review before it reaches anyone.'

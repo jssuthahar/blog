@@ -3,7 +3,7 @@ title: 'Hacker vs Azure Defences: Five Attacks on a Mobile Backend, Five Control
 seoTitle: 'Hacker vs Azure: 5 Attacks, 5 Defences'
 description: 'Five common attacks on one Azure mobile backend and the control that stops each: WAF, Entra ID, an owner check, Key Vault and a private endpoint.'
 highlight: 'Five common attacks on a mobile backend map onto five Azure controls: Front Door WAF for junk traffic, Entra ID for missing tokens, an owner check in your API for a valid token asking for someone else''s data, Key Vault for leaked keys, and a private endpoint for direct database access. Miss one and the other four do not cover for it.'
-publishedAt: 2026-08-22
+publishedAt: 2026-10-03s
 updatedAt: 2026-10-01
 category: azure
 categories: ['mobile']
@@ -12,7 +12,7 @@ series: 'azure-mobile-security'
 seriesOrder: 4
 cover: './images/hacker-vs-azure-defences-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "Five attacks, five defences" and the line "One Azure backend, and the named control that stops each attack.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Junk, no token, wrong id, keys in a repo, a direct DB dial", an arrow labelled "five attacks" to an amber box reading "Each needs its own door, one missing door is enough", and an arrow labelled "five controls" to a green box reading "WAF, Entra ID, owner check, Key Vault, private endpoint".'
-draft: true
+draft: false
 faq:
   - q: 'What stops a flood of junk traffic and injection attempts against an Azure API?'
     a: 'Azure Front Door with the Web Application Firewall running the OWASP managed ruleset at the edge. Blocked traffic costs nothing downstream. But the WAF ships in Detection mode, which only logs, so it has to be switched to Prevention before it blocks anything.'

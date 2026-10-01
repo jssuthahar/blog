@@ -3,7 +3,7 @@ title: 'Five Mobile App Security Vulnerabilities a Scan Finds, and Which to Fix 
 seoTitle: '5 Mobile App Vulnerabilities to Fix First'
 description: 'Five findings on a working mobile app, none deliberate: a secret in the package, a token in plain storage, an open endpoint, TLS off, extra permissions.'
 highlight: 'Five mobile app security vulnerabilities show up in almost every scan: a secret in the package, a session token in plain storage, an endpoint with no authentication, TLS checking turned off, and unused permissions. Fix the unauthenticated endpoint first, because it is the only one an attacker can reach without your app, your phone or your network.'
-publishedAt: 2026-08-24
+publishedAt: 2026-10-04
 updatedAt: 2026-10-01
 category: azure
 categories: ['mobile']
@@ -12,7 +12,7 @@ series: 'azure-mobile-security'
 seriesOrder: 5
 cover: './images/mobile-app-five-vulnerabilities-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "Five findings, no mistakes" and the line "Every one is a default or a testing leftover.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "A working app, one scan, five findings", an arrow labelled "the scan" to a red box reading "An endpoint with no auth, reachable with curl", and an arrow labelled "the order" to a green box reading "Fix that one first, then the other four".'
-draft: true
+draft: false
 faq:
   - q: 'What is the difference between SharedPreferences or UserDefaults and secure storage?'
     a: 'SharedPreferences on Android and UserDefaults on iOS are plain files, readable on a rooted or jailbroken device and from a backup. Android Keystore, the iOS Keychain and .NET MAUI SecureStorage store values encrypted and tied to the device. In MAUI, Preferences is the plain one.'

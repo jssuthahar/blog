@@ -3,8 +3,8 @@ title: 'AI Bot Attacks on a Mobile App Login, and How Azure Stops Them'
 seoTitle: 'AI Bot Attacks on a Mobile App'
 description: 'A script tries 8,000 passwords a minute against your login API at 3am. Rate limiting, smart lockout and Defender for Cloud make speed the losing move.'
 highlight: 'An automated bot attack on a mobile app does not use your app. It calls your login API directly, thousands of times a minute, at 3am. Rate limiting per user or IP turns hours into years, Entra ID smart lockout and MFA make a correct guess useless, identical responses stop account enumeration, and Defender for Cloud alerts on the 401 spike.'
-publishedAt: 2026-08-30
-updatedAt: 2026-10-01
+publishedAt: 2026-10-09
+updatedAt: 2026-10-09
 category: azure
 categories: ['mobile']
 tags: ['Azure', 'Mobile Security', 'Rate Limiting', 'Microsoft Entra ID', 'Defender for Cloud', 'ASP.NET Core']
@@ -12,7 +12,7 @@ series: 'azure-mobile-security'
 seriesOrder: 8
 cover: './images/ai-bot-attacks-mobile-app-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "8,000 tries a minute" and the line "Nobody is typing. Make speed the losing move.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "A script at 3am, against your login API", an arrow labelled "the attack" to an amber box reading "Rate limit per user or IP, years, not hours", and an arrow labelled "the rest" to a green box reading "Lockout, MFA, an alert, Azure is awake instead".'
-draft: true
+draft: false
 faq:
   - q: 'Why does a CAPTCHA not stop automated attacks against a mobile API?'
     a: 'A CAPTCHA protects a web form, and the bot is not using your web form. It calls the same API your mobile app calls, straight from a server. Any control aimed at automated attacks has to live at the API, because the attacker never touches the UI.'

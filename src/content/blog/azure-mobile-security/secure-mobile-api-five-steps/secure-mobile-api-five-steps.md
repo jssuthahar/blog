@@ -3,7 +3,7 @@ title: 'How to Secure a Mobile API on Azure in Five Steps, in the Right Order'
 seoTitle: 'Secure a Mobile API on Azure in 5 Steps'
 description: 'HTTPS only, authentication, authorization, secrets and monitoring: five steps to secure a mobile API on Azure, and why the order carries most of the value.'
 highlight: 'Secure a mobile API on Azure in five steps, in this order: HTTPS only as a platform setting, authentication with Entra ID, authorization with an owner check that fails closed, secrets in Key Vault through a managed identity, and monitoring that alerts on the rate of 401 responses. The first three stop an attacker; the last two limit the damage and the delay.'
-publishedAt: 2026-08-26
+publishedAt: 2026-10-05
 updatedAt: 2026-10-01
 category: azure
 categories: ['mobile']
@@ -12,7 +12,7 @@ series: 'azure-mobile-security'
 seriesOrder: 6
 cover: './images/secure-mobile-api-five-steps-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "Five steps, in this order" and the line "Secure a mobile API on Azure. The order carries the value.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "HTTPS only, then who are you", an arrow labelled "then" to an amber box reading "Then what may you do, an owner check", and an arrow labelled "last" to a green box reading "Secrets, then monitoring, you find out in an hour".'
-draft: true
+draft: false
 faq:
   - q: 'Is redirecting HTTP to HTTPS enough for a mobile API?'
     a: 'No. A redirect still lets the first request go out in the clear, and on a mobile app that first request often carries the token. Set HTTPS Only to On with a minimum TLS version at the platform level, then add HSTS.'

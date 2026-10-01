@@ -3,7 +3,7 @@ title: 'Azure Key Vault Explained: The One Secret Tutorials Never Remove'
 seoTitle: 'Azure Key Vault Explained'
 description: 'Moving every secret into Key Vault leaves exactly one behind: the credential that opens the vault. A managed identity is what removes it.'
 highlight: 'Azure Key Vault holds secrets, keys and certificates, but moving secrets into it leaves one behind: the ClientSecret your app uses to open the vault. Remove it with a managed identity and DefaultAzureCredential, grant Key Vault Secrets User through RBAC, and turn on purge protection, audit logging and a reload interval before you need them.'
-publishedAt: 2026-08-28
+publishedAt: 2026-10-07
 updatedAt: 2026-10-01
 category: azure
 categories: ['mobile']
@@ -12,7 +12,7 @@ series: 'azure-mobile-security'
 seriesOrder: 7
 cover: './images/azure-key-vault-explained-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "One secret left over" and the line "The credential that opens the vault. A managed identity removes it.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Six secrets into Key Vault, the tutorial ends here", an arrow labelled "the leftover" to a red box reading "A ClientSecret opens the vault, one master secret", and an arrow labelled "the fix" to a green box reading "A managed identity, nothing left to leak".'
-draft: true
+draft: false
 faq:
   - q: 'Why is a ClientSecret used to open Key Vault still a problem?'
     a: 'It replaces several secrets with one master secret, stored in the same config file and the same repository. It leaks the same way any hardcoded secret does, and it expires, typically two years later, often after whoever created it has left.'

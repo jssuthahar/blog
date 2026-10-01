@@ -3,7 +3,7 @@ title: 'Insecure vs Secure Architecture: The Same Mobile App, Two Azure Designs'
 seoTitle: 'Insecure vs Secure Mobile App Architecture'
 description: 'Both architectures work perfectly for a real customer. The difference shows up at six moments, and one of the two designs cannot be patched, only rebuilt.'
 highlight: 'An insecure mobile architecture, app straight to database, and a secure one, app to Front Door to your API to a private database, behave identically for a real customer. They differ when someone unzips the app, dials the database or asks for another user''s data, and when you need to fix anything: one design ships fixes as server changes, the other as app releases.'
-publishedAt: 2026-09-01
+publishedAt: 2026-10-10
 updatedAt: 2026-10-01
 category: azure
 categories: ['mobile']

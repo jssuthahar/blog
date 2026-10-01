@@ -3,7 +3,7 @@ title: 'The Secure Login Journey: What Happens When You Tap Sign In'
 seoTitle: 'The Secure Login Journey, Step by Step'
 description: 'A secure app never touches your password. It hands you to Microsoft Entra ID and gets back a signed token. Here is everywhere that token goes next.'
 highlight: 'In a secure login journey the app never sees the password. It opens Microsoft''s sign-in page, the password stops at Entra ID, MFA runs, and a signed token comes back. Your API verifies that token locally against cached keys, then reaches Azure SQL with a managed identity, so no password exists anywhere past the sign-in page.'
-publishedAt: 2026-09-03
+publishedAt: 2026-10-11
 updatedAt: 2026-10-01
 category: azure
 categories: ['mobile']

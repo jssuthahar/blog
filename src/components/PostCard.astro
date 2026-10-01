@@ -1,5 +1,6 @@
 ---
 import CoverArt from './CoverArt.astro';
+import ViewCount from './ViewCount.astro';
 import { CATEGORIES, formatDate, postUrl, readingTime, type Post } from '../lib/posts';
 
 interface Props {
@@ -44,6 +45,7 @@ const category = CATEGORIES[data.category];
         <span class="text-accent">Updated {formatDate(data.updatedAt)}</span>
       )}
       {data.series && <span>· Part {data.seriesOrder}</span>}
+      <ViewCount slug={post.id} class="ml-auto" />
     </div>
   </div>
 </article>

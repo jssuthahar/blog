@@ -1,0 +1,37 @@
+---
+import { FIREBASE } from '../config';
+import { viewBaseline } from '../lib/baseline';
+
+/**
+ * A read-only view count for listing cards and rows.
+ *
+ * Renders a placeholder only. `ViewCountLoader` (mounted once in BaseLayout)
+ * finds every one on the page and fills them from a single Firestore
+ * `batchGet`, so a page of 60 cards costs one request, not 60. The number is
+ * the same baseline + live count the article page's ViewCounter shows, so a
+ * card and its article never disagree. Nothing here ever increments.
+ */
+interface Props {
+  slug: string;
+  class?: string;
+}
+
+const { slug, class: className = '' } = Astro.props;
+const enabled = FIREBASE.projectId.length > 0;
+---
+
+{enabled && (
+  <span
+    data-view-slug={slug}
+    data-view-base={viewBaseline(slug)}
+    class:list={['inline-flex items-center gap-1 tabular-nums', className]}
+    hidden
+  >
+    <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+    <span data-view-value></span>
+    <span class="sr-only">views</span>
+  </span>
+)}

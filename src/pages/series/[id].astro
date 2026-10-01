@@ -16,6 +16,7 @@
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Newsletter from '../../components/Newsletter.astro';
+import ViewCount from '../../components/ViewCount.astro';
 import { SITE } from '../../config';
 import { getSeriesIndex, formatDate, postUrl, readingTime } from '../../lib/posts';
 
@@ -105,8 +106,9 @@ const schema: Record<string, unknown>[] = [
         <div class="min-w-0">
           <a href={postUrl(post)} class="font-semibold hover:text-accent">{post.data.title}</a>
           <p class="mt-1 text-sm text-muted">{post.data.description}</p>
-          <p class="mt-2 text-xs text-muted">
+          <p class="mt-2 flex flex-wrap items-center gap-x-1.5 text-xs text-muted">
             {formatDate(post.data.publishedAt)} · {readingTime(post.body ?? '')} min read
+            <ViewCount slug={post.id} class="ml-1.5" />
           </p>
         </div>
       </li>

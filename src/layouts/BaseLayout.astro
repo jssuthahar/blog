@@ -7,6 +7,7 @@ import CommandPalette from '../components/CommandPalette.astro';
 import ArticleCapture from '../components/ArticleCapture.astro';
 import PwaController from '../components/PwaController.astro';
 import AppTabBar from '../components/AppTabBar.astro';
+import ViewCountLoader from '../components/ViewCountLoader.astro';
 import { SITE, AUTHOR, MAIN_SITE } from '../config';
 
 interface Props {
@@ -110,5 +111,8 @@ const baseSchema = [
     <!-- Installed-app navigation: icon tab bar in place of the burger menu.
          Renders nothing in a normal browser tab. -->
     <AppTabBar />
+
+    <!-- Fills every listing card's view count with one Firestore request. -->
+    <ViewCountLoader />
   </body>
 </html>

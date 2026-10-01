@@ -1,0 +1,68 @@
+---
+import { FIREBASE } from '../config';
+
+/**
+ * Fills every `ViewCount` on the page with one Firestore `batchGet`.
+ *
+ * Mounted once in BaseLayout. Badges start `hidden` and are revealed only once
+ * a real count has arrived, so a failed request leaves the cards exactly as
+ * they were rather than showing a baseline with nothing behind it.
+ */
+const projectId = FIREBASE.projectId;
+---
+
+{projectId && (
+  <script is:inline define:vars={{ projectId }}>
+    (() => {
+      const ROOT = `projects/${projectId}/databases/(default)/documents`;
+      const ENDPOINT = `https://firestore.googleapis.com/v1/${ROOT}:batchGet`;
+      const CHUNK = 100;
+
+      // Same formatting as ViewCounter, so a card and its article match.
+      const format = (n) =>
+        n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
+
+      async function fill() {
+        const badges = [...document.querySelectorAll('[data-view-slug]:not([data-view-done])')];
+        if (!badges.length) return;
+        badges.forEach((b) => b.setAttribute('data-view-done', ''));
+
+        const slugs = [...new Set(badges.map((b) => b.dataset.viewSlug))];
+        const counts = new Map();
+
+        try {
+          for (let i = 0; i < slugs.length; i += CHUNK) {
+            const documents = slugs
+              .slice(i, i + CHUNK)
+              .map((s) => `${ROOT}/views/${encodeURIComponent(s)}`);
+            const res = await fetch(ENDPOINT, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ documents }),
+            });
+            if (!res.ok) throw new Error(String(res.status));
+            for (const item of await res.json()) {
+              if (item.found) {
+                const slug = decodeURIComponent(item.found.name.split('/views/')[1]);
+                counts.set(slug, Number(item.found.fields?.count?.integerValue ?? 0));
+              }
+            }
+          }
+        } catch {
+          // The count is decoration. Leave the badges hidden and the page intact.
+          return;
+        }
+
+        for (const b of badges) {
+          const live = counts.get(b.dataset.viewSlug) ?? 0;
+          const out = b.querySelector('[data-view-value]');
+          if (out) out.textContent = format(Number(b.dataset.viewBase) + live);
+          b.hidden = false;
+        }
+      }
+
+      fill();
+      document.addEventListener('astro:page-load', fill);
+    })();
+  </script>
+)}

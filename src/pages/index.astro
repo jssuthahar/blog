@@ -25,6 +25,7 @@ import RecentlyRead from '../components/RecentlyRead.astro';
 import SeriesQuickNav from '../components/SeriesQuickNav.astro';
 import CoverArt from '../components/CoverArt.astro';
 import ShortPoster from '../components/ShortPoster.astro';
+import ViewCount from '../components/ViewCount.astro';
 import { formatEventDate, FORMAT_LABELS } from '../lib/speaking';
 
 const posts = await getPublishedPosts();
@@ -221,6 +222,7 @@ const schema = [
                   {formatDate(latestPost.data.publishedAt)}
                 </time>
                 <span class="text-muted">{readingTime(latestPost.body ?? '')} min read</span>
+                <ViewCount slug={latestPost.id} class="text-muted" />
               </div>
 
               <h3 class="mt-2.5 text-xl leading-snug font-semibold tracking-tight text-balance sm:text-2xl">
@@ -259,6 +261,7 @@ const schema = [
                       {post.data.series && (
                         <span class="text-muted">Part {post.data.seriesOrder}</span>
                       )}
+                      <ViewCount slug={post.id} class="text-muted" />
                     </div>
                     <h4 class="mt-1 leading-snug font-medium">
                       <a href={postUrl(post)} class="after:absolute after:inset-0 group-hover:text-accent">

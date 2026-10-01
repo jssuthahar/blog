@@ -3,7 +3,7 @@
 Topic: Multi-agent handoff orchestration for Microsoft Foundry agents: split one overloaded agent into customer, partner and rider specialists, route by role in code before any model runs, and gate every write behind approval.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Multi-agent handoff: route by role
-Published: 2026-10-01
+Published: 2026-07-09
 
 ## What you will learn
 

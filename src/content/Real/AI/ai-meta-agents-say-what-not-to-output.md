@@ -3,7 +3,7 @@
 Topic: The meta agents that maintain an AI agent prompt library — a refusal-condition hook that checks only staged files has never run on the one prompt that fails it, and how prompt, skill, hook and AGENTS.md generator agents audit the library and keep it from drifting.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Meta agents: say what not to output
-Published: 2026-10-01
+Published: 2026-09-20
 
 ## What you will learn
 

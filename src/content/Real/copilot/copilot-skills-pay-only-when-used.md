@@ -3,7 +3,7 @@
 Topic: GitHub Copilot Skills explained — why pasting a team method into copilot-instructions.md makes every request pay for it, and how a SKILL.md loads only when a task matches its description, measured on a real Flutter app.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Copilot Skills: pay only when used
-Published: 2026-10-01
+Published: 2026-01-29
 
 ## What you will learn
 

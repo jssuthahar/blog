@@ -3,7 +3,7 @@
 Topic: Firebase Authentication in ASP.NET Core for a Microsoft Foundry agent API: issuer and audience checks, roles from custom claims, and deployment to Azure App Service with a managed identity so no secret exists.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Firebase auth + managed identity
-Published: 2026-10-01
+Published: 2026-05-30
 
 ## What you will learn
 

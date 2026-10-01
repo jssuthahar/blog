@@ -3,7 +3,7 @@
 Topic: GitHub Copilot hooks for beginners — why an instruction is a request the model may drop, and how a preToolUse hook runs a script outside the model to deny a command, such as a commit with a Flutter import in the domain layer, before it runs.
 Runtime: ~47s across 9 stages (1080x1920)
 SEO title: GitHub Copilot hooks: deny before it runs
-Published: 2026-10-01
+Published: 2026-03-19
 
 ## What you will learn
 

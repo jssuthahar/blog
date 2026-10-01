@@ -3,7 +3,7 @@
 Topic: GitHub Copilot PR summary — why an auto-generated pull request description that restates the diff is noise, and how a template plus custom instructions plus two minutes from the author produce one reviewers read: why, risk, rollback and focus.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: GitHub Copilot PR summary that works
-Published: 2026-10-01
+Published: 2026-03-10
 
 ## What you will learn
 

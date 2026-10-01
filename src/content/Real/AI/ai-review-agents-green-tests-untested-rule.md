@@ -3,7 +3,7 @@
 Topic: AI agents for testing, code review, performance and UI review — a Flutter app with 93 green tests never exercises its cancel rule because both cancellation tests start from a placed order, and how a testing agent working from requirements, a UI state matrix and cited review findings fix it.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: AI testing agent: test the promise
-Published: 2026-10-01
+Published: 2026-08-09
 
 ## What you will learn
 

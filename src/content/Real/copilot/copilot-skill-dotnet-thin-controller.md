@@ -3,7 +3,7 @@
 Topic: Building a GitHub Copilot Skill for .NET — why Copilot writes a whole feature inside the controller, and how one SKILL.md with a trigger-rich description, rules, a workflow and a checklist makes it produce a Query, a handler, a thin controller and tests.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Copilot Skill for .NET Clean Architecture
-Published: 2026-10-01
+Published: 2026-02-06
 
 ## What you will learn
 

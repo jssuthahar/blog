@@ -3,7 +3,7 @@
 Topic: What an AI token is and how AI cost is calculated — a token is a subword fragment, Dart code measured about 6.5 tokens per line, and because every chat turn resends the whole conversation and every attached file, one twenty-turn thread can use most of a monthly allowance.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: What is an AI token? Cost explained
-Published: 2026-10-01
+Published: 2026-04-12
 
 ## What you will learn
 

@@ -3,7 +3,7 @@
 Topic: Making a 400,000-token monthly AI budget last — why one long agent thread with files pinned can spend most of it, and how routing each task to the cheapest tier (no model, unmetered chat, Copilot on a selection, planned agent runs) makes the month last.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: AI token budget: route by tier
-Published: 2026-10-01
+Published: 2026-03-27
 
 ## What you will learn
 

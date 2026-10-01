@@ -3,7 +3,7 @@
 Topic: AI agents for accessibility, localization, documentation and SEO — a favourite heart button on a Flutter restaurant card announces itself to TalkBack as only "button", and how a hook finds unnamed controls, an agent confirms the real ones, and a concatenated status string becomes one translatable message.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Accessibility agents: name the button
-Published: 2026-10-01
+Published: 2026-09-12
 
 ## What you will learn
 

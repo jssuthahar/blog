@@ -3,7 +3,7 @@
 Topic: Streaming Microsoft Foundry agent responses from ASP.NET Core to Flutter with server-sent events: the run loop handles deltas and resumes after tool rounds, and the wait becomes legible.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Stream AI agent responses with SSE
-Published: 2026-10-01
+Published: 2026-06-15
 
 ## What you will learn
 

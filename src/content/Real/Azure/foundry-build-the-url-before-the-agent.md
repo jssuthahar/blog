@@ -3,7 +3,7 @@
 Topic: Building an ASP.NET Core Minimal API over SQL Server for a Microsoft Foundry agent: test the URL in Postman first, because the agent is only a caller that picks the parameters a person would have typed.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Foundry agent backend: URL first
-Published: 2026-10-01
+Published: 2026-04-28
 
 ## What you will learn
 

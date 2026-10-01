@@ -3,7 +3,7 @@
 Topic: Security, cybersecurity and penetration testing AI agents — a Firestore rule that reads correctly lets any signed-in rider read every customer’s name, phone and address, found only by testing with a second rider, and why credentials should be ranked by blast radius.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: AI security agents: attack the rules
-Published: 2026-10-01
+Published: 2026-08-27
 
 ## What you will learn
 

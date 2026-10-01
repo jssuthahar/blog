@@ -3,7 +3,7 @@
 Topic: Why one AI coding agent is not a team — a Flutter and Firebase app is code-complete in week nine and ships in week fourteen because security rules, licences, changelog, crash reporting, analytics and accessibility have no owner, and how role agents plus hook checks catch each job the week it appears.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: One AI agent is not a team
-Published: 2026-10-01
+Published: 2026-07-17
 
 ## What you will learn
 

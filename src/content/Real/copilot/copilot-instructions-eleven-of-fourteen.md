@@ -3,7 +3,7 @@
 Topic: What GitHub Copilot custom instructions are and why a project needs one — a first Flutter task without .github/copilot-instructions.md ends in 14 review comments, 11 of them about conventions Copilot could not know, and the same request with the file is approved first time.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Copilot custom instructions: 11 of 14
-Published: 2026-10-01
+Published: 2026-01-05
 
 ## What you will learn
 

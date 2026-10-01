@@ -3,7 +3,7 @@
 Topic: GitHub Copilot code review limits — a refund pull request passes analyze, tests, the layering rule and an AI review Skill, and still refunds the wrong amount, because AI reviews how code is written, not whether it is the right code.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: GitHub Copilot code review limits
-Published: 2026-10-01
+Published: 2026-03-02
 
 ## What you will learn
 

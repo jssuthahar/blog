@@ -3,7 +3,7 @@
 Topic: What MCP (Model Context Protocol) is for Microsoft Foundry agents: how it differs from a function tool, consuming remote MCP servers with an approval loop, and publishing your own tools through a Toolbox.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: MCP vs function tools in Foundry
-Published: 2026-10-01
+Published: 2026-07-03
 
 ## What you will learn
 

@@ -3,7 +3,7 @@
 Topic: Testing and running a Microsoft Foundry agent in production: assert on tool calls with a recording executor instead of on model prose, trace every turn, and watch token cost per tool call.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Test AI agents: assert the tool
-Published: 2026-10-01
+Published: 2026-06-21
 
 ## What you will learn
 

@@ -3,7 +3,7 @@
 Topic: Securing a Microsoft Foundry agent: never put a user ID in a tool schema, resolve identity from the validated JWT in the executor, check roles before tools run, and defend against prompt injection in tool output.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Foundry agent security: no user ID
-Published: 2026-10-01
+Published: 2026-05-23
 
 ## What you will learn
 

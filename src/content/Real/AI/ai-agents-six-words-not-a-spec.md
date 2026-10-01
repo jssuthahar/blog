@@ -3,7 +3,7 @@
 Topic: AI agents for planning, business analysis and solution architecture — the requirement "users can cancel an order" ends up enforced in one Flutter screen while the use case accepts any order status, and how a business analyst agent and a solution architect agent move the rule into the domain with an ADR and a hook.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: AI analyst and architect agents
-Published: 2026-10-01
+Published: 2026-07-26
 
 ## What you will learn
 

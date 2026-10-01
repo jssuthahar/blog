@@ -3,7 +3,7 @@
 Topic: Building a GitHub Copilot Skill for Flutter — why Copilot calls Firestore inside build() with state in setState, and how one SKILL.md makes it produce a repository, a use case, a Cubit and a bloc_test instead.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Copilot Skill for Flutter and Firestore
-Published: 2026-10-01
+Published: 2026-02-14
 
 ## What you will learn
 

@@ -3,7 +3,7 @@
 Topic: AI agents for DevOps, release management, monitoring and analytics — a finished Flutter app ships with its backend chosen by a code default, tester notes taken from the last commit subject and no crash reporting, and how four agents make each decision before the first release.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: AI DevOps agents: ship, then watch
-Published: 2026-10-01
+Published: 2026-08-24
 
 ## What you will learn
 

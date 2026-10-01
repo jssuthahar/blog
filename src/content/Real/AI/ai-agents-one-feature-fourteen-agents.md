@@ -3,7 +3,7 @@
 Topic: One Flutter and Firebase feature walked through an AI agent team — the cancel-order rule moves from a screen into the domain through the analyst, architect and testing agents, and the security agent finds a Firestore rule that still lets a customer write any status on their own order.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: One feature through an AI agent team
-Published: 2026-10-01
+Published: 2026-09-29
 
 ## What you will learn
 

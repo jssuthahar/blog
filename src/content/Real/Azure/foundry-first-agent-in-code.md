@@ -3,7 +3,7 @@
 Topic: Microsoft Foundry project setup: resource, project endpoint, model deployment, the Foundry User role, and why the agent is created in C# rather than the portal.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: First Foundry agent: create it in C#
-Published: 2026-10-01
+Published: 2026-05-06
 
 ## What you will learn
 

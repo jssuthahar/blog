@@ -3,7 +3,7 @@
 Topic: How to save AI tokens in GitHub Copilot — one real Flutter bug asked twice: attaching files and arguing for twelve turns costs about 212,000 tokens, while selecting the method, naming the symbol and asking for a diff costs about 20,000.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Save AI tokens: select, name, diff
-Published: 2026-10-01
+Published: 2026-04-04
 
 ## What you will learn
 

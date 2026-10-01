@@ -3,7 +3,7 @@
 Topic: AI agents for dependency, licence, copyright and privacy compliance — a package added to save two hours costs four days to remove five months later, and how import counts, a written reason per package, a deny list on the resolved tree and a data inventory catch each risk on the day it arrives.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: AI licence agents: catch it day one
-Published: 2026-10-01
+Published: 2026-09-04
 
 ## What you will learn
 

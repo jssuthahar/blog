@@ -3,7 +3,7 @@
 Topic: Why a food delivery search box fails a customer who knows what they want, and what an AI agent in Microsoft Foundry actually is: a model that asks your code to run functions, with the API as the trust boundary.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Search box vs AI agent: 17 dishes
-Published: 2026-10-01
+Published: 2026-04-20
 
 ## What you will learn
 

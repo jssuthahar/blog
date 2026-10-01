@@ -3,7 +3,7 @@
 Topic: An Azure Copilot Skill for Bicep — why Copilot writes correct but insecure and expensive infrastructure by default, and how a SKILL.md with security and cost rules makes it write private, keyless, tagged, cheap resources in the editor, before Azure Policy or the bill.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Copilot Skill for Azure Bicep guardrails
-Published: 2026-10-01
+Published: 2026-02-22
 
 ## What you will learn
 

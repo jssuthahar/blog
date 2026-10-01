@@ -3,7 +3,7 @@
 Topic: AGENTS.md explained — why three AI coding tools on one team build the same feature three different ways, and how one AGENTS.md file at the repository root gives Copilot, Cursor, Codex and Claude Code the same rules.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: AGENTS.md: one file for every AI agent
-Published: 2026-10-01
+Published: 2026-01-13
 
 ## What you will learn
 

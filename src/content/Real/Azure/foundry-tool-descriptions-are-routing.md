@@ -3,7 +3,7 @@
 Topic: Function tools for a Microsoft Foundry agent in ASP.NET Core: tool descriptions are routing logic, the run loop executes calls, errors come back as data, and a round cap stops it looping.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Foundry function tools: routing
-Published: 2026-10-01
+Published: 2026-05-14
 
 ## What you will learn
 

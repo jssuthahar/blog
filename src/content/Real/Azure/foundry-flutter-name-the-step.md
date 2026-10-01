@@ -3,7 +3,7 @@
 Topic: Building a Flutter chat client for a Microsoft Foundry agent: design around four-to-nine-second agent turns by naming each step, and never let the model place an order without a real button press.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Flutter AI chat: name the step
-Published: 2026-10-01
+Published: 2026-06-07
 
 ## What you will learn
 

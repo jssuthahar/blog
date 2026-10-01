@@ -3,7 +3,7 @@
 Topic: AI build agents for a Flutter and Firebase app — why one coding agent writing the widget, query and security rule produces a diff where only the widget is reviewed, with two real findings: a Firestore rule that lets any rider read any order and a dashboard count that reads the whole order history.
 Runtime: ~48s across 9 stages (1080x1920)
 SEO title: Four AI build agents for Flutter
-Published: 2026-10-01
+Published: 2026-07-31
 
 ## What you will learn
 

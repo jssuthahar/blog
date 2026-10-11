@@ -1,0 +1,518 @@
+---
+title: 'Money Debited, Order Failed: Payment Webhooks and Reconciliation on Azure'
+seoTitle: 'Payment Succeeded but Order Not Created'
+description: 'Payment succeeded but the order was not created? Save the webhook first, process it from Service Bus, and reconcile with the gateway on a timer.'
+highlight: "A payment webhook is a message you must not lose, not a request you must finish. Verify the signature, save the event in Azure SQL, queue it on Service Bus and answer 200 in milliseconds. Place the order from the queue with a conditional update. A timer that asks the gateway about every waiting order every five minutes means a lost webhook costs five minutes, not a customer's money."
+publishedAt: 2026-10-05
+cover: './images/payment-webhook-reconciliation-azure-functions-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, system design" above the title "Money debited, order failed" and the lines "The payment worked. The webhook that should have saved it did not.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "₹414 debited by UPI, the gateway captured the payment", an arrow labelled "webhook" to an amber box reading "Webhook timed out, and an instance restart killed the rest", and an arrow labelled "10 min later" to a red box reading "Order: PaymentFailed, 131 customers paid for nothing".'
+category: azure
+categories: ['architecture', 'engineering']
+tags: ['System Design', 'Azure', 'Azure Functions', 'Azure Service Bus', 'Azure SQL', 'Payments', 'Webhooks', 'Idempotency', 'ASP.NET Core']
+series: 'azure-production-issues'
+seriesOrder: 7
+draft: true
+faq:
+  - q: 'Why did my payment succeed but the order was not created?'
+    a: 'Usually because the order is only confirmed when the payment callback arrives, and that callback failed. The gateway took the money, but its webhook timed out, the server crashed while handling it, or the app closed before reporting success. Without a reconciliation job that asks the gateway, nobody notices until the customer complains.'
+  - q: 'What is a payment webhook?'
+    a: 'An HTTP POST that the payment gateway sends to your server when something happens to a payment, such as payment.captured or payment.failed. It is signed with a secret you share with the gateway. It is the gateway telling you the result, which is more reliable than waiting for the customer''s app to tell you.'
+  - q: 'How do you make a payment webhook idempotent?'
+    a: 'Store every event with the gateway''s event ID under a unique index, so a redelivered event is recognised and not processed twice. Then change the order with a conditional update, such as UPDATE Orders SET Status = ''Placed'' WHERE Reference = @ref AND Status = ''PendingPayment''. A second delivery changes no rows and does nothing.'
+  - q: 'How fast should a payment webhook endpoint respond?'
+    a: 'In well under a second. Gateways wait only a few seconds before marking a delivery failed and scheduling a retry, sometimes minutes or hours later. Verify the signature, save the event, queue it and return 200. Do the slow work, such as notifying the restaurant or sending pushes, from the queue.'
+  - q: 'What is payment reconciliation?'
+    a: 'A job that compares your orders with the payment gateway''s records and fixes any difference. For orders still waiting for payment, it asks the gateway for the payment status by your order reference. A captured payment with no placed order is processed as if the webhook had arrived. Running it every five minutes bounds every wait.'
+  - q: 'Should I use Azure Functions or App Service for payment webhooks?'
+    a: 'Either can receive the webhook. Azure Functions fits well because the same app can host the HTTP webhook, a Service Bus trigger that processes events with automatic retries and a dead-letter queue, and a timer trigger for reconciliation. What matters more is the design: save first, process from a queue, reconcile on a timer.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+"Payment succeeded but the order was not created" is one of the worst tickets a food delivery app can get. The money left the customer's account, the app said the order failed, and no restaurant ever saw it. The fix is not a faster server. It is a payment webhook that saves the event before doing anything else, a Service Bus queue that finishes the work, and a reconciliation job on Azure Functions that asks the gateway every few minutes what really happened.
+
+It is 13:15 on Sunday, the lunch rush, and you are the engineer on call. The first ticket reads:
+
+"₹414 gone from my account. Your app says payment failed. Where is my biryani?"
+
+Ten minutes later there are forty of them. Every customer has a UPI debit message from their bank. Every order in the database says `PaymentFailed`. And the dashboards say the payment gateway is fine.
+
+<Callout type="tip" title="A scenario, on a real app you can run">
+This incident is a scenario played out on MSDevBuild Eats, the open-source reference app used across this blog. The SQL, KQL and C# are real and runnable; the traffic numbers and the gateway's event shape are illustrative, because every payment gateway names its events and headers a little differently. The checkout flow lives in `lib/features/checkout/bloc/checkout_bloc.dart`.
+
+- **Source code**: [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web**: [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/)
+- **Android build**: [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
+</Callout>
+
+## Sunday lunch, and two fixes that made it worse
+
+The app had recently added UPI. Unlike a card charge, a UPI payment does not finish inside your API call. The app opens the customer's UPI app, the customer approves the payment there, and the result reaches you later, by webhook.
+
+| Time (IST) | What happened |
+| --- | --- |
+| 12:30 | Lunch rush. The payment webhook answers in 1.1 seconds at p95 |
+| 12:55 | The restaurant-notification call inside the webhook slows down. Webhook p95 reaches 9 seconds |
+| 13:05 | The gateway starts giving up after 5 seconds and schedules retries |
+| 13:07 | An App Service instance restarts after a memory spike. Every webhook in flight on it dies mid-transaction |
+| 13:15 | First ticket: "money debited, order failed" |
+| 13:22 | A second instance restart |
+| 13:30 | Hotfix 1: scale out from 3 to 6 instances. More handlers now wait on the same locked order rows |
+| 13:45 | Hotfix 2: the expiry job waits 30 minutes instead of 10. Customers stare at "waiting for payment" and cancel |
+| 14:20 | Someone loads the gateway's list of captured payments into SQL and joins it to the orders |
+| 14:40 | Support starts refunding and re-placing orders by hand |
+
+Neither hotfix touched the cause. Scaling out does not make a 14-second handler fast. And a longer expiry only moves the moment the order is wrongly marked failed. It still gets marked failed.
+
+## The query that found the missing orders
+
+At 14:20 someone stops reading dashboards and asks the only question that matters: which captured payments have no placed order? The gateway lets you export its captured payments, loaded here into `dbo.GatewaySettlement`:
+
+```sql
+SELECT o.Status                AS OrderStatus,
+       COUNT(*)                AS payments,
+       SUM(s.Amount)           AS amount
+FROM dbo.GatewaySettlement AS s
+LEFT JOIN dbo.Orders AS o
+       ON o.Reference = s.OrderReference
+WHERE s.Status = 'captured'
+  AND s.CapturedAt >= '2026-10-04T07:00:00'   -- 12:30 IST, stored in UTC
+  AND (o.Id IS NULL OR o.PaidAt IS NULL)
+GROUP BY o.Status;
+```
+
+| OrderStatus | payments | amount |
+| --- | --- | --- |
+| PaymentFailed | 118 | ₹48,852 |
+| PendingPayment | 13 | ₹5,382 |
+
+131 customers. ₹54,234 taken, no food on the way. The 13 still `PendingPayment` would have been marked failed too, within minutes.
+
+The webhook's own telemetry in Application Insights shows why:
+
+```kql
+requests
+| where timestamp between (datetime(2026-10-04 07:00) .. datetime(2026-10-04 08:30))
+| where name == "POST /api/payments/webhook"
+| summarize deliveries = count(),
+            p95_ms     = percentile(duration, 95),
+            over_5s    = countif(duration > 5000),
+            failed     = countif(success == false)
+    by bin(timestamp, 15m)
+| order by timestamp asc
+```
+
+| timestamp (UTC) | deliveries | p95_ms | over_5s | failed |
+| --- | --- | --- | --- | --- |
+| 07:00 | 412 | 1,140 | 0 | 0 |
+| 07:30 | 506 | 9,020 | 71 | 4 |
+| 07:45 | 538 | 14,210 | 188 | 41 |
+| 08:00 | 471 | 12,870 | 153 | 22 |
+
+Every delivery over 5 seconds was a delivery the gateway had already given up on. Some of those handlers finished anyway, and those orders were fine. The ones on the two restarted instances never finished at all.
+
+<figure>
+
+![Architecture diagram of the payment flow before the fix. A solid frame labelled "Sunday 13:10, a customer pays ₹414 by UPI" holds the MSDevBuild Eats app, killed in the background. An arrow labelled "pays by UPI" goes to a green payment gateway box: ₹414 debited, payment captured. An arrow labelled "webhook: payment.captured" goes down to the web tier, a webhook on App Service that verifies, updates the order, notifies the restaurant, sends a push and adds loyalty points, with a dashed line to a red note: 14 s per delivery under load, the gateway gives up after 5 s, an instance restart kills the rest. An arrow labelled "UPDATE order, one long transaction" goes to the data tier, Azure SQL Database, with orders in PendingPayment. An amber expiry job, running every minute, marks any order PendingPayment for 10 minutes as PaymentFailed. The result, in red: the gateway retries at 30 minutes, the order is already PaymentFailed so the handler ignores it, and 131 customers are debited while every order shows failed.](./images/payment-webhook-order-lost-architecture.png)
+
+<figcaption>Figure 1. The design before the fix. Every path that could save the order depended on one slow request finishing in time.</figcaption>
+
+</figure>
+
+## Root cause: the webhook was doing the whole job
+
+The webhook handler did everything in one request: verify the signature, load the order, mark it placed, call the restaurant's tablet API, send the customer a push, add loyalty points, commit. When the restaurant API slowed down, that request took 14 seconds, inside a database transaction.
+
+Three things then failed together.
+
+The gateway does not wait 14 seconds. It waits 5, counts the delivery as failed and retries later, on its own schedule: 5 minutes, 30 minutes, then hours. The two instance restarts killed handlers before they committed, so those orders stayed `PendingPayment`. And the expiry job, written to clean up abandoned checkouts, marked every order still `PendingPayment` after 10 minutes as `PaymentFailed`. When the gateway's retry finally arrived, the handler saw an order that was no longer pending and ignored it, returning 200. The gateway marked the event delivered. Case closed, on both sides, with the money in the wrong place.
+
+The app was no backup. It was supposed to report success when the customer came back from the UPI app, but Android had killed it in the background on most low-memory phones, so that call never happened.
+
+One sentence covers it: **the only record that the customer had paid lived inside a slow HTTP request, and nothing ever asked the gateway again.**
+
+## The same problem every async payment has
+
+This is not a UPI problem. Any payment that completes outside your API call has it: UPI, wallets, 3-D Secure card checks, bank redirects, buy-now-pay-later. The gateway knows the truth first, and it tells you by webhook. Gateways retry webhooks, which helps, but they all say the same thing in their docs: deliveries can be late, out of order, or repeated, and you should not depend on them alone.
+
+So the design needs three properties:
+
+1. **A webhook is never lost once it reaches you.** Save it before doing anything with it.
+2. **Processing it twice is harmless.** A retried webhook, or one that arrives twice, changes nothing the second time.
+3. **A webhook that never reaches you is found anyway.** Something on your side asks the gateway on a schedule.
+
+The rest of this article builds each one on Azure.
+
+<ShortHighlight slugs={['azure-payment-webhook-order-not-created']} />
+
+## The new flow: order first, then money, then the event
+
+The order already exists before payment, as `PendingPayment`, with an idempotency key from the app. That part came from [the double tap that charged twice](/blog/duplicate-order-idempotency-key-azure-sql). The one addition is that the API passes the order's reference, `ord-1042`, to the gateway when it creates the payment. Every payment the gateway takes can now be traced back to exactly one order, by a value you chose.
+
+<figure>
+
+![UML sequence diagram with five lifelines: the Flutter app, the Orders API on App Service, the payment gateway, the webhook Function with Azure SQL, and Service Bus with the processor Function. Step 1, the app sends POST /api/orders. Step 2, the API creates a payment at the gateway with reference ord-1042. Step 3, the API returns 201 with ord-1042 in PendingPayment. Step 4, the customer approves ₹414 in the UPI app. Step 5, the gateway sends payment.captured, event evt_9f2, to the webhook Function. Step 6, the webhook inserts the event into PaymentEvents. Step 7, it sends the event to Service Bus with MessageId evt_9f2. Step 8, it returns 200 OK to the gateway in 120 ms. Step 9, the processor updates Orders where the status is still PendingPayment. Step 10, the app gets a push: order placed, the restaurant has it. A green note says the gateway hears 200 in milliseconds and the slow work runs from a queue that retries.](./images/payment-webhook-service-bus-sequence-diagram.png)
+
+<figcaption>Figure 2. The happy path after the fix. The webhook only records the event; the order changes in step 9, from a queue.</figcaption>
+
+</figure>
+
+## The webhook: verify, save, enqueue, 200
+
+The new webhook is an HTTP-triggered Azure Function, and it does four things only. It runs on the .NET isolated worker with the ASP.NET Core integration, so it gets `HttpRequest` and `IActionResult`:
+
+```csharp
+public class PaymentWebhook(
+    PaymentEventStore events,
+    [FromKeyedServices("payment-events")] ServiceBusSender queue,
+    IOptions<GatewayOptions> gateway)
+{
+    [Function("PaymentWebhook")]
+    public async Task<IActionResult> Run(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "payments/webhook")] HttpRequest req,
+        CancellationToken ct)
+    {
+        // 1. The signature covers the exact bytes the gateway sent. Read them raw;
+        //    JSON that has been parsed and re-serialized will not match.
+        using var buffer = new MemoryStream();
+        await req.Body.CopyToAsync(buffer, ct);
+        byte[] body = buffer.ToArray();
+
+        if (!IsSigned(body, req.Headers["X-Gateway-Signature"]))
+            return new UnauthorizedResult();
+
+        var evt = JsonSerializer.Deserialize<GatewayEvent>(body)!;
+
+        // 2. Save first. A redelivered event hits the unique index, and that is fine.
+        await events.TryInsertAsync(evt, Encoding.UTF8.GetString(body), ct);
+
+        // 3. Hand the work to the queue. If this throws, the 500 makes the gateway
+        //    retry, and the reconciliation timer re-queues unprocessed events anyway.
+        await queue.SendMessageAsync(new ServiceBusMessage(body)
+        {
+            MessageId = evt.Id,
+            Subject = evt.Type
+        }, ct);
+
+        // 4. Done. No order update, no restaurant call, no push.
+        return new OkResult();
+    }
+
+    private bool IsSigned(byte[] body, string? signature)
+    {
+        if (string.IsNullOrEmpty(signature)) return false;
+
+        byte[] expected = HMACSHA256.HashData(gateway.Value.WebhookSecret, body);
+        byte[] given;
+        try { given = Convert.FromHexString(signature); }
+        catch (FormatException) { return false; }
+
+        return CryptographicOperations.FixedTimeEquals(expected, given);
+    }
+}
+```
+
+The header name and encoding are this scenario's gateway; yours will document its own, and many also send a timestamp you should check to refuse replayed events. Two details matter whatever the gateway. Compare with `FixedTimeEquals`, never `==`, so the comparison time leaks nothing about the secret. And keep the webhook secret in Key Vault, read through a Key Vault reference in the app settings, not in code.
+
+`TryInsertAsync` is a plain insert into a table whose only job is to remember every event the gateway ever sent:
+
+```sql
+CREATE TABLE dbo.PaymentEvents (
+    Id               bigint IDENTITY  PRIMARY KEY,
+    GatewayEventId   varchar(64)      NOT NULL,
+    EventType        varchar(64)      NOT NULL,
+    OrderReference   varchar(32)      NOT NULL,
+    GatewayPaymentId varchar(64)      NOT NULL,
+    Amount           decimal(10, 2)   NOT NULL,
+    Payload          nvarchar(max)    NOT NULL,
+    ReceivedAt       datetime2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    ProcessedAt      datetime2        NULL
+);
+
+CREATE UNIQUE INDEX UX_PaymentEvents_GatewayEventId
+    ON dbo.PaymentEvents (GatewayEventId);
+
+CREATE INDEX IX_PaymentEvents_Unprocessed
+    ON dbo.PaymentEvents (ReceivedAt)
+    WHERE ProcessedAt IS NULL;
+```
+
+A second delivery of `evt_9f2` fails with error 2601, duplicate key. The code catches it, treats it as "already saved", and still sends to the queue, because the first attempt may have saved the row and then died before the send. Sending twice is harmless; you will see why in the processor.
+
+<figure>
+
+![Flowchart of the webhook endpoint after the fix. It starts when the gateway POSTs a payment event. First decision: signature valid, an HMAC over the raw body? No leads to a red box: 401, nothing saved, nothing processed. Yes continues to the second decision: does the INSERT into PaymentEvents succeed? No, a duplicate, leads to a grey box: error 2601, already saved, a redelivery, carry on, which rejoins the flow. Yes continues to the third decision: sent to Service Bus with MessageId set to the event id? No leads to an amber box: 500, the gateway retries and the timer sweeps it. Yes leads to a green box: 200 OK in about 120 ms, and the order is updated by the processor.](./images/idempotent-payment-webhook-flowchart.png)
+
+<figcaption>Figure 3. Everything the webhook does. Only a bad signature is refused; every other path ends with the event saved.</figcaption>
+
+</figure>
+
+The answer goes back in about 120 milliseconds, whatever the restaurant API is doing. The gateway's 5-second timeout stops mattering.
+
+## The processor: one event, one conditional update
+
+The Service Bus queue `payment-events` has [duplicate detection](https://learn.microsoft.com/en-us/azure/service-bus-messaging/duplicate-detection) switched on, which needs the Standard tier or above, and a max delivery count of 10. A Service Bus-triggered Function takes each event:
+
+```csharp
+[Function("ProcessPaymentEvent")]
+public async Task Run(
+    [ServiceBusTrigger("payment-events", Connection = "ServiceBus")] ServiceBusReceivedMessage message,
+    CancellationToken ct)
+{
+    var evt = message.Body.ToObjectFromJson<GatewayEvent>();
+
+    if (evt.Type == "payment.captured")
+    {
+        var result = await orders.MarkPaidAsync(evt.OrderReference, evt.PaymentId, evt.Amount, ct);
+
+        switch (result)
+        {
+            case MarkPaid.Placed:        // the normal case
+            case MarkPaid.AlreadyPaid:   // a redelivery: nothing to do
+                break;
+
+            case MarkPaid.OrderClosed:   // money arrived for an order that was cancelled or expired
+            case MarkPaid.SecondPayment: // the customer paid twice for one order
+                await payments.RefundAsync(evt.PaymentId, evt.Amount,
+                                           idempotencyKey: $"refund-{evt.PaymentId}", ct);
+                await notify.RefundedAsync(evt.OrderReference, result, ct);
+                break;
+
+            case MarkPaid.AmountMismatch:
+                await orders.FlagAsync(evt.OrderReference, "NeedsAttention", ct);   // a person decides
+                break;
+        }
+    }
+
+    await events.MarkProcessedAsync(evt.Id, ct);
+}
+```
+
+If anything throws, the Function fails, Service Bus makes the message visible again and retries it. After 10 attempts it goes to the dead-letter queue, where an alert waits for it. Nothing is ever silently dropped.
+
+`MarkPaidAsync` is the whole correctness of the design in one statement:
+
+```sql
+BEGIN TRANSACTION;
+
+UPDATE dbo.Orders
+SET    Status           = 'Placed',
+       GatewayPaymentId = @paymentId,
+       PaidAt           = SYSUTCDATETIME()
+WHERE  Reference = @orderRef
+  AND  Status    = 'PendingPayment'      -- 0 rows if it was already placed, or closed
+  AND  Total     = @amount;              -- 0 rows if the amount is not what we asked for
+
+IF @@ROWCOUNT = 1
+    INSERT INTO dbo.Outbox (MessageId, QueueName, Body, CreatedAt)
+    VALUES (@orderRef, 'order-placed', @body, SYSUTCDATETIME());
+
+COMMIT;
+```
+
+When the update changes one row, the order is placed, and in the same transaction an outbox row asks for the restaurant notification and the customer push. That is the transactional outbox from [the hotel booking saga](/blog/hotel-booking-confirmation-payment-saga), and it is why the slow restaurant API can no longer hold a payment hostage: it runs later, from its own queue, with its own retries.
+
+When the update changes zero rows, the code reads the order once to learn why, and returns `AlreadyPaid` (same payment ID), `SecondPayment` (a different one), `OrderClosed` or `AmountMismatch`. A redelivered event, a duplicate message that slipped past duplicate detection, and a reconciliation run that raced the webhook all end up in `AlreadyPaid`. Duplicate detection saves work; the conditional update is the guarantee.
+
+<Callout type="mistake" title="Ignoring an event because the order is not pending">
+The old handler saw a non-pending order and returned 200 with nothing done. That one `return` is how 118 payments disappeared. An event that does not fit the order's state is not noise. It is money in an unexpected place, and it needs a decision: nothing (already paid), a refund (order closed, or paid twice), or a person (wrong amount).
+</Callout>
+
+## Reconciliation every five minutes, with a timer Function
+
+The webhook path now survives slowness and restarts. It still cannot survive a webhook that never arrives: a gateway incident, a misconfigured URL after a deploy, a firewall rule. Reconciliation covers that, by asking the gateway directly.
+
+```csharp
+[Function("ReconcilePayments")]
+public async Task Run([TimerTrigger("0 */5 * * * *")] TimerInfo timer, CancellationToken ct)
+{
+    foreach (var order in await orders.PendingPaymentOlderThanAsync(TimeSpan.FromMinutes(3), ct))
+    {
+        var payment = await gateway.GetByOrderReferenceAsync(order.Reference, ct);
+
+        switch (payment.State)
+        {
+            case GatewayPaymentState.Captured:
+                // The webhook never landed. Feed the same queue; the processor decides.
+                await queue.SendMessageAsync(new ServiceBusMessage(
+                    BinaryData.FromObjectAsJson(GatewayEvent.Captured(payment)))
+                {
+                    MessageId = $"recon-{payment.Id}"
+                }, ct);
+                break;
+
+            case GatewayPaymentState.Failed:
+                await orders.MoveAsync(order.Reference, "PendingPayment", "PaymentFailed", ct);
+                break;
+
+            case GatewayPaymentState.Pending when order.Age >= TimeSpan.FromMinutes(15):
+                // Close it at the gateway first, so a late approval cannot take money.
+                if (await gateway.CancelAsync(order.Reference, ct))
+                    await orders.MoveAsync(order.Reference, "PendingPayment", "Expired", ct);
+                break;
+        }
+    }
+
+    // Events saved by the webhook whose queue send never happened.
+    await events.RequeueUnprocessedAsync(olderThan: TimeSpan.FromMinutes(2), queue, ct);
+}
+```
+
+Four details carry the weight here.
+
+The old expiry job is gone. An order is no longer marked failed because a clock ran out. It is marked failed when the **gateway** says the payment failed, or expired after the gateway confirms the payment can no longer be completed. Time alone never decides.
+
+Reconciliation does not place orders itself. It puts a synthetic event on the same queue, so there is exactly one piece of code that turns money into an order. Two paths into one processor, and the conditional update makes them safe to race.
+
+A timer trigger runs on one instance at a time, even when the Function app scales out, because the runtime takes a blob lease for it. Two runs cannot ask the gateway the same question at once.
+
+And the load is tiny. On a normal day the query returns a handful of orders, the ones whose customers are still deciding in the UPI app, so it is a few gateway calls every five minutes, well inside any gateway's rate limit.
+
+<figure>
+
+![Flowchart of the reconciliation timer. It starts every 5 minutes with each order that has been PendingPayment for 3 minutes or more. First decision: ask the gateway by the order reference, is the payment captured? Yes leads to a green box: enqueue the payment event, the same processor places the order. No continues to the second decision: failed or abandoned? Yes leads to a grey box: mark PaymentFailed, the gateway said so. No continues to the third decision: pending for 15 minutes or more? No leads to an amber box: still pending, ask again on the next run. Yes leads to a grey box: cancel the payment at the gateway first, then expire the order.](./images/payment-reconciliation-timer-flowchart.png)
+
+<figcaption>Figure 4. The reconciliation timer. Every exit is either the gateway's answer or a cancel the gateway accepted, never a guess.</figcaption>
+
+</figure>
+
+## What the app shows while it waits
+
+The app changes too, in one small way: it never says "failed" on its own. In `CheckoutBloc`, when the customer comes back from the UPI app, or opens the app after Android killed it, the order is read from the API, and a pending order gets its own state:
+
+```dart
+// lib/features/checkout/bloc/checkout_bloc.dart, after returning from the UPI app
+final Result<Order> result = await _getOrder(state.placedOrder!.id);
+result.fold(
+  (Failure failure) => emit(state.copyWith(status: CheckoutStatus.confirmingPayment)),
+  (Order order) => emit(switch (order.paymentStatus) {
+    PaymentStatus.paid    => state.copyWith(status: CheckoutStatus.placed, placedOrder: order),
+    PaymentStatus.failed  => state.copyWith(status: CheckoutStatus.paymentFailed),
+    PaymentStatus.pending => state.copyWith(status: CheckoutStatus.confirmingPayment),
+  }),
+);
+```
+
+"Confirming your payment" is honest. The push from the outbox arrives the moment the processor places the order, so the customer rarely sees that screen for more than a few seconds, and it is never wrong.
+
+<figure>
+
+![Architecture diagram of the design after the fix. A grey payment gateway box, which sends webhooks and answers status queries, sends payment.captured to the webhook tier: an HTTP-triggered Azure Function that verifies, saves, enqueues and returns 200. An arrow labelled "INSERT event, unique event id" goes to the data tier, Azure SQL Database, holding PaymentEvents and Orders. An arrow labelled "send, MessageId = event id" goes to the messaging tier, Azure Service Bus, with the payment-events queue and a dead-letter queue. An arrow labelled "one event" goes to the processor tier, a Service Bus-triggered Azure Function that moves an order from PendingPayment to Paid, once. On the right, a green Reconciliation Function on a 5-minute timer reads waiting orders from Azure SQL, asks the gateway for status by order reference, and enqueues missed events to Service Bus. A dashed arrow labelled "dead letters" goes from Service Bus to amber Application Insights alerts for dead letters and orders waiting 20 minutes or more. The result, in green: every captured payment ends as a placed order or a refund, within one timer run, whatever the webhook did.](./images/payment-webhook-reconciliation-azure-architecture.png)
+
+<figcaption>Figure 5. The design on Azure. Two ways in, the webhook and the timer, and one processor that decides.</figcaption>
+
+</figure>
+
+## How efficient is the new design?
+
+Each layer catches a different failure, and the timer catches everything the others miss. Here is where Sunday's 131 customers would have ended up:
+
+| Layer | What it catches | From Sunday's 131 |
+| --- | --- | --- |
+| Webhook answers in 120 ms | Deliveries the gateway gave up on after 5 seconds | 97, placed on the first delivery |
+| Event saved before 200, processed from Service Bus | Handlers killed by an instance restart | 34: no 200, so the gateway retries; the timer places them first |
+| Reconciliation every 5 minutes | A webhook that never arrives at all | the backstop for all 131, each within 5 minutes |
+| Processor's decision on a closed order | Money that arrives after a cancel | refunded automatically, never ignored |
+
+Side by side, for two Sunday lunches:
+
+| | Before | After |
+| --- | --- | --- |
+| Webhook p95 under load | 14.2 s | about 120 ms |
+| Customers debited with no order | 131 | 0 |
+| Longest a paid customer waits for an order | until support notices | one timer run, 5 minutes |
+| When the app says "payment failed" | after 10 minutes, by the clock | only when the gateway says so |
+| What a slow restaurant API delays | the payment | the notification, from its own queue |
+| Added Azure cost | | Service Bus Standard, about $10 a month; Functions, cents at this volume |
+
+The rule underneath: **the longest a paid customer can wait without an order is one reconciliation interval**, whatever the webhook does. Webhook health now decides how fast an order appears, not whether it does. And the gateway calls per run equal the orders still pending after three minutes, which grows with abandoned checkouts, not with traffic.
+
+## When to use this design, and when it is too much
+
+| Use it when | It is too much when |
+| --- | --- |
+| The payment completes outside your API call: UPI, wallets, 3-D Secure, bank redirects | The charge is synchronous and its answer comes back in the same call, and you already handle timeouts with an idempotency key |
+| Money and fulfilment are both involved: orders, bookings, subscriptions | The webhook is informational only, such as a receipt email, where a lost event costs nothing |
+| A lost or late webhook would cost a customer money | You are at a few orders a day; a daily reconciliation and a manual check may be enough |
+
+Even in the right-hand column, keep one part: never do slow work inside a webhook. Verify, save, answer. That costs nothing and removes the most common failure.
+
+## Why the obvious fixes were wrong
+
+- **"Scale out the App Service plan."** Six instances running a 14-second handler are six instances holding locks for 14 seconds. The handler had to get shorter, not wider.
+- **"Raise the expiry to 30 minutes."** It moves the wrong decision later. Customers abandon, and a webhook delayed 31 minutes is still lost.
+- **"Ask the gateway to wait longer."** Most gateways do not let you, and the restart would still kill handlers.
+- **"Let the app confirm the payment instead."** The app is the least reliable party in the flow. Android kills it, networks drop, customers close it.
+- **"Ignore events for orders that are not pending."** That is exactly how the money disappeared.
+- **"Retry the webhook handler with Polly."** A retry inside a request the gateway has already abandoned makes the request longer.
+
+## The guardrail: one query and two alerts
+
+Nothing should stay unresolved for long. This query lists every order the design has failed to settle:
+
+```sql
+SELECT Reference, Status, Total, CreatedAt,
+       DATEDIFF(minute, CreatedAt, SYSUTCDATETIME()) AS minutes_open
+FROM dbo.Orders
+WHERE (Status = 'PendingPayment' AND CreatedAt < DATEADD(minute, -20, SYSUTCDATETIME()))
+   OR  Status = 'NeedsAttention'
+ORDER BY CreatedAt;
+```
+
+An order pending for 20 minutes means the reconciliation timer itself is not running, or the gateway's status API is down. Run it as an Azure Monitor log alert, or from the timer Function itself, and page on any row.
+
+The second alert is on the dead-letter queue of `payment-events`: an Azure Monitor metric alert on `DeadletteredMessages` greater than zero. A dead-lettered payment event is money nobody has decided about yet.
+
+Once a day, the 14:20 query from the top of this article runs against the gateway's settlement export: captured payments with no placed order. It should always return nothing. On the day it returns a row, you hear about it before the customer does.
+
+## System design interview questions from this design
+
+1. **The payment succeeded, but the order shows failed. Walk through what happened and design the fix.** Look for: the webhook as the source of truth, save-first, queue processing and reconciliation.
+2. **How do you make a webhook handler idempotent?** A unique index on the gateway's event ID, and a conditional update on the order's state.
+3. **Why answer 200 before the order is updated?** The gateway only needs to know the event is safe. Doing the work inside the request ties the payment to the slowest dependency.
+4. **The gateway is down for an hour and sends no webhooks. What happens?** Orders wait as pending; the app shows "confirming". When the status API returns, reconciliation places every captured payment within one run.
+5. **A payment arrives for an order the customer cancelled. What do you do?** Decide explicitly: refund automatically with an idempotency key, and tell the customer. Never ignore it.
+6. **Why does reconciliation enqueue an event instead of placing the order directly?** One code path turns money into an order, so the two sources can race safely.
+
+## What to do on day one, not after the first refund
+
+- Create the order before the payment, and give the gateway your order reference.
+- Make the webhook verify, save, enqueue and answer. Nothing else.
+- Process payment events from a queue with retries and a dead-letter queue.
+- Never mark an order failed because a clock ran out. Ask the gateway.
+- Run reconciliation from the first release, and the settlement query every day.
+
+## Key takeaways
+
+- A payment webhook is an event to save, not a request to finish. Save first, answer 200 fast.
+- Process events from Service Bus with a conditional update, so duplicates and retries are harmless.
+- An event that does not fit the order's state is money in the wrong place. Decide what happens; do not ignore it.
+- A reconciliation timer that asks the gateway bounds every failure to one interval.
+- Only the gateway can say a payment failed. The clock cannot.
+
+## The next Sunday
+
+A week later the restaurant API has a bad lunch again. Its p95 touches 11 seconds at 13:00.
+
+The webhook does not notice. It answers in 120 milliseconds all afternoon. The `order-placed` queue backs up for eight minutes and restaurants get their orders a little late, but every order is placed the moment its payment lands.
+
+At 13:40 an App Service deployment points the webhook URL at a slot that is still warming up, and 22 webhooks fail. Nobody notices that either. The reconciliation timer finds 22 captured payments at 13:45 and places them. The worst wait, for one customer, is four minutes and fifty seconds.
+
+The settlement query on Monday morning returns no rows.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could design this payment flow on your own.
+
+1. **The race.** The reconciliation timer and a late webhook both send a `payment.captured` for ord-1042 within the same second, with different `MessageId`s. Walk both messages through the processor. How many times is the restaurant notified, and why?
+2. **The customer who paid twice.** A customer approves the UPI request, sees nothing happen, goes back and pays again with a card. Both payments carry the reference ord-1042. What does each event do to the order, and what does the customer see?
+3. **The wrong secret.** A deploy rotates the webhook secret in Key Vault but not at the gateway. Every webhook now gets 401 for an hour. How many orders are lost, how long does each customer wait, and which alert fires first?
+4. **The pending UPI request.** A customer leaves the UPI approval screen open for 20 minutes, then approves. Which reconciliation branch handled the order at minute 15, and what stopped the money from being taken at minute 20?
+5. **The dead letter.** A schema deploy renames `dbo.Outbox`, so every `MarkPaidAsync` throws. One `payment.captured` event fails 10 times. Where does the event end up, what state is the order in, which alert fires, and what does the reconciliation timer do with that order on its next run?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

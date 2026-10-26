@@ -1,0 +1,102 @@
+---
+title: 'Azure Key Vault Explained: The One Secret Tutorials Never Remove'
+seoTitle: 'Azure Key Vault Explained With Managed Identity (ASP.NET Core)'
+description: 'Moving every secret into Key Vault leaves exactly one behind — the credential that opens the vault. A managed identity is what finally gets you to zero.'
+highlight: 'Azure Key Vault stores your secrets, keys and certificates, but a ClientId and ClientSecret in appsettings.json to open it is a relocation, not a fix. Give the App Service a managed identity, grant it Key Vault Secrets User, and use DefaultAzureCredential — the secret count in your repo reaches zero.'
+publishedAt: 2026-10-18
+category: azure
+categories: ['mobile']
+tags: ['Azure', 'Azure Key Vault', 'Managed Identity', 'Security', 'ASP.NET Core', 'DefaultAzureCredential']
+series: 'azure-mobile-security'
+seriesOrder: 7
+draft: false
+faq:
+  - q: 'What is Azure Key Vault used for?'
+    a: 'Azure Key Vault is a managed service that stores secrets (connection strings, API keys), cryptographic keys that never leave the vault, and TLS certificates with auto-renewal. Your application reads what it needs at runtime, and every read is logged, so nothing sensitive has to live in config files or source control.'
+  - q: 'Why is a ClientSecret used to authenticate to Key Vault still a problem?'
+    a: 'Because it replaces several secrets with one master secret, still stored in the same config file and the same repository. That credential eventually expires — often two years later, after whoever created it has left — and it leaks the same way any other hardcoded secret does.'
+  - q: 'How does DefaultAzureCredential work in both local development and Azure?'
+    a: 'It tries a sequence of credential sources and uses the first one available: your az login session on your laptop, and the resource''s managed identity once deployed. The same line of code authenticates in both places, with no #if DEBUG branching.'
+  - q: 'Should Key Vault use access policies or Azure RBAC?'
+    a: 'Azure RBAC. Access policies are the older, coarser model. RBAC lets you grant a narrow role like Key Vault Secrets User — read-only, secrets-only — so the application identity cannot write, delete or list keys even if it is compromised.'
+  - q: 'Does a rotated Key Vault secret update a running ASP.NET Core app?'
+    a: 'Not by default. AddAzureKeyVault reads secrets at startup and caches them, so the running app keeps the old value until it restarts. Pass a ReloadInterval in the options so rotation takes effect without a redeploy.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+import Flow from '../../../components/mdx/Flow.astro';
+
+You moved every secret into Key Vault. The database password, the payment provider key, the Maps key, the OpenAI key — all six, gone from config. Nice work.
+
+Now open `appsettings.json`. There's still a `ClientId` and a `ClientSecret` in there. You have exactly one secret left, and it's the worst one: it opens all the others.
+
+## What is Azure Key Vault?
+
+Azure Key Vault is a managed store for the three kinds of sensitive material an app needs, with an audit log of every read:
+
+| Kind | What it holds | Can the app read the raw value? |
+| --- | --- | --- |
+| **Secrets** | Connection strings, API keys — anything that's just a string | Yes |
+| **Keys** | Cryptographic keys | No — you send data to be signed or wrapped |
+| **Certificates** | TLS certs, with auto-renewal from an integrated CA | Yes, as a secret |
+
+## What do Key Vault tutorials leave out?
+
+The credential that opens the vault. Almost every tutorial ends at "and now your secrets are in the vault", with the app authenticating using a client id and secret that are... in the config file.
+
+You didn't remove a secret. You swapped six for one master secret, in the same file, in the same repo. And that one expires — usually at 2am, usually 24 months after the person who created it left the company.
+
+## How does managed identity remove the last secret?
+
+Azure gives the resource itself an identity. No password, no certificate, nothing on disk. The platform hands short-lived tokens to your App Service and rotates them for you.
+
+<Flow
+  steps={[
+    { label: 'App Service starts', note: 'Has a managed identity, no secret' },
+    { label: 'Platform issues a token', note: 'Short-lived, rotated by Azure' },
+    { label: 'Key Vault checks RBAC', note: 'Key Vault Secrets User only' },
+    { label: 'Secrets loaded into config', note: '0 secrets in the repo', accent: true },
+  ]}
+  caption="With a managed identity, nothing on disk can open the vault — the identity belongs to the running resource, not to a file."
+/>
+
+Here's the whole change in ASP.NET Core:
+
+```csharp
+builder.Configuration.AddAzureKeyVault(
+    new Uri("https://msdev-kv.vault.azure.net/"),
+    new DefaultAzureCredential());
+```
+
+That's it. `DefaultAzureCredential` uses your `az login` on your laptop and the managed identity once deployed, so the same line works in both places with no `#if DEBUG`.
+
+## Access policies or RBAC?
+
+RBAC. Key Vault has two permission models, and access policies are the older, all-or-nothing one. With Azure RBAC you grant **Key Vault Secrets User** — read only, secrets only. Your app has no business writing, deleting or listing keys, so don't give it the ability to.
+
+## Which settings should you turn on before you need them?
+
+1. **Soft delete and purge protection.** Soft delete is on by default now; purge protection isn't. Purge protection is the one that stops a compromised identity from destroying your secrets permanently.
+2. **Diagnostic logging** to Log Analytics. "Who read which secret, and when" is the whole reason to use a vault instead of an environment variable.
+3. **A firewall or private endpoint**, so the vault isn't reachable from the internet.
+4. **Expiry dates** on secrets, plus the Event Grid near-expiry event wired to something that pages a human.
+
+## Why didn't my rotated secret take effect?
+
+<Callout type="warning" title="The cache that catches everyone">
+  `AddAzureKeyVault` reads at startup and caches. Rotate a secret and the running app keeps the old value until it restarts — unless you set a `ReloadInterval`. Without one, your "no redeploy" rotation quietly needs a redeploy.
+</Callout>
+
+That's the exact scenario in [what happens when a key has to be rotated fast](../hardcoded-key-blast-radius).
+
+## Better still: no secret at all
+
+For Azure-to-Azure calls, skip the vault as well. Azure SQL, Storage, Service Bus, Cosmos DB and Azure OpenAI all accept managed identity directly. A secret you never created can't leak, can't expire, and can't be rotated wrong.
+
+## Key takeaways
+
+- Authenticating to Key Vault with a `ClientId`/`ClientSecret` just moves the problem into one master secret.
+- Managed identity plus `DefaultAzureCredential` removes the last stored credential, and works the same locally and in Azure.
+- Grant **Key Vault Secrets User** through RBAC so the app can read secrets and nothing else.
+- Turn on purge protection and diagnostic logging before an incident, not during one.
+- `AddAzureKeyVault` caches at startup — set a `ReloadInterval` or rotation silently needs a redeploy.

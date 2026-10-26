@@ -1,0 +1,103 @@
+---
+title: 'What Actually Happens When You Tap "Sign In" on a Secure App'
+seoTitle: 'What Happens When You Log In to a Secure Mobile App'
+description: 'A secure app never touches your password. It hands you to Microsoft Entra ID, gets back a signed token, and that token is all your API ever sees.'
+highlight: 'Your password goes to exactly one place: Microsoft Entra ID. Your app, your API and your database only ever see a short-lived signed token. If your login screen has a password field you built yourself, that is the thing to replace — with MSAL and the system browser.'
+publishedAt: 2026-10-12
+category: azure
+categories: ['mobile']
+tags: ['Azure', 'Microsoft Entra ID', 'OAuth', 'JWT', 'Authentication', 'MFA', 'MSAL']
+series: 'azure-mobile-security'
+seriesOrder: 10
+draft: false
+faq:
+  - q: 'Does a mobile app''s API ever see the user''s password?'
+    a: 'Not in a secure design. The app opens the system browser on Microsoft''s own sign-in page, so the password goes to Microsoft Entra ID and stops there. Your API only ever receives a signed, short-lived token that proves who the user is.'
+  - q: 'Why does a secure mobile app open a system browser instead of its own login form?'
+    a: 'Because if the app renders the password field, the app has the password, and every promise about security after that point rests on trust alone. Handing off to the system browser means the password travels to Microsoft Entra ID directly and is never visible to the app''s own code.'
+  - q: 'How does an API verify a JWT without calling Microsoft Entra ID on every request?'
+    a: 'It downloads Microsoft''s public signing keys once from the OpenID configuration endpoint and caches them, then checks the signature, issuer, audience and expiry entirely offline. That costs microseconds rather than a network round trip. All four checks matter — a perfectly valid token issued for a different application is still perfectly valid.'
+  - q: 'Where should a mobile app store the access token?'
+    a: 'In the platform''s secure store: the iOS Keychain or the Android Keystore (SecureStorage in .NET MAUI). Never in UserDefaults or SharedPreferences, which are plain files readable on a rooted or jailbroken device and from device backups.'
+  - q: 'Does a database need to store user passwords in a Microsoft Entra ID login flow?'
+    a: 'No. The password stops at Entra ID and never reaches the application''s own API or database. The API connects to Azure SQL with a managed identity, so there is no password anywhere in the chain after sign-in — nothing to leak if the database is ever compromised.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+import Flow from '../../../components/mdx/Flow.astro';
+
+Priya opens a food delivery app at 7pm, hungry, and taps **Sign in**. About a second and a half later she's looking at her past orders.
+
+In that second and a half, her password went to exactly one place. It wasn't the app. It wasn't your API. It definitely wasn't your database. This post follows that one tap all the way down, because once you've seen the journey, it's very hard to go back to building your own login form.
+
+## What happens when you tap "Sign in" on a secure app?
+
+A secure app never handles your password. It hands you to Microsoft Entra ID, Entra ID checks who you are, and the app gets back a signed token. That token — not the password — is what every system after that point sees.
+
+<Flow
+  steps={[
+    { label: 'Tap Sign in', note: 'The app opens the system browser' },
+    { label: 'Microsoft sign-in page', note: 'Password typed here, not in the app' },
+    { label: 'MFA on her phone', note: 'A stolen password stops working' },
+    { label: 'Signed JWT returned', note: 'Valid ~60–90 minutes' },
+    { label: 'API verifies locally', note: 'Cached keys, no network call' },
+    { label: 'Azure SQL via managed identity', note: 'No password in the chain', accent: true },
+  ]}
+  caption="One sign-in on a secure Azure app. The password exists only in step 2; everything after it is a signed, expiring token."
+/>
+
+## Step by step: where does the password go?
+
+**1. The app hands off (about 20ms).** It opens the system browser, or a secure web view, on the Microsoft sign-in page. Not a text field the app drew itself. This sounds like a detail, and it's the whole thing: if your app renders the password field, your app has the password, and every promise you make after that is on trust.
+
+**2. The password stops at Entra ID.** It travels to Microsoft and nowhere else. Your API isn't in this step and never will be. If your database leaks tomorrow, there are no passwords in it — you never had any.
+
+**3. MFA — the slow bit, and it's her, not the system.** Priya approves the prompt on her phone. That's what makes a stolen password worthless, which matters a lot, because password reuse is exactly what credential-stuffing bots run on (more on those in [the post on automated login attacks](../ai-bot-attacks-mobile-app)).
+
+**4. A signed token comes back (about 1.4 seconds in).** A JWT: who she is, what she's allowed to do, when it expires, and Microsoft's signature over all of it. Usually valid for 60–90 minutes. The app stores it in the iOS Keychain or Android Keystore — never in `UserDefaults` or `SharedPreferences`.
+
+**5. Your API verifies it locally (microseconds).** This is the step people assume is a network call. It isn't. Your API downloaded Microsoft's public signing keys once, cached them, and now checks every token on its own.
+
+**6. No password below the API either.** Your API reaches Azure SQL with a managed identity:
+
+```text
+Server=msdev.database.windows.net;
+Authentication=Active Directory Default;
+```
+
+No password in the connection string. Nothing to leak, nothing to rotate.
+
+## What does the API check on every token?
+
+Four things, and all four matter:
+
+| Check | What it proves | What goes wrong if you skip it |
+| --- | --- | --- |
+| Signature | Microsoft issued it and nobody edited it | Anyone can forge a token |
+| Issuer (`iss`) | It came from *your* tenant | A token from another tenant gets in |
+| Audience (`aud`) | It was issued for *this* API | A valid token for a different app works on yours |
+| Expiry (`exp`) | It's still in date | A token stolen last week still works |
+
+<Callout type="warning">
+  Signature alone isn't enough. The audience check is the one teams forget, and a perfectly valid token issued for some other application is still perfectly valid — just not for you.
+</Callout>
+
+## The part that surprises people
+
+After step 2, there's no password anywhere. Not in the app, not in your config, not in the connection string, not in the database. The only thing moving through the system is a short-lived signed token, and it expires on its own.
+
+## What happens after the token expires?
+
+The access token expires after about an hour. A refresh token quietly gets a new one in the background, which is why a well-built app doesn't sign you out every 60 minutes. It's also why a stolen access token is a much smaller problem than a stolen password: it stops working by itself, soon.
+
+## How do you check your own app?
+
+Open your login screen and look for a password field you built. If it's there, your app is handling passwords, and nothing above applies to you yet. Moving to [MSAL](https://learn.microsoft.com/entra/identity-platform/msal-overview) and the system browser is the change that makes it apply — and it's usually less work than the login form you'd be deleting.
+
+## Key takeaways
+
+- A secure app never renders its own password field — it hands the user to Microsoft's sign-in page via the system browser.
+- The password reaches Microsoft Entra ID and stops there; your API and database never see it.
+- Token verification is a local check against cached signing keys, not a network call per request.
+- Check signature, issuer, audience **and** expiry — a valid signature doesn't mean the token was meant for your API.
+- Reach Azure SQL with a managed identity, so no password exists anywhere past sign-in.

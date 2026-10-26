@@ -1,5 +1,6 @@
 {
   "slug": "azure-key-vault-explained",
+  "article": "azure-key-vault-explained",
   "topic": "Azure Key Vault in one reel — moving every secret out of your config file, discovering you are still holding the one secret that opens the vault, and how a managed identity removes that last one so the count reaches zero.",
   "title": {
     "main": "Azure Key Vault, <em>Explained Properly</em>",

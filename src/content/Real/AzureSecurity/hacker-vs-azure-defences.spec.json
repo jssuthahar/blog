@@ -1,5 +1,6 @@
 {
   "slug": "hacker-vs-azure-defences",
+  "article": "hacker-vs-azure-defences",
   "topic": "Five attacks on a mobile backend and the five named Azure defences that stop each one — WAF, Microsoft Entra ID, authorization in your API, Key Vault and a private endpoint — plus the one default setting that quietly opens a door.",
   "title": {
     "main": "Hacker vs Azure: <em>5 Attacks, 5 Defences</em>",

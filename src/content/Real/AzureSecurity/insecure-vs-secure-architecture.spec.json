@@ -1,5 +1,6 @@
 {
   "slug": "insecure-vs-secure-architecture",
+  "article": "insecure-vs-secure-architecture",
   "topic": "The same mobile app built two ways on Azure — straight to the database with a key in the app, versus Front Door, your own API and a private database — with six events played through both architectures side by side.",
   "title": {
     "main": "Insecure vs Secure: <em>Same App, Two Builds</em>",

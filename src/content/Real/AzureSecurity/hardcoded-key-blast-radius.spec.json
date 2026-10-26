@@ -1,5 +1,6 @@
 {
   "slug": "hardcoded-key-blast-radius",
+  "article": "hardcoded-key-blast-radius",
   "topic": "What actually happens after a hard-coded Azure key leaks — the bill climbs, and then rotating the key kills every installed copy of your own app, because a secret shipped inside a mobile app cannot be replaced without an app store release.",
   "title": {
     "main": "What Happens When You <em>Hardcode an API Key</em>",

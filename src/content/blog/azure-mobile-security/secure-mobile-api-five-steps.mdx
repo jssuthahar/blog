@@ -1,0 +1,106 @@
+---
+title: 'Secure a Mobile API in Five Steps: The Order Is the Whole Point'
+seoTitle: 'How to Secure a Mobile API on Azure in 5 Steps'
+description: 'HTTPS, authentication, authorization, secrets, then monitoring — five layers for a mobile API on Azure, and why doing them out of order defeats the point.'
+highlight: 'Secure a mobile API on Azure in this order: HTTPS only, authentication with Entra ID, authorization in your own code, secrets in Key Vault, then monitoring. You can add monitoring last. You cannot add HTTPS last — everything you build in the meantime travels in the clear.'
+publishedAt: 2026-10-20
+category: azure
+categories: ['mobile']
+tags: ['Azure', 'ASP.NET Core', 'API Security', 'Microsoft Entra ID', 'Azure Key Vault', 'Application Insights']
+series: 'azure-mobile-security'
+seriesOrder: 6
+draft: false
+faq:
+  - q: 'What are the steps to secure a mobile API on Azure?'
+    a: 'Five, in order: enforce HTTPS only at the platform level, authenticate callers with Microsoft Entra ID tokens, authorize every request in your own code (for example, filtering to rows the caller owns), keep secrets in Azure Key Vault behind a managed identity, and monitor with Application Insights and Defender for Cloud.'
+  - q: 'Is redirecting HTTP to HTTPS enough for a mobile API?'
+    a: 'No. A redirect still lets the first request go out in the clear, and on a mobile app that first request often carries the token. Turn HTTPS Only on and set a minimum TLS version at the platform level, then add HSTS, rather than relying on an application redirect alone.'
+  - q: 'What is the difference between authentication and authorization in an API?'
+    a: 'Authentication answers "who are you" — Microsoft Entra ID issues a token and your API validates its signature, issuer and audience. Authorization answers "what may you do", and is enforced in your own code, typically by filtering a query to rows the caller owns.'
+  - q: 'Why does secrets management come after authentication and authorization?'
+    a: 'HTTPS, authentication and authorization are what an attacker has to get through to reach data at all, so they close off access first. Secrets management decides how much damage a separate failure causes, and monitoring decides how quickly you find out — both matter, but neither blocks an attacker on its own.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+import Flow from '../../../components/mdx/Flow.astro';
+
+Every list of "API security best practices" has the same items on it. What almost none of them tell you is that the order matters as much as the items do.
+
+Here are the five layers for a mobile API on Azure, in the order I'd add them to a brand-new ASP.NET Core API — and why.
+
+<Flow
+  steps={[
+    { label: 'HTTPS only', note: 'Platform setting, TLS 1.2+' },
+    { label: 'Authentication', note: 'Who are you? — Entra ID' },
+    { label: 'Authorization', note: 'What may you see? — your code' },
+    { label: 'Secrets', note: 'Key Vault + managed identity' },
+    { label: 'Monitoring', note: 'You find out first', accent: true },
+  ]}
+  caption="Steps 1–3 are what an attacker has to walk through. Step 4 limits the damage. Step 5 decides whether you hear about it in an hour or on the invoice."
+/>
+
+## Step 1 — How do you enforce HTTPS on a mobile API?
+
+Turn HTTP off, don't just redirect it. On App Service, set **HTTPS Only = On** and a minimum TLS version of 1.2, then add HSTS. A redirect still lets the first request go out in the clear — and on a mobile app, that first request usually carries the token.
+
+```csharp
+app.UseHsts();
+app.UseHttpsRedirection();
+```
+
+## Step 2 — Authentication: who are you?
+
+Microsoft Entra ID issues the token; your API validates the signature, issuer and audience. It's a local check against cached signing keys, so it costs microseconds, not a round trip. Validate the audience, not only the signature — a valid token for a different app is still a valid token. The whole sign-in journey is in [what actually happens when you tap Sign in](../secure-login-journey).
+
+## Step 3 — Authorization: what may you do?
+
+A different question, and the one teams skip. Entra ID says she's Priya. Your API decides that Priya gets Priya's orders — and nobody else's.
+
+```csharp
+db.Orders.Where(o => o.UserId == me.GetObjectId())
+```
+
+Then make it fail closed, so an endpoint you forget about is protected by default:
+
+```csharp
+builder.Services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser().Build());
+```
+
+## Step 4 — Secrets: nothing in config
+
+Azure Key Vault holds them, a managed identity fetches them, and `appsettings.json` holds a vault URI at most. For Azure-to-Azure calls, skip keys entirely — SQL, Storage, Service Bus, Cosmos DB and Azure OpenAI all accept managed identity. The full case is in [Azure Key Vault, explained properly](../azure-key-vault-explained).
+
+## Step 5 — Monitoring: you find out first
+
+Application Insights for what your API sees, Microsoft Defender for Cloud for what Azure sees. Alert on the *rate* of 401s and 403s, not just on errors — a spike in 401s is somebody trying credentials, and it's the earliest warning you'll get.
+
+## Why does the order matter?
+
+<Callout type="tip">
+  You can do step 5 last. You can't do step 1 last — everything you added in the meantime travelled in the clear while you waited.
+</Callout>
+
+Steps 1 to 3 are the doors an attacker walks through. Step 4 decides how bad the day is when something *else* goes wrong. Step 5 decides whether you find out in an hour or on the invoice.
+
+## What about rate limiting?
+
+It's not one of the five, because on its own it isn't a security boundary. But ASP.NET Core has it built in, and it turns a credential-stuffing bot from a real threat into a nuisance:
+
+```csharp
+builder.Services.AddRateLimiter(o =>
+    o.AddFixedWindowLimiter("login", w => {
+        w.PermitLimit = 10; w.Window = TimeSpan.FromMinutes(1);
+    }));
+```
+
+Partition by user or IP, never globally, or one attacker rate-limits your real customers. The reasoning is in [the post on automated attackers](../ai-bot-attacks-mobile-app).
+
+## Key takeaways
+
+- Five layers, in order: HTTPS only, authentication, authorization, secrets, monitoring.
+- HTTPS Only has to be a platform setting, not just an app redirect, or the first request still leaks.
+- Authentication and authorization are separate steps — a valid token says nothing about which rows the caller may see.
+- Secrets live in Key Vault, fetched by a managed identity, never in `appsettings.json`.
+- Monitor the rate of 401/403s; it's the earliest sign of an attack in progress.

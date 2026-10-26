@@ -1,5 +1,6 @@
 {
   "slug": "mobile-app-five-vulnerabilities",
+  "article": "mobile-app-five-vulnerabilities",
   "topic": "The five vulnerabilities a security scan finds in a working mobile app — a secret in the package, a token in plain storage, an endpoint with no auth, TLS validation left off from testing, and permissions it never uses — and why all five are defaults rather than mistakes.",
   "title": {
     "main": "5 Mobile App Security <em>Vulnerabilities</em>",

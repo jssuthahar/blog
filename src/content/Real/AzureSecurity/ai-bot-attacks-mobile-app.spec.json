@@ -1,5 +1,6 @@
 {
   "slug": "ai-bot-attacks-mobile-app",
+  "article": "ai-bot-attacks-mobile-app",
   "topic": "An automated attacker against a mobile backend — it scans the app package in seconds and runs thousands of login attempts a minute while nobody is awake — and why the answer is rate limiting, smart lockout and Defender for Cloud rather than watching logs.",
   "title": {
     "main": "An AI Bot Is <em>Attacking Your Login</em>",

@@ -1,0 +1,103 @@
+---
+title: 'Insecure vs Secure: The Same Mobile App, Two Azure Architectures'
+seoTitle: 'Insecure vs Secure Azure Architecture for a Mobile App'
+description: 'Both architectures work perfectly for a real customer. They only differ at six moments — and one of the two designs cannot be patched, only rebuilt.'
+highlight: 'An app that talks straight to Azure SQL and an app that goes through Front Door and your own API look identical to a customer — 40ms versus 52ms. The difference is that every security fix in the first design is an app store release measured in days, and in the second it is a server-side change you make in minutes.'
+publishedAt: 2026-10-14
+category: azure
+categories: ['mobile']
+tags: ['Azure', 'Software Architecture', 'System Design', 'Azure SQL', 'Azure Front Door', 'Mobile Security']
+series: 'azure-mobile-security'
+seriesOrder: 9
+draft: false
+faq:
+  - q: 'Is it safe for a mobile app to connect directly to Azure SQL?'
+    a: 'No. To connect directly, the app has to carry a connection string with credentials, and the database has to be reachable from the internet. Anyone who unzips the app gets both. The app should call your own API, and the database should have public network access disabled.'
+  - q: 'Why does an insecure app-to-database architecture ship in the first place?'
+    a: 'It is not laziness — it is genuinely the fastest way to a working prototype. Mobile SDKs make direct database access easy, there are fewer moving parts, and nothing feels wrong while you are building. The cost shows up later, as an architecture change rather than a bug fix.'
+  - q: 'How do you migrate from direct database access to an API-fronted architecture without downtime?'
+    a: 'Stand up an API that initially just proxies the same queries, ship an app version that uses it while leaving the old path working, add authentication and then owner checks, and only once enough users have updated, turn off public network access on the database. That last step is what actually closes the hole.'
+  - q: 'What is the real cost difference between an insecure and a secure mobile architecture?'
+    a: 'Not performance — a real customer request is within a few milliseconds in both. The real cost is how fast you can respond: in the insecure design every security fix needs an app store release gated by a reviewer, while in the secure design every fix is a server-side change under your control.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+import Flow from '../../../components/mdx/Flow.astro';
+
+Same food delivery app. Same customers. Same Azure SQL database. Built two ways.
+
+On launch day, both versions work perfectly. That's the whole problem — nothing tells you which one you built until something goes wrong.
+
+## What do the two architectures look like?
+
+**Before** — the app talks straight to the database. It carries a connection string and queries Azure SQL itself. It's fast, it's simple, and it works, which is exactly why it ships.
+
+<Flow
+  numbered={false}
+  steps={[
+    { label: 'Mobile app', note: 'Holds a connection string + password' },
+    { label: 'Azure SQL', note: 'Public IP, reachable from anywhere' },
+  ]}
+  caption="Before: the app is the only client, so the app — and anyone holding it — is trusted with the database."
+/>
+
+**After** — the app goes through Azure Front Door to your own API, and your API talks to a database that has no public address at all.
+
+<Flow
+  numbered={false}
+  steps={[
+    { label: 'Mobile app', note: 'Holds a 1-hour user token' },
+    { label: 'Azure Front Door + WAF', note: 'Filters junk at the edge' },
+    { label: 'Your API', note: 'Checks token and ownership' },
+    { label: 'Private Azure SQL', note: 'No public address', accent: true },
+  ]}
+  caption="After: the app holds a token, your API holds everything else, and the database only exists inside your VNet."
+/>
+
+## Where do the two designs actually differ?
+
+At six moments. For the first, you genuinely can't tell them apart. By the sixth, one of them can't be fixed without rebuilding it.
+
+| Moment | Before (app → database) | After (app → API → private SQL) |
+| --- | --- | --- |
+| 1. A real customer orders | 40ms | 52ms — nobody notices |
+| 2. Someone unzips the app | Finds a connection string with a password | Finds a token that expires in an hour, for one user |
+| 3. He connects to the database directly | It answers — he has valid credentials | No address to connect to |
+| 4. He asks for someone else's order | Nowhere to put an owner check | API filters by the user id in the token |
+| 5. You rotate the secret | New build, store review, broken old installs | One command, nobody notices |
+| 6. You need to change anything | An app release, measured in days | A server change, measured in minutes |
+
+**Moment 3** is the one that surprises people. From the database's point of view, the attacker's login is completely legitimate — he's using the same credentials as every installed copy. In the "after" design, `publicNetworkAccess` is `Disabled` and the server isn't on the internet at all.
+
+**Moment 4** is the bug that sits at number one on the OWASP API Security Top 10. The fix is a `WHERE` clause in your API, covered in [the full request-flow post](../azure-mobile-app-layers). In the "before" design there's no API, so there's nowhere to write it.
+
+**Moment 5** gets its own post: [what really happens when you hardcode a key](../hardcoded-key-blast-radius).
+
+## What is the real cost of the insecure design?
+
+Response time. In the "before" design, every security fix is an app release, so your response to *any* incident is measured in days and gated by a store reviewer you don't control. In the "after" design, every fix is a server-side change you can ship before lunch.
+
+## Why is the first design so common?
+
+It isn't laziness. Direct database access is honestly the fastest path to a working prototype, mobile SDKs make it easy, and nothing about it feels wrong while you're building. The bill arrives later, and it arrives as an architecture change instead of a bug fix.
+
+## How do you migrate without a big-bang rewrite?
+
+You don't have to do it in one go:
+
+1. Stand up an API in front, even if at first it only proxies the same queries.
+2. Ship an app version that calls the API. Leave the old path working.
+3. Add authentication, then owner checks.
+4. When enough users have updated, turn off public network access on the database.
+
+<Callout type="note">
+  Step 4 is the one that actually closes the hole, and it can only happen after step 2 has rolled out widely. That waiting period is why doing this before launch is so much cheaper than doing it after.
+</Callout>
+
+## Key takeaways
+
+- Both architectures behave the same for a legitimate request; they only diverge at failure and change moments.
+- Direct database access is a reasonable prototype — the mistake is launching with it.
+- Migrate in stages: proxy first, add auth and owner checks, close the database's public access last.
+- The ongoing cost of the insecure design is response time: every fix waits on an app store review.
+- The secure design costs more up front; the insecure one costs more later, repeatedly, at the worst possible moment.

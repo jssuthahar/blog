@@ -1,5 +1,6 @@
 {
   "slug": "secure-login-journey",
+  "article": "secure-login-journey",
   "topic": "The complete journey of one sign-in on a secure Azure app — the app hands off to Microsoft Entra ID, the password never reaches your own API, a signed token comes back, your API verifies it locally, and it reaches the database with a managed identity.",
   "title": {
     "main": "What Happens When <em>You Tap Sign In</em>",

@@ -1,0 +1,93 @@
+---
+title: 'An AI-Speed Bot Is Attacking Your Login Endpoint Right Now'
+seoTitle: 'How to Stop Bot Attacks on a Mobile App Login API on Azure'
+description: 'A script, not a person, tries 8,000 passwords a minute against your login API at 3am. Rate limiting, smart lockout and Defender for Cloud make speed the losing move.'
+highlight: 'You cannot out-watch a bot, so make the door slow. Rate-limit the login API per user or IP, let Entra ID smart lockout and MFA make a correct guess useless, and alert on the rate of 401s. A CAPTCHA does nothing here — the bot calls your API directly and never sees your UI.'
+publishedAt: 2026-10-16
+category: azure
+categories: ['mobile']
+tags: ['Azure', 'Cybersecurity', 'API Security', 'Rate Limiting', 'Microsoft Entra ID', 'DevSecOps']
+series: 'azure-mobile-security'
+seriesOrder: 8
+draft: false
+faq:
+  - q: 'How do you stop a credential-stuffing bot attacking a mobile app login?'
+    a: 'Three controls, in order of effect: rate-limit the login endpoint per user or IP so the attack slows from thousands of attempts a minute to ten, rely on Microsoft Entra ID smart lockout plus MFA so a correct guess is still useless, and alert on the rate of 401 and 403 responses through Defender for Cloud and Azure Monitor.'
+  - q: 'Why does a CAPTCHA not stop automated attacks against a mobile API?'
+    a: 'A CAPTCHA protects a web form, but the bot is not using your web form — it is calling the same API your mobile app calls, directly from a server. Any control aimed at automated attacks has to live at the API layer itself, because the attacker never touches the UI.'
+  - q: 'What rate limit stops a credential-stuffing bot without affecting real users?'
+    a: 'A low per-caller limit, such as ten attempts per minute, partitioned by user or IP rather than applied globally. At thousands of attempts a minute a password list is exhausted in hours; at ten a minute it takes years. A real user retrying a login is never affected.'
+  - q: 'Should a login endpoint return different responses for "wrong password" and "no such user"?'
+    a: 'No, and that includes response timing, not just the message. Different responses let a script work out which accounts exist, and a confirmed list of real accounts is worth more to an attacker than the password guesses themselves.'
+---
+
+import Callout from '../../../components/mdx/Callout.astro';
+import Layers from '../../../components/mdx/Layers.astro';
+
+It's 3:12am. Nobody on your team is awake, and your login endpoint is taking 8,000 requests a minute.
+
+Nobody is typing them. A script is.
+
+## Why are automated attacks a different problem?
+
+Because they're not clever — they're fast, cheap and patient. A script downloads your app, unpacks it, lists every endpoint it can find, and starts working through password lists leaked from other companies' breaches. It runs at 3am precisely because that's when nobody responds.
+
+So every part of your defence has to assume nobody is awake. Three controls do that, in order of how much they change the outcome:
+
+<Layers
+  entry={{ label: '8,000 login attempts a minute', note: 'From a server, not from your app' }}
+  layers={[
+    { name: 'Edge', role: 'cheapest place to drop it', items: [{ label: 'Front Door WAF rate-limit rule', note: 'Blocked before your API wakes up' }] },
+    { name: 'API', role: 'takes the speed away', items: [{ label: 'ASP.NET Core rate limiter', note: '10 per minute, per user or IP' }] },
+    { name: 'Identity', role: 'makes a right guess useless', items: [{ label: 'Entra ID smart lockout', note: 'On by default' }, { label: 'MFA via Conditional Access', note: 'Password alone is not enough' }] },
+    { name: 'Monitoring', role: 'awake instead of you', items: [{ label: 'Defender for Cloud + alerts', note: 'On the rate of 401s, to a phone' }] },
+  ]}
+  result={{ label: '10 attempts a minute', note: 'A password list now takes years — the bot moves on' }}
+  caption="Each layer answers a different question. Rate limiting changes the maths; MFA makes the maths irrelevant; monitoring tells you it happened."
+/>
+
+## How does rate limiting stop a bot?
+
+It takes the speed away, and speed is the only advantage the bot has. At 8,000 tries a minute, a password list is done in hours. At 10 a minute, it takes years, and the attacker goes looking for an easier target.
+
+ASP.NET Core has this built in:
+
+```csharp
+builder.Services.AddRateLimiter(o =>
+    o.AddFixedWindowLimiter("login", w => {
+        w.PermitLimit = 10;
+        w.Window = TimeSpan.FromMinutes(1);
+    }));
+```
+
+<Callout type="warning">
+  Partition the limit by user or by IP — never globally. A global limit means one attacker rate-limits every real customer you have.
+</Callout>
+
+In Azure API Management, the equivalent is `rate-limit-by-key` keyed on the subscription or caller IP. Front Door WAF also has a rate-limit rule, and blocking at the edge costs you nothing at all — that's the outermost layer in [the five-layer request flow](../azure-mobile-app-layers).
+
+## What do smart lockout and MFA add?
+
+They make a correct guess useless. Microsoft Entra ID's smart lockout is on by default and knows familiar locations from unfamiliar ones, so it can lock out the bot without locking out Priya on her usual phone. Add MFA through Conditional Access and a right password on its own stops being enough.
+
+Credential stuffing only works because people reuse passwords. MFA is what makes that reuse survivable.
+
+## What should you alert on?
+
+The *rate* of 401 and 403 responses, not individual errors. A sudden spike in 401s is somebody trying credentials, and it's the earliest signal you'll ever get. Wire the alert to a phone, not an inbox — an inbox at 3am is the same as no alert.
+
+## Why doesn't a CAPTCHA help?
+
+This is the most common mistake. A CAPTCHA protects a web form. The bot isn't using your web form — it's calling the same API your app calls, straight from a server, and it never renders a single pixel of your UI. The control has to live at the API.
+
+## One small thing worth doing
+
+Return the same response, **and the same timing**, for "no such user" and "wrong password". If those differ, the script can work out which of your users exist — and a list of real accounts is worth more to an attacker than the guesses.
+
+## Key takeaways
+
+- Automated attacks win on volume and persistence, not cleverness — design as if nobody is awake.
+- Rate limiting, partitioned per user or IP, is the control that changes the economics of the attack.
+- Entra ID smart lockout plus MFA neutralises a correct guess, which rate limiting alone can't.
+- Alert on the rate of 401/403s, and send it to a phone.
+- A CAPTCHA protects a UI the bot never uses; the real control belongs at the API.

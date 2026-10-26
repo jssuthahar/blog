@@ -1,5 +1,6 @@
 {
   "slug": "secure-mobile-api-five-steps",
+  "article": "secure-mobile-api-five-steps",
   "topic": "The five layers that secure a mobile API on Azure, added in order — HTTPS only, authentication with Microsoft Entra ID, authorization, secrets in Key Vault with a managed identity, and monitoring with Application Insights and Defender for Cloud.",
   "title": {
     "main": "Secure a Mobile API <em>in 5 Steps</em>",

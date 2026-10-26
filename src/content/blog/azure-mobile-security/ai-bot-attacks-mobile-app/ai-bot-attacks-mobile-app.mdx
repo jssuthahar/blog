@@ -9,6 +9,8 @@ categories: ['mobile']
 tags: ['Azure', 'Cybersecurity', 'API Security', 'Rate Limiting', 'Microsoft Entra ID', 'DevSecOps']
 series: 'azure-mobile-security'
 seriesOrder: 8
+cover: './images/ai-bot-attacks-mobile-app-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "8,000 tries a minute" and the line "Nobody is typing. Make speed the losing move.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "A script at 3am, against your login API", an arrow labelled "the attack" to an amber box reading "Rate limit per user or IP, years, not hours", and an arrow labelled "the rest" to a green box reading "Lockout, MFA, an alert, Azure is awake instead".'
 draft: false
 faq:
   - q: 'How do you stop a credential-stuffing bot attacking a mobile app login?'
@@ -21,8 +23,7 @@ faq:
     a: 'No, and that includes response timing, not just the message. Different responses let a script work out which accounts exist, and a confirmed list of real accounts is worth more to an attacker than the password guesses themselves.'
 ---
 
-import Callout from '../../../components/mdx/Callout.astro';
-import Layers from '../../../components/mdx/Layers.astro';
+import Callout from '../../../../components/mdx/Callout.astro';
 
 It's 3:12am. Nobody on your team is awake, and your login endpoint is taking 8,000 requests a minute.
 
@@ -34,17 +35,13 @@ Because they're not clever — they're fast, cheap and patient. A script downloa
 
 So every part of your defence has to assume nobody is awake. Three controls do that, in order of how much they change the outcome:
 
-<Layers
-  entry={{ label: '8,000 login attempts a minute', note: 'From a server, not from your app' }}
-  layers={[
-    { name: 'Edge', role: 'cheapest place to drop it', items: [{ label: 'Front Door WAF rate-limit rule', note: 'Blocked before your API wakes up' }] },
-    { name: 'API', role: 'takes the speed away', items: [{ label: 'ASP.NET Core rate limiter', note: '10 per minute, per user or IP' }] },
-    { name: 'Identity', role: 'makes a right guess useless', items: [{ label: 'Entra ID smart lockout', note: 'On by default' }, { label: 'MFA via Conditional Access', note: 'Password alone is not enough' }] },
-    { name: 'Monitoring', role: 'awake instead of you', items: [{ label: 'Defender for Cloud + alerts', note: 'On the rate of 401s, to a phone' }] },
-  ]}
-  result={{ label: '10 attempts a minute', note: 'A password list now takes years — the bot moves on' }}
-  caption="Each layer answers a different question. Rate limiting changes the maths; MFA makes the maths irrelevant; monitoring tells you it happened."
-/>
+<figure>
+
+![Five steps with icons. 1, in red: a bot tries 8,000 passwords a minute from a server at 3am, calling your API directly. 2, Front Door drops the obvious flood at the edge. 3, a speedometer: your API allows 10 tries a minute per person, so real users never notice. 4, a padlock: Entra ID locks the bot out and asks for MFA, so even a correct guess is not enough. 5, a bell: an alert wakes a human when failed logins spike. A green box at the end reads "10 tries a minute: the password list now takes years."](./images/bot-attack-beginner.png)
+
+<figcaption>Figure 1 — four controls that turn 8,000 guesses a minute into ten.</figcaption>
+
+</figure>
 
 ## How does rate limiting stop a bot?
 

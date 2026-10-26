@@ -14,14 +14,25 @@ OUT = OUT if OUT.is_dir() else OUT.parent
 
 # ================================================================ Figure 1 ===
 c = []
-c.append(text("lh", 'A ClientSecret opens the vault', 60, 20, 380, 28, size=15, bold=True, align="center"))
-c.append(text("lu", "the tutorial's last step", 60, 48, 380, 22, size=12, color=MUTED, align="center"))
-chain(c, [('Six secrets move into Key Vault', 'good'), ('appsettings.json keeps a ClientSecret', 'to open the vault'), ('One master secret, same repo', 'leaks the same way'), ('It expires in 24 months', 'after its creator has left')], cx=250, top=90, w=380, h=64, gap=32, prefix="l")
-c.append(box("lsum", '✗ One secret left, and the worst one', 60, 474, 380, 48, RED_F, RED_S))
-c.append(edge("le", "l4", "lsum", ""))
-c.append(text("rh", 'A managed identity opens the vault', 520, 20, 380, 28, size=15, bold=True, align="center"))
-c.append(text("ru", 'nothing stored at all', 520, 48, 380, 22, size=12, color=MUTED, align="center"))
-chain(c, [('The resource gets an identity', 'no password, no certificate'), ('DefaultAzureCredential', 'az login locally, identity in Azure'), ('RBAC: Key Vault Secrets User', 'read secrets, nothing else'), ('Purge protection and audit logs', 'on before you need them')], cx=710, top=90, w=380, h=64, gap=32, prefix="r")
-c.append(box("rok", '✓ No credential left to leak', 520, 474, 380, 48, GRN_F, GRN_S))
-c.append(edge("re", "r4", "rok", ""))
-write(OUT, 'key-vault-client-secret-vs-managed-identity', 'Key Vault access', c)
+c.append(text("hb", "THE TUTORIAL WAY: one secret left", 20, 0, 420, 24, size=14, color=RED_T, bold=True))
+story(c, [
+    {'icon': 'material/key.svg', 'title': 'appsettings.json', 'tone': 'bad',
+     'note': "Still holds a ClientId + ClientSecret,\nthe key that opens the vault."},
+    {'icon': 'azure/key-vault.svg', 'title': 'Key Vault',
+     'note': "Opens for anyone who has that\nsecret, so guard it forever."},
+    {'icon': 'material/schedule.svg', 'title': 'Two years later', 'tone': 'bad',
+     'note': "The secret expires at 2am, after\nthe person who made it has left."},
+], cx=230, top=40, w=420, numbered=False, prefix="b")
+
+c.append(text("ha", "WITH MANAGED IDENTITY: zero secrets", 500, 0, 420, 24, size=14, color="#3D7A35", bold=True))
+story(c, [
+    {'icon': 'azure/app-service.svg', 'title': 'Your app starts up',
+     'note': "Azure gave it an identity, like a staff\nbadge. No password on disk."},
+    {'icon': 'material/verified-user.svg', 'title': 'Azure vouches for it',
+     'note': "It hands the app a short-lived token\nautomatically, and renews it for you."},
+    {'icon': 'azure/key-vault.svg', 'title': 'Key Vault checks its role',
+     'note': "\"Key Vault Secrets User\": allowed to\nread secrets, nothing else."},
+    {'icon': 'material/check-circle.svg', 'title': 'Secrets arrive in config', 'tone': 'good',
+     'note': "Nothing secret in your code\nor your repo. Zero."},
+], cx=710, top=40, w=420, numbered=False, prefix="a")
+write(OUT, 'key-vault-beginner', 'Tutorial way vs managed identity', c)

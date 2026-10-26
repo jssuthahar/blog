@@ -9,6 +9,8 @@ categories: ['mobile']
 tags: ['Azure', 'Mobile Security', 'OWASP', 'App Security', 'Android', 'iOS', '.NET MAUI']
 series: 'azure-mobile-security'
 seriesOrder: 5
+cover: './images/mobile-app-five-vulnerabilities-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "Five findings, no mistakes" and the line "Every one is a default or a testing leftover.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "A working app, one scan, five findings", an arrow labelled "the scan" to a red box reading "An endpoint with no auth, reachable with curl", and an arrow labelled "the order" to a green box reading "Fix that one first, then the other four".'
 draft: false
 faq:
   - q: 'What are the most common mobile app security vulnerabilities?'
@@ -21,8 +23,7 @@ faq:
     a: 'Usually they were copied in from a starter template or tutorial and never removed. Unused permissions lower install rates, fail store review more often, and widen what an attacker gains if the app is compromised. Delete every permission, then add back only the ones that break something.'
 ---
 
-import Callout from '../../../components/mdx/Callout.astro';
-import Flow from '../../../components/mdx/Flow.astro';
+import Callout from '../../../../components/mdx/Callout.astro';
 
 The app works. Customers are ordering. Reviews are fine. Then somebody runs a security scan, and the report comes back with five findings.
 
@@ -82,16 +83,13 @@ Number 3, and it isn't close. Findings 1, 2 and 4 need somebody to have your app
 
 After that, I'd go by how little the attacker needs:
 
-<Flow
-  steps={[
-    { label: '#3 Open endpoint', note: 'Needs: a URL', accent: true },
-    { label: '#1 Secret in package', note: 'Needs: your app' },
-    { label: '#4 TLS check off', note: 'Needs: your network' },
-    { label: '#2 Plain token storage', note: 'Needs: the phone' },
-    { label: '#5 Extra permissions', note: 'Needs: a prior compromise' },
-  ]}
-  caption="A practical fix order: start with whatever the attacker can reach with the least access."
-/>
+<figure>
+
+![Five findings in fix order, each with who can attack. 1, in red, fix first: an API route with no lock, attackable by anyone on the internet with the URL. 2, a key inside the app, attackable by anyone who downloads and unzips it. 3, the HTTPS security check turned off, attackable by someone on the same wifi. 4, the login token saved in a plain file, attackable by someone holding the phone or its backup. 5, permissions the app does not use, which only help someone who has already broken in. A green box reads "Fix in this order: least access needed first."](./images/five-findings-fix-order.png)
+
+<figcaption>Figure 1 — a practical fix order: whatever the attacker can reach with the least access goes first.</figcaption>
+
+</figure>
 
 ## How do you check your own app today?
 

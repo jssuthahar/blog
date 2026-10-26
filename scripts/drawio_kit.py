@@ -16,6 +16,7 @@ Four shapes cover everything the articles have needed so far:
 
     architecture()  several callers fanning in to a stack of tiers
     chain()         a linear sequence of steps
+    story()         chain() for beginners: an icon and a plain sentence per step
     gated()         a vertical pipeline where work alternates with gates
     layered()       an input passing down through named layers
     fanout()        one hub delegating to parallel branches, then converging
@@ -201,6 +202,61 @@ def chain(cells, steps, cx=300, top=40, w=320, h=62, gap=30, prefix="c"):
                          align="left", bold_first=True))
         ids.append(i)
         y += h + gap
+    for n in range(len(ids) - 1):
+        cells.append(edge(f"{prefix}e{n}", ids[n], ids[n + 1]))
+    return ids, y
+
+
+STORY_TONES = {'good': (GRN_F, GRN_S), 'bad': (RED_F, RED_S), 'warn': (AMB_F, AMB_S),
+               None: ("#FFFFFF", STROKE)}
+
+
+def story(cells, steps, cx=330, top=30, w=560, h=80, gap=30, prefix="st", summary=None,
+          numbered=True):
+    """The beginner version of chain(): every step is a picture of the real thing
+    plus a plain-English sentence, so a reader who has never heard of a JWT can
+    still follow the picture.
+
+    A step is a dict: {icon, title, note?, tone?, line?}. `tone` is good / bad /
+    warn. `line` draws a red dashed rule across the gap *after* that step, with
+    its text as the label — the "your password never goes below this line"
+    marker. The connector still crosses it, because the thing that crosses is
+    the point. `summary` is a closing (title, note) box in green.
+    """
+    y = top
+    ids = []
+    for n, s in enumerate(steps, 1):
+        i = f"{prefix}{n}"
+        fill, stroke = STORY_TONES[s.get("tone")]
+        title = f"{n}. {s['title']}" if numbered else s["title"]
+        label = f"{title}\n{s['note']}" if s.get("note") else title
+        cells.append(box(i, label, cx - w // 2, y, w, h, fill, stroke, size=13,
+                         align="left", bold_first=bool(s.get("note")), pad_left=78))
+        cells.append(node(f"{i}ic", "", s["icon"], cx - w // 2 + 16, y + (h - 46) // 2, 46, 46))
+        ids.append(i)
+        y += h
+        if s.get("line"):
+            ly = y + gap // 2 + 14
+            st = (f"html=1;endArrow=none;strokeColor={RED_S};strokeWidth=2;"
+                  f"dashed=1;dashPattern=8 6;")
+            cells.append(f'<mxCell id="{i}ln" style="{st}" edge="1" parent="1">'
+                         f'<mxGeometry relative="1" as="geometry">'
+                         f'<mxPoint x="{cx - w // 2 - 20}" y="{ly}" as="sourcePoint"/>'
+                         f'<mxPoint x="{cx + w // 2 + 20}" y="{ly}" as="targetPoint"/>'
+                         f'</mxGeometry></mxCell>')
+            # Under the rule and right of the connector, so neither strikes it through.
+            cells.append(text(f"{i}lt", s["line"], cx + 14, ly + 3, w // 2, 22,
+                              size=12, color=RED_T, bold=True))
+            y += gap + 28
+        else:
+            y += gap
+    if summary:
+        i = f"{prefix}sum"
+        cells.append(box(i, f"{summary[0]}\n{summary[1]}" if summary[1] else summary[0],
+                         cx - w // 2, y, w, 66, GRN_F, GRN_S, size=13, align="left",
+                         bold_first=bool(summary[1])))
+        ids.append(i)
+        y += 66
     for n in range(len(ids) - 1):
         cells.append(edge(f"{prefix}e{n}", ids[n], ids[n + 1]))
     return ids, y

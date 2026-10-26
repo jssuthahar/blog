@@ -9,6 +9,8 @@ categories: ['mobile']
 tags: ['Azure', 'Mobile Security', 'Azure Key Vault', 'DevSecOps', 'FinOps', 'Managed Identity']
 series: 'azure-mobile-security'
 seriesOrder: 3
+cover: './images/hardcoded-key-blast-radius-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "Four hours to attack. Three days to rotate." and the line "A hardcoded key cannot be replaced without breaking every install.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Key inside the app, in every installed copy", an arrow labelled "an attacker" to a red box reading "Revoke it, every copy fails at once", and an arrow labelled "the fix" to a green box reading "Key in Key Vault, rotated in minutes".'
 draft: false
 faq:
   - q: 'What happens if you hardcode an API key in a mobile app?'
@@ -21,8 +23,7 @@ faq:
     a: 'Check whether it is in use, ship the version that no longer needs the key (or put an API in front of it), move traffic to the secondary key most Azure services issue, then regenerate the primary and repeat for the secondary. Regenerating the key you are actively using first is what turns an incident into an outage.'
 ---
 
-import Callout from '../../../components/mdx/Callout.astro';
-import Pipeline from '../../../components/mdx/Pipeline.astro';
+import Callout from '../../../../components/mdx/Callout.astro';
 
 The attacker cost four hours. Rotating the key cost three days.
 
@@ -39,6 +40,14 @@ Second — the part nobody warns you about — the key is now inside **every ins
 And the repair goes through an app store: new build, submission, review, release — then you wait for people to update. Some never will.
 
 ## Hardcoded key vs Key Vault: what does rotation cost?
+
+<figure>
+
+![Two columns showing the same leaked key. Left, "Key inside the app": the key leaks because someone unzipped the app; in red, you switch the key off and all 40,000 installed apps stop working at the same second; in red, the fix waits for a new build, app store review and users updating, which takes days. Right, "Key in Key Vault, behind your API": the key leaks from a log or laptop but was never in the app; you rotate it in Key Vault with one command; in green, customers notice nothing, in minutes rather than days.](./images/rotation-side-by-side.png)
+
+<figcaption>Figure 1 — the same leak, two outcomes. The difference is where the key lived.</figcaption>
+
+</figure>
 
 | | Key hardcoded in the app | Key in Key Vault behind your API |
 | --- | --- | --- |
@@ -83,17 +92,13 @@ As a bill, not an alert. A stolen key is rarely used to delete things — deleti
 
 Order matters more than speed here:
 
-<Pipeline
-  entry={{ label: 'Leaked key found', note: 'In the app, a repo or a log' }}
-  steps={[
-    { label: 'Check if it is being used', note: 'Azure Monitor logs, grouped by caller IP' },
-    { label: 'Ship a version that no longer needs it', note: 'Or put your API in front' },
-    { label: 'Move traffic to the secondary key', note: 'Most Azure services issue two for this' },
-    { gate: 'Check', label: 'Is anything still on the primary?', back: 'Yes → keep moving traffic first' },
-    { label: 'Regenerate the primary, then the secondary', accent: true },
-  ]}
-  caption="Regenerating first is what turns an incident into an outage. Swap, confirm, then regenerate."
-/>
+<figure>
+
+![Five steps top to bottom: check whether the key is being used in Azure Monitor logs grouped by caller IP; ship a version that no longer needs it; move traffic to the secondary key; a dashed check asking whether anything still uses the primary, with "yes: keep moving traffic first" beside it; and finally, in green, regenerate the primary, then the secondary.](./images/leak-response-order.png)
+
+<figcaption>Figure 2 — swap, confirm, then regenerate. Regenerating first is what turns an incident into an outage.</figcaption>
+
+</figure>
 
 Write this down somewhere your team can find at 3am. You don't want to be reconstructing it from memory during one.
 

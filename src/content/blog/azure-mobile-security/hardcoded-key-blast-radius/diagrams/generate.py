@@ -14,14 +14,34 @@ OUT = OUT if OUT.is_dir() else OUT.parent
 
 # ================================================================ Figure 1 ===
 c = []
-c.append(text("lh", 'Key inside the app', 60, 20, 380, 28, size=15, bold=True, align="center"))
-c.append(text("lu", 'revoke it to stop the attacker', 60, 48, 380, 22, size=12, color=MUTED, align="center"))
-chain(c, [('Revoke the key', 'the attacker is cut off'), ('Every installed copy fails', 'at the same second'), ('Fix needs a new build', 'submit, review, release'), ('Wait for users to update', 'some never will')], cx=250, top=90, w=380, h=64, gap=32, prefix="l")
-c.append(box("lsum", '✗ The fix and the outage are one event', 60, 474, 380, 48, RED_F, RED_S))
-c.append(edge("le", "l4", "lsum", ""))
-c.append(text("rh", 'Key in Key Vault', 520, 20, 380, 28, size=15, bold=True, align="center"))
-c.append(text("ru", 'the app never held it', 520, 48, 380, 22, size=12, color=MUTED, align="center"))
-chain(c, [('Swap to the secondary key', 'traffic keeps flowing'), ('Set a new secret version', 'az keyvault secret set'), ('The API reads the new value', 'managed identity, at runtime'), ('Regenerate the old key', 'no build, no store review')], cx=710, top=90, w=380, h=64, gap=32, prefix="r")
-c.append(box("rok", '✓ Rotated in minutes, nobody notices', 520, 474, 380, 48, GRN_F, GRN_S))
-c.append(edge("re", "r4", "rok", ""))
-write(OUT, 'hardcoded-key-rotation-app-vs-key-vault', 'Rotation', c)
+c.append(text("hb", "KEY INSIDE THE APP", 20, 0, 420, 24, size=14, color=RED_T, bold=True))
+story(c, [
+    {'icon': 'material/key.svg', 'title': 'The key leaks',
+     'note': "Someone unzipped the app\nand found it."},
+    {'icon': 'material/block.svg', 'title': 'You switch the key off', 'tone': 'bad',
+     'note': "All 40,000 installed apps stop\nworking at the same second."},
+    {'icon': 'material/schedule.svg', 'title': 'The fix waits in a queue', 'tone': 'bad',
+     'note': "New build, app store review, then\nwaiting for people to update: days."},
+], cx=230, top=40, w=420, numbered=False, prefix="b")
+
+c.append(text("ha", "KEY IN KEY VAULT, BEHIND YOUR API", 500, 0, 420, 24, size=14, color="#3D7A35", bold=True))
+story(c, [
+    {'icon': 'material/key.svg', 'title': 'The key leaks',
+     'note': "From a log, a laptop, anywhere.\nIt was never in the app."},
+    {'icon': 'azure/key-vault.svg', 'title': 'You rotate it in Key Vault',
+     'note': "One command. Your API picks up\nthe new key."},
+    {'icon': 'material/check-circle.svg', 'title': 'Customers notice nothing', 'tone': 'good',
+     'note': "The app never knew the key, so\nnothing breaks. Minutes, not days."},
+], cx=710, top=40, w=420, numbered=False, prefix="a")
+write(OUT, 'rotation-side-by-side', 'Rotating a leaked key', c)
+
+# ================================================================ Figure 2 ===
+c = []
+gated(c, [
+    {'label': 'Check whether the key is being used', 'note': 'Azure Monitor logs, grouped by caller IP'},
+    {'label': 'Ship a version that no longer needs it', 'note': 'or put your API in front of it'},
+    {'label': 'Move traffic to the secondary key', 'note': 'most Azure services give you two for this'},
+    {'gate': 'Check', 'label': 'Is anything still using the primary?', 'back': 'yes: keep moving traffic first'},
+    {'label': 'Now regenerate the primary, then the secondary', 'accent': True},
+], cx=260, w=400)
+write(OUT, 'leak-response-order', 'Leak response order', c)

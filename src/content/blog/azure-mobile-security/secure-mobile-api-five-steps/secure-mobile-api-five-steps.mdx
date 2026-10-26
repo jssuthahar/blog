@@ -9,6 +9,8 @@ categories: ['mobile']
 tags: ['Azure', 'ASP.NET Core', 'API Security', 'Microsoft Entra ID', 'Azure Key Vault', 'Application Insights']
 series: 'azure-mobile-security'
 seriesOrder: 6
+cover: './images/secure-mobile-api-five-steps-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "Five steps, in this order" and the line "Secure a mobile API on Azure. The order carries the value.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "HTTPS only, then who are you", an arrow labelled "then" to an amber box reading "Then what may you do, an owner check", and an arrow labelled "last" to a green box reading "Secrets, then monitoring, you find out in an hour".'
 draft: false
 faq:
   - q: 'What are the steps to secure a mobile API on Azure?'
@@ -21,23 +23,19 @@ faq:
     a: 'HTTPS, authentication and authorization are what an attacker has to get through to reach data at all, so they close off access first. Secrets management decides how much damage a separate failure causes, and monitoring decides how quickly you find out — both matter, but neither blocks an attacker on its own.'
 ---
 
-import Callout from '../../../components/mdx/Callout.astro';
-import Flow from '../../../components/mdx/Flow.astro';
+import Callout from '../../../../components/mdx/Callout.astro';
 
 Every list of "API security best practices" has the same items on it. What almost none of them tell you is that the order matters as much as the items do.
 
 Here are the five layers for a mobile API on Azure, in the order I'd add them to a brand-new ASP.NET Core API — and why.
 
-<Flow
-  steps={[
-    { label: 'HTTPS only', note: 'Platform setting, TLS 1.2+' },
-    { label: 'Authentication', note: 'Who are you? — Entra ID' },
-    { label: 'Authorization', note: 'What may you see? — your code' },
-    { label: 'Secrets', note: 'Key Vault + managed identity' },
-    { label: 'Monitoring', note: 'You find out first', accent: true },
-  ]}
-  caption="Steps 1–3 are what an attacker has to walk through. Step 4 limits the damage. Step 5 decides whether you hear about it in an hour or on the invoice."
-/>
+<figure>
+
+![Five steps with icons, in order. 1, a padlock: HTTPS only, so nothing travels in plain text. 2, a shield: authentication, Entra ID gives the user a signed pass and your API checks it. 3, a filter: authorization, Priya only gets Priya's orders, checked in your own code. A red dashed line after step 3 reads "1-3: the doors an attacker must pass". 4, Key Vault: secrets live in Key Vault, not your code. 5, Application Insights: monitoring alerts you when failed logins spike. A green box reads "Do them in this order. You can add monitoring last. You can't add HTTPS last."](./images/five-steps-beginner.png)
+
+<figcaption>Figure 1 — the five layers, in the order to add them.</figcaption>
+
+</figure>
 
 ## Step 1 — How do you enforce HTTPS on a mobile API?
 

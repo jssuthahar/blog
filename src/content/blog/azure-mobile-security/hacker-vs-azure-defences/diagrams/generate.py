@@ -14,5 +14,20 @@ OUT = OUT if OUT.is_dir() else OUT.parent
 
 # ================================================================ Figure 1 ===
 c = []
-fanout(c, hub=('Five attacks on one Azure backend', 'and the named control for each'), branches=[('Junk traffic and injection', 'Front Door WAF, in Prevention mode'), ('A call with no token', 'Entra ID validation, audience checked'), ("A real token, someone else's id", 'an owner check in your own API'), ('Keys in a public repo', 'Key Vault plus a managed identity'), ('Dialling the database', 'a private endpoint, public access Disabled')], result=('Miss one door and the other four do not cover it', 'each control stops a different attack'), cx=460, top=30, bw=330)
-write(OUT, 'five-attacks-five-azure-controls', 'Five attacks', c)
+story(c, [
+    {'icon': 'material/terminal.svg', 'title': 'The attacker', 'tone': 'bad',
+     'note': "Has your app, a laptop and plenty of time.\nTries five different ways in."},
+    {'icon': 'azure/waf.svg', 'title': 'Door 1, Front Door WAF: "Is this junk?"',
+     'note': "Blocks floods and injection attacks at the edge.\nMust be in Prevention mode, not Detection."},
+    {'icon': 'material/verified-user.svg', 'title': 'Door 2, Entra ID: "Who are you?"',
+     'note': "No valid signed pass, no entry."},
+    {'icon': 'material/filter-alt.svg', 'title': 'Door 3, your API: "Is this yours?"',
+     'note': "Logged in is not enough. You only get\nyour own orders, never someone else's."},
+    {'icon': 'azure/key-vault.svg', 'title': 'Door 4, Key Vault: "Nothing to steal"',
+     'note': "No keys in the code or the repo for\nthe attacker to find."},
+    {'icon': 'azure/private-link.svg', 'title': 'Door 5, private endpoint: "Can you reach me?"',
+     'note': "The database has no internet address,\nso there's nothing to dial."},
+], summary=("Customer data: reachable only through all five doors.",
+            "Each door guards a different thing. Miss one and the others can't cover for it."),
+   prefix="s")
+write(OUT, 'five-doors-beginner', 'Five doors', c)

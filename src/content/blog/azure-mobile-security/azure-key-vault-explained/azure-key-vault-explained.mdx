@@ -9,6 +9,8 @@ categories: ['mobile']
 tags: ['Azure', 'Azure Key Vault', 'Managed Identity', 'Security', 'ASP.NET Core', 'DefaultAzureCredential']
 series: 'azure-mobile-security'
 seriesOrder: 7
+cover: './images/azure-key-vault-explained-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "One secret left over" and the line "The credential that opens the vault. A managed identity removes it.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Six secrets into Key Vault, the tutorial ends here", an arrow labelled "the leftover" to a red box reading "A ClientSecret opens the vault, one master secret", and an arrow labelled "the fix" to a green box reading "A managed identity, nothing left to leak".'
 draft: false
 faq:
   - q: 'What is Azure Key Vault used for?'
@@ -23,8 +25,7 @@ faq:
     a: 'Not by default. AddAzureKeyVault reads secrets at startup and caches them, so the running app keeps the old value until it restarts. Pass a ReloadInterval in the options so rotation takes effect without a redeploy.'
 ---
 
-import Callout from '../../../components/mdx/Callout.astro';
-import Flow from '../../../components/mdx/Flow.astro';
+import Callout from '../../../../components/mdx/Callout.astro';
 
 You moved every secret into Key Vault. The database password, the payment provider key, the Maps key, the OpenAI key — all six, gone from config. Nice work.
 
@@ -50,15 +51,13 @@ You didn't remove a secret. You swapped six for one master secret, in the same f
 
 Azure gives the resource itself an identity. No password, no certificate, nothing on disk. The platform hands short-lived tokens to your App Service and rotates them for you.
 
-<Flow
-  steps={[
-    { label: 'App Service starts', note: 'Has a managed identity, no secret' },
-    { label: 'Platform issues a token', note: 'Short-lived, rotated by Azure' },
-    { label: 'Key Vault checks RBAC', note: 'Key Vault Secrets User only' },
-    { label: 'Secrets loaded into config', note: '0 secrets in the repo', accent: true },
-  ]}
-  caption="With a managed identity, nothing on disk can open the vault — the identity belongs to the running resource, not to a file."
-/>
+<figure>
+
+![Two columns. Left, "The tutorial way: one secret left": appsettings.json still holds a ClientId and ClientSecret that open the vault, Key Vault opens for anyone holding that secret, and two years later the secret expires at 2am after its creator has left. Right, "With managed identity: zero secrets": your app starts up with an Azure identity like a staff badge, Azure vouches for it with a short-lived token it renews automatically, Key Vault checks the Key Vault Secrets User role, and the secrets arrive in config with nothing secret in your code or repo.](./images/key-vault-beginner.png)
+
+<figcaption>Figure 1 — the tutorial way leaves one secret behind; a managed identity removes it.</figcaption>
+
+</figure>
 
 Here's the whole change in ASP.NET Core:
 

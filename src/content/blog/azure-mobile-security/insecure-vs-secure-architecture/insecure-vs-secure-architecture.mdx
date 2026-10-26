@@ -9,6 +9,8 @@ categories: ['mobile']
 tags: ['Azure', 'Software Architecture', 'System Design', 'Azure SQL', 'Azure Front Door', 'Mobile Security']
 series: 'azure-mobile-security'
 seriesOrder: 9
+cover: './images/insecure-vs-secure-architecture-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "Same app, two architectures" and the line "Both work on day one. Only one can be patched.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "App to database, a connection string inside", an arrow labelled "day 30" to a red box reading "Every fix is an app release, days, behind a review", and an arrow labelled "rebuilt" to a green box reading "App to API to private SQL, every fix is a server change".'
 draft: false
 faq:
   - q: 'Is it safe for a mobile app to connect directly to Azure SQL?'
@@ -21,8 +23,7 @@ faq:
     a: 'Not performance — a real customer request is within a few milliseconds in both. The real cost is how fast you can respond: in the insecure design every security fix needs an app store release gated by a reviewer, while in the secure design every fix is a server-side change under your control.'
 ---
 
-import Callout from '../../../components/mdx/Callout.astro';
-import Flow from '../../../components/mdx/Flow.astro';
+import Callout from '../../../../components/mdx/Callout.astro';
 
 Same food delivery app. Same customers. Same Azure SQL database. Built two ways.
 
@@ -32,27 +33,15 @@ On launch day, both versions work perfectly. That's the whole problem — nothin
 
 **Before** — the app talks straight to the database. It carries a connection string and queries Azure SQL itself. It's fast, it's simple, and it works, which is exactly why it ships.
 
-<Flow
-  numbered={false}
-  steps={[
-    { label: 'Mobile app', note: 'Holds a connection string + password' },
-    { label: 'Azure SQL', note: 'Public IP, reachable from anywhere' },
-  ]}
-  caption="Before: the app is the only client, so the app — and anyone holding it — is trusted with the database."
-/>
-
 **After** — the app goes through Azure Front Door to your own API, and your API talks to a database that has no public address at all.
 
-<Flow
-  numbered={false}
-  steps={[
-    { label: 'Mobile app', note: 'Holds a 1-hour user token' },
-    { label: 'Azure Front Door + WAF', note: 'Filters junk at the edge' },
-    { label: 'Your API', note: 'Checks token and ownership' },
-    { label: 'Private Azure SQL', note: 'No public address', accent: true },
-  ]}
-  caption="After: the app holds a token, your API holds everything else, and the database only exists inside your VNet."
-/>
+<figure>
+
+![Two columns. Left, in red, "Before: simple, but wide open": your app carries the database password inside it, and Azure SQL sits on the internet, so anyone with that password can log straight in. Right, "After: one extra hop, far safer": your app carries only a one-hour pass, Front Door with WAF throws away junk and attack traffic, your API checks who you are and only returns your own orders, and Azure SQL, in green, is private with no internet address.](./images/insecure-vs-secure-side-by-side.png)
+
+<figcaption>Figure 1 — the same app built two ways. The left is shorter, which is exactly why it ships.</figcaption>
+
+</figure>
 
 ## Where do the two designs actually differ?
 

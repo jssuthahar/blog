@@ -9,6 +9,8 @@ categories: ['mobile']
 tags: ['Azure', 'Cybersecurity', 'Azure Front Door', 'Microsoft Entra ID', 'OWASP', 'Azure Key Vault', 'Private Endpoint']
 series: 'azure-mobile-security'
 seriesOrder: 4
+cover: './images/hacker-vs-azure-defences-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "Five attacks, five defences" and the line "One Azure backend, and the named control that stops each attack.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Junk, no token, wrong id, keys in a repo, a direct DB dial", an arrow labelled "five attacks" to an amber box reading "Each needs its own door, one missing door is enough", and an arrow labelled "five controls" to a green box reading "WAF, Entra ID, owner check, Key Vault, private endpoint".'
 draft: false
 faq:
   - q: 'Which Azure services protect a mobile app backend from attackers?'
@@ -21,25 +23,19 @@ faq:
     a: 'No, and it is one of the most misread settings in Azure. It allows any resource in any Azure subscription worldwide, not just resources in your tenant. Leave it off and use a private endpoint or explicit firewall rules instead.'
 ---
 
-import Callout from '../../../components/mdx/Callout.astro';
-import Layers from '../../../components/mdx/Layers.astro';
+import Callout from '../../../../components/mdx/Callout.astro';
 
 One attacker. One food delivery backend on Azure. Five different ways in.
 
 For each one, there's a specific, named Azure control that shuts it. Miss one, and the other four don't cover for it — each door guards a different thing.
 
-<Layers
-  entry={{ label: 'Attacker', note: 'Has your app, a laptop and time' }}
-  layers={[
-    { name: 'Door 1 · Edge', role: 'is this traffic garbage?', items: [{ label: 'Azure Front Door WAF', note: 'Prevention mode, OWASP ruleset' }] },
-    { name: 'Door 2 · Identity', role: 'who are you?', items: [{ label: 'Microsoft Entra ID', note: 'Signature, issuer, audience, expiry' }] },
-    { name: 'Door 3 · Your API', role: 'what may you see?', items: [{ label: 'Owner check', note: 'User id from the token, never the request' }] },
-    { name: 'Door 4 · Secrets', role: 'is there anything to steal?', items: [{ label: 'Key Vault + managed identity', note: 'Repo holds a vault URI only' }] },
-    { name: 'Door 5 · Network', role: 'can you even reach me?', items: [{ label: 'Private endpoint', note: 'Public network access: Disabled' }] },
-  ]}
-  result={{ label: 'Customer data', note: 'Reachable only through all five' }}
-  caption="Five attacks, five named doors. Each one answers a question the others don't."
-/>
+<figure>
+
+![An attacker at the top, in red, with five doors below. Door 1, Front Door WAF asks "Is this junk?" and must be in Prevention mode. Door 2, Entra ID asks "Who are you?": no valid signed pass, no entry. Door 3, your API asks "Is this yours?": you only get your own orders. Door 4, Key Vault: nothing in the code or repo to steal. Door 5, a private endpoint asks "Can you reach me?": the database has no internet address. A green box at the bottom reads "Customer data: reachable only through all five doors."](./images/five-doors-beginner.png)
+
+<figcaption>Figure 1 — five attacks, five doors. Each one guards something the others don't.</figcaption>
+
+</figure>
 
 ## Attack 1: How do you stop a flood of junk and injection strings?
 

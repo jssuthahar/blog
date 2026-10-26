@@ -9,6 +9,8 @@ categories: ['mobile']
 tags: ['Azure', 'Microsoft Entra ID', 'OAuth', 'JWT', 'Authentication', 'MFA', 'MSAL']
 series: 'azure-mobile-security'
 seriesOrder: 10
+cover: './images/secure-login-journey-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "Tap Sign in. No password." and the line "Your API never sees it. Here is where the token goes.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "The app hands off to Microsoft''s sign-in page", an arrow labelled "the password" to an amber box reading "Password stops at Entra ID, a signed token comes back", and an arrow labelled "the token" to a green box reading "Verified locally, managed identity, no password past step 2".'
 draft: false
 faq:
   - q: 'Does a mobile app''s API ever see the user''s password?'
@@ -23,8 +25,7 @@ faq:
     a: 'No. The password stops at Entra ID and never reaches the application''s own API or database. The API connects to Azure SQL with a managed identity, so there is no password anywhere in the chain after sign-in — nothing to leak if the database is ever compromised.'
 ---
 
-import Callout from '../../../components/mdx/Callout.astro';
-import Flow from '../../../components/mdx/Flow.astro';
+import Callout from '../../../../components/mdx/Callout.astro';
 
 Priya opens a food delivery app at 7pm, hungry, and taps **Sign in**. About a second and a half later she's looking at her past orders.
 
@@ -34,17 +35,13 @@ In that second and a half, her password went to exactly one place. It wasn't the
 
 A secure app never handles your password. It hands you to Microsoft Entra ID, Entra ID checks who you are, and the app gets back a signed token. That token — not the password — is what every system after that point sees.
 
-<Flow
-  steps={[
-    { label: 'Tap Sign in', note: 'The app opens the system browser' },
-    { label: 'Microsoft sign-in page', note: 'Password typed here, not in the app' },
-    { label: 'MFA on her phone', note: 'A stolen password stops working' },
-    { label: 'Signed JWT returned', note: 'Valid ~60–90 minutes' },
-    { label: 'API verifies locally', note: 'Cached keys, no network call' },
-    { label: 'Azure SQL via managed identity', note: 'No password in the chain', accent: true },
-  ]}
-  caption="One sign-in on a secure Azure app. The password exists only in step 2; everything after it is a signed, expiring token."
-/>
+<figure>
+
+![Six steps drawn top to bottom, each with an icon. 1, a phone: Priya taps Sign in and the app opens Microsoft's sign-in page instead of its own password box. 2, a globe: she types her password on Microsoft's page, and only Microsoft sees it. A red dashed line below this step reads "her password never goes below this line". 3, a bell: she approves on her phone (MFA), so a stolen password alone is useless. 4, a shield with a tick: Microsoft hands back a signed pass, the token, which says who she is and expires in about an hour. 5, the App Service icon: your API checks the pass by itself, without calling Microsoft. 6, the Azure SQL icon: the API opens the database with its own managed identity, so no password exists in code, config or the database. A green box at the end reads "Her password went to exactly one place: Microsoft."](./images/secure-login-journey-beginner.png)
+
+<figcaption>Figure 1 — one sign-in, in plain English. The password exists only above the red line.</figcaption>
+
+</figure>
 
 ## Step by step: where does the password go?
 

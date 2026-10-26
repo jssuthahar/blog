@@ -14,5 +14,18 @@ OUT = OUT if OUT.is_dir() else OUT.parent
 
 # ================================================================ Figure 1 ===
 c = []
-chain(c, [('HTTPS only', 'a platform setting, not a redirect'), ('Authentication: who are you?', 'Entra ID token, signature, issuer, audience'), ('Authorization: what may you do?', 'owner check, fallback policy fails closed'), ('Secrets: nothing in config', 'Key Vault and a managed identity'), ('Monitoring: you find out', 'alert on the rate of 401s and 403s')], cx=330, top=30, w=500, h=62, gap=26, prefix="s")
-write(OUT, 'secure-mobile-api-five-steps-order', 'Five steps', c)
+story(c, [
+    {'icon': 'material/lock.svg', 'title': 'HTTPS only: lock the pipe',
+     'note': "Nothing travels in plain text, not even the\nvery first request."},
+    {'icon': 'material/verified-user.svg', 'title': 'Authentication: who are you?',
+     'note': "Entra ID gives the user a signed pass.\nYour API checks it on every call."},
+    {'icon': 'material/filter-alt.svg', 'title': 'Authorization: what may you see?',
+     'note': "Priya only gets Priya's orders. This check\nlives in your own code.",
+     'line': '1-3: the doors an attacker must pass'},
+    {'icon': 'azure/key-vault.svg', 'title': 'Secrets: nothing in config',
+     'note': "Keys live in Key Vault, not in your code.\nIf something leaks, there is less to steal."},
+    {'icon': 'azure/application-insights.svg', 'title': 'Monitoring: you find out first',
+     'note': "An alert when failed logins spike, so you\nhear about it before the bill does."},
+], summary=("Do them in this order.",
+            "You can add monitoring last. You can't add HTTPS last."), prefix="s")
+write(OUT, 'five-steps-beginner', 'Five steps in order', c)

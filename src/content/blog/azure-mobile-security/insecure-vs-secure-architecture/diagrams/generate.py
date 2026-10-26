@@ -13,15 +13,26 @@ OUT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else __file__).resolve()
 OUT = OUT if OUT.is_dir() else OUT.parent
 
 # ================================================================ Figure 1 ===
+# Two columns, same app. The left one is shorter on purpose: fewer hops is
+# exactly why it ships.
 c = []
-c.append(text("lh", 'App → database', 60, 20, 380, 28, size=15, bold=True, align="center"))
-c.append(text("lu", 'the fastest prototype', 60, 48, 380, 22, size=12, color=MUTED, align="center"))
-chain(c, [('The app holds a connection string', 'password included'), ('The database has a public address', 'valid credentials, so it answers'), ('No place for an owner check', 'the client is the attacker'), ('Every fix is an app release', 'days, gated by a store review')], cx=250, top=90, w=380, h=64, gap=32, prefix="l")
-c.append(box("lsum", '✗ Works on day one, cannot be patched', 60, 474, 380, 48, RED_F, RED_S))
-c.append(edge("le", "l4", "lsum", ""))
-c.append(text("rh", 'App → Front Door → API → private SQL', 520, 20, 380, 28, size=15, bold=True, align="center"))
-c.append(text("ru", 'the same app, rebuilt', 520, 48, 380, 22, size=12, color=MUTED, align="center"))
-chain(c, [('The app holds a one-hour token', 'for one user only'), ('The database has no public address', 'publicNetworkAccess Disabled'), ("The API filters by the token's user", 'owner check in one place'), ('Every fix is a server change', 'minutes, under your control')], cx=710, top=90, w=380, h=64, gap=32, prefix="r")
-c.append(box("rok", '✓ Same speed for customers, fixable', 520, 474, 380, 48, GRN_F, GRN_S))
-c.append(edge("re", "r4", "rok", ""))
-write(OUT, 'mobile-architecture-direct-db-vs-api', 'Two architectures', c)
+c.append(text("hb", "BEFORE: simple, but wide open", 20, 0, 420, 24, size=14, color=RED_T, bold=True))
+story(c, [
+    {'icon': 'material/smartphone.svg', 'title': 'Your app', 'tone': 'bad',
+     'note': "Carries the database password\ninside it. Anyone can unzip it."},
+    {'icon': 'azure/sql-database.svg', 'title': 'Azure SQL', 'tone': 'bad',
+     'note': "On the internet. Anyone with\nthat password can log straight in."},
+], cx=230, top=40, w=420, numbered=False, prefix="b")
+
+c.append(text("ha", "AFTER: one extra hop, far safer", 500, 0, 420, 24, size=14, color="#3D7A35", bold=True))
+story(c, [
+    {'icon': 'material/smartphone.svg', 'title': 'Your app',
+     'note': "Carries only a 1-hour pass\nfor one signed-in person."},
+    {'icon': 'azure/front-door.svg', 'title': 'Front Door + WAF',
+     'note': "Throws away junk and attack\ntraffic before it reaches you."},
+    {'icon': 'azure/app-service.svg', 'title': 'Your API',
+     'note': "Checks who you are, and only\nreturns your own orders."},
+    {'icon': 'azure/sql-database.svg', 'title': 'Azure SQL', 'tone': 'good',
+     'note': "Private. It has no internet\naddress at all."},
+], cx=710, top=40, w=420, numbered=False, prefix="a")
+write(OUT, 'insecure-vs-secure-side-by-side', 'Before and after', c)

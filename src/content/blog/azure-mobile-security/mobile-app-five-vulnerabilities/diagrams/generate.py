@@ -13,6 +13,20 @@ OUT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else __file__).resolve()
 OUT = OUT if OUT.is_dir() else OUT.parent
 
 # ================================================================ Figure 1 ===
+# Ordered by how little the attacker needs — the fewer requirements, the
+# sooner it gets fixed.
 c = []
-chain(c, [('1. An endpoint with no auth: Critical', 'needs only curl and a URL, reachable from anywhere'), ('2. A secret in the app package: High', 'needs a copy of the app'), ('3. A session token in plain storage: High', 'needs the device or a backup'), ('4. TLS checking disabled: High', 'needs the same network'), ('5. Permissions never used: Medium', 'widens what a compromise reaches')], cx=330, top=30, w=500, h=62, gap=26, prefix="s")
-write(OUT, 'mobile-findings-fix-first-order', 'Fix-first order', c)
+story(c, [
+    {'icon': 'material/language.svg', 'title': 'Fix first: an API route with no lock', 'tone': 'bad',
+     'note': "Who can attack: anyone on the internet\nwith the URL. Bots already scan for these."},
+    {'icon': 'material/key.svg', 'title': 'A secret key inside the app', 'tone': 'warn',
+     'note': "Who can attack: anyone who downloads your\napp and unzips it."},
+    {'icon': 'material/visibility-off.svg', 'title': 'Security check on HTTPS turned off', 'tone': 'warn',
+     'note': "Who can attack: someone on the same\ncoffee-shop wifi."},
+    {'icon': 'material/smartphone.svg', 'title': 'Login token saved in a plain file', 'tone': 'warn',
+     'note': "Who can attack: someone holding the\nphone, or its backup."},
+    {'icon': 'material/warning.svg', 'title': "Permissions the app doesn't use",
+     'note': "Who can attack: only someone who has\nalready broken in, but it gives them more."},
+], summary=("Fix in this order: least access needed first.",
+            "None of these were chosen. They are defaults and test leftovers."), prefix="s")
+write(OUT, 'five-findings-fix-order', 'Fix order', c)

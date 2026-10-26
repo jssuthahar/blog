@@ -141,3 +141,20 @@ c.append(box("note", "✓ A slow supplier costs its own offers, not the travelle
              390, 740, 560, 44, GRN_F, GRN_S, size=12))
 write(OUT, "hotel-search-fan-out-time-budget-sequence-diagram", "Fan out", c)
 print("4 .drawio files written")
+
+# ====================================================== Figure 0, beginner ===
+c = []
+story(c, [
+    {'icon': 'material/language.svg', 'title': 'A traveller searches "Goa, 14 to 16 October"',
+     'note': "One question, but three suppliers will answer it\nin three different formats."},
+    {'icon': 'material/bolt.svg', 'title': 'Ask every supplier at the same time',
+     'note': "Wait 2.5 seconds at most. A slow supplier just\nmisses this search; nobody waits for it."},
+    {'icon': 'material/filter-alt.svg', 'title': "Each answer goes through that supplier's own translator",
+     'note': "The adapter turns rupees, paise or dollars, per night or\nper stay, into one shape: the whole stay, taxes in."},
+    {'icon': 'azure/sql-database.svg', 'title': 'Match every hotel to one master ID',
+     'note': "\"Sea Breeze Resort\" and \"Seabreeze Resort and Spa\"\nare one building, so they become one card."},
+    {'icon': 'material/check-circle.svg', 'title': 'Sort on one honest, all-in price',
+     'note': "Fees paid at the hotel are added on top, so a\ncheap-looking price can't hide a big resort fee."},
+], summary=("One listing per hotel, prices you can compare.",
+            "And an answer in 2.5 seconds, even when a supplier is slow."), prefix="h")
+write(OUT, 'hotel-aggregator-beginner', 'Hotel search in plain English', c)

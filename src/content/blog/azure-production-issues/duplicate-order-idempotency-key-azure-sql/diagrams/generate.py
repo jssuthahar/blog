@@ -116,3 +116,20 @@ c.append(edge("e3", "svcf", "pay", "same key", exitX=1, exitY=0.9, entryX=0, ent
 c.append(edge("e4", "dbf", "ok", ""))
 write(OUT, "idempotency-key-order-api-architecture", "After", c)
 print("4 .drawio files written")
+
+# ====================================================== Figure 0, beginner ===
+c = []
+story(c, [
+    {'icon': 'material/smartphone.svg', 'title': 'Checkout starts, and the app makes one "ticket number"',
+     'note': "A random ID for this order, like a token at a bakery\ncounter. Every retry of this order reuses it."},
+    {'icon': 'material/bolt.svg', 'title': 'Priya taps twice, or the app retries after a timeout',
+     'note': "Both requests carry the same ticket number."},
+    {'icon': 'azure/app-service.svg', 'title': 'Your API tries to save the order with that number',
+     'note': "Two requests, maybe on two different servers,\nat almost the same moment."},
+    {'icon': 'azure/sql-database.svg', 'title': 'Azure SQL allows only one row per ticket number',
+     'note': "The first save wins. The second is refused\nwith a duplicate key error."},
+    {'icon': 'material/check-circle.svg', 'title': 'The second request gets the first order back',
+     'note': "Same order, same charge. Nothing done twice."},
+], summary=("One tap, one order, one charge.",
+            "However many times the request arrives."), prefix="k")
+write(OUT, 'idempotency-key-beginner', 'Idempotency key in plain English', c)

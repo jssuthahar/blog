@@ -482,7 +482,8 @@ def wrap(name, cells, pad=24):
 
 def write(out_dir, filename, name, cells):
     p = pathlib.Path(out_dir) / f"{filename}.drawio"
-    p.write_text(wrap(name, cells))
+    # Explicit UTF-8: on Windows the default is cp1252, which cannot write ₹ or ✗.
+    p.write_text(wrap(name, cells), encoding="utf-8")
     return p
 
 

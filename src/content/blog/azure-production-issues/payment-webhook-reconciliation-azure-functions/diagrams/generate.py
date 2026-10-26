@@ -133,3 +133,20 @@ c.append(edge("e8", "tm", "dbf", "read waiting orders", exitX=0, exitY=0.5, entr
 c.append(edge("e9", "sbf", "mon", "dead letters", exitX=1, exitY=0.6, entryX=0, entryY=0.5, dashed=True))
 write(OUT, "payment-webhook-reconciliation-azure-architecture", "After", c)
 print("5 .drawio files written")
+
+# ====================================================== Figure 0, beginner ===
+c = []
+story(c, [
+    {'icon': 'material/smartphone.svg', 'title': 'Priya pays by UPI in her bank app',
+     'note': "Your app may have been closed by Android by now.\nThat's fine: it is not the one we trust."},
+    {'icon': 'material/notifications-active.svg', 'title': 'The gateway sends you a webhook: "paid"',
+     'note': "A message from the payment company to your\nserver. It only waits about 5 seconds for an answer."},
+    {'icon': 'azure/sql-database.svg', 'title': 'Save it first, then answer "got it" in 0.1 s',
+     'note': "Written to Azure SQL before anything slow happens,\nso a crash can't lose it."},
+    {'icon': 'azure/service-bus.svg', 'title': 'A queue does the slow work, with retries',
+     'note': "Place the order, tell the restaurant, send the push.\nIf a step fails, it simply tries again."},
+    {'icon': 'material/schedule.svg', 'title': 'Every 5 minutes, a timer asks the gateway',
+     'note': "\"Any paid orders I haven't heard about?\"\nThis catches webhooks that never arrived."},
+], summary=("Money taken always ends as an order or a refund.",
+            "Within 5 minutes, whatever happened to the webhook."), prefix="w")
+write(OUT, 'payment-webhook-beginner', 'Payment webhook in plain English', c)

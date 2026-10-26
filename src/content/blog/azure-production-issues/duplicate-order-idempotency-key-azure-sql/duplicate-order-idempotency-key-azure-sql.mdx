@@ -1,9 +1,9 @@
 ---
 title: 'The Double Tap That Charged Twice: Idempotency Keys and Azure SQL'
-seoTitle: 'How to Prevent Duplicate Orders in an API'
+seoTitle: 'Prevent Duplicate Orders: Idempotency Keys in Azure SQL'
 description: 'How to prevent duplicate orders when a user double-clicks Place order: an idempotency key from the app and a unique index in Azure SQL.'
 highlight: "Disabling the button stops some double taps. It cannot stop a retry after a timeout, a second tab, or a request the network sends twice. Give every order an idempotency key in the app, keep it across retries, and let a unique index in Azure SQL decide: one key, one row, one charge."
-publishedAt: 2026-10-01
+publishedAt: 2026-10-26
 cover: './images/duplicate-order-idempotency-key-azure-sql-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Azure, system design" above the title "The double tap that charged twice" and the lines "One order the customer meant. Two rows in the database.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "POST /api/orders, twice: a double tap, or a retry after a timeout", an arrow labelled "no key" to an amber box reading "App Service, 3 instances: a fresh order id for every request", and an arrow labelled "two rows" to a red box reading "Two orders, two charges, and the kitchen cooked both".'
 category: azure
@@ -11,7 +11,7 @@ categories: ['architecture', 'engineering']
 tags: ['Azure', 'Azure SQL', 'SQL Server', 'Idempotency', 'ASP.NET Core', 'Flutter', 'API Design', 'Payments', 'System Design']
 series: 'azure-production-issues'
 seriesOrder: 4
-draft: true
+draft: false
 faq:
   - q: 'How do I prevent duplicate orders when a user double-clicks?'
     a: 'Give each order an idempotency key, a random ID the app creates once per order and sends with every attempt, and add a unique index on that key in the database. A double click, a retry after a timeout or a second tab all send the same key, so the second insert fails and the API returns the order it already created.'
@@ -30,25 +30,25 @@ faq:
 import Callout from '../../../../components/mdx/Callout.astro';
 import ShortHighlight from '../../../../components/ShortHighlight.astro';
 
-One tap on "Place order" should create one order. When a double tap or a retry after a timeout creates two, the fix is not a smarter button. It is an idempotency key from the app and a unique index in Azure SQL, and this is the Friday night that proves it.
+One tap on "Place order" should create one order. When a double tap or a retry after a timeout creates two, the fix isn't a smarter button. It's an idempotency key from the app and a unique index in Azure SQL, and this is the Friday night that proves it.
 
-It is 20:10 on a Friday, the dinner rush, and you are the engineer on call for a food delivery app. The support inbox has a new kind of ticket.
+It's 20:10 on a Friday, the dinner rush, and you're the engineer on call for a food delivery app. The support inbox has a new kind of ticket.
 
 "I ordered one biryani. I was charged ₹410 three times."
 
 Ten minutes later a restaurant partner calls. Two identical orders from the same customer, 180 milliseconds apart. The kitchen cooked both, the rider delivered both, and the customer refused the second bag at the door.
 
-Nothing is down. Error rates are normal. The payment gateway is slow tonight, but it is working. Every order in the database is a valid order. There are just too many of them.
+Nothing is down. Error rates are normal. The payment gateway is slow tonight, but it's working. Every order in the database is a valid order. There are just too many of them.
 
 <Callout type="tip" title="A scenario, on a real app you can run">
-This incident is a scenario played out on MSDevBuild Eats, the open-source reference app used across this blog. The checkout code and the SQL are real; the traffic numbers are illustrative. The checkout flow lives in `lib/features/checkout/bloc/checkout_bloc.dart`, and you will see the exact line that lets a double tap through.
+This incident is a scenario played out on MSDevBuild Eats, the open-source reference app used across this blog. The checkout code and the SQL are real; the traffic numbers are illustrative. The checkout flow lives in `lib/features/checkout/bloc/checkout_bloc.dart`, and you'll see the exact line that lets a double tap through.
 
 - **Source code**: [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
 - **Live web**: [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/)
 - **Android build**: [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
 </Callout>
 
-## Ninety minutes, and two fixes that did not hold
+## Ninety minutes, and two fixes that didn't hold
 
 | Time | What happened |
 | --- | --- |
@@ -57,13 +57,13 @@ This incident is a scenario played out on MSDevBuild Eats, the open-source refer
 | 19:58 | A restaurant partner calls about identical orders, both already cooked |
 | 20:05 | Hotfix 1 on web: a two-second debounce on the button. Duplicates keep coming |
 | 20:25 | Hotfix 2 in the API: reject an order if the same user placed the same total in the last 60 seconds |
-| 20:40 | Duplicates slow down but do not stop. A customer ordering a second meal for a flatmate is now blocked |
+| 20:40 | Duplicates slow down but don't stop. A customer ordering a second meal for a flatmate is now blocked |
 | 20:52 | One SQL query splits the duplicates into two groups, and the cause is obvious |
 | 21:05 | Hotfix 2 rolled back. Refunds start |
 
 Both hotfixes were guesses about one cause. There were two.
 
-The debounce only helps a customer who taps twice in two seconds. That is all it does. Hotfix 2 looks sensible and fails in two ways. Two requests 180 ms apart both run the "any recent order?" check before either one inserts, so both see nothing and both insert. And it cannot tell a duplicate from a real second order, so it blocks paying customers.
+The debounce only helps a customer who taps twice in two seconds. That's all it does. Hotfix 2 looks sensible and fails in two ways. Two requests 180 ms apart both run the "any recent order?" check before either one inserts, so both see nothing and both insert. And it can't tell a duplicate from a real second order, so it blocks paying customers.
 
 ## The SQL query that split the duplicates in two
 
@@ -123,7 +123,7 @@ Every one of those `afterAppGaveUp` orders succeeded. The app told the customer 
 
 ## The real problem: a retry looked exactly like a new order
 
-The server could not tell "the same order again" from "another order". Both requests carried the same cart, the same address and the same user. Neither carried anything that said *I am the same attempt*.
+The server couldn't tell "the same order again" from "another order". Both requests carried the same cart, the same address and the same user. Neither carried anything that said *I am the same attempt*.
 
 In the reference app, `OrderRepositoryImpl.placeOrder` asks the data source for a new order ID on every call. Two calls, two IDs, two orders, by design. And in `CheckoutBloc`, the submit handler is registered with no transformer:
 
@@ -139,33 +139,41 @@ So there were three holes lined up:
 - **Nothing in the request said "same attempt"**, so the API had no way to know.
 - **The database accepted both**, because two identical orders are, as far as a table knows, two orders.
 
-Three holes. One order, twice.
+Any one of them on its own would have been harmless. All three together, on a slow evening, put the same biryani in two bags.
 
-The slow payment gateway did not cause any of this. It only made the timeouts common enough to notice.
+The slow payment gateway didn't cause any of this. It only made the timeouts common enough to notice.
 
 <Callout type="cost" title="What the duplicates cost">
-223 extra orders from 214 customers, 9 of them charged three times. At an average of ₹410, that is about ₹91,000 refunded in one evening, plus the gateway's fees on every refunded charge, 223 meals cooked and thrown away, and a support queue that took two days to clear. The fix costs one index and 48 bytes per order.
+223 extra orders from 214 customers, 9 of them charged three times. At an average of ₹410, that's about ₹91,000 refunded in one evening, plus the gateway's fees on every refunded charge, 223 meals cooked and thrown away, and a support queue that took two days to clear. The fix costs one index and 48 bytes per order.
 </Callout>
 
 ## The same problem every checkout has
 
-Any system that moves money over a network meets this on day one. A request can fail after the server did the work, and the client cannot tell the difference.
+Any system that moves money over a network meets this on day one. A request can fail after the server did the work, and the client can't tell the difference.
 
-Payment providers solved it first. Stripe, for example, accepts an `Idempotency-Key` header on every `POST`, and the IETF has a draft standard for exactly that header. Banks put a unique reference on every transfer for the same reason. When Flipkart or Amazon show "your order is being placed, do not refresh", the page is only being polite; the server already refuses to place it twice.
+Payment providers solved it first. Stripe, for example, accepts an `Idempotency-Key` header on every `POST`, and the IETF has a draft standard for exactly that header. Banks put a unique reference on every transfer for the same reason. When Flipkart or Amazon show "your order is being placed, don't refresh", the page is only being polite; the server already refuses to place it twice.
 
-The pattern has a name, and the rest of this article builds it end to end. If you would rather see it first, it is a one-minute short video:
+The pattern has a name, and we'll build it end to end below. If you'd rather watch it first, there's a one-minute short:
 
 <ShortHighlight slugs={['azure-sql-idempotency-duplicate-order']} />
 
-## What is an idempotency key?
+## What's an idempotency key?
 
 An idempotency key is a unique value, usually a UUID, that the client creates once per operation and sends with every attempt at that operation. The server remembers the key with the result of the first attempt. A second request with the same key gets the first result back, and no new work is done.
 
-"Idempotent" means doing it twice has the same effect as doing it once. `GET`, `PUT` and `DELETE` are idempotent by design: reading twice, setting the same value twice, or deleting twice all leave the system in the same state. `POST` is not. Two `POST /api/orders` requests create two orders unless you give the server a way to see they are one.
+<figure>
+
+![Five steps with icons, in plain English. 1, a phone: when checkout starts, the app makes one ticket number, a random ID for this order, like a token at a bakery counter, and every retry reuses it. 2, a lightning bolt: Priya taps twice, or the app retries after a timeout, and both requests carry the same ticket number. 3, the App Service icon: your API tries to save the order with that number, maybe on two servers at almost the same moment. 4, the Azure SQL icon: Azure SQL allows only one row per ticket number, so the first save wins and the second is refused with a duplicate key error. 5, a tick: the second request gets the first order back, same order, same charge. A green box at the end reads "One tap, one order, one charge. However many times the request arrives."](./images/idempotency-key-beginner.png)
+
+<figcaption>In plain English — an idempotency key is a ticket number for one order, and the database only accepts each number once.</figcaption>
+
+</figure>
+
+"Idempotent" means doing it twice has the same effect as doing it once. `GET`, `PUT` and `DELETE` are idempotent by design: reading twice, setting the same value twice, or deleting twice all leave the system in the same state. `POST` is not. Two `POST /api/orders` requests create two orders unless you give the server a way to see they're one.
 
 Three rules make the key work:
 
-1. **The client creates it**, before the first attempt. The server cannot make one, because the server is the side that cannot tell two requests apart.
+1. **The client creates it**, before the first attempt. The server can't make one, because the server is the side that can't tell two requests apart.
 2. **Every retry reuses it.** A double tap, a timeout, a network error: same order, same key.
 3. **Only a final answer retires it.** A new key only after the order succeeds, or after the server clearly rejects it, like a declined card.
 
@@ -179,9 +187,9 @@ No. The button can only stop a second tap on the same screen, and the Friday dat
 - a proxy, a load balancer or an HTTP library that resends a request after a dropped connection (and checkout is never cached at the edge, as [the CDN half of the flash sale](/blog/azure-front-door-cdn-flash-sale) explains, so every one of those reaches the API)
 - a user who refreshes the confirmation page, and the browser offers to resubmit
 
-Five paths. The button sees none of them.
+The button never sees any of those five.
 
-The client-side fixes are still worth making. They are the cheap first layer. The server just cannot rely on them.
+The client-side fixes are still worth making. They're the cheap first layer. The server just can't rely on them.
 
 ## The fix in the app: droppable() and one key per order
 
@@ -191,7 +199,7 @@ Two changes in `CheckoutBloc`. First, drop a submit that arrives while one is al
 on<CheckoutSubmitted>(_onSubmitted, transformer: droppable());
 ```
 
-That closes the double tap, which is the 131 group. Second, give each order a key that survives retries. It is created when checkout starts, stored in `CheckoutState`, and sent with every attempt:
+That closes the double tap, which is the 131 group. Second, give each order a key that survives retries. It's created when checkout starts, stored in `CheckoutState`, and sent with every attempt:
 
 ```dart
 // In _onStarted: one key for the order this checkout is about to place.
@@ -225,17 +233,17 @@ result.fold(
 );
 ```
 
-The API client sends it as a header, `Idempotency-Key: 7f3c9a2e-...`. The `uuid` package is already in `pubspec.yaml`, so there is nothing new to install.
+The API client sends it as a header, `Idempotency-Key: 7f3c9a2e-...`. The `uuid` package is already in `pubspec.yaml`, so there's nothing new to install.
 
 <Callout type="mistake" title="A new key per tap is no key at all">
-The most common bug in a first idempotency rollout is generating the key inside the function that sends the request. Every retry then gets a fresh key, the server sees two different operations, and you are back to two orders, now with extra code. Create the key when the order starts, not when the request goes out.
+The most common bug in a first idempotency rollout is generating the key inside the function that sends the request. Every retry then gets a fresh key, the server sees two different operations, and you're back to two orders, now with extra code. Create the key when the order starts, not when the request goes out.
 </Callout>
 
 ## The fix in Azure SQL: a unique index decides
 
-The app can now say "same order". Something on the server has to act on it, and it has to hold when two requests arrive at the same moment on two different App Service instances. An `if` in C# cannot promise that. A unique index can.
+The app can now say "same order". Something on the server has to act on it, and it has to hold when two requests arrive at the same moment on two different App Service instances. An `if` in C# can't promise that. A unique index can.
 
-It is the same lesson as the plates counter in [the flash sale that hit the database](/blog/azure-managed-redis-flash-sale). Redis could say "probably", but only `UPDATE ... WHERE PlatesLeft > 0` could say "yes". When money depends on a rule, the rule lives in the database.
+It's the same lesson as the plates counter in [the flash sale that hit the database](/blog/azure-managed-redis-flash-sale). Redis could say "probably", but only `UPDATE ... WHERE PlatesLeft > 0` could say "yes". When money depends on a rule, the rule lives in the database.
 
 The key goes on the order row itself, with a hash of what was ordered:
 
@@ -250,9 +258,9 @@ CREATE UNIQUE INDEX UX_Orders_User_IdempotencyKey
     WITH (ONLINE = ON);
 ```
 
-Two details matter here. The index is **scoped to the user**, so one customer can never send another customer's key and get their order back. And it is **filtered**, so the millions of orders placed before the fix, which have no key, do not collide on `NULL`.
+Two details matter here. The index is **scoped to the user**, so one customer can never send another customer's key and get their order back. And it is **filtered**, so the millions of orders placed before the fix, which have no key, don't collide on `NULL`.
 
-When two inserts with the same key race, SQL Server makes the second one wait for the first transaction's lock on that key. The moment the first commits, the second fails with error 2601, "Cannot insert duplicate key row". No timing window, no instance count and no retry policy changes that outcome. One key, one row.
+When two inserts with the same key race, SQL Server makes the second one wait for the first transaction's lock on that key. The moment the first commits, the second fails with error 2601, "Can't insert duplicate key row". No timing window, no instance count and no retry policy changes that outcome. One key, one row.
 
 The API catches that error and turns it into an answer:
 
@@ -346,7 +354,7 @@ A declined card is a final answer too. The order is marked `PaymentFailed`, the 
 
 <figure>
 
-![Architecture diagram after the fix. A solid frame labelled "The Flutter app: droppable() submit, one key per order" holds the Android, iOS and web app and a key icon for Idempotency-Key 7f3c, kept across retries. An arrow, POST /api/orders with the Idempotency-Key, goes to the web tier, App Service, where the key is required on POST, with a note: no key gives 400, a key already seen is answered with the saved order. An arrow labelled "same key" goes to a green payment gateway box reading "charge once, same key", and an arrow labelled "INSERT, or error 2601 on a repeat" goes down to the data tier, Azure SQL Database, with the note UNIQUE (UserId, IdempotencyKey), the one layer that cannot be skipped. The result, in green: one tap, one order, one charge, and 0 duplicates in 41,200 orders the next Friday.](./images/idempotency-key-order-api-architecture.png)
+![Architecture diagram after the fix. A solid frame labelled "The Flutter app: droppable() submit, one key per order" holds the Android, iOS and web app and a key icon for Idempotency-Key 7f3c, kept across retries. An arrow, POST /api/orders with the Idempotency-Key, goes to the web tier, App Service, where the key is required on POST, with a note: no key gives 400, a key already seen is answered with the saved order. An arrow labelled "same key" goes to a green payment gateway box reading "charge once, same key", and an arrow labelled "INSERT, or error 2601 on a repeat" goes down to the data tier, Azure SQL Database, with the note UNIQUE (UserId, IdempotencyKey), the one layer that can't be skipped. The result, in green: one tap, one order, one charge, and 0 duplicates in 41,200 orders the next Friday.](./images/idempotency-key-order-api-architecture.png)
 
 <figcaption>Figure 4 — the checkout after the fix. The app stops most repeats, and Azure SQL stops the rest.</figcaption>
 
@@ -354,7 +362,7 @@ A declined card is a final answer too. The order is marked `PaymentFailed`, the 
 
 ## How efficient is the new design?
 
-Correctness stops depending on timing, instance count or client behaviour, and the cost is one index seek per order. That is the whole trade.
+Correctness stops depending on timing, instance count or client behaviour, and all it costs is one index seek per order. I'd take that trade every time.
 
 Here is where Friday's 223 duplicates would have ended up with the fix in place:
 
@@ -376,7 +384,7 @@ Side by side, for two Friday dinner rushes:
 | Work per order in Azure SQL | one insert | one insert, with one extra index seek |
 | Extra storage | none | 48 bytes per order, plus the index |
 
-The rule: duplicates are now **zero by construction**, whatever the number of taps, retries or instances, because the database allows one row per key. The cost grows with orders, never with retries. A retry is cheaper than an order, in fact: one index seek and one read, no payment call.
+Put simply, duplicates are now **zero by construction**, whatever the number of taps, retries or instances, because the database allows one row per key. The cost grows with orders, never with retries. A retry is cheaper than an order, in fact: one index seek and one read, no payment call.
 
 ## When to use an idempotency key, and when not to
 
@@ -399,12 +407,12 @@ Keys stored on the order live as long as the order and cost nothing to keep. If 
 - **"Debounce the button for two seconds."** Same as above, with a slower button.
 - **"Reject the same total from the same user within 60 seconds."** A check-then-insert race lets both requests through, and it blocks a real second order. You could close the race with `UPDLOCK, HOLDLOCK`, and you would still be guessing at intent from the cart instead of being told.
 - **"Lock in the API."** A `lock` or `SemaphoreSlim` holds on one instance. There were three.
-- **"Take a Redis lock on the user."** Closer, but a lock that expires is not a guarantee, and it is not in the same transaction as the insert. The database row is the record, so the rule belongs there.
+- **"Take a Redis lock on the user."** Closer, but a lock that expires isn't a guarantee, and it isn't in the same transaction as the insert. The database row is the record, so the rule belongs there.
 - **"Increase the timeout."** Fewer retries on a slow evening, but the next network blip brings them back. The retry was never the bug; the missing key was.
 
 ## The guardrail: one query and one test
 
-With the index in place a duplicate cannot be written, so the query to watch is the one that shows the key doing its job. From Application Insights, per hour:
+With the index in place a duplicate can't be written, so the query to watch is the one that shows the key doing its job. From Application Insights, per hour:
 
 ```kusto
 requests
@@ -442,11 +450,11 @@ It runs against a real Azure SQL test database, not an in-memory fake, because t
 
 ## System design interview questions from this incident
 
-1. **A user double-clicks "Pay". How do you guarantee they are charged once?** A client-created idempotency key, reused on retry, enforced by a unique constraint where the order is written, and passed to the payment provider.
-2. **Why can't the server generate the idempotency key?** Because the server is the side that cannot tell two requests apart. The key has to come from the side that knows they are the same attempt.
+1. **A user double-clicks "Pay". How do you guarantee they're charged once?** A client-created idempotency key, reused on retry, enforced by a unique constraint where the order is written, and passed to the payment provider.
+2. **Why can't the server generate the idempotency key?** Because the server is the side that can't tell two requests apart. The key has to come from the side that knows they're the same attempt.
 3. **Two requests with the same key hit two servers at the same millisecond. What happens?** The database serialises them on the unique index. One inserts, the other gets a duplicate key error and returns the first result.
 4. **The first request is still running when the retry arrives. What do you return?** 409 with a short retry, not a second order and not a hang.
-5. **How is this different from exactly-once delivery in a message queue?** It is the same idea from the receiving side: you cannot stop duplicates arriving, so you make processing one twice harmless.
+5. **How is this different from exactly-once delivery in a message queue?** It's the same idea from the receiving side: you can't stop duplicates arriving, so you make processing one twice harmless.
 6. **When would you not add an idempotency key?** On reads, on `PUT` and `DELETE` that are already idempotent, and where a natural business key already makes the row unique.
 
 ## What to do on day one, not after the first refund
@@ -459,7 +467,7 @@ It runs against a real Azure SQL test database, not an in-memory fake, because t
 
 ## Key takeaways
 
-- Disabling the button stops some double taps. It cannot stop retries, tabs or resent requests.
+- Disabling the button stops some double taps. It can't stop retries, tabs or resent requests.
 - An idempotency key tells the server "same attempt". Only the client can create it.
 - A unique index on `(UserId, IdempotencyKey)` in Azure SQL is the one check that holds across instances and timing.
 - Return the original result for a repeated key: 200 when done, 409 while running, 422 for a different request.

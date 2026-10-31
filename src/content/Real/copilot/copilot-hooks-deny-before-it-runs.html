@@ -2772,7 +2772,7 @@ window.__MSD_STAGES__ = [
   {
     title: "The check is one grep",
     key: "grep",
-    desc: "grep -rn \"package:flutter/\" lib/domain/ — any match, exit 1.",
+    desc: "grep -rn \"package:flutter/\" lib/domain/ — any match, exit 2.",
     status: "grep -rn \"package:flutter/\" lib/domain/",
     thinking: false,
     durationMs: 5200,
@@ -2842,7 +2842,7 @@ window.__MSD_STAGES__ = [
       K.panel('', 'guard', '', 'guard-commit.sh');
       K.strip('THE SCRIPT', 'Readable, fast, boring. On purpose.', '');
       MSD.after(600, function(){ K.row(1, 'ok', 'grep -rn "package:flutter/" lib/domain/', 'check'); MSD.sfx.focus(); });
-      MSD.after(1500, function(){ K.row(2, 'ok', 'match → exit 1', 'deny'); });
+      MSD.after(1500, function(){ K.row(2, 'ok', 'match → exit 2', 'deny'); });
       MSD.after(2200, function(){ K.row(3, 'ok', 'no match → exit 0', 'allow'); });
       
     }
@@ -2920,7 +2920,7 @@ window.__MSD_STAGES__ = [
       K.strip('RETRY', 'The same edit, the same request.', '');
       MSD.after(500, function(){ K.card(1, 'git commit?', 'live'); K.row(1, 'bad', "+ import 'package:flutter/foundation.dart'", 'added'); });
       MSD.after(1300, function(){ K.ar(1, 3, 'live'); K.go(2, 'top', 'mid', 4); MSD.sfx.whoosh(); });
-      MSD.after(2100, function(){ K.ar(2, 3, 'bad'); K.row(2, 'bad', 'DENIED: lib/domain must stay pure Dart', 'exit 1'); K.panel('bad', 'denied', 'bad'); MSD.shake('#ck-panel'); MSD.sfx.blip(1); });
+      MSD.after(2100, function(){ K.ar(2, 3, 'bad'); K.row(2, 'bad', 'DENIED: lib/domain must stay pure Dart', 'exit 2'); K.panel('bad', 'denied', 'bad'); MSD.shake('#ck-panel'); MSD.sfx.blip(1); });
       MSD.after(3200, function(){ K.strip('ENFORCED', 'Before the command runs, not after.', 'good'); });
       
     }

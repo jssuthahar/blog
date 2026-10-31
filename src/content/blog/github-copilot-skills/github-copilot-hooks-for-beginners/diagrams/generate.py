@@ -46,7 +46,7 @@ c.append(text("ru", "the rule is code that runs every time", 520, 48, 380, 22, s
 chain(c, [
     ("Agent adds a Flutter import", "the same mistake"),
     ("Agent asks to run a bash command", "the hook runs first"),
-    ("guard-commit.sh greps lib/domain", "finds package:flutter/, exits 1"),
+    ("guard-commit.sh greps lib/domain", "finds package:flutter/, exits 2"),
     ("DENIED, with the reason", "the agent fixes the import"),
 ], cx=710, top=90, w=380, h=64, gap=32, prefix="r")
 c.append(box("rok", "✓ Caught before the commit, every time", 520, 474, 380, 48, GRN_F, GRN_S))

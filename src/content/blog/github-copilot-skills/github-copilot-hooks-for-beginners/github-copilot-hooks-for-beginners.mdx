@@ -2,7 +2,7 @@
 title: 'GitHub Copilot Hooks for Beginners: Why You Need Them and What You Can Build'
 description: 'A beginner GitHub Copilot Hooks tutorial: what a hook is, why an AI agent needs deterministic guardrails, and how to write your first one in ten minutes.'
 publishedAt: 2026-05-29
-updatedAt: 2026-10-01
+updatedAt: 2026-10-31
 cover: './images/github-copilot-hooks-for-beginners-cover.png'
 coverAlt: 'Share banner headed GITHUB COPILOT · AGENTS.MD with the title "Outside the model, so it cannot drift" and the line "A hook is a shell script at a fixed point in the session. Deterministic, every time." above the MSDEVBUILD wordmark and the author name. On the right, a three-step chain: a warn box reading "Agent proposes a command", probabilistic. usually right.; then a plain box reading "Hook runs, outside the model", same input, same answer, always; then a good box reading "Blocked before it runs", not reviewed after the fact.'
 category: copilot
@@ -18,7 +18,7 @@ faq:
   - q: 'What are GitHub Copilot hooks?'
     a: 'GitHub Copilot hooks are shell commands or scripts that run automatically at fixed points in a Copilot agent or Copilot CLI session: when the session starts, or before the agent runs a tool. They execute outside the model, so they are deterministic: they do exactly what you configured, every time.'
   - q: 'Where do Copilot hooks live in a repo?'
-    a: 'In a repository, hooks live in JSON files under `.github/hooks/` and apply whenever a Copilot agent runs there. Copilot CLI also reads a "hooks" key from `~/.copilot/config.json` globally or `.copilot/config.json` per repo. It is an evolving feature, so confirm the path against current GitHub docs.'
+    a: 'In a repository, hooks live in JSON files under `.github/hooks/` and apply whenever a Copilot agent runs there. Copilot CLI also reads files in `~/.copilot/hooks/` and a "hooks" key in `~/.copilot/settings.json` or `.github/copilot/settings.json`. It is an evolving feature, so confirm the path against current GitHub docs.'
   - q: 'What can a hook do that instructions can''t?'
     a: 'Instructions are advisory: they guide a probabilistic model that may or may not follow them. A hook is deterministic code that runs every time, so it can hard-enforce a rule, block a dangerous command before it runs, log every prompt, or run a formatter after every edit. If a check must never be skipped, it belongs in a hook.'
   - q: 'Can a hook block the agent from running a command?'
@@ -54,8 +54,8 @@ The hook in this scenario is committed in the food delivery app: [`.github/hooks
 | --- | --- | --- |
 | 1 | The agent adds `package:flutter/foundation.dart` to an entity | The same |
 | 2 | It asks to run `git commit` | It asks to run `git commit`; the hook runs first |
-| 3 | The commit goes through | `guard-commit.sh` greps `lib/domain`, finds the import, exits 1 |
-| 4 | The push triggers CI; the dependency rule fails twenty minutes later | "DENIED: lib/domain must stay pure Dart", and the agent fixes it |
+| 3 | The commit goes through | `guard-commit.sh` greps `lib/domain`, finds the import, exits 2 |
+| 4 | The push triggers CI; the dependency rule fails twenty minutes later | The denial reaches the agent with its reason, and the agent fixes it |
 
 ## The command the hook runs
 
@@ -65,22 +65,25 @@ The heart of the app's hook is one line anybody can run by hand:
 grep -rn "package:flutter/" lib/domain/
 ```
 
-On the clean repository it prints nothing and the hook allows the command. With the agent's import added, it prints the offending line, and the script turns that into a denial:
+On the clean repository it prints nothing and the hook allows the command. With the agent's import added, it finds the offending line, and the script turns that into a denial with a reason attached:
 
 ```bash
 # from .github/hooks/scripts/guard-commit.sh
-if grep -rn "package:flutter/" lib/domain/ 2>/dev/null; then
-  echo "DENIED: lib/domain must stay pure Dart — no package:flutter import."
-  echo "Fix the import before running another command."
-  exit 1
+deny() {
+  printf '{"permissionDecision":"deny","permissionDecisionReason":"%s"}\n' "$1"
+  exit 2
+}
+
+if grep -rn "package:flutter/" lib/domain/ >&2 2>/dev/null; then
+  deny "lib/domain must stay pure Dart. Remove the package:flutter import before running another command."
 fi
 ```
 
-Try it yourself: clone the app, add a Flutter import to any file in `lib/domain/entities/`, and run `bash .github/hooks/scripts/guard-commit.sh; echo "exit $?"`. You get the denial and `exit 1`. Remove the import and you get `exit 0`.
+Try it yourself: clone the app, add a Flutter import to any file in `lib/domain/entities/`, and run `bash .github/hooks/scripts/guard-commit.sh; echo "exit $?"`. You get the JSON denial and `exit 2`. Remove the import and you get no output and `exit 0`.
 
 <figure>
 
-![Two step flows side by side for the same agent mistake. On the left, instructions only, where the rule is a request the model may drop: step 1, the agent adds a Flutter import for @immutable in lib/domain/entities; step 2, AGENTS.md says pure Dart, and the model weighed it and moved on; step 3, the agent runs git commit and nothing stands in the way; step 4, CI fails twenty minutes later, after the push. The red outcome: the rule held only when the model remembered. On the right, a preToolUse hook, where the rule is code that runs every time: step 1, the agent adds a Flutter import, the same mistake; step 2, the agent asks to run a bash command and the hook runs first; step 3, guard-commit.sh greps lib/domain, finds package:flutter, and exits 1; step 4, denied with the reason, and the agent fixes the import. The green outcome: caught before the commit, every time.](./images/copilot-hook-pretooluse-denies-domain-import.png)
+![Two step flows side by side for the same agent mistake. On the left, instructions only, where the rule is a request the model may drop: step 1, the agent adds a Flutter import for @immutable in lib/domain/entities; step 2, AGENTS.md says pure Dart, and the model weighed it and moved on; step 3, the agent runs git commit and nothing stands in the way; step 4, CI fails twenty minutes later, after the push. The red outcome: the rule held only when the model remembered. On the right, a preToolUse hook, where the rule is code that runs every time: step 1, the agent adds a Flutter import, the same mistake; step 2, the agent asks to run a bash command and the hook runs first; step 3, guard-commit.sh greps lib/domain, finds package:flutter, and exits 2; step 4, denied with the reason, and the agent fixes the import. The green outcome: caught before the commit, every time.](./images/copilot-hook-pretooluse-denies-domain-import.png)
 
 <figcaption>Figure 1 — the same mistake, with and without a hook. The model made the same choice both times; only one repository could refuse it.</figcaption>
 
@@ -238,7 +241,7 @@ Once the shape clicks, the question becomes "what should I build?" Here is a pra
 
 ### The safety hook: block a dangerous command
 
-This is the general form of the app's guard. A `preToolUse` hook can inspect what the agent is about to run and deny it. The tool call details are passed to your script (Copilot provides them via stdin or environment, depending on the current spec; check the docs for the exact field names), so your script reads the proposed command and exits with a non-zero status to deny it.
+This is the general form of the app's guard. A `preToolUse` hook can inspect what the agent is about to run and deny it. Copilot passes the tool call to your script as JSON on stdin, with fields including `toolName` and `toolArgs`, so your script reads the proposed command and answers with a decision. Field names can change, so check the docs for your Copilot surface.
 
 ```json
 {
@@ -262,16 +265,16 @@ And the script it points to:
 
 input="$(cat)"   # the tool call payload Copilot passes on stdin
 
-# Fail loud and non-zero to DENY the tool call.
+# Exit 2 denies the call. The JSON gives the agent a reason it can act on.
 if echo "$input" | grep -Eq 'rm[[:space:]]+-rf|git[[:space:]]+push[[:space:]]+--force|:>[[:space:]]*/'; then
-  echo "BLOCKED: destructive command denied by hook policy" >&2
-  exit 1
+  echo '{"permissionDecision":"deny","permissionDecisionReason":"Destructive command denied by hook policy."}'
+  exit 2
 fi
 
 exit 0   # zero = allow the tool to run
 ```
 
-The parts that matter: the script exits `0` to allow and non-zero to deny. It fails loud, printing to stderr so you see *why* it blocked. And it keeps the rule simple and readable, because a guard you cannot read is a guard you will eventually disable.
+The parts that matter: exit `0` with no output allows the command, and exit `2` denies it. Copilot reads stdout as the hook's decision, so the reason goes there as JSON and anything meant for a person goes to stderr. Any other non-zero exit also denies, but the agent only gets a generic "hook errored" message and has nothing to fix. And keep the rule simple and readable, because a guard you cannot read is a guard you will eventually disable.
 
 A common mistake here: writing an over-clever regex that also blocks harmless commands. If your guard cries wolf, people turn it off, and then it protects nobody. Start narrow. Block the two or three commands you truly never want, and widen only when you have a real reason. To harden it for production, keep the deny list in a small config the team reviews, and log every block so you can tune the rules from real data.
 
@@ -285,14 +288,14 @@ For teams, this one earns its keep fast. A `userPromptSubmitted` hook records wh
   "hooks": {
     "userPromptSubmitted": [
       {
-        "command": "printf '%s\\t%s\\t%s\\n' \"$(date -u +%FT%TZ)\" \"${USER:-unknown}\" \"$COPILOT_USER_PROMPT\" >> .github/hooks/audit.tsv"
+        "command": "jq -r --arg user \"${USER:-unknown}\" '[.timestamp, $user, .prompt] | @tsv' >> .github/hooks/audit.tsv"
       }
     ]
   }
 }
 ```
 
-It writes a tab-separated line: timestamp, user, and the prompt (Copilot exposes the prompt to the hook; confirm the exact variable name in the current docs). Now you have a factual record of AI usage. Not a guess, not a "I think someone asked it to refactor auth", a log. For anything touching compliance, that record is the difference between "we believe" and "we can show you".
+It writes a tab-separated line: the timestamp in Unix milliseconds, the user, and the prompt. Copilot passes the prompt as the `prompt` field in the JSON on stdin, and `jq` pulls it out, so `jq` has to be installed wherever the hook runs. Now you have a factual record of AI usage. Not a guess, not a "I think someone asked it to refactor auth", a log. For anything touching compliance, that record is the difference between "we believe" and "we can show you".
 
 One production note: an audit log can contain sensitive text people typed into prompts. Treat that file like any other sensitive artifact. Restrict who can read it, and never commit it to a public repo.
 
@@ -317,7 +320,7 @@ The potholes people hit with their first hooks:
 | Do | Don't |
 |---|---|
 | Keep hooks fast and deterministic | Put slow or network-heavy work in a hook — it stalls the agent |
-| Fail loud, print why to stderr | Swallow errors silently, so a broken guard looks like a passing one |
+| Fail loud, and give the agent the reason in the deny JSON | Swallow errors silently, so a broken guard looks like a passing one |
 | Version hooks in the repo (`.github/hooks/`) | Keep them only on your machine, where teammates never get them |
 | Start with logging, then graduate to blocking | Block everything on day one and frustrate the whole team |
 | Keep secrets out; read them from the environment | Hardcode a token or key inside a hook script |
@@ -349,7 +352,7 @@ The rule underneath: **a rule enforced in a hook costs the same on the millionth
 ## What to do on day one
 
 - Add a `sessionStart` logging hook and read the log after a week.
-- Pick the one rule a broken build would cost you most for, and write it as a script that exits 1.
+- Pick the one rule a broken build would cost you most for, and write it as a script that exits 2 with a reason.
 - Wire that script to `preToolUse`, and to your git `pre-commit` hook too.
 - Keep the denial message specific enough that the agent can fix the cause.
 - Confirm the hook JSON keys against the current GitHub docs for your Copilot surface.

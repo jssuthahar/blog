@@ -212,19 +212,23 @@ const moreActive = MORE.some(isActive);
     /* Opaque, not blurred. A backdrop-filter over scrolling content is
        recomputed every frame and janks on Chrome — the same reason
        Header.astro stays solid. */
-    background: var(--bg);
-    border: 1px solid var(--border);
+    /* The header and footer's azure. Redefining the tokens restyles the tabs inside
+       in both themes. */
+    --text-muted: rgb(255 255 255 / 0.9);
+    --accent: #005a9e;
+    --accent-soft: #ffffff;
+    --bg-subtle: rgb(255 255 255 / 0.14);
+    background: linear-gradient(100deg, #00528f, #003a6a);
+    border: 1px solid rgb(255 255 255 / 0.22);
     border-radius: 1.15rem;
     box-shadow:
-      0 12px 28px -10px rgb(0 0 0 / 0.3),
-      0 3px 10px -4px rgb(0 0 0 / 0.14);
+      0 14px 30px -10px rgb(0 44 80 / 0.6),
+      0 3px 10px -4px rgb(0 44 80 / 0.25);
     /* Keeps the pressed state inside the rounded corners. */
     overflow: hidden;
   }
-  /* The shadow that reads as "lifted" on white disappears on a dark page, so
-     depth is carried by a brighter rim there instead. */
   :global([data-theme='dark']) .app-tabs {
-    border-color: color-mix(in oklch, var(--border) 70%, var(--text) 30%);
+    background: linear-gradient(100deg, #0a3f6c, #071f38);
     box-shadow: 0 14px 34px -12px rgb(0 0 0 / 0.75);
   }
 
@@ -263,7 +267,11 @@ const moreActive = MORE.some(isActive);
     font-weight: 600;
     letter-spacing: 0.01em;
   }
+  /* The label stays white on the bar; only the icon sits on the white pill. */
   .app-tab[aria-current='page'] {
+    color: #fff;
+  }
+  .app-tab[aria-current='page'] .app-tab__mark {
     color: var(--accent);
   }
   .app-tab[aria-current='page'] .app-tab__mark {
@@ -291,6 +299,12 @@ const moreActive = MORE.some(isActive);
   }
   :global(html[data-standalone]) .app-tab--browser {
     display: none;
+  }
+
+  /* Only while the sheet is open, so its tiles clear the bar and the More tab can
+     close it. Normally the bar stays under the chat panel (60/61). */
+  :global(html:has(#app-more:not([hidden]))) .app-tabs {
+    z-index: 66;
   }
 
   .app-sheet {
@@ -347,17 +361,17 @@ const moreActive = MORE.some(isActive);
     width: 2.6rem;
     height: 2.6rem;
     border-radius: 0.8rem;
-    background: var(--bg-subtle);
-    border: 1px solid var(--border);
-    color: var(--accent);
+    background: linear-gradient(135deg, #0078d4, #005a9e);
+    box-shadow: 0 8px 16px -8px rgb(0 90 158 / 0.7);
+    color: #fff;
   }
   .app-tile__badge svg {
     width: 1.35rem;
     height: 1.35rem;
   }
   .app-tile[aria-current='page'] .app-tile__badge {
-    background: var(--accent-soft);
-    border-color: var(--accent);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
   .app-tile:active {
     background: var(--bg-subtle);
@@ -444,7 +458,10 @@ const moreActive = MORE.some(isActive);
   function initAppTabs() {
     const sheet = document.getElementById('app-more');
     const toggle = document.getElementById('app-more-toggle');
-    if (!sheet || !toggle) return;
+    // astro:page-load also fires on the first load, so this runs twice there. Bound
+    // twice, one tap opens the sheet and closes it again.
+    if (!sheet || !toggle || toggle.dataset.bound === '') return;
+    toggle.dataset.bound = '';
 
     const setOpen = (open: boolean) => {
       sheet.hidden = !open;

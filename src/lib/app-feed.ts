@@ -312,17 +312,9 @@ export function relatedShortsForPost(post: Post, shorts: Short[], limit = 2): Sh
   return [...named, ...scored.map((x) => x.short)].slice(0, limit);
 }
 
-/** Category hue for a Blogger label, when it names one of the site's own. */
-function hueForLabel(label: string): number {
-  const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '') as CategoryId;
-  const match = Object.entries(CATEGORIES).find(([id]) => id === slug);
-  if (match) return match[1].hue;
-
-  // Otherwise a stable hue derived from the label, so "Xamarin" is the same
-  // colour on every card and every build without needing a taxonomy entry.
-  let hash = 0;
-  for (let i = 0; i < label.length; i++) hash = (hash * 31 + label.charCodeAt(i)) >>> 0;
-  return hash % 360;
+/** The site runs on one hue, so a Blogger label gets the same azure as a category. */
+function hueForLabel(_label: string): number {
+  return 250;
 }
 
 const DATE = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

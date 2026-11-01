@@ -44,25 +44,13 @@ const ICONS: Record<string, string> = {
     'M12 2a10 10 0 0 0-8.7 15L2 22l5.2-1.4A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1a13 13 0 0 1-6.3-5.5C6.9 10.6 6.6 9.6 6.6 9c0-.6.3-1.5.8-1.9.2-.2.4-.2.6-.2h.5c.2 0 .4 0 .6.4l.8 2c.1.2 0 .4-.1.5l-.4.5c-.1.2-.3.3-.1.6.5.9 1.5 2 2.6 2.5.3.2.5.1.6 0l.7-.8c.2-.2.3-.2.6-.1l1.9.9c.3.1.4.2.4.4.1.2.1.7-.1 1.3Z',
 };
 
-// Brand hue per platform, used only for the glyph badge. Everything else on the
-// card stays in the site's own palette so a promotion never out-shouts an
-// article sitting next to it.
-const HUES: Record<string, number> = {
-  linkedin: 250,
-  'linkedin-page': 250,
-  instagram: 340,
-  whatsapp: 145,
-  youtube: 25,
-  github: 280,
-  x: 260,
-};
 ---
 
 <!-- `data-for` lists the filter tabs this promotion was positioned for; the
      filter rules in app.astro show it in those and hide it in the rest. -->
 <article class="feed-item feed-promo" data-feed-item data-kind="promo" data-for={shownIn.join(' ')}>
   {promo.type === 'social' && (
-    <div class="feed-promo__card" style={`--promo-hue: ${HUES[promo.id] ?? 250};`}>
+    <div class="feed-promo__card">
       <p class="feed-promo__eyebrow">Keep up with the work</p>
 
       <span class="feed-promo__badge" aria-hidden="true">
@@ -113,7 +101,6 @@ const HUES: Record<string, number> = {
     display: grid;
     place-items: center;
     padding: 1rem;
-    background: var(--bg-subtle);
   }
 
   .feed-promo__card,
@@ -126,8 +113,9 @@ const HUES: Record<string, number> = {
 
   .feed-promo__card {
     border-radius: 1.1rem;
-    border: 1px solid var(--border);
-    background: var(--bg);
+    border: 1px solid var(--gp-tile-line);
+    background: var(--gp-fill);
+    box-shadow: var(--gp-shadow);
     padding: 1.75rem 1.5rem;
     text-align: center;
   }
@@ -147,11 +135,9 @@ const HUES: Record<string, number> = {
     height: 3.4rem;
     margin: 1rem auto 0;
     border-radius: 1rem;
-    background: oklch(0.62 0.17 var(--promo-hue) / 0.14);
-    color: oklch(0.55 0.17 var(--promo-hue));
-  }
-  :global([data-theme='dark']) .feed-promo__badge {
-    color: oklch(0.78 0.15 var(--promo-hue));
+    background: linear-gradient(135deg, #0078d4, #005a9e);
+    box-shadow: 0 10px 20px -10px rgb(0 90 158 / 0.8);
+    color: #fff;
   }
   .feed-promo__badge svg {
     width: 1.75rem;
@@ -169,10 +155,7 @@ const HUES: Record<string, number> = {
     margin-top: 0.2rem;
     font-size: 0.8rem;
     font-weight: 600;
-    color: oklch(0.55 0.17 var(--promo-hue));
-  }
-  :global([data-theme='dark']) .feed-promo__handle {
-    color: oklch(0.78 0.15 var(--promo-hue));
+    color: var(--accent-deep);
   }
 
   .feed-promo__blurb {
@@ -189,7 +172,7 @@ const HUES: Record<string, number> = {
     gap: 0.4rem;
     margin-top: 1.15rem;
     border-radius: 999px;
-    background: var(--accent);
+    background: var(--ink);
     padding: 0.6rem 1.4rem;
     font-size: 0.88rem;
     font-weight: 700;

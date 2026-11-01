@@ -170,7 +170,7 @@ const totalShorts = getShorts().length;
   .app-feed-tabs {
     display: flex;
     height: var(--tabs-h);
-    align-items: stretch;
+    align-items: center;
     gap: 0.25rem;
     border-bottom: 1px solid var(--border);
     padding-inline: 0.5rem;
@@ -178,11 +178,12 @@ const totalShorts = getShorts().length;
   }
 
   .app-feed-tab {
-    position: relative;
     display: inline-flex;
+    height: 2.1rem;
     align-items: center;
     gap: 0.35rem;
     border: 0;
+    border-radius: 999px;
     background: transparent;
     padding-inline: 0.7rem;
     color: var(--text-muted);
@@ -199,22 +200,16 @@ const totalShorts = getShorts().length;
     font-size: 0.66rem;
     font-variant-numeric: tabular-nums;
   }
-  /* Marked twice — colour and a rule under the tab — so the current filter
-     reads for anyone who cannot separate the accent from the muted grey. */
+  /* A filled pill, the same one the site's carousels use, so the current filter
+     reads by shape as well as colour. */
   .app-feed-tab[aria-selected='true'] {
-    color: var(--accent);
-  }
-  .app-feed-tab[aria-selected='true']::after {
-    content: '';
-    position: absolute;
-    inset: auto 0.5rem -1px;
-    height: 2px;
-    border-radius: 2px;
-    background: var(--accent);
+    background: linear-gradient(135deg, #0078d4, #005a9e);
+    box-shadow: 0 6px 14px -6px rgb(0 90 158 / 0.7);
+    color: #fff;
   }
   .app-feed-tab[aria-selected='true'] .app-feed-tab__count {
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: rgb(255 255 255 / 0.22);
+    color: #fff;
   }
 
   .app-feed {
@@ -274,7 +269,6 @@ const totalShorts = getShorts().length;
     display: grid;
     place-items: center;
     padding: 0.75rem;
-    background: var(--bg-subtle);
   }
 
   .feed-resume__card {
@@ -286,9 +280,9 @@ const totalShorts = getShorts().length;
     max-height: 44rem;
     overflow: hidden;
     border-radius: 1.1rem;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    box-shadow: 0 18px 40px -28px rgb(0 0 0 / 0.45);
+    border: 1px solid var(--gp-tile-line);
+    background: var(--gp-fill);
+    box-shadow: 0 18px 40px -24px rgb(0 72 130 / 0.45);
   }
 
   /* Same rule as AppFeedRead: the picture is the only thing that flexes, so no
@@ -323,7 +317,7 @@ const totalShorts = getShorts().length;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--accent-deep);
   }
 
   .feed-resume__title {
@@ -366,7 +360,7 @@ const totalShorts = getShorts().length;
     align-items: center;
     margin-top: 0.85rem;
     border-radius: 999px;
-    background: var(--accent);
+    background: var(--ink);
     padding: 0.5rem 1rem;
     font-size: 0.82rem;
     font-weight: 700;
@@ -375,11 +369,14 @@ const totalShorts = getShorts().length;
 
   .feed-end {
     display: grid;
+    /* minmax(0, ...): otherwise the series row, which scrolls sideways, sets the
+       column's width and pushes the text off both edges of the screen. */
+    grid-template-columns: minmax(0, 1fr);
     place-items: center;
     padding: 1.5rem;
-    background: var(--bg-subtle);
   }
   .feed-end__inner {
+    width: 100%;
     max-width: 24rem;
     text-align: center;
   }
@@ -409,7 +406,8 @@ const totalShorts = getShorts().length;
     padding-top: 1.25rem;
   }
   .feed-end__series .app-rail ul {
-    justify-content: center;
+    /* `safe`: plain center pushes the first ring off the left edge, out of reach. */
+    justify-content: safe center;
   }
   .feed-end__series .eyebrow {
     margin-bottom: 0.75rem;
@@ -421,7 +419,7 @@ const totalShorts = getShorts().length;
     color: var(--text-muted);
   }
   .feed-end__hint a {
-    color: var(--accent);
+    color: var(--accent-deep);
     font-weight: 600;
   }
 

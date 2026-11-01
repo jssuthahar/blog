@@ -388,7 +388,7 @@ const escapeHtml = (s: string): string =>
 
 /** A deterministic gradient, shown behind a thumbnail that is missing or fails. */
 export function gradientFor(hue: number): string {
-  return `linear-gradient(135deg, oklch(0.62 0.17 ${hue}), oklch(0.42 0.15 ${hue + 45}))`;
+  return `linear-gradient(135deg, oklch(0.62 0.17 ${hue}), oklch(0.42 0.15 ${hue}))`;
 }
 
 /**

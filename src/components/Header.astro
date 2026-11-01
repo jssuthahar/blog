@@ -14,10 +14,10 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
       class="flex min-w-0 items-center gap-2.5 xl:shrink-0"
       aria-label={`${SITE.title} blog ${SITE.byline} — home`}
     >
-      <Avatar size={32} eager class="shrink-0 ring-1 ring-[var(--border)]" />
+      <Avatar size={32} eager class="shrink-0 ring-2 ring-white/80" />
       <span class="min-w-0 leading-tight">
         <span class="block truncate font-semibold tracking-tight">
-          <span class="text-accent">MS</span>DEVBUILD
+          <span class="header-ms">MS</span>DEVBUILD
           <span class="font-normal text-muted">/ blog</span>
         </span>
         <span class="block truncate text-[0.7rem] text-muted">{SITE.alternateName} · {SITE.byline}</span>
@@ -130,7 +130,32 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
      on every frame; on Chrome — especially Retina Macs — that shows up as scroll
      jank and flicker. A solid header composites once and scrolls perfectly. */
   .site-header {
-    background: var(--bg);
+    /* The footer's azure, so the page is framed in the brand colour at both ends.
+       Redefining the tokens here restyles everything inside at once, including
+       the theme toggle and the mobile menu, in both themes. */
+    --text: #ffffff;
+    --text-muted: rgb(255 255 255 / 0.88);
+    --border: rgb(255 255 255 / 0.22);
+    --bg-subtle: rgb(255 255 255 / 0.14);
+    --accent-soft: #ffffff;
+    --accent-deep: #005a9e;
+    background: linear-gradient(100deg, #00528f, #003a6a);
+    color: var(--text);
+    box-shadow: 0 8px 24px -14px rgb(0 44 80 / 0.7);
+  }
+  :global([data-theme='dark']) .site-header {
+    background: linear-gradient(100deg, #0a3f6c, #071f38);
+  }
+  .site-header :global(:focus-visible) {
+    outline-color: #fff;
+  }
+  .header-ms {
+    color: #8fcbf7;
+  }
+  /* White, because the usual azure button would vanish on this bar. */
+  #pwa-install {
+    background: #fff;
+    color: #005a9e;
   }
 </style>
 

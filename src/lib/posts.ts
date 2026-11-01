@@ -37,7 +37,7 @@ export function coverArt(slug: string, category: CategoryId) {
 
   return {
     from: `oklch(0.62 0.17 ${hue + drift})`,
-    to: `oklch(0.42 0.15 ${hue + drift + 45})`,
+    to: `oklch(0.42 0.15 ${hue + drift})`,
     angle,
     // Two decorative circles, placed deterministically within the panel.
     blobs: [

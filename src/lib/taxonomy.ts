@@ -15,11 +15,14 @@ export interface TopicGroup {
   emoji: string;
   label: string;
   description: string;
-  /** OKLCH hue angle that colour-codes the topic across the site. */
+  /** OKLCH hue angle for this topic's chips and share card. */
   hue: number;
   /** The technologies that live under this area, for display. */
   technologies: string[];
 }
+
+/** Azure blue. The site runs on one hue, so topics are told apart by their labels. */
+const TOPIC_HUE = 250;
 
 export const TOPIC_GROUPS: TopicGroup[] = [
   {
@@ -27,7 +30,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     emoji: '💻',
     label: 'Programming',
     description: 'Languages and the runtimes behind them — .NET, C#, and Python.',
-    hue: 265,
+    hue: TOPIC_HUE,
     technologies: ['.NET', 'C#', 'Python'],
   },
   {
@@ -35,7 +38,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     emoji: '📱',
     label: 'Mobile',
     description: 'Cross-platform and native apps, from .NET MAUI and Flutter to Firebase.',
-    hue: 200,
+    hue: TOPIC_HUE,
     technologies: ['Flutter', 'Firebase', '.NET MAUI', 'Android', 'iOS', 'Mobile Architecture'],
   },
   {
@@ -43,7 +46,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     emoji: '🌐',
     label: 'Web',
     description: 'The browser and the API behind it — ASP.NET Core Web APIs, REST, and React front-ends.',
-    hue: 100,
+    hue: TOPIC_HUE,
     technologies: [
       'ASP.NET Core', 'Web API', 'Minimal APIs', 'REST API', 'GraphQL',
       'React', 'TypeScript', 'Blazor',
@@ -54,7 +57,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     emoji: '☁️',
     label: 'Azure',
     description: 'The Azure platform — compute, data, AI, and delivery.',
-    hue: 245,
+    hue: TOPIC_HUE,
     technologies: [
       'Azure', 'Azure AI', 'Azure OpenAI', 'Azure AI Foundry', 'Azure App Services',
       'Azure Functions', 'Azure Storage', 'Azure Cosmos DB', 'Azure SQL', 'Azure DevOps',
@@ -65,7 +68,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     emoji: '🤖',
     label: 'AI',
     description: 'Applied AI — agents, RAG, and the patterns that ship.',
-    hue: 165,
+    hue: TOPIC_HUE,
     technologies: [
       'AI Development', 'AI Agents', 'Agentic AI', 'Multi-Agent Systems',
       'MCP (Model Context Protocol)', 'RAG', 'LLMs', 'Prompt Engineering', 'AI Security', 'AI Architecture',
@@ -76,7 +79,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     emoji: '🧑‍✈️',
     label: 'GitHub Copilot',
     description: 'GitHub Copilot in real delivery — agent mode, conventions, and productivity.',
-    hue: 340,
+    hue: TOPIC_HUE,
     technologies: [
       'GitHub Copilot', 'Copilot Agent Mode', 'Copilot Enterprise', 'AGENT.md',
       'Copilot Extensions', 'Copilot Chat', 'Developer Productivity',
@@ -87,7 +90,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     emoji: '🏗️',
     label: 'Architecture',
     description: 'Designing systems that survive growth — from patterns to system design.',
-    hue: 300,
+    hue: TOPIC_HUE,
     technologies: [
       'Software Architecture', 'Enterprise Architecture', 'Solution Architecture', 'Clean Architecture',
       'System Design', 'Design Patterns', 'Microservices', 'Event-Driven Architecture',
@@ -98,7 +101,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     emoji: '⚙️',
     label: 'DevOps',
     description: 'CI/CD, containers, and infrastructure as code.',
-    hue: 55,
+    hue: TOPIC_HUE,
     technologies: [
       'GitHub Actions', 'CI/CD', 'Docker', 'Kubernetes', 'Infrastructure as Code',
       'Terraform', 'Monitoring', 'Observability',
@@ -109,7 +112,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     emoji: '🚀',
     label: 'Engineering',
     description: 'The craft — performance, security, testing, and code quality.',
-    hue: 25,
+    hue: TOPIC_HUE,
     technologies: [
       'Software Engineering', 'Best Practices', 'Performance', 'Security',
       'Testing', 'Code Quality', 'Developer Productivity',
@@ -120,7 +123,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     emoji: '🎯',
     label: 'Career',
     description: 'Growth, certifications, leadership, and learning roadmaps.',
-    hue: 145,
+    hue: TOPIC_HUE,
     technologies: [
       'Certifications', 'Career Growth', 'Technical Leadership',
       'Interview Preparation', 'Learning Roadmaps', 'Productivity',

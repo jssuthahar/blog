@@ -17,14 +17,14 @@ const baseCount = viewBaseline(slug);
   <span
     data-view-counter={slug}
     data-read-only={readOnly ? '' : undefined}
-    class="inline-flex items-center gap-1.5"
+    class="meta-chip"
   >
     <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
       <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
       <circle cx="12" cy="12" r="3" />
     </svg>
     <span data-view-count>—</span>
-    <span class="sr-only">views</span>
+    <span>views</span>
   </span>
 )}
 

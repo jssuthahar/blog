@@ -4,10 +4,9 @@
  *
  * Beyond the generic note/tip/warning, the set includes the "senior engineer"
  * callouts MVP/GDE reviewers look for — production judgment, common mistakes,
- * architecture decisions, and cost/perf/security trade-offs. Colour is kept to
- * four hue families (info / positive / caution / danger) so a page full of
- * callouts still reads as one restrained system rather than a rainbow; the
- * icon and label carry the specific meaning.
+ * architecture decisions, and cost/perf/security trade-offs. Colour is Azure
+ * blue unless the callout warns the reader: amber for caution, red for danger.
+ * The icon and label carry the specific meaning.
  */
 type CalloutType =
   | 'note'
@@ -45,17 +44,17 @@ const CONFIG: Record<CalloutType, { hue: number; label: string; icon: string; vi
     icon: 'M6 3a3 3 0 0 0-1 5.83V15.17A3 3 0 1 0 7 15.17V13a2 2 0 0 1 2-2h3.17A3 3 0 1 0 12.17 9H9a3.98 3.98 0 0 0-2 .54V8.83A3 3 0 0 0 6 3Zm0 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm9 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2ZM6 18a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z',
   },
   tip: {
-    hue: 155,
+    hue: 252,
     label: 'Tip',
     icon: 'M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2ZM9 19h6v2H9v-2Z',
   },
   production: {
-    hue: 155,
+    hue: 252,
     label: 'Production tip',
     icon: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1.3 14.2L6.5 12l1.4-1.4 2.8 2.8 5.4-5.4 1.4 1.4-6.8 6.8Z',
   },
   cost: {
-    hue: 155,
+    hue: 252,
     label: 'Cost optimization',
     icon: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm.85 15.55v1.2h-1.6v-1.2c-1.5-.2-2.6-1.05-2.75-2.65h1.7c.1.85.75 1.3 1.9 1.3 1.05 0 1.65-.4 1.65-1.05 0-.6-.4-.9-1.75-1.2-2-.45-2.95-1.15-2.95-2.55 0-1.25.9-2.15 2.2-2.4V7.2h1.6v1.15c1.35.3 2.2 1.15 2.35 2.45h-1.7c-.1-.7-.6-1.1-1.45-1.1-.95 0-1.45.4-1.45.95 0 .55.45.8 1.85 1.15 2 .5 2.85 1.2 2.85 2.6 0 1.35-.95 2.25-2.4 2.5Z',
   },
@@ -111,17 +110,19 @@ const { hue, label, icon, viewBox = '0 0 24 24' } = CONFIG[type];
 
 <style>
   .callout {
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     padding: 1.25rem;
-    border: 1px solid oklch(0.62 0.15 var(--cx-hue) / 0.35);
+    border: 1px solid var(--glass-line);
     border-left: 3px solid oklch(0.55 0.16 var(--cx-hue));
-    background: oklch(0.62 0.15 var(--cx-hue) / 0.07);
+    background: var(--glass);
+    box-shadow: var(--glass-shadow);
   }
 
   .callout-label {
     display: flex;
     align-items: center;
     gap: 0.4rem;
+    font-family: var(--font-sans);
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.05em;
@@ -157,9 +158,7 @@ const { hue, label, icon, viewBox = '0 0 24 24' } = CONFIG[type];
   /* Dark mode: raise lightness so the label and tint stay legible on a dark
      surface, mirroring how the rest of the site lifts accent colours. */
   :global([data-theme='dark']) .callout {
-    border-color: oklch(0.7 0.14 var(--cx-hue) / 0.4);
     border-left-color: oklch(0.72 0.15 var(--cx-hue));
-    background: oklch(0.7 0.15 var(--cx-hue) / 0.1);
   }
 
   :global([data-theme='dark']) .callout-label {

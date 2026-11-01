@@ -17,6 +17,8 @@ import PostNav from '../../components/PostNav.astro';
 import Newsletter from '../../components/Newsletter.astro';
 import SubscribePopup from '../../components/SubscribePopup.astro';
 import Comments from '../../components/Comments.astro';
+import MetaStat from '../../components/MetaStat.astro';
+import Avatar from '../../components/Avatar.astro';
 import ViewCounter from '../../components/ViewCounter.astro';
 import ReadingTracker from '../../components/ReadingTracker.astro';
 import PostHighlight from '../../components/PostHighlight.astro';
@@ -199,7 +201,7 @@ const shareImage = data.cover
          The bottom margin is the gap above the sticky reader bar — it cannot
          live on that bar, because a margin on a sticky element adds to where it
          comes to rest and would leave a gap under the site header. -->
-    <header class="mx-auto mb-6 max-w-3xl">
+    <header class="mx-auto mb-6 max-w-3xl lg:mx-0">
       <nav aria-label="Breadcrumb" class="text-sm text-muted">
         <a href="/blog/" class="hover:text-accent">Blog</a>
         <span aria-hidden="true" class="mx-2">/</span>
@@ -212,6 +214,12 @@ const shareImage = data.cover
 
       <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">{data.description}</p>
 
+      <p class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+        <Avatar size={28} class="shrink-0 ring-1 ring-[var(--border)]" />
+        <span>By <a href="/about/" class="font-medium text-[var(--text)] hover:text-accent">{AUTHOR.name}</a></span>
+        <span aria-hidden="true">·</span>
+        <span>Published <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time></span>
+      </p>
     </header>
 
     <!--
@@ -240,12 +248,11 @@ const shareImage = data.cover
       <ReadingTracker post={post} compact />
 
       <Fragment slot="meta">
-        <span>By <a href="/about/" class="hover:text-accent">{AUTHOR.name}</a></span>
-        <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time>
+        <span class="meta-chip meta-chip--lead">{category.label}</span>
+        <MetaStat icon="clock">{minutes} min read</MetaStat>
         {data.updatedAt && (
-          <span class="text-accent">Updated {formatDate(data.updatedAt)}</span>
+          <MetaStat icon="updated">Updated {formatDate(data.updatedAt)}</MetaStat>
         )}
-        <span>{minutes} min read</span>
         <ViewCounter slug={post.id} />
         {/* Filled by LiveReaders' script once the previous minute has a count,
             hidden until then so it never shows a stale or invented number.
@@ -253,7 +260,7 @@ const shareImage = data.cover
             it has to be reachable by keyboard and announce its state. */}
         <button
           type="button"
-          class="lr-meta"
+          class="lr-meta meta-chip"
           data-lr-meta
           hidden
           aria-expanded="false"
@@ -268,23 +275,24 @@ const shareImage = data.cover
       </Fragment>
     </ReaderTools>
 
-    {data.cover && (
-      <figure class="mx-auto mt-10 max-w-4xl">
-        <Image
-          src={data.cover}
-          alt={data.coverAlt ?? ''}
-          widths={[640, 1024, 1600]}
-          sizes="(max-width: 896px) 100vw, 896px"
-          quality={90}
-          loading="eager"
-          fetchpriority="high"
-          class="w-full rounded-xl border border-default"
-        />
-      </figure>
-    )}
+    <!-- Title, cover and body share one left edge from lg up. -->
+    <div class="mt-8 gap-12 lg:grid lg:grid-cols-[minmax(0,1fr)_15rem]">
+      <div class="mx-auto min-w-0 max-w-3xl lg:mx-0 lg:justify-self-start">
+        {data.cover && (
+          <figure class="mb-10">
+            <Image
+              src={data.cover}
+              alt={data.coverAlt ?? ''}
+              widths={[640, 1024, 1600]}
+              sizes="(max-width: 768px) 100vw, 768px"
+              quality={90}
+              loading="eager"
+              fetchpriority="high"
+              class="w-full rounded-xl border border-default"
+            />
+          </figure>
+        )}
 
-    <div class="mt-12 gap-12 lg:grid lg:grid-cols-[minmax(0,1fr)_15rem]">
-      <div class="mx-auto min-w-0 max-w-3xl">
         <LiveReaders />
 
         {seriesPosts.length > 1 && (
@@ -433,7 +441,7 @@ const shareImage = data.cover
 
       <!-- Sticky rail: hidden below lg, where the TOC would crowd the text. -->
       <aside class="hidden lg:block">
-        <div class="sticky top-24">
+        <div class="sticky top-32 max-h-[calc(100dvh-9rem)] overflow-y-auto">
           <TableOfContents headings={headings} />
         </div>
       </aside>
@@ -474,5 +482,6 @@ const shareImage = data.cover
     hue={category.hue}
     author={AUTHOR.name}
     url={new URL(path, SITE.url).href}
+    faq={data.faq}
   />
 </BaseLayout>

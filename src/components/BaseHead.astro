@@ -115,7 +115,7 @@ const brand = `${SITE.title} ${SITE.byline}`;
      installable on Android/desktop; the apple-* meta let iOS launch it
      standalone (full native-like chrome) when added to the home screen. -->
 <link rel="manifest" href="/manifest.webmanifest" />
-<meta name="theme-color" content="#1e5fd1" />
+<meta name="theme-color" content="#0078d4" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -188,8 +188,7 @@ const brand = `${SITE.title} ${SITE.byline}`;
 <script is:inline>
   (() => {
     const stored = localStorage.getItem('theme');
-    const theme =
-      stored ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const theme = stored ?? 'light';
     document.documentElement.dataset.theme = theme;
 
     // Installed-app mode drives a different navigation (icon tab bar instead of

@@ -30,17 +30,9 @@ interface Props {
   hue: number;
   /** Adds the "Present" control. Off where there is no deck to build. */
   present?: boolean;
-  /**
-   * How the controls line up inside the sticky bar.
-   *
-   * 'center' matches a page whose article header is `mx-auto max-w-3xl` (a blog
-   * post); 'start' matches one whose header is left-aligned (a short). The bar
-   * itself always spans the column — this only positions what sits in it.
-   */
-  align?: 'center' | 'start';
 }
 
-const { slug, title, path, category, hue, present = false, align = 'center' } = Astro.props;
+const { slug, title, path, category, hue, present = false } = Astro.props;
 ---
 
 <!--
@@ -54,7 +46,7 @@ const { slug, title, path, category, hue, present = false, align = 'center' } = 
   bottom of the screen, and is the only option that can keep its text labels.
 -->
 <div class="reader-sticky">
-  <div class:list={['reader-sticky__inner', align === 'start' && 'reader-sticky__inner--start']}>
+  <div class="reader-sticky__inner">
     <div
       class="reader-bar"
       data-reader-tools
@@ -428,27 +420,22 @@ const { slug, title, path, category, hue, present = false, align = 'center' } = 
     top: calc(4rem + 2px);
     /* Above the article and the progress bar (40), below the site header (50). */
     z-index: 45;
-    /* Cancels the page container's gutters so the rule spans the full column
-       instead of stopping short of both edges. Matches `px-4 sm:px-6`. */
-    margin-inline: -1rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
+    /* Full-bleed, so that once stuck it reads as a second row of the site header
+       and not as a strip cutting across the page. Opaque for the same reason as
+       the header: the article scrolls beneath it. */
+    margin-inline: calc(50% - 50vw);
+    border-block: 1px solid var(--bar-line);
+    background: var(--bar);
   }
 
   .reader-sticky__inner {
     margin-inline: auto;
-    max-width: 48rem;
+    /* Lines the row up with the page container (`max-w-6xl`). */
+    max-width: 72rem;
     padding: 0.55rem 1rem;
-  }
-  /* Pages whose article header is left-aligned rather than centred. */
-  .reader-sticky__inner--start {
-    margin-inline: 0;
   }
 
   @media (min-width: 640px) {
-    .reader-sticky {
-      margin-inline: -1.5rem;
-    }
     .reader-sticky__inner {
       padding-inline: 1.5rem;
     }
@@ -470,9 +457,26 @@ const { slug, title, path, category, hue, present = false, align = 'center' } = 
     flex: 1;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.25rem 1rem;
+    gap: 0.4rem;
     font-size: 0.82rem;
     color: var(--text-muted);
+  }
+
+  /* A phone cannot spare four stacked lines of a stuck bar: the meta becomes one
+     line that swipes sideways, with the tools held beside it. */
+  @media (max-width: 639px) {
+    .reader-bar {
+      flex-wrap: nowrap;
+    }
+    .reader-bar__meta {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: none;
+    }
+    .reader-bar__meta > :global(*) {
+      flex: none;
+    }
   }
 
   /* ── Selection toolbar ── */

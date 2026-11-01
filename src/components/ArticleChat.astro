@@ -54,7 +54,7 @@ const firstName = AUTHOR.name.split(' ')[0];
         width="40"
         height="40"
         class="size-10 shrink-0 rounded-full object-cover"
-        onerror={`this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${initials}',className:'flex size-10 items-center justify-center rounded-full text-sm font-semibold text-white',style:'background:linear-gradient(135deg,oklch(0.55 0.16 252),oklch(0.45 0.2 300))'}))`}
+        onerror={`this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${initials}',className:'flex size-10 items-center justify-center rounded-full text-sm font-semibold text-white',style:'background:linear-gradient(135deg,#0078d4,#005a9e)'}))`}
       />
       <div class="min-w-0 flex-1">
         <p class="text-sm font-semibold">Ask {firstName}</p>
@@ -102,7 +102,7 @@ const firstName = AUTHOR.name.split(' ')[0];
 
 <style>
   .chat-fab {
-    background: linear-gradient(135deg, oklch(0.55 0.19 295), oklch(0.46 0.2 305));
+    background: linear-gradient(135deg, #0078d4, #005a9e);
   }
   /* One-time attention pulse, calmed after the first seconds. */
   .chat-fab::before {
@@ -110,11 +110,11 @@ const firstName = AUTHOR.name.split(' ')[0];
     position: absolute;
     inset: 0;
     border-radius: 999px;
-    box-shadow: 0 0 0 0 oklch(0.5 0.2 300 / 0.5);
+    box-shadow: 0 0 0 0 rgb(0 120 212 / 0.5);
     animation: chat-pulse 2.4s ease-out 3;
   }
   @keyframes chat-pulse {
-    to { box-shadow: 0 0 0 14px oklch(0.5 0.2 300 / 0); }
+    to { box-shadow: 0 0 0 14px rgb(0 120 212 / 0); }
   }
 
   .chat-panel {
@@ -213,7 +213,7 @@ const firstName = AUTHOR.name.split(' ')[0];
             const s = document.createElement('span');
             s.textContent = initials;
             s.className = 'flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white';
-            s.style.background = 'linear-gradient(135deg,oklch(0.55 0.16 252),oklch(0.45 0.2 300))';
+            s.style.background = 'linear-gradient(135deg,#0078d4,#005a9e)';
             av.replaceWith(s);
           };
           wrap.appendChild(av);

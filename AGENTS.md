@@ -52,6 +52,8 @@ Conventions agents should follow:
   article's `diagrams/`, exports in its `images/`, and the shared builders in
   [scripts/drawio_kit.py](scripts/drawio_kit.py). Reference an exported PNG relatively
   so Astro optimises it, and wrap it in `<figure>`/`<figcaption>` with descriptive alt text.
+- Any request for a PPT, deck or slides on a topic uses the `msdevbuild-glass-session-deck` skill, built from
+  `src/content/Slide/PPT First.pptx`. The skill lives in `tools/skills/`, symlinked into `.claude/skills/`.
 
 Useful references in this repo:
 

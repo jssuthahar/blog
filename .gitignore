@@ -32,4 +32,5 @@ pnpm-debug.log*
 # Agents and project docs live in the private tooling repo, reached via tools/.
 # Ignored here so a file written to the old path never lands in a public commit.
 .claude/agents/
+.claude/skills/
 /docs

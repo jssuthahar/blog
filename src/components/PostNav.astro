@@ -122,11 +122,12 @@ const ITEMS = [
     }
 
     // ← / → jump between articles. Ignored while typing, with a modifier held
-    // (those are browser history shortcuts), or with a dialog open.
+    // (those are browser history shortcuts), with a dialog open, or while
+    // presenting, where the same keys turn the slides.
     document.addEventListener('keydown', (event) => {
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
       if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
-      if (document.querySelector('dialog[open]')) return;
+      if (document.querySelector('dialog[open], [data-deck]:not([hidden])')) return;
 
       const el = document.activeElement as HTMLElement | null;
       if (el?.isContentEditable) return;

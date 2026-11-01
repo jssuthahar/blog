@@ -22,7 +22,7 @@
       "a": "Reactions are counted rather than individually delivered — Front Door, Container Apps, Event Hubs, Stream Analytics and Web PubSub each handle one stage (ingest, aggregate, fan-out), so viewers see an updating count instead of every raw tap."
     }
   ],
-  "seoTitle": "Live emoji reactions on Azure, explained simply",
+  "seoTitle": "Live Emoji Reactions on Azure Explained",
   "keywords": [
     "real time reactions system design",
     "azure web pubsub explained",

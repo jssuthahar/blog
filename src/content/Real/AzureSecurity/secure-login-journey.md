@@ -2,7 +2,7 @@
 
 Topic: The complete journey of one sign-in on a secure Azure app — the app hands off to Microsoft Entra ID, the password never reaches your own API, a signed token comes back, your API verifies it locally, and it reaches the database with a managed identity.
 Runtime: ~22s across 8 stages (1080x1920)
-SEO title: What happens when you log in to a secure app
+SEO title: What Happens When You Log In Securely
 Published: 2026-09-03
 
 ## What you will learn

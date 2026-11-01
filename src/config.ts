@@ -10,7 +10,7 @@ export const SITE = {
   /** Shown beside the wordmark so the blog is always attributed. */
   byline: 'by Suthahar',
   /** Also used as the home-page <title> suffix, so it must read as a positioning line. */
-  tagline: 'Cloud, AI, Mobile & Web developer platform',
+  tagline: 'Azure, AI & Mobile developer platform',
   /** Kept under ~155 chars so Google renders it without truncating (~1000px). */
   description:
     'Developer platform by Suthahar — hands-on Azure, Microsoft Foundry, AI agents, GitHub Copilot, C#, Flutter and .NET MAUI. Real code, real trade-offs.',

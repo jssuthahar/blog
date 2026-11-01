@@ -25,7 +25,7 @@ faq:
 
 import Callout from '../../../../components/mdx/Callout.astro';
 
-Same food delivery app. Same customers. Same Azure SQL database. Built two ways.
+Same food delivery app. Same customers. Same Azure SQL database. Built two ways: an insecure architecture and a secure one.
 
 On launch day, both versions work perfectly. That's the whole problem — nothing tells you which one you built until something goes wrong.
 
@@ -43,7 +43,7 @@ On launch day, both versions work perfectly. That's the whole problem — nothin
 
 </figure>
 
-## Where do the two designs actually differ?
+## Where the two designs differ
 
 At six moments. For the first, you genuinely can't tell them apart. By the sixth, one of them can't be fixed without rebuilding it.
 
@@ -62,11 +62,11 @@ At six moments. For the first, you genuinely can't tell them apart. By the sixth
 
 **Moment 5** gets its own post: [what really happens when you hardcode a key](../hardcoded-key-blast-radius).
 
-## What is the real cost of the insecure design?
+## The real cost of the insecure design
 
 Response time. In the "before" design, every security fix is an app release, so your response to *any* incident is measured in days and gated by a store reviewer you don't control. In the "after" design, every fix is a server-side change you can ship before lunch.
 
-## Why is the first design so common?
+## Why the first design is so common
 
 It isn't laziness. Direct database access is honestly the fastest path to a working prototype, mobile SDKs make it easy, and nothing about it feels wrong while you're building. The bill arrives later, and it arrives as an architecture change instead of a bug fix.
 
@@ -90,5 +90,7 @@ You don't have to do it in one go:
 - Migrate in stages: proxy first, add auth and owner checks, close the database's public access last.
 - The ongoing cost of the insecure design is response time: every fix waits on an app store review.
 - The secure design costs more up front; the insecure one costs more later, repeatedly, at the worst possible moment.
+
+## Official documentation
 
 Official documentation: [Azure API Management key concepts](https://learn.microsoft.com/azure/api-management/api-management-key-concepts) and [managed identities](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview).

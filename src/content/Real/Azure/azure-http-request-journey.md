@@ -2,7 +2,7 @@
 
 Topic: What actually happens when your app calls an Azure API with an HTTP client — DNS, the TLS handshake, Front Door, App Service, the Entra ID token, Azure SQL and the trip home, timed stop by stop.
 Runtime: ~62s across 13 stages (1080x1920)
-SEO title: What happens when your app calls an Azure API
+SEO title: How an App Calls an Azure API
 Published: 2026-08-14
 
 ## What you will learn

@@ -2,7 +2,7 @@
 
 Topic: Live emoji reactions for a cricket final, explained slowly — the use case step by step, why sending every tap is impossible, and the five Azure services that count them instead.
 Runtime: ~67s across 14 stages (1080x1920)
-SEO title: Live emoji reactions on Azure, explained simply
+SEO title: Live Emoji Reactions on Azure Explained
 Published: 2026-08-10
 
 ## What you will learn

@@ -1,6 +1,6 @@
 ---
-title: 'An AI-Speed Bot Is Attacking Your Login Endpoint Right Now'
-seoTitle: 'How to Stop Bot Attacks on a Mobile App Login API on Azure'
+title: 'Bot Attacks on a Mobile App: A Script Is Hitting Your Login Endpoint'
+seoTitle: 'Stop Bot Attacks on a Mobile Login API'
 description: 'A script tries 8,000 passwords a minute against your login API at 3am. Rate limiting, smart lockout and Defender for Cloud make speed the losing move.'
 highlight: 'You cannot out-watch a bot, so make the door slow. Rate-limit the login API per user or IP, let Entra ID smart lockout and MFA make a correct guess useless, and alert on the rate of 401s. A CAPTCHA does nothing here — the bot calls your API directly and never sees your UI.'
 publishedAt: 2026-10-16
@@ -29,9 +29,9 @@ It's 3:12am. Nobody on your team is awake, and your login endpoint is taking 8,0
 
 Nobody is typing them. A script is.
 
-## Why are automated attacks a different problem?
+## Automated attacks are a different problem
 
-Because they're not clever — they're fast, cheap and patient. A script downloads your app, unpacks it, lists every endpoint it can find, and starts working through password lists leaked from other companies' breaches. It runs at 3am precisely because that's when nobody responds.
+They're not clever. They're fast, cheap and patient. A script downloads your app, unpacks it, lists every endpoint it can find, and starts working through password lists leaked from other companies' breaches. It runs at 3am precisely because that's when nobody responds.
 
 So every part of your defence has to assume nobody is awake. Three controls do that, in order of how much they change the outcome:
 
@@ -58,28 +58,28 @@ builder.Services.AddRateLimiter(o =>
 ```
 
 <Callout type="warning">
-  Partition the limit by user or by IP — never globally. A global limit means one attacker rate-limits every real customer you have.
+  Partition the limit by user or by IP, never globally. A global limit means one attacker rate-limits every real customer you have.
 </Callout>
 
-In Azure API Management, the equivalent is `rate-limit-by-key` keyed on the subscription or caller IP. Front Door WAF also has a rate-limit rule, and blocking at the edge costs you nothing at all — that's the outermost layer in [the five-layer request flow](../azure-mobile-app-layers).
+In Azure API Management, the equivalent is `rate-limit-by-key` keyed on the subscription or caller IP. Front Door WAF also has a rate-limit rule, and blocking at the edge costs you nothing at all: that's the outermost layer in [the five-layer request flow](../azure-mobile-app-layers).
 
-## What do smart lockout and MFA add?
+## What smart lockout and MFA add
 
 They make a correct guess useless. Microsoft Entra ID's smart lockout is on by default and knows familiar locations from unfamiliar ones, so it can lock out the bot without locking out Priya on her usual phone. Add MFA through Conditional Access and a right password on its own stops being enough.
 
 Credential stuffing only works because people reuse passwords. MFA is what makes that reuse survivable.
 
-## What should you alert on?
+## What to alert on
 
-The *rate* of 401 and 403 responses, not individual errors. A sudden spike in 401s is somebody trying credentials, and it's the earliest signal you'll ever get. Wire the alert to a phone, not an inbox — an inbox at 3am is the same as no alert.
+The *rate* of 401 and 403 responses, not individual errors. A sudden spike in 401s is somebody trying credentials, and it's the earliest signal you'll ever get. Wire the alert to a phone, not an inbox. An inbox at 3am is no alert at all.
 
 ## Why doesn't a CAPTCHA help?
 
-This is the most common mistake. A CAPTCHA protects a web form. The bot isn't using your web form — it's calling the same API your app calls, straight from a server, and it never renders a single pixel of your UI. The control has to live at the API.
+This is the most common mistake. A CAPTCHA protects a web form. The bot isn't using your web form. It's calling the same API your app calls, straight from a server, and it never renders a single pixel of your UI. The control has to live at the API.
 
 ## One small thing worth doing
 
-Return the same response, **and the same timing**, for "no such user" and "wrong password". If those differ, the script can work out which of your users exist — and a list of real accounts is worth more to an attacker than the guesses.
+Return the same response, **and the same timing**, for "no such user" and "wrong password". If those differ, the script can work out which of your users exist, and a list of real accounts is worth more to an attacker than the guesses.
 
 ## Key takeaways
 
@@ -91,4 +91,4 @@ Return the same response, **and the same timing**, for "no such user" and "wrong
 
 Official documentation: [Entra smart lockout](https://learn.microsoft.com/entra/identity/authentication/howto-password-smart-lockout) and [API Management rate limiting](https://learn.microsoft.com/azure/api-management/rate-limit-policy).
 
-Earlier in this series: [Azure Key Vault Explained: The One Secret Tutorials Never Remove](/blog/azure-key-vault-explained/).
+Earlier in this series: [Azure Key Vault Explained: The One Secret Tutorials Never Remove](/blog/azure-key-vault-explained/) and [Secure a Mobile API in Five Steps: The Order Is the Whole Point](/blog/secure-mobile-api-five-steps/).

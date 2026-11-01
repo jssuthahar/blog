@@ -69,7 +69,7 @@ Now a route you forget about fails closed instead of open.
 
 Someone switched it off to test against a local server with a self-signed cert, and it shipped. Every request is now readable by anyone on the same network.
 
-**Fix:** remove the override, and wrap any dev-only handler in `#if DEBUG` so it physically can't end up in a release build.
+**Fix:** remove the override. Wrap any dev-only handler in `#if DEBUG` so it physically can't end up in a release build.
 
 ## 5. Permissions the app never uses
 
@@ -91,7 +91,7 @@ After that, I'd go by how little the attacker needs:
 
 </figure>
 
-## How do you check your own app today?
+## How to check your own app today
 
 <Callout type="tip" title="A 20-minute self-scan">
   - Unzip your APK and grep it for `key`, `secret`, `password`, `Bearer` and `http://`.

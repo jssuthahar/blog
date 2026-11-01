@@ -22,7 +22,7 @@ faq:
     a: 'The most common cause is a mismatch between the issuer or audience in the token and the TokenValidationParameters, followed by calling UseAuthorization() before UseAuthentication(). Enable IdentityModelEventSource.ShowPII in development to see the exact validation failure.'
 ---
 
-Minimal APIs removed a lot of ceremony from ASP.NET Core, but authentication is one area where the reduced ceremony makes it easier to ship something insecure without noticing. This post walks through a production-shaped setup.
+Minimal APIs removed a lot of ceremony from ASP.NET Core. Authentication is one area where the reduced ceremony makes it easier to ship something insecure without noticing. This post walks through a production-shaped setup.
 
 ## What does JWT bearer authentication actually validate?
 
@@ -58,7 +58,7 @@ builder.Services
 builder.Services.AddAuthorization();
 ```
 
-Every one of those four `Validate*` flags is set explicitly on purpose. They default to `true`, but writing them out means a future edit that flips one is visible in code review rather than buried in framework defaults.
+Every one of those four `Validate*` flags is set explicitly on purpose. They default to `true`. Writing them out means a future edit that flips one is visible in code review rather than buried in framework defaults.
 
 <figure>
 
@@ -90,7 +90,7 @@ app.MapGet("/me", (ClaimsPrincipal user) => new
 app.Run();
 ```
 
-Reverse those two `Use` calls and `HttpContext.User` is still anonymous when authorization runs, so **every** protected endpoint returns 401 regardless of the token. It is the single most common setup bug.
+Reverse those two `Use` calls and `HttpContext.User` is still anonymous when authorization runs. **Every** protected endpoint returns 401 regardless of the token. It is the single most common setup bug.
 
 ### Grouping protected endpoints
 
@@ -105,7 +105,7 @@ admin.MapGet("/users", GetUsers);
 admin.MapDelete("/users/{id:guid}", DeleteUser);
 ```
 
-This is safer than per-endpoint calls: a new endpoint added to the group inherits protection by default, rather than being unprotected until someone remembers.
+This is safer than per-endpoint calls. A new endpoint added to the group inherits protection by default, rather than being unprotected until someone remembers.
 
 ## Role and policy-based authorization
 

@@ -1,6 +1,6 @@
 ---
-title: 'What Really Happens When You Hardcode an API Key in a Mobile App'
-seoTitle: 'Hardcoded API Keys in Mobile Apps: The Risk'
+title: 'The Blast Radius of a Hardcoded API Key in a Mobile App'
+seoTitle: 'Hardcoded API Keys in Mobile Apps'
 description: 'The attacker costs you hours. Rotating a key baked into 40,000 installed apps costs you days — and that gap is the real price of a hardcoded secret.'
 highlight: 'A key hardcoded in a mobile app lives in every installed copy, so revoking it breaks every customer at once and the fix has to wait for an app store review. A secret is only a secret if you can replace it in one place, right now — which means your API holds it, in Key Vault, and the app never does.'
 publishedAt: 2026-10-26
@@ -27,7 +27,7 @@ import Callout from '../../../../components/mdx/Callout.astro';
 
 The attacker cost four hours. Rotating the key cost three days.
 
-Everyone repeats "don't hardcode keys." Almost nobody explains what actually happens on the day you have to undo it — and that day is where the real damage is.
+Everyone repeats "don't hardcode keys." Almost nobody explains what actually happens on the day you have to undo it, and that day is where the real damage is.
 
 ## What happens when you hardcode an API key in a mobile app?
 
@@ -35,11 +35,11 @@ Two things, and the second one hurts more.
 
 First, it's public. An app package is a zip file, and anyone who unzips it can read the key (that's [the first post in this series](../mobile-secret-in-apk)).
 
-Second — the part nobody warns you about — the key is now inside **every installed copy**. Say 40,000 of them. The moment you revoke it to stop the attacker, all 40,000 start failing at the same second. You didn't have a security incident and then fix it. You had a security incident, and then you caused an outage on top of it.
+Second, the part nobody warns you about: the key is now inside **every installed copy**. Say 40,000 of them. The moment you revoke it to stop the attacker, all 40,000 start failing at the same second. You didn't have a security incident and then fix it. You had a security incident, and then you caused an outage on top of it.
 
-And the repair goes through an app store: new build, submission, review, release — then you wait for people to update. Some never will.
+And the repair goes through an app store: new build, submission, review, release, then you wait for people to update. Some never will.
 
-## Hardcoded key vs Key Vault: what does rotation cost?
+## Hardcoded key vs Key Vault: the cost of rotation
 
 <figure>
 
@@ -63,7 +63,7 @@ And the repair goes through an app store: new build, submission, review, release
 
 If fixing it needs an app store release, it was never a secret.
 
-## What does that look like on Azure?
+## What that looks like on Azure
 
 1. The app holds no service key — only a user token from Microsoft Entra ID that expires in about an hour.
 2. Your API holds the relationship with Azure and reads secrets from Azure Key Vault at runtime with a managed identity.
@@ -74,15 +74,15 @@ az keyvault secret set --vault-name msdev-kv \
   --name OpenAiKey --value <new-key>
 ```
 
-No build. No store review. No waiting. (One catch: if your API caches secrets at startup, set a `ReloadInterval` — details in [Azure Key Vault explained](../azure-key-vault-explained).)
+No build. No store review. No waiting. (One catch: if your API caches secrets at startup, set a `ReloadInterval`: details in [Azure Key Vault explained](../azure-key-vault-explained).)
 
 ## Better still: no key at all
 
 For Azure-to-Azure calls, use managed identity and skip keys entirely. Azure SQL, Storage, Service Bus, Cosmos DB and Azure OpenAI all support it. A key you never created can't leak, and never needs rotating.
 
-## How does a stolen key usually show up?
+## How a stolen key usually shows up
 
-As a bill, not an alert. A stolen key is rarely used to delete things — deletion gets noticed. It gets used quietly, and on consumption services like Azure OpenAI, that looks like a very large invoice.
+As a bill, not an alert. A stolen key is rarely used to delete things: deletion gets noticed. It gets used quietly, and on consumption services like Azure OpenAI, that looks like a very large invoice.
 
 <Callout type="warning">
   Set a budget alert on the subscription **and** a cost anomaly alert on the resource now, before you need them. Otherwise your first signal is the invoice.

@@ -1,6 +1,6 @@
 ---
 title: 'The Double Tap That Charged Twice: Idempotency Keys and Azure SQL'
-seoTitle: 'Stop Double Orders: Idempotency on Azure SQL'
+seoTitle: 'Idempotency Keys on Azure SQL'
 description: 'How to prevent duplicate orders when a user double-clicks Place order: an idempotency key from the app and a unique index in Azure SQL.'
 highlight: "Disabling the button stops some double taps. It cannot stop a retry after a timeout, a second tab, or a request the network sends twice. Give every order an idempotency key in the app, keep it across retries, and let a unique index in Azure SQL decide: one key, one row, one charge."
 publishedAt: 2026-10-26
@@ -63,7 +63,7 @@ This incident is a scenario played out on MSDevBuild Eats, the open-source refer
 
 Both hotfixes were guesses about one cause. There were two.
 
-The debounce only helps a customer who taps twice in two seconds. That's all it does. Hotfix 2 looks sensible and fails in two ways. Two requests 180 ms apart both run the "any recent order?" check before either one inserts, so both see nothing and both insert. And it can't tell a duplicate from a real second order, so it blocks paying customers.
+The debounce only helps a customer who taps twice in two seconds. That's all it does. Hotfix 2 looks sensible and fails in two ways. Two requests 180 ms apart both run the "any recent order?" check before either one inserts. Both see nothing. Both insert. And it can't tell a duplicate from a real second order, so it blocks paying customers.
 
 ## The SQL query that split the duplicates in two
 
@@ -241,7 +241,7 @@ The most common bug in a first idempotency rollout is generating the key inside 
 
 ## The fix in Azure SQL: a unique index decides
 
-The app can now say "same order". Something on the server has to act on it, and it has to hold when two requests arrive at the same moment on two different App Service instances. An `if` in C# can't promise that. A unique index can.
+The app can now say "same order". Something on the server has to act on it. It has to hold when two requests arrive at the same moment on two different App Service instances. An `if` in C# can't promise that. A unique index can.
 
 It's the same lesson as the plates counter in [the flash sale that hit the database](/blog/azure-managed-redis-flash-sale). Redis could say "probably", but only `UPDATE ... WHERE PlatesLeft > 0` could say "yes". When money depends on a rule, the rule lives in the database.
 

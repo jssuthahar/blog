@@ -20,7 +20,7 @@ draft: false
 ## Overview
 
 A hands-on, single-day run through everything on the **AZ-900: Microsoft Azure
-Fundamentals** exam — the fastest way to get grounded in the cloud before going
+Fundamentals** exam: the fastest way to get grounded in the cloud before going
 deeper into any Azure specialism.
 
 ## What we covered

@@ -25,9 +25,9 @@ faq:
 
 import Callout from '../../../../components/mdx/Callout.astro';
 
-Every list of "API security best practices" has the same items on it. What almost none of them tell you is that the order matters as much as the items do.
+Every list of "API security advice" has the same items on it. What almost none of them tell you is that the order matters as much as the items do.
 
-Here are the five layers for a mobile API on Azure, in the order I'd add them to a brand-new ASP.NET Core API — and why.
+Here are the five layers for a mobile API on Azure, in the order I'd add them to a brand-new ASP.NET Core API, and why.
 
 <figure>
 
@@ -39,20 +39,20 @@ Here are the five layers for a mobile API on Azure, in the order I'd add them to
 
 ## Step 1 — How do you enforce HTTPS on a mobile API?
 
-Turn HTTP off, don't just redirect it. On App Service, set **HTTPS Only = On** and a minimum TLS version of 1.2, then add HSTS. A redirect still lets the first request go out in the clear — and on a mobile app, that first request usually carries the token.
+Turn HTTP off, don't just redirect it. On App Service, set **HTTPS Only = On** and a minimum TLS version of 1.2, then add HSTS. A redirect still lets the first request go out in the clear. On a mobile app, that first request usually carries the token.
 
 ```csharp
 app.UseHsts();
 app.UseHttpsRedirection();
 ```
 
-## Step 2 — Authentication: who are you?
+## Step 2 — Authentication: proving who is calling
 
-Microsoft Entra ID issues the token; your API validates the signature, issuer and audience. It's a local check against cached signing keys, so it costs microseconds, not a round trip. Validate the audience, not only the signature — a valid token for a different app is still a valid token. The whole sign-in journey is in [what actually happens when you tap Sign in](../secure-login-journey).
+Entra ID issues the token. Your API validates it. It's a local check against cached signing keys. Microseconds, not a round trip. Validate the audience too. A valid token for a different app is still a valid token. The whole sign-in journey is in [what actually happens when you tap Sign in](../secure-login-journey).
 
-## Step 3 — Authorization: what may you do?
+## Step 3 — Authorization: what the caller may do
 
-A different question, and the one teams skip. Entra ID says she's Priya. Your API decides that Priya gets Priya's orders — and nobody else's.
+A different question, and the one teams skip. Entra ID says she's Priya. Your API decides that Priya gets Priya's orders, and nobody else's.
 
 ```csharp
 db.Orders.Where(o => o.UserId == me.GetObjectId())
@@ -68,23 +68,23 @@ builder.Services.AddAuthorizationBuilder()
 
 ## Step 4 — Secrets: nothing in config
 
-Azure Key Vault holds them, a managed identity fetches them, and `appsettings.json` holds a vault URI at most. For Azure-to-Azure calls, skip keys entirely — SQL, Storage, Service Bus, Cosmos DB and Azure OpenAI all accept managed identity. The full case is in [Azure Key Vault, explained properly](../azure-key-vault-explained).
+Azure Key Vault holds them, a managed identity fetches them, and `appsettings.json` holds a vault URI at most. For Azure-to-Azure calls, skip keys entirely. SQL, Storage, Service Bus, Cosmos DB and Azure OpenAI all accept managed identity. The full case is in [Azure Key Vault, explained properly](../azure-key-vault-explained).
 
 ## Step 5 — Monitoring: you find out first
 
-Application Insights for what your API sees, Microsoft Defender for Cloud for what Azure sees. Alert on the *rate* of 401s and 403s, not just on errors — a spike in 401s is somebody trying credentials, and it's the earliest warning you'll get.
+Application Insights for what your API sees, Microsoft Defender for Cloud for what Azure sees. Alert on the *rate* of 401s and 403s, not just on errors: a spike in 401s is somebody trying credentials, and it's the earliest warning you'll get.
 
 ## Why does the order matter?
 
 <Callout type="tip">
-  You can do step 5 last. You can't do step 1 last — everything you added in the meantime travelled in the clear while you waited.
+  You can do step 5 last. You can't do step 1 last. Everything you added in the meantime travelled in the clear while you waited.
 </Callout>
 
-Steps 1 to 3 are the doors an attacker walks through. Step 4 decides how bad the day is when something *else* goes wrong. Step 5 decides whether you find out in an hour or on the invoice.
+Steps 1 to 3 are the doors an attacker walks through, step 4 decides how bad the day is when something *else* goes wrong, and step 5 decides whether you find out in an hour or on the invoice.
 
-## What about rate limiting?
+## Where rate limiting fits
 
-It's not one of the five, because on its own it isn't a security boundary. But ASP.NET Core has it built in, and it turns a credential-stuffing bot from a real threat into a nuisance:
+It's not one of the five. On its own it isn't a security boundary. But ASP.NET Core has it built in, and it turns a credential-stuffing bot from a real threat into a nuisance:
 
 ```csharp
 builder.Services.AddRateLimiter(o =>

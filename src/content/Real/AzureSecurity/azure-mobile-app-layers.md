@@ -2,7 +2,7 @@
 
 Topic: The real shape of a secure mobile backend on Azure — app, Front Door with WAF, your own API, Microsoft Entra ID and a database with no public address — assembled one node at a time so the viewer sees that the app never touches the data.
 Runtime: ~23s across 8 stages (1080x1920)
-SEO title: How Azure protects a mobile app — the full request flow
+SEO title: Azure Mobile App Security Layers
 Published: 2026-08-18
 
 ## What you will learn

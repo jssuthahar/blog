@@ -120,7 +120,7 @@
       "a": "Authentication (Entra ID) proves who is calling. Authorization is a separate check your API still has to make — deciding that a signed-in user only sees their own rows, typically a WHERE clause rather than middleware. Skipping it is broken object level authorization, OWASP API Security's #1 issue."
     }
   ],
-  "seoTitle": "How Azure protects a mobile app end to end",
+  "seoTitle": "Azure Mobile App Security Layers",
   "keywords": [
     "secure mobile app architecture azure",
     "mobile app to database azure",

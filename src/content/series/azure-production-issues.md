@@ -1,6 +1,6 @@
 ---
 title: 'Azure System Design'
-description: 'System design on Azure, one real-world problem at a time: what broke or what had to be built, the query or trade-off that decided it, and the design that held.'
+description: 'System design on Azure, one real-world problem at a time: what broke, the query or trade-off that decided it, and the design that held.'
 order: 7
 ---
 

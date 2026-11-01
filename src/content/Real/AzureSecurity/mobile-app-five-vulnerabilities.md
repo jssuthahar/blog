@@ -2,7 +2,7 @@
 
 Topic: The five vulnerabilities a security scan finds in a working mobile app — a secret in the package, a token in plain storage, an endpoint with no auth, TLS validation left off from testing, and permissions it never uses — and why all five are defaults rather than mistakes.
 Runtime: ~22s across 8 stages (1080x1920)
-SEO title: Five common mobile app security vulnerabilities
+SEO title: Five Common Mobile App Vulnerabilities
 Published: 2026-08-24
 
 ## What you will learn

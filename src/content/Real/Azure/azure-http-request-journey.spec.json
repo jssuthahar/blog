@@ -22,7 +22,7 @@
       "a": "It pays the DNS-and-TLS setup cost on every single call instead of once. IHttpClientFactory reuses the underlying connection, so that cost is paid once and every subsequent request is faster."
     }
   ],
-  "seoTitle": "What happens when your app calls an Azure API",
+  "seoTitle": "How an App Calls an Azure API",
   "keywords": [
     "what happens when you call an api",
     "httpclient azure api call",

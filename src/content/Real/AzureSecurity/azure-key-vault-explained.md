@@ -2,7 +2,7 @@
 
 Topic: Azure Key Vault in one reel — moving every secret out of your config file, discovering you are still holding the one secret that opens the vault, and how a managed identity removes that last one so the count reaches zero.
 Runtime: ~22s across 8 stages (1080x1920)
-SEO title: Azure Key Vault explained with managed identity
+SEO title: Azure Key Vault and Managed Identity
 Published: 2026-08-28
 
 ## What you will learn

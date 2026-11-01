@@ -1,6 +1,6 @@
 ---
 title: 'Money Debited, Order Failed: Payment Webhooks and Reconciliation on Azure'
-seoTitle: 'Payment Webhooks and Reconciliation on Azure'
+seoTitle: 'Payment Webhook Reconciliation on Azure'
 description: 'Payment succeeded but the order was not created? Save the webhook first, process it from Service Bus, and reconcile with the gateway on a timer.'
 highlight: "A payment webhook is a message you must not lose, not a request you must finish. Verify the signature, save the event in Azure SQL, queue it on Service Bus and answer 200 in milliseconds. Place the order from the queue with a conditional update. A timer that asks the gateway about every waiting order every five minutes means a lost webhook costs five minutes, not a customer's money."
 publishedAt: 2026-10-29

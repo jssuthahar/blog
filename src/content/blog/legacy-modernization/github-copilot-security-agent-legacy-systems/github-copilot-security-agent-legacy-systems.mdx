@@ -39,7 +39,7 @@ This is Part 4 of my legacy-modernization series about Copilot. It assumes you h
 
 ## Where security debt hides in legacy systems
 
-Legacy systems often hide security debt. New code is written after people learn security lessons. Old code was written before those lessons. Then nobody wants to change it. These are the problems I find most often.
+Legacy systems often hide security debt, because new code is written after people learn security lessons, old code was written before those lessons, and then nobody wants to change it. These are the problems I find most often.
 
 - **Old login and session code.** Some systems use custom login code, tokens that never expire, or unsafe sessions. This code is hard to change because many other parts of the system depend on it.
 - **Dependencies with known CVEs.** A package may be several major versions old. An upgrade may break other parts of the app, so nobody upgrades it.
@@ -50,11 +50,11 @@ Legacy systems often hide security debt. New code is written after people learn 
 - **Sensitive data without encryption.** Personal information, such as names, email addresses, and card data, may be stored in plain text or written to logs.
 - **No audit logs.** When something goes wrong, there may be no record of who did what. You may find the breach months later.
 
-Legacy security debt is not one bug. It is a set of old decisions. The code is hard to change because nobody fully understands it. That is why an AI helper is useful. It is also why you must be careful about what you trust it to do.
+Legacy security debt is not one bug but a set of old decisions, and the code is hard to change because nobody fully understands it, which is why an AI helper is useful and also why you must be careful about what you trust it to do.
 
 ## What an AI security agent is genuinely good at
 
-The value is real. I use this kind of help every week.
+The value is real, and I use this kind of help every week.
 
 A GitHub Copilot security agent is useful for a first review. It is good at problems with clear patterns:
 
@@ -67,11 +67,11 @@ A GitHub Copilot security agent is useful for a first review. It is good at prob
 - **Scanner results.** It can group many [CodeQL](https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning-with-codeql) alerts into a shorter list. This is one of its best uses.
 - **Security tests.** Ask it for a test that stops a user from cancelling another user's order. It can create a useful first draft.
 
-This can save a lot of time. Nobody should ship string-built SQL in 2026. An AI agent can help catch it. It raises the basic level of security. That is useful.
+This can save a lot of time. Nobody should ship string-built SQL in 2026, and an AI agent can help catch it, which raises the basic level of security. That is useful.
 
 ## What it misses, and where it is dangerous
 
-Now for the hard part. This is why the article exists. AI can catch basic problems. It can still miss the flaws that cause real breaches.
+Now for the hard part, which is why the article exists. AI can catch basic problems, yet it can still miss the flaws that cause real breaches.
 
 - **Business-logic authorization flaws.** *Can user A use user B's resource?* This was the problem in my pen test. The code looked correct. The user was logged in, and the endpoint had an attribute. The missing check was a business rule. AI cannot know that an order belongs to someone unless you give it that information.
 - **Broken access control in a workflow.** Step 3 may trust that step 1 checked permissions. But step 3 may also be reachable by itself. Each file may look correct. The bug is between the files.
@@ -80,7 +80,7 @@ Now for the hard part. This is why the article exists. AI can catch basic proble
 
 Here is how I explain it: **an AI security review is a smoke detector, not a fire marshal.** A smoke detector is cheap and always on. It can find smoke. It cannot tell you that the building has poor exits. You need a person who understands the whole system for that.
 
-AI can make both kinds of mistakes. It can raise a false alarm. It can also miss a real problem. So each part of the process needs a clear owner. This table shows the approach.
+AI can make both kinds of mistakes: it can raise a false alarm and it can also miss a real problem, so each part of the process needs a clear owner. This table shows the approach.
 
 | Concern | Who owns it | Type | Can it block a merge? |
 |---|---|---|---|
@@ -94,11 +94,11 @@ AI can make both kinds of mistakes. It can raise a false alarm. It can also miss
 | Threat model, trust boundaries | Human security engineer | Judgment | Yes — human gate |
 | Accountability for what ships | Human security engineer | Judgment | Always human |
 
-The design is simple. The AI gives advice. The scanner blocks bad changes. A person makes the final decision. The rest of this article shows how to build it.
+The design is simple. The AI gives advice, the scanner blocks bad changes, and a person makes the final decision. The rest of this article shows how to build it.
 
 ## The architecture: advisory AI, deterministic gate, human judgment
 
-This diagram shows the whole system. The AI agent gives a fast first review. The scanners form the blocking gate. The human answers the questions that tools cannot answer.
+This diagram shows the whole system. The AI agent gives a fast first review, the scanners form the blocking gate, and the human answers the questions that tools cannot answer.
 
 <figure>
 
@@ -108,7 +108,7 @@ This diagram shows the whole system. The AI agent gives a fast first review. The
 
 </figure>
 
-The agent cannot merge code by itself. Its work goes to the scanners and then to a person. This is deliberate. An AI pass must never be the last step before deployment.
+The agent cannot merge code by itself, and its work goes to the scanners and then to a person. This is deliberate. An AI pass must never be the last step before deployment.
 
 ## Designing the two agents
 
@@ -116,7 +116,7 @@ The earlier article introduced security as one role on the AI team. I split that
 
 ### The Security agent: secure-coding review
 
-This agent reviews the code against secure-coding rules. It checks login, authorization, sensitive data, secrets, and input validation. It stays close to the diff.
+This agent reviews the code against secure-coding rules, checking login, authorization, sensitive data, secrets, and input validation. It stays close to the diff.
 
 ```markdown
 ---
@@ -159,7 +159,7 @@ Two parts are especially important: the `tools` line and the honesty rules. This
 
 ### The Cybersecurity agent: OWASP, dependencies, API security
 
-This agent looks at the wider application. It checks the OWASP Top 10, dependencies, APIs, and basic threats.
+This agent looks at the wider application, checking the OWASP Top 10, dependencies, APIs, and basic threats.
 
 ```markdown
 ---
@@ -255,9 +255,9 @@ The authorization rule is the most important one. It tells the agent to *ask a h
 
 ## Making security enforceable, not advisory
 
-Everything so far is advice. Advice cannot stop a bad merge. The scanner layer does that job. It is separate from the AI. My review-limits post makes the same point about code review. AI can advise, but security gates must be enforceable.
+Everything so far is advice. Advice cannot stop a bad merge, so the scanner layer does that job, and it is separate from the AI. My review-limits post makes the same point about code review. AI can advise, but security gates must be enforceable.
 
-Three scanners do the real blocking. They are GitHub features, including features in GitHub Advanced Security. Check which features your plan supports:
+Three scanners do the real blocking, all of them GitHub features, including features in GitHub Advanced Security. Check which features your plan supports:
 
 1. **CodeQL / code scanning (SAST).** It can find injection, unsafe deserialization, and similar problems. Make it a **required status check**. Then a pull request cannot merge when it adds a serious alert.
 2. **Dependabot + dependency review.** Dependabot finds packages with known CVEs. Dependency review shows what a pull request adds. Make this a required check.
@@ -295,7 +295,7 @@ The whole model fits in one sentence: **the AI advises; the scanner blocks; the 
 
 ## A legacy security hardening workflow
 
-The order matters when you secure a legacy system. Start with the cheap automated checks. Then use human time on the smaller set of hard problems.
+The order matters when you secure a legacy system. Start with the cheap automated checks, then use human time on the smaller set of hard problems.
 
 1. **Turn on the scanners first.** Use CodeQL, Dependabot, secret scanning, push protection, and a history scan. These checks find many basic problems without AI.
 2. **Use the cybersecurity agent to sort the alerts.** It can turn fifty alerts into a short list with a priority and an explanation.
@@ -306,7 +306,7 @@ The order matters when you secure a legacy system. Start with the cheap automate
 
 ### The human-owned security checklist
 
-Copy this into your pull request template. AI cannot answer these questions. These are the questions that often find serious bugs. If you remember one thing from this article, remember this list.
+Copy this into your pull request template. AI cannot answer these questions, and they are the ones that often find serious bugs. If you remember one thing from this article, remember this list.
 
 ```markdown
 ## Human security review (AI cannot answer these)

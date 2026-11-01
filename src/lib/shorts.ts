@@ -324,6 +324,10 @@ function parseDate(
 const DESC_CHAR_CAP = 158;
 
 function describe(sub: string, seconds: number): string {
+  // A short lede gets the longer line, which names the author as well. The longer
+  // cap keeps it clear of the pixel limit, since this line is wider per character.
+  const long = `${sub} A ${seconds}-second short video by Suthahar Jegatheesan, with every step written out.`;
+  if (long.length <= 150) return long;
   const suffix = `A ${seconds}-second short video, step by step.`;
   const full = `${sub} ${suffix}`;
   if (full.length <= DESC_CHAR_CAP) return full;

@@ -21,7 +21,7 @@ draft: false
 ## What you'll build
 
 In this hands-on workshop you'll go from an empty repo to a working
-Retrieval-Augmented Generation app running on Azure — the same pattern used in
+Retrieval-Augmented Generation app running on Azure: the same pattern used in
 production support assistants and internal knowledge tools.
 
 ## Agenda
@@ -34,7 +34,7 @@ production support assistants and internal knowledge tools.
 ## Who it's for
 
 .NET and Azure developers who want a concrete, end-to-end RAG blueprint rather
-than another slide deck. Comfort with C# and the Azure portal is enough — no
+than another slide deck. Comfort with C# and the Azure portal is enough, no
 prior AI experience required.
 
 ## What to bring

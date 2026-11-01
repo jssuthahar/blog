@@ -121,7 +121,7 @@
       "a": "Azure RBAC with the Key Vault Secrets User role — read-only, secrets-only — rather than the older, coarser access-policy model. The app should never be able to write, delete, or list keys."
     }
   ],
-  "seoTitle": "Azure Key Vault explained with managed identity",
+  "seoTitle": "Azure Key Vault and Managed Identity",
   "keywords": [
     "azure key vault explained",
     "azure key vault managed identity",

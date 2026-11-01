@@ -1,6 +1,6 @@
 ---
 title: 'Hacker vs Azure: Five Attacks and the Five Defences That Stop Them'
-seoTitle: 'Hacker vs Azure: Five Attacks, Five Defences'
+seoTitle: 'Hacker vs Azure: Five Attacks'
 description: 'Five real attacks on a mobile backend, matched one-for-one to the Azure service that stops each — and the default setting that quietly undoes the last one.'
 highlight: 'Front Door WAF stops junk traffic, Entra ID stops calls with no token, an owner check in your API stops a real token asking for someone else''s data, Key Vault stops key hunting, and a private endpoint stops direct database access. "Allow Azure services" undoes that last one: it means any Azure subscription in the world, not yours.'
 publishedAt: 2026-10-24
@@ -27,7 +27,7 @@ import Callout from '../../../../components/mdx/Callout.astro';
 
 One attacker. One food delivery backend on Azure. Five different ways in.
 
-For each one, there's a specific, named Azure control that shuts it. Miss one, and the other four don't cover for it — each door guards a different thing.
+For each one, there's a specific, named Azure control that shuts it. Miss one, and the other four don't cover for it. Each door guards a different thing.
 
 <figure>
 
@@ -37,21 +37,21 @@ For each one, there's a specific, named Azure control that shuts it. Miss one, a
 
 </figure>
 
-## Attack 1: How do you stop a flood of junk and injection strings?
+## Attack 1: A flood of junk and injection strings
 
-**Stopped by:** Azure Front Door WAF, running the OWASP managed ruleset at the edge. Traffic dropped here costs you nothing — no container spins up, no database connection opens.
+**Stopped by:** Azure Front Door WAF, running the OWASP managed ruleset at the edge. Traffic dropped here costs you nothing. No container spins up, no database connection opens.
 
 **The catch:** WAF ships in **Detection** mode, which only logs. Switch it to **Prevention**, or it's a very expensive diary.
 
-## Attack 2: What stops calls with no token?
+## Attack 2: Calls with no token
 
-**Stopped by:** Microsoft Entra ID. Your API validates the token's signature, issuer and audience against Microsoft's published keys — locally, in microseconds.
+**Stopped by:** Microsoft Entra ID. Your API validates the token's signature, issuer and audience against Microsoft's published keys. Locally, in microseconds.
 
 **The catch:** validate the `aud` claim, not just the signature. A valid token issued for a different app is still a valid token.
 
-## Attack 3: What stops a real token asking for someone else's data?
+## Attack 3: A real token asking for someone else's data
 
-This is the one people miss. The attacker signs in, legitimately, as themselves. Then they call `GET /orders/1043` — which belongs to someone else. Authentication passed. There's nothing wrong with their token.
+This is the one people miss. The attacker signs in, legitimately, as themselves. Then they call `GET /orders/1043`, which belongs to someone else. Authentication passed. There's nothing wrong with their token.
 
 **Stopped by:** an owner check in your own API. This bug is called **broken object level authorization**, and it's number one on the OWASP API Security Top 10.
 
@@ -59,23 +59,23 @@ This is the one people miss. The attacker signs in, legitimately, as themselves.
 db.Orders.Where(o => o.UserId == me.GetObjectId())
 ```
 
-Take the user id from the validated token — never from the body, the query string or a header. The moment the client can tell you who it is, the check is decoration.
+Take the user id from the validated token, never from the body, the query string or a header, because the moment the client can tell you who it is, the check is decoration.
 
-## Attack 4: What stops someone searching your repo for keys?
+## Attack 4: Someone searching your repo for keys
 
-**Stopped by:** Azure Key Vault plus a managed identity, so the repo holds a vault URI and nothing else. Turn on GitHub secret scanning too, and scan history, not just the latest commit — a key deleted in a later commit is still sitting in the repo.
+**Stopped by:** Azure Key Vault plus a managed identity, so the repo holds a vault URI and nothing else. Turn on GitHub secret scanning too, and scan history, not just the latest commit: a key deleted in a later commit is still sitting in the repo.
 
-## Attack 5: What stops someone dialling the database directly?
+## Attack 5: Someone dialling the database directly
 
-**Stopped by:** a private endpoint, with public network access set to `Disabled`. The server gets a private IP inside your VNet and no internet-facing address at all.
+**Stopped by:** a private endpoint, with public network access set to `Disabled`, so the server gets a private IP inside your VNet and no internet-facing address at all.
 
 ## Which default setting undoes door 5?
 
 <Callout type="warning" title="“Allow Azure services and resources to access this server”">
-  It sounds like it means *your* Azure resources. It doesn't. It means **any resource in any Azure subscription in the world** — including one an attacker creates in five minutes with a free trial. Leave it off, and use a private endpoint or explicit firewall rules.
+  It sounds like it means *your* Azure resources. It doesn't. It means **any resource in any Azure subscription in the world**. Including one an attacker creates in five minutes with a free trial. Leave it off. Use a private endpoint or explicit firewall rules.
 </Callout>
 
-## What should you check this week?
+## Which Azure defences should you check this week?
 
 1. Is WAF in Prevention or Detection?
 2. Can you fetch another user's record with your own valid token?
@@ -95,4 +95,4 @@ The same five layers, seen as a request flow rather than as attacks, are in [the
 
 Official documentation: [Azure Web Application Firewall](https://learn.microsoft.com/azure/web-application-firewall/overview) and [private endpoints](https://learn.microsoft.com/azure/private-link/private-endpoint-overview).
 
-Earlier in this series: [What Really Happens When You Hardcode an API Key in a Mobile App](/blog/hardcoded-key-blast-radius/).
+Earlier in this series: [The Blast Radius of a Hardcoded API Key in a Mobile App](/blog/hardcoded-key-blast-radius/) and [How Azure Protects a Mobile App: The Full Request Flow, Layer by Layer](/blog/azure-mobile-app-layers/).

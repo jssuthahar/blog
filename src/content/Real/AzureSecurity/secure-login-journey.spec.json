@@ -121,7 +121,7 @@
       "a": "The API validates the token's signature, issuer, audience and expiry locally against Microsoft's cached signing keys, so each request check costs microseconds rather than a round trip to Entra ID."
     }
   ],
-  "seoTitle": "What happens when you log in to a secure app",
+  "seoTitle": "What Happens When You Log In Securely",
   "keywords": [
     "what happens when you login",
     "oauth login flow explained",

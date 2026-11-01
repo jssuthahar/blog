@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:02,200
+Top: the app talks to the database. Bottom: it never does.
+
+2
+00:00:02,600 --> 00:00:05,000
+This is exactly why the top one ships. Nothing is wrong yet.
+
+3
+00:00:05,400 --> 00:00:07,800
+Top hands over a database password. Bottom hands over nothing.
+
+4
+00:00:08,200 --> 00:00:10,600
+Top answers him. Bottom has no address to dial.
+
+5
+00:00:11,000 --> 00:00:13,400
+Top has no owner check to fail. Bottom filters by the token.
+
+6
+00:00:13,800 --> 00:00:16,200
+Top needs an app store release. Bottom is one command.
+
+7
+00:00:16,600 --> 00:00:19,000
+Not without changing the shape. That is what makes it expensive later.
+
+8
+00:00:19,400 --> 00:00:21,800
+The difference never shows up until something goes wrong.

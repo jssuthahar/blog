@@ -1,0 +1,467 @@
+---
+title: 'GitHub Copilot Skills Deep Dive: The Missing Layer Between Prompts, Instructions, and Agents'
+description: 'GitHub Copilot Skills explained by an architect: what they are, how they differ from prompts and instructions, and how to build reusable Skills for teams.'
+highlight: 'A prompt is something you type once. Instructions are something Copilot reads on every request. A Skill is different from both: a named, reusable method that Copilot loads only when the task matches its description. Instructions tell Copilot who you are. Skills teach it how your team does a specific job, without paying for that knowledge on every request.'
+publishedAt: 2026-05-15
+updatedAt: 2026-10-01
+cover: './images/github-copilot-skills-deep-dive-cover.png'
+coverAlt: 'Share banner headed GITHUB COPILOT · AGENTS.MD with the title "Prompt, instruction, Skill" and the line "Typed once, read every time, or pulled in on demand. Three different things." above the MSDEVBUILD wordmark and the author name. On the right, a three-step chain: a plain box reading "Prompt", you type it once; then a warn box reading "Instructions", read on every suggestion; then a good box reading "Skill", a named capability, loaded on demand.'
+category: copilot
+categories: ['ai', 'engineering']
+tags: ['GitHub Copilot', 'Copilot Skills', 'Agent Skills', 'SKILL.md', 'AI-assisted development', 'Enterprise', '.NET', 'Flutter', 'Azure']
+seoTitle: 'GitHub Copilot Skills Deep Dive'
+series: 'agents-md-instructions'
+seriesOrder: 4
+featured: true
+draft: false
+
+faq:
+  - q: 'What are GitHub Copilot Skills?'
+    a: 'GitHub Copilot Skills are reusable capability files, a SKILL.md with YAML frontmatter, that teach Copilot how to do a specific job the way your team does it. Copilot reads each Skill''s short description, then loads the full Skill only when a task matches, so the knowledge is reusable without filling the context window.'
+  - q: 'How are Copilot Skills different from prompts?'
+    a: 'A prompt is a one-time message you type and forget. A Skill is a saved, named, versioned unit of knowledge that Copilot activates when the work matches its description. You write it once and every developer on the team benefits, instead of re-typing the same instructions each session.'
+  - q: 'How are Copilot Skills different from custom instructions?'
+    a: 'Instructions are loaded on every request, so they must stay short. A Skill is loaded only when the task matches its description, so it can hold a full method: steps, code examples and a checklist. Put rules that apply everywhere in instructions and deep, occasional methods in Skills.'
+  - q: 'Where do Copilot Skills live in a repository?'
+    a: 'In a folder per Skill under .github/skills, each containing a SKILL.md file, for example .github/skills/flutter-feature/SKILL.md. Because they are in the repository, they are version-controlled, reviewed in pull requests and shared with everyone who clones it.'
+  - q: 'How do Copilot Skills work with AI agents?'
+    a: 'The agent is the worker; the Skill is the playbook it reaches for. When a Copilot agent takes on a multi-step task, it checks the available Skill descriptions, loads the ones that match, and follows their steps. Agents provide autonomy; Skills provide the team''s method.'
+  - q: 'What makes a good Copilot Skill?'
+    a: 'Start from a recurring engineering problem, write a description that states exactly when to use it with trigger phrases, keep each Skill to one job, include real code, add a validation checklist, and keep it under about 500 lines. Then update it the same week the convention it describes changes.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+GitHub Copilot Skills are named, reusable methods, one `SKILL.md` file each, that Copilot loads only when the task in front of it matches their description. They fill the gap between a prompt you type once and instructions Copilot reads on every request. This is what that gap costs on a real app, and how to build Skills that close it.
+
+Picture a tech lead on the MSDevBuild Eats team in the last week of a month. Four times since the 1st, someone has asked Copilot for a new screen and got back a widget that calls Firestore directly, state held in `setState`, and no test. Four times, the tech lead has typed the same explanation into chat: domain contract first, repository in `lib/data`, a use case, a Cubit, a `bloc_test`.
+
+Each explanation worked. Each one disappeared when the chat was closed.
+
+<Callout type="tip" title="A scenario, on a real app you can run">
+This month is a scenario played out on MSDevBuild Eats, the open-source Flutter food delivery app used across this blog. Its two Skills are real and committed: [`.github/skills/flutter-feature`](https://github.com/jssuthahar/food-delivery-app/tree/main/.github/skills/flutter-feature) and [`.github/skills/pr-review-mechanical`](https://github.com/jssuthahar/food-delivery-app/tree/main/.github/skills/pr-review-mechanical). The sizes below are measured from them.
+
+- **Source code**: [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web**: [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`)
+- **Android build**: [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
+</Callout>
+
+## One month of explaining the same method
+
+| When | What happened |
+| --- | --- |
+| Week 1 | Order history screen. Firestore called from the widget. The method is explained in chat |
+| Week 2 | Restaurant reviews tab. Same mistake, same explanation, a different developer |
+| Week 3 | Someone pastes the whole method into `copilot-instructions.md`. The file triples in size |
+| Week 3 | "Rename this variable" now carries the Flutter feature method with it, on every request |
+| Week 4 | The method, the pull request review checklist and the rules are split: rules stay in instructions, methods become two Skills |
+
+Week 3 is the instinct most teams follow, and it half works. The explanation stops disappearing. It also starts being paid for on every request, including the thousands that have nothing to do with building a screen.
+
+## The command that measured the cost
+
+Copilot reads the instructions file on every request and only the *description* of each Skill until one matches. So the cost of each approach is a character count away:
+
+```bash
+# Always loaded: the instructions file
+wc -c .github/copilot-instructions.md
+
+# The two methods, as full Skill files
+wc -c .github/skills/*/SKILL.md
+
+# What a Skill costs before it is used: its frontmatter description only
+for f in .github/skills/*/SKILL.md; do
+  awk '/^description:/{on=1} on&&/^---/{exit} on' "$f" | wc -c
+done
+```
+
+On the food delivery app, at roughly four characters per token:
+
+| | Characters | About tokens |
+| --- | --- | --- |
+| `copilot-instructions.md` | 3,575 | 900 |
+| `flutter-feature/SKILL.md` | 4,640 | 1,160 |
+| `pr-review-mechanical/SKILL.md` | 3,536 | 880 |
+| Both Skill descriptions together | about 863 | 215 |
+
+Pasting both methods into the instructions file, as week 3 did, makes every request carry about 2,940 tokens. Keeping them as Skills makes most requests carry about 1,115, and a request that actually builds a screen carries about 2,275. Same knowledge; you pay for it only when you use it.
+
+<figure>
+
+![Two step flows side by side. On the left, every method in the instructions file, always loaded whatever the task: step 1, copilot-instructions.md at about 900 tokens every request; step 2, plus the Flutter feature method at about 1,160 tokens every request; step 3, plus the PR review method at about 880 tokens every request; step 4, "rename this variable" still pays for both methods. The red outcome: about 2,940 tokens on every request. On the right, the same methods as two Skills, descriptions always and bodies on demand: step 1, copilot-instructions.md at about 900 tokens; step 2, two Skill descriptions at about 215 tokens every request; step 3, "add a ratings screen" matches flutter-feature and adds 1,160 tokens; step 4, "rename this variable" matches nothing and adds none. The green outcome: about 1,115 tokens, or 2,275 when a Skill fits.](./images/copilot-skills-token-cost-always-on-vs-on-demand.png)
+
+<figcaption>Figure 1 — the same two methods, paid for on every request or only when they apply. Sizes are the reference app's real files.</figcaption>
+
+</figure>
+
+## The real problem: knowledge with nowhere to live
+
+The tech lead's explanation had two possible homes, and neither fit. A chat prompt is free but forgotten when the tab closes. The instructions file is remembered but paid for on every request, so it has to stay short, and a full method with steps, examples and a checklist is not short.
+
+Real engineering knowledge is large and only occasionally relevant. That is the shape Skills were made for.
+
+## What are GitHub Copilot Skills?
+
+**GitHub Copilot Skills are reusable, named capability files that teach Copilot how to do a specific job the way your team does it, loaded on demand, not on every request.**
+
+A Skill is a short playbook: a name, a clear description of *when* to use it, steps, code examples, and a checklist of what "done correctly" looks like. In practice it is a `SKILL.md` file, Markdown with a small YAML header, in its own folder under `.github/skills/`.
+
+The part most write-ups skip: Copilot does not read the full text of every Skill all the time. It reads the description of each one. When a task matches a description, it loads that Skill and follows it. When it does not, the Skill stays out of the way. That is called progressive disclosure, and it is the whole trick. You can keep twenty detailed Skills in a repository and pay only for the one or two that apply.
+
+A minimal Skill looks like this:
+
+```markdown
+---
+name: dotnet-clean-api-feature
+description: >
+  Use when creating or modifying a feature in the .NET Web API backend.
+  Covers Clean Architecture layers, CQRS handlers, API response contract,
+  logging, and the required unit tests. Trigger on "new endpoint",
+  "add feature", "controller", "command", "query".
+---
+
+# How we build a Web API feature
+
+## When to use this
+Any new or changed endpoint in the Backend.Api project.
+
+## Steps
+1. Add the request/response DTOs in Application/Features/{Feature}.
+2. Create a Command or Query record plus its handler...
+```
+
+That `description` field is not decoration. It is the trigger. If it is vague, Copilot never activates the Skill and you will swear the feature is broken. It is the most common mistake by a distance.
+
+If you would rather see the idea first, this month's cost is a short video, and so is the full set of files Copilot reads:
+
+<ShortHighlight slugs={['copilot-skills-pay-only-when-used', 'copilot-project-structure']} />
+
+## Why do we need Copilot Skills?
+
+Because knowledge that lives in one person's prompts is not knowledge the team owns.
+
+- **Stop repeating yourself.** Write the method once; every developer, in every session, gets it when it applies.
+- **Share engineering knowledge.** The way one developer handles idempotency or structures widget tests becomes a file the whole team inherits.
+- **Keep standards consistent.** Generated code stops drifting, because the convention travels with the repository.
+- **Onboard faster.** A new developer's Copilot knows the team's methods on day one.
+- **Pay only for what applies.** The method costs tokens only on the requests that need it.
+
+The short business version: Skills turn AI-assisted development from an individual trick into a team asset.
+
+<figure>
+
+![Step flow comparing three ways to give Copilot context. A prompt, typed once and gone the next session, costs nothing and teaches nothing. Instructions, read before every suggestion, teach everything every time whether the task needs it or not and sit permanently in the context window. A Skill, shown in green, is a named capability loaded only when the task matches its description, so it teaches on demand.](./images/copilot-prompt-instructions-skill-evolution.png)
+
+<figcaption>Figure 2 — three ways to give Copilot context, and what each one costs you.</figcaption>
+
+</figure>
+
+## The evolution: prompt to instructions to Skills to agents
+
+Each layer solved a limit of the one before it.
+
+```
+ PROMPT            INSTRUCTIONS          SKILLS               AGENTS
+ "do this now"     "here is who          "here is HOW we      "go do the whole
+                    we are, always"       do this job,         job, and pull in
+                                          when relevant"       the right skills"
+ ─────────────    ─────────────────    ─────────────────    ──────────────────
+ one-off          always loaded        loaded on demand     autonomous, multi-step
+ not reusable     small by necessity   large & modular      uses skills as tools
+ per developer    per repo             per capability       per task
+```
+
+- **Prompt**: you type it, you get an answer, it is gone. Good for exploring, useless for consistency.
+- **Instructions**: the always-on repository profile, [`copilot-instructions.md`](/blog/github-copilot-custom-instructions) or [`AGENTS.md`](/blog/agents-md-pain-points-workload-savings). Top-level rules. Must stay lean because it loads every time.
+- **Skills**: deep, specific, reusable know-how loaded only when the task matches. The missing middle layer.
+- **Agents**: the autonomous worker that takes a goal, plans steps, and reaches for Skills the way an engineer reaches for a runbook.
+
+The mental model: **instructions describe your team, Skills describe your team's methods, and agents do the work using both.**
+
+## Copilot Skills vs prompts, instructions, AGENTS.md, agents and extensions
+
+These terms get used interchangeably, and they should not be.
+
+| Concept | What it is | Loaded when | Reusable? | Best for |
+|---|---|---|---|---|
+| **Prompt** | A single message you type into chat | Only when you send it | No | Quick, one-off questions and exploration |
+| **Copilot instructions** | Repository-level profile of conventions | Every request, automatically | Yes, but must stay small | Top-level rules: stack, style, hard "never do this" lines |
+| **AGENTS.md** | Cross-tool instructions file for agents | Every agent run | Yes | Shared rules that many AI tools read, not just Copilot |
+| **Skill (SKILL.md)** | Named playbook for one specific job | Only when the task matches its description | Yes, and modular | Deep methods: how to build a feature, review, migrate |
+| **AI agent** | Autonomous worker that plans and executes | When you give it a task | It is the actor, not the knowledge | Multi-step work: implement, test, open a pull request |
+| **Extension** | Connects Copilot to an external system or API | When invoked or matched | Yes | Bringing outside data or actions in |
+
+Instructions set the baseline, Skills supply the specialised method, extensions bring in outside data, and the agent orchestrates all of it.
+
+## When not to write a Skill
+
+Use a Skill for knowledge that is deep, specific and only sometimes relevant. Do not write one in three cases.
+
+- **The rule is short and applies everywhere.** "Never import `lib/data/` from `lib/features/`" is one line that matters on every request. It belongs in instructions.
+- **Nobody has agreed the method yet.** A Skill makes a method official. If the team is still arguing about it, the Skill will win the argument by default.
+- **It is a one-off.** A migration you will run once is a prompt, or a script, not a Skill that sits in the repository forever.
+
+<Callout type="mistake" title="Pasting the method into the instructions file">
+Week 3's fix is the most common one: the method is too useful to lose, so it goes into `copilot-instructions.md`. It works, and every request now pays for it. On the food delivery app that tripled the always-on cost. If a block of the instructions file only matters for one kind of task, it is a Skill waiting to be extracted.
+</Callout>
+
+## Anatomy of a professional Copilot Skill
+
+A weak Skill reads like a saved prompt. A strong one reads like a runbook a new engineer could follow without asking questions.
+
+1. **Frontmatter**: `name`, lowercase and hyphenated, and a sharp `description` naming the domain, the capabilities and the trigger phrases.
+2. **Purpose**: one sentence on what this Skill produces.
+3. **When to use and when not to use**: so it activates at the right time and stays quiet otherwise.
+4. **Inputs required**: what Copilot needs before it starts.
+5. **Rules**: the non-negotiables. Layer boundaries, naming, security.
+6. **Workflow**: numbered steps, in order.
+7. **Code examples**: real, from your codebase, not `Foo` and `Bar`.
+8. **Validation checklist**: how to confirm the output is correct.
+9. **Expected output**: the file list and shape of a correct result.
+
+The checklist is what separates a Skill that "kind of helps" from one that produces reviewable code. It gives the agent a way to check itself.
+
+## Enterprise Skill examples that earn their place
+
+### A .NET backend Skill
+
+This one enforces Clean Architecture and CQRS on a Web API. The layout behind it is the same one in [structuring a Minimal API project](/blog/minimal-api-project-structure).
+
+```markdown
+---
+name: dotnet-cqrs-feature
+description: >
+  Use when adding or changing a feature in the .NET 10 Web API.
+  Enforces Clean Architecture layers, MediatR CQRS, FluentValidation,
+  the ApiResponse<T> contract, structured logging, and xUnit tests.
+  Trigger: "new endpoint", "add command", "add query", "feature".
+---
+
+# Building a Web API feature the way we build it
+
+## Rules (non-negotiable)
+- Domain has NO dependency on Application or Infrastructure.
+- Every write is a Command; every read is a Query. No logic in controllers.
+- Validate inputs with FluentValidation, never inline `if` checks.
+- All responses use ApiResponse<T>. Never return raw entities.
+- Log with ILogger and structured properties, never string interpolation.
+
+## Workflow
+1. DTOs in Application/Features/{Feature}/.
+2. Command/Query record + Handler (implements IRequestHandler).
+3. Validator for the request.
+4. Thin controller action that only sends the request via IMediator.
+5. xUnit tests: one happy path, one validation failure, one not-found.
+
+## Example handler
+```
+
+```csharp
+public sealed record CreateOrderCommand(Guid CustomerId, List<OrderLine> Lines)
+    : IRequest<ApiResponse<OrderDto>>;
+
+public sealed class CreateOrderHandler
+    : IRequestHandler<CreateOrderCommand, ApiResponse<OrderDto>>
+{
+    private readonly IOrderRepository _repo;
+    private readonly ILogger<CreateOrderHandler> _logger;
+
+    public CreateOrderHandler(IOrderRepository repo, ILogger<CreateOrderHandler> logger)
+    {
+        _repo = repo;
+        _logger = logger;
+    }
+
+    public async Task<ApiResponse<OrderDto>> Handle(
+        CreateOrderCommand request, CancellationToken ct)
+    {
+        var order = Order.Create(request.CustomerId, request.Lines);
+        await _repo.AddAsync(order, ct);
+
+        _logger.LogInformation("Order {OrderId} created for {CustomerId}",
+            order.Id, request.CustomerId);
+
+        return ApiResponse<OrderDto>.Ok(order.ToDto());
+    }
+}
+```
+
+Why this works in production: the handler has one job, dependencies are injected so it is testable, logging uses structured properties so it is queryable in Application Insights, and the response is wrapped in a contract the mobile app already understands. The mistake this Skill prevents is business logic leaking into the controller, the first thing that makes a codebase hard to test.
+
+### A Flutter mobile Skill
+
+This is the real `flutter-feature` Skill from the food delivery app, condensed. The frontmatter is exactly as committed:
+
+```markdown
+---
+name: flutter-feature
+description: >
+  Use when adding or changing a feature screen in the MSDevBuild Eats Flutter
+  app. Enforces the layered structure (pure-Dart lib/domain, lib/data,
+  lib/features/{feature}/{bloc,presentation}), state in a Bloc or Cubit, and
+  Firebase reached only through a repository. Every bloc gets a bloc_test.
+  Trigger phrases: "add screen", "new feature", "add page", "Firestore",
+  "cubit", "bloc", "list from Firebase".
+---
+
+# Building a Flutter feature the way we build it
+
+## Rules
+- Layers: lib/domain (pure Dart), lib/data, lib/features/{feature}.
+- Nothing in lib/features imports from lib/data.
+- UI never calls Firebase directly. Always go through a repository.
+- Repositories and use cases return Result<T>. They never throw upward.
+- State lives in a Bloc or Cubit, not inside the widget.
+- Every bloc has a bloc_test covering loading, data, and failure.
+
+## Workflow
+1. Entity + repository interface in lib/domain. Impl in lib/data.
+2. Use case in lib/domain/usecases — the bloc asks for one thing.
+3. Cubit/Bloc + state class in lib/features/{feature}/bloc.
+4. Screen uses BlocProvider + BlocBuilder. No logic in build().
+5. bloc_test with a mocked use case. No emulator.
+```
+
+Notice the description's trigger phrases: "add screen", "Firestore", "list from Firebase". Those are the words the four developers in the scenario actually typed. That is how a description is written: from the requests people make, not from the architecture's own vocabulary.
+
+A performance rule worth adding to any Flutter Skill: keep `build` methods cheap and push work into the bloc. Most "Flutter is slow" complaints are really "we rebuilt an expensive widget tree on every state change". With BLoC, `buildWhen` is the lever Copilot never reaches for on its own.
+
+### An Azure cloud Skill
+
+For infrastructure, the Skill is less about code and more about guardrails.
+
+```markdown
+---
+name: azure-service-baseline
+description: >
+  Use when provisioning or reviewing Azure resources for a service.
+  Enforces private networking, Managed Identity over keys, cost tier
+  rules, and diagnostic logging. Trigger: "deploy", "bicep", "azure
+  resource", "app service", "storage".
+---
+
+# Azure baseline for a new service
+
+## Security rules
+- No connection strings in config. Use Managed Identity + Key Vault.
+- Storage and databases: private endpoints, public access disabled.
+- Every resource sends diagnostics to the central Log Analytics workspace.
+
+## Cost rules
+- Default App Service to B1 in non-prod; require sign-off for P-tier.
+- Turn on auto-shutdown for non-prod compute.
+```
+
+The cost section is the one that pays for itself. A forgotten premium-tier plan left running in a test environment for months is one of the most common cloud bills there is, and a Skill that defaults non-production to a cheap tier and flags anything higher catches it in the pull request, before the invoice does. For the AI side of Azure work, the same approach applies to the patterns in [building RAG on .NET with Azure OpenAI](/blog/azure-openai-rag-dotnet).
+
+## How to create effective Copilot Skills
+
+Build Skills backwards, from a real problem rather than a blank template.
+
+1. **Start with a recurring engineering problem.** Not "document CQRS" but "Copilot keeps putting logic in controllers". The problem defines the scope.
+2. **Capture how your best people already solve it.** You are turning tribal knowledge into a file.
+3. **Write the description the way people ask.** Name the domain, the capability and the trigger words people actually type.
+4. **Add real examples from your codebase.** Copilot mirrors examples closely.
+5. **Define quality checks.** A validation checklist turns "looks fine" into "meets our standard".
+6. **Keep it under about 500 lines.** Past that, move reference detail into separate files and keep `SKILL.md` as the map.
+7. **Maintain it.** A Skill describing an abandoned convention is worse than none; it steers new code the wrong way.
+
+## Do's and don'ts
+
+| Do | Don't |
+|---|---|
+| Write a precise, trigger-rich description | Write a vague description and wonder why it never fires |
+| Keep one Skill focused on one job | Cram backend, mobile and cloud into one mega-Skill |
+| Use real code from your repository | Use `Foo`/`Bar` snippets the AI cannot map to anything |
+| Add a validation checklist | Leave "correct output" undefined |
+| Version and review Skills in pull requests | Keep them on one laptop as personal prompts |
+| Update the week a convention changes | Let Skills rot until they lie about your codebase |
+
+## Common mistakes developers make
+
+**Writing a Skill like a saved prompt.** A prompt says "do X". A Skill teaches a repeatable method with steps, examples and checks. If your Skill is three sentences, it is a prompt in a costume.
+
+**A weak description.** Copilot sees only the description until it decides to activate. "Helper for backend stuff" will never trigger reliably.
+
+**No expected output.** Without a picture of a correct result, you get code that is confident and wrong.
+
+**One Skill trying to do everything.** A 900-line Skill covering the whole platform triggers on the wrong tasks and costs the most when it does.
+
+**Never testing it.** Try it on a real task, read what the agent produces, and tighten the wording.
+
+## How efficient are Skills?
+
+The instructions file is paid for on every request. A Skill's description is paid for on every request, and its body only when it applies. That difference is the entire efficiency argument, and the food delivery app's own files give the numbers.
+
+| Setup | Tokens on "rename this variable" | Tokens on "add a ratings screen" |
+| --- | --- | --- |
+| Rules only, no methods | about 900 | about 900, and the method is missing |
+| Both methods pasted into instructions | about 2,940 | about 2,940 |
+| Rules in instructions, methods as Skills | about 1,115 | about 2,275 |
+
+And what the scenario month looked like once the Skills were in:
+
+| | Weeks 1 to 3 | Week 4 onwards |
+| --- | --- | --- |
+| Times the method was explained in chat | 4 | 0 |
+| New screens with Firestore in the widget | 3 | 0 |
+| Always-on tokens per request | up to 2,940 | about 1,115 |
+
+The rule underneath: **a Skill's cost is its description on every request plus its body on the requests that need it**. Twenty Skills with good descriptions cost less, most of the time, than one method pasted into the instructions file.
+
+## Questions a tech lead will ask about this
+
+1. **"Why not put everything in AGENTS.md?"** Because it loads on every request. Rules that apply everywhere belong there; methods that apply sometimes belong in Skills.
+2. **"How do I know a Skill is being used?"** Give it a task that matches the description and read what comes back. If the method is not followed, the description is wrong, not the Skill.
+3. **"Who owns a Skill?"** Whoever owns the method, the same way a team owns a service. Changes go through review.
+4. **"How many Skills is too many?"** There is no hard limit, but every description is paid for on every request. Twenty sharp descriptions are fine; twenty vague ones cost tokens and trigger on the wrong work.
+5. **"Can a Skill be wrong?"** Yes, and it spreads a wrong pattern faster than any person could. That is why Skills are reviewed like code.
+
+## What to do on day one
+
+- Find the explanation you have typed into chat more than twice. That is your first Skill.
+- Write its description from the words people use when they ask for that work.
+- Add real code, a validation checklist and an expected-output section.
+- Keep one-line rules in the instructions file, not in the Skill.
+- Try it on a real task in a fresh session before you merge it.
+
+## Key takeaways
+
+- Skills are the missing middle layer between always-on instructions and autonomous agents.
+- They load on demand, so deep knowledge costs tokens only on the requests that need it.
+- The description is the trigger; write it from the way people ask for the work.
+- One Skill, one job, under about 500 lines, with real code and a checklist.
+- Ship Skills like code: versioned, reviewed, owned and maintained.
+
+## The next new screen
+
+The first week of the following month, a new developer on the team asks Copilot to "add a screen listing a restaurant's reviews from Firestore".
+
+The request matches `flutter-feature`'s description word for word: "Firestore", "add screen". Copilot loads the Skill, adds a `ReviewRepository` interface in `lib/domain`, an implementation in `lib/data`, a use case, a `ReviewsCubit` and a `bloc_test` with a mocked use case. Nothing in the widget touches Firebase.
+
+The tech lead reads the pull request and, for the first time that month, has nothing to explain. The instructions file is back to 3,575 characters.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could design a Skills library for any team.
+
+1. **The Skill that never fires.** A developer writes an excellent `SKILL.md` for payment flows with the description "Helper for payments". Nobody's requests ever load it. Why, and what would you change using the flutter-feature example?
+2. **Rule or Skill?** "Never log a customer's phone number" and "how to add a new payment provider". Which is a rule for the instructions file and which is a Skill? Use the efficiency table to justify it.
+3. **The pasted method.** Your instructions file has grown to 12,000 characters because three methods were pasted in. Roughly what does every request cost, and what would it cost after extracting them into Skills?
+4. **The unagreed method.** Two senior developers disagree about whether new screens use Cubit or Bloc. One writes a Skill that says Cubit. What goes wrong, and what should happen before the Skill exists?
+5. **Twenty Skills.** A platform team publishes twenty Skills with one-line descriptions. Every request now carries all twenty descriptions. When is that still cheaper than instructions, and what makes it expensive?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>
+
+---
+
+Sources and further reading:
+
+- [Adding agent skills for GitHub Copilot — GitHub Docs](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/add-skills)
+- [Use Agent Skills with GitHub Copilot — Microsoft Learn](https://learn.microsoft.com/en-us/visualstudio/ide/copilot-agent-skills?view=visualstudio)
+- [github/awesome-copilot — Skills guide](https://github.com/github/awesome-copilot/blob/main/docs/README.skills.md)

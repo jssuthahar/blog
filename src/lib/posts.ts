@@ -48,9 +48,33 @@ export function coverArt(slug: string, category: CategoryId) {
 }
 
 /** Drafts are visible in `astro dev` only — never in a production build. */
+/**
+ * A post is live when it is not a draft AND its publish date has arrived.
+ *
+ * The date half is what makes scheduling possible. Shipping a finished series
+ * all at once reads as a dump; two or three parts a week reads as an active
+ * publication, and that is a real ranking difference. So a finished part sits
+ * with `draft: false` and a future date, and goes live on its own — the daily
+ * scheduled deploy in .github/workflows/deploy.yml rebuilds and picks it up.
+ *
+ * Dev shows everything, so you can read the whole queue while writing.
+ */
+export function isLive(data: Post['data'], now = Date.now()): boolean {
+  return !data.draft && data.publishedAt.getTime() <= now;
+}
+
 export async function getPublishedPosts(): Promise<Post[]> {
-  const posts = await getCollection('blog', ({ data }) => import.meta.env.DEV || !data.draft);
+  const posts = await getCollection('blog', ({ data }) => import.meta.env.DEV || isLive(data));
   return posts.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+}
+
+/**
+ * Finished, undrafted, but not due yet. These are proofable at /preview like a
+ * draft, because "waiting for its date" is exactly when you want a last read.
+ */
+export async function getScheduledPosts(): Promise<Post[]> {
+  const posts = await getCollection('blog', ({ data }) => !data.draft && !isLive(data));
+  return posts.sort((a, b) => a.data.publishedAt.getTime() - b.data.publishedAt.getTime());
 }
 
 /**
@@ -63,7 +87,9 @@ export async function getPublishedPosts(): Promise<Post[]> {
  * draft on this host.
  */
 export async function getDraftPosts(): Promise<Post[]> {
-  const posts = await getCollection('blog', ({ data }) => data.draft);
+  // Scheduled posts ride along: they are not live yet, so /preview is the only
+  // place to read them, and the day before publication is when you want to.
+  const posts = await getCollection('blog', ({ data }) => data.draft || !isLive(data));
   return posts.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
 }
 
@@ -127,9 +153,14 @@ export async function getSeriesIndex(): Promise<SeriesSummary[]> {
     .sort((a, b) => a.order - b.order);
 }
 
-/** Series live as anchored sections on one page, so links are hash links. */
+/**
+ * Each series has its own page. It used to be an anchor into the one long
+ * /series list, which meant the whole topic had no URL of its own — nothing for
+ * a search engine to rank for "azure ai foundry agents", and nothing for an
+ * answer engine to cite as the source for the topic rather than one part of it.
+ */
 export function seriesUrl(id: string): string {
-  return `/series/#${id}`;
+  return `/series/${id}/`;
 }
 
 export async function getPostsInSeries(seriesId: string): Promise<Post[]> {
@@ -199,6 +230,90 @@ export async function getAdjacentPosts(post: Post) {
   };
 }
 
+export interface NextRead {
+  post: Post;
+  /** Why this post was picked — the page uses it to pick the eyebrow copy. */
+  kind: 'series' | 'related' | 'recent';
+  /** Eyebrow text, e.g. "Next in this series · Part 3 of 6". */
+  label: string;
+}
+
+/**
+ * The single post to hand the reader at the end of this one, plus the one
+ * behind them.
+ *
+ * A reader who finished the article is at the point of highest intent, and the
+ * date-ordered prev/next that used to sit here answered the wrong question: on
+ * a multi-part guide "the post published just before this one" is rarely part
+ * two. So the next link resolves in the order the reader actually thinks in —
+ * the next part of the series they're in, then the closest related post, and
+ * only then the neighbour by date. One destination, not a grid of six, because
+ * a single obvious next step is what gets clicked.
+ */
+export async function getNextRead(post: Post): Promise<{ next?: NextRead; prev?: NextRead }> {
+  let next: NextRead | undefined;
+  let prev: NextRead | undefined;
+
+  if (post.data.series) {
+    const parts = await getPostsInSeries(post.data.series);
+    const i = parts.findIndex((p) => p.id === post.id);
+
+    if (i >= 0) {
+      const after = parts[i + 1];
+      const before = parts[i - 1];
+
+      if (after) {
+        next = {
+          post: after,
+          kind: 'series',
+          label: `Next in this series · Part ${i + 2} of ${parts.length}`,
+        };
+      }
+      if (before) {
+        prev = {
+          post: before,
+          kind: 'series',
+          label: `Part ${i} of ${parts.length}`,
+        };
+      }
+    }
+  }
+
+  // Last part of a series, or not in one at all: the strongest related post.
+  if (!next) {
+    const [related] = await getRelatedPosts(post, 1);
+    if (related) next = { post: related, kind: 'related', label: 'Read next' };
+  }
+
+  const { newer, older } = await getAdjacentPosts(post);
+
+  // Nothing shares a series, a tag, or a category — fall back to the neighbour.
+  if (!next && older) next = { post: older, kind: 'recent', label: 'Read next' };
+
+  if (!prev) {
+    const back = [older, newer].find((p) => p && p.id !== next?.post.id);
+    if (back) prev = { post: back, kind: 'recent', label: 'Previously' };
+  }
+
+  return { next, prev };
+}
+
+/**
+ * Drop author-only notes from a raw post body.
+ *
+ * MDX `{/* … *\/}` and Markdown `<!-- … -->` comments never reach the rendered
+ * page, but `post.body` is the unrendered source. Anywhere we hand that source
+ * to something that reads it as article text — the Markdown twin for AI
+ * crawlers, the on-page chat — the notes have to come out first, or a
+ * screenshot TODO ends up quoted back as if it were part of the article.
+ */
+export function stripAuthorNotes(body: string): string {
+  return body
+    .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\n{3,}/g, '\n\n');
+}
+
 /** 200 wpm, rounded up, with code blocks discounted since they're scanned not read. */
 export function readingTime(body: string): number {
   const withoutCode = body.replace(/```[\s\S]*?```/g, ' ');
@@ -209,6 +324,11 @@ export function readingTime(body: string): number {
 
 export function postUrl(post: Post): string {
   return `/blog/${post.id}/`;
+}
+
+/** The post's Markdown twin. A sibling of the page, not a path under it. */
+export function postMarkdownUrl(post: Pick<Post, 'id'>): string {
+  return `/blog/${post.id}.md`;
 }
 
 export function formatDate(date: Date): string {

@@ -1,0 +1,22 @@
+---
+/** One chip in the sticky reader bar: an icon, then whatever the page slots in. */
+interface Props {
+  icon: 'calendar' | 'clock' | 'steps' | 'updated';
+}
+
+const { icon } = Astro.props;
+
+const PATHS = {
+  calendar: 'M8 3v3M16 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z',
+  clock: 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+  steps: 'M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01',
+  updated: 'M20 11a8 8 0 0 0-14.3-4L3 10V4M4 13a8 8 0 0 0 14.3 4L21 14v6',
+};
+---
+
+<span class="meta-chip">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d={PATHS[icon]} />
+  </svg>
+  <slot />
+</span>

@@ -31,12 +31,15 @@ const category = CATEGORIES[data.category];
 
     <div class="min-w-0 flex-1">
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-        <span class="font-medium" style={`color: oklch(0.62 0.17 ${category.hue});`}>
+        <span class="font-medium" style={`color: var(--accent-deep);`}>
           {category.label}
         </span>
         <time datetime={data.publishedAt.toISOString()} class="text-muted">
           {formatDate(data.publishedAt)}
         </time>
+        {data.updatedAt && (
+          <span class="text-accent">Updated {formatDate(data.updatedAt)}</span>
+        )}
         <span class="text-muted">{minutes} min read</span>
         {data.series && <span class="text-muted">Part {data.seriesOrder} of a series</span>}
       </div>

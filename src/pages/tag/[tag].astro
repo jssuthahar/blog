@@ -1,7 +1,9 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import Newsletter from '../../components/Newsletter.astro';
 import PostCard from '../../components/PostCard.astro';
-import { getAllTags, getPublishedPosts, slugifyTag } from '../../lib/posts';
+import { SITE } from '../../config';
+import { getAllTags, getPublishedPosts, postUrl, slugifyTag } from '../../lib/posts';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -17,11 +19,54 @@ export async function getStaticPaths() {
 }
 
 const { posts, label } = Astro.props;
+const path = `/tag/${Astro.params.tag}/`;
+const description = `${posts.length} MSDEVBUILD ${posts.length === 1 ? 'article' : 'articles'} on ${label}, by Suthahar Jegatheesan, with real code and the trade-offs behind it.`;
+
+// One or two links with no text of their own is a thin page, and 120-odd of them
+// would dilute the rest of the site. They still work for readers; search engines
+// are asked to skip them until the tag has real depth.
+const MIN_POSTS_TO_INDEX = 3;
+
+// Same CollectionPage + ItemList + BreadcrumbList pattern as `/category`.
+// Every tag page was crawlable and in the sitemap already with nothing
+// telling a search engine (or an answer engine) what kind of page it is.
+const schema: Record<string, unknown>[] = [
+  {
+    '@type': 'CollectionPage',
+    '@id': `${SITE.url}${path}#page`,
+    name: `Posts tagged ${label}`,
+    description,
+    about: { '@id': `${SITE.url}/#person` },
+    isPartOf: { '@id': `${SITE.url}/#website` },
+  },
+  {
+    '@type': 'ItemList',
+    numberOfItems: posts.length,
+    itemListElement: posts.map((post, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: post.data.title,
+      url: new URL(postUrl(post), SITE.url).href,
+    })),
+  },
+  {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Tags', item: `${SITE.url}/tags` },
+      { '@type': 'ListItem', position: 3, name: `#${label}`, item: `${SITE.url}${path}` },
+    ],
+  },
+];
 ---
 
 <BaseLayout
-  title={`Posts tagged ${label}`}
-  description={`All articles tagged ${label} — ${posts.length} in total.`}
+  title={`Articles tagged ${label}`}
+  description={description}
+  noindex={posts.length < MIN_POSTS_TO_INDEX}
+  keywords={[label]}
+  canonical={path}
+  schema={schema}
 >
   <header class="max-w-2xl">
     <nav aria-label="Breadcrumb" class="text-sm text-muted">
@@ -33,5 +78,9 @@ const { posts, label } = Astro.props;
 
   <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
     {posts.map((post) => <PostCard post={post} />)}
+  </div>
+
+  <div class="mt-16">
+    <Newsletter source="tag" compact />
   </div>
 </BaseLayout>

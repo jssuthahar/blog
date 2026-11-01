@@ -1,5 +1,6 @@
 ---
 import { FIREBASE, SITE } from '../config';
+import { reactionBaselines } from '../lib/baseline';
 
 /**
  * Floating engagement rail shown while reading a post.
@@ -30,6 +31,8 @@ const REACTIONS = [
   { key: 'celebrate', emoji: '🎉', label: 'Celebrate' },
   { key: 'insightful', emoji: '💡', label: 'Insightful' },
 ] as const;
+
+const baseCounts = reactionBaselines(slug, REACTIONS.map((r) => r.key));
 
 const encodedUrl = encodeURIComponent(url);
 const encodedTitle = encodeURIComponent(title);
@@ -68,7 +71,7 @@ const SHARE = [
                    leading-none transition-colors hover:bg-subtle disabled:opacity-70"
           >
             <span class="text-lg">{r.emoji}</span>
-            <span data-count={r.key} class="mt-0.5 text-[0.65rem] tabular-nums text-muted">0</span>
+            <span data-count={r.key} class="mt-0.5 text-[0.65rem] tabular-nums text-muted">{baseCounts[r.key]}</span>
           </button>
         ))}
       </div>
@@ -151,13 +154,13 @@ const SHARE = [
 </style>
 
 {enabled && (
-  <script is:inline define:vars={{ projectId: FIREBASE.projectId }}>
+  <script is:inline define:vars={{ projectId: FIREBASE.projectId, BASE_COUNTS: baseCounts }}>
     (() => {
       const BASE = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
 
-      // Displayed starting count per reaction, matching Reactions.astro so the
-      // rail and the bottom block always show the same number.
-      const BASE_COUNT = 2;
+      // Per-article starting count per reaction, from lib/baseline.ts — the
+      // same source Reactions.astro uses, so the rail and the bottom block
+      // always show the same number.
 
       const format = (n) =>
         n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
@@ -207,7 +210,7 @@ const SHARE = [
             const fields = doc?.fields ?? {};
             buttons.forEach((btn) => {
               const key = btn.dataset.react;
-              paint(key, BASE_COUNT + Number(fields[key]?.integerValue ?? 0));
+              paint(key, BASE_COUNTS[key] + Number(fields[key]?.integerValue ?? 0));
               if (localStorage.getItem(`reacted:${slug}:${key}`) !== null) {
                 btn.dataset.reacted = '';
               }
@@ -255,7 +258,7 @@ const SHARE = [
 
               const doc = await fetch(docPath).then((r) => (r.ok ? r.json() : null));
               const raw = doc?.fields?.[key]?.integerValue;
-              paint(key, raw != null ? BASE_COUNT + Number(raw) : optimistic + 1);
+              paint(key, raw != null ? BASE_COUNTS[key] + Number(raw) : optimistic + 1);
             } catch {
               localStorage.removeItem(guard);
               delete btn.dataset.reacted;

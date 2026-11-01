@@ -1,0 +1,450 @@
+---
+title: 'Designing a Multi-Agent GitHub Copilot Orchestrator for Legacy Teams (Honestly)'
+description: 'How to design a GitHub Copilot multi-agent orchestrator for a legacy team: narrow roles, least-privilege tools, handoffs, hooks, CI gates and sign-off.'
+publishedAt: 2026-10-31
+updatedAt: 2026-10-31
+cover: './images/github-copilot-multi-agent-orchestrator-legacy-teams-cover.png'
+coverAlt: 'Share banner headed GITHUB COPILOT · LEGACY MODERNIZATION with the title "Five agents ran. Nobody owned it." and the line "An orchestrator is a design you own: narrow roles, real gates, your name on it." above the MSDEVBUILD wordmark and the author name. On the right, a three-step chain: a grey box reading "Agents do the work", one job each, least-privilege tools; an arrow labelled send: false to an amber box reading "Hooks and CI enforce", same input, same answer, every time; then an arrow labelled then you decide to a green box reading "You own what ships", a person signs off, by name.'
+category: copilot
+categories: ['ai', 'architecture']
+tags: ['GitHub Copilot multi-agent', 'Copilot orchestrator', 'GitHub Copilot custom agents', 'Multi-agent AI development', 'GitHub Copilot agent handoffs', 'GitHub Copilot subagents', 'Enterprise Copilot workflow', 'Agent orchestration pattern', 'GitHub Copilot Hooks', 'Legacy modernization']
+seoTitle: 'GitHub Copilot Multi-Agent Orchestrator'
+highlight: 'A GitHub Copilot multi-agent setup is separation of concerns for AI, not a self-running team. Give each agent one job and only the tools that job needs, let a read-only orchestrator plan the order, and put a gate between phases that change code. Hooks and CI enforce the rules, and a named person signs off. Copilot gives you the parts. The design, and the accountability, stay with you.'
+series: 'legacy-modernization'
+seriesOrder: 5
+featured: false
+draft: false
+faq:
+  - q: 'What is a GitHub Copilot multi-agent orchestrator?'
+    a: 'It is a custom agent that plans a change and routes each phase to a narrow specialist, such as a tester or a security reviewer. A good one is read-only: it sequences the work and asks a person to approve each phase, but it never edits code itself.'
+  - q: 'Can GitHub Copilot agents work autonomously as a team?'
+    a: 'Partly. A coordinator with the agent tool can run subagents with no person between steps, and a handoff with send: true submits itself. Copilot will run that chain, but it will not own the result, so keep a human gate before anything that changes code.'
+  - q: 'How do GitHub Copilot agent handoffs work?'
+    a: 'A handoff is declared in the agent file with a label, a target agent, a pre-filled prompt and a send flag. It shows a button after a reply. Clicking it switches agents and keeps the conversation history. With send: false, you read the prompt before it runs. The cloud agent on GitHub.com ignores handoffs.'
+  - q: 'What is the difference between a handoff and a subagent in Copilot?'
+    a: 'A handoff switches the active agent in your conversation, keeps the history and can wait for you. A subagent is delegated a task by another agent, works in its own separate context and returns a result, with no person in between. Use handoffs between phases and subagents for read-only research.'
+  - q: 'How many Copilot agents should a team start with?'
+    a: 'One. Pick the role that removes the most friction, which on a legacy system is usually a read-only discovery agent. Prove it earns its keep, then add a second role only when there is a clear need and a named person who will own it.'
+  - q: 'How do you stop AI agents from contradicting each other?'
+    a: 'Give them one shared source of truth, such as AGENTS.md and your repository instructions, keep each role narrow so responsibilities do not overlap, and let tests and CI settle facts. When two agents still disagree on a judgement call, the orchestrator shows you both positions and you decide.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+A GitHub Copilot multi-agent orchestrator is a read-only custom agent that plans a change and routes each phase to a narrow specialist, while hooks, CI and a named person decide whether the work moves on. It is separation of concerns for AI, not a self-running team. Copilot gives you the parts. Deciding who does what, with which tools, and who signs at the end stays with you.
+
+That design matters most on a legacy system, where one wrong edit can reach code nobody on the team fully understands. So this article starts with what goes wrong without it.
+
+Picture this. You lead the team on an inherited codebase, and you have just watched a demo where one sentence made five agents light up in turn. They planned, coded, tested, reviewed and opened a pull request while the presenter drank coffee. You want that. By Friday your repository has five agent files, and on Monday you type your first sentence:
+
+> Let customers give a reason when they cancel an order.
+
+Twenty-one minutes later the pull request is open and every check is green. The next day, on staging, no customer can cancel an order at all.
+
+<Callout type="tip" title="A scenario on a real codebase">
+This story is a scenario played out on MSDevBuild Eats, the open-source Flutter food delivery app I use as the reference project for these articles. The code, rules and agent files are real. The timeline and the numbers are illustrative.
+
+- **Source:** [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web:** [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/)
+- **Android build:** [install from Firebase App Distribution](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
+
+The gated version of this design is committed there too: the [role map](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/agents/README.md), the [orchestrator](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/agents/orchestrator.agent.md), the [architecture](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/agents/architecture.agent.md), [feature](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/agents/feature.agent.md), [tester](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/agents/tester.agent.md) and [security](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/agents/security.agent.md) agents, and the [prompt that drives them](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/prompts/orchestrate-feature.prompt.md).
+</Callout>
+
+This closes the legacy thread that began with the [blueprint for Copilot agents on legacy applications](/blog/github-copilot-agents-for-legacy-applications), then went deep on [understanding a codebase nobody documented](/blog/github-copilot-understand-legacy-codebase-discovery) and [building a security agent](/blog/github-copilot-security-agent-legacy-systems). You can follow it without them, because every term is explained below.
+
+If you would rather see the idea first, it is a short video:
+
+<ShortHighlight slugs={['copilot-multi-agent-handoffs-nobody-owned-it']} />
+
+## Twenty-one minutes, minute by minute
+
+Your five agent files have no `tools` line, so each agent can use every tool. The orchestrator runs the others as subagents, one after another, and nothing stops to ask you anything.
+
+| Time | What happened | Why it looked fine |
+| --- | --- | --- |
+| 09:00 | You type the sentence and the orchestrator starts | It is the demo, working |
+| 09:03 | The architecture agent warns: leave `OrderStatus` alone, three features read it | A good catch, returned only to the orchestrator |
+| 09:07 | The developer agent, which never saw that warning, adds a new `OrderStatus` value | It is a neat way to hold a pending reason |
+| 09:12 | A test fails, so the tester agent widens `canCancel` in production code | The test goes green |
+| 09:16 | Asked to review, the security agent edits `firebase/firestore.rules` | It found a real hole |
+| 09:21 | The orchestrator reports every phase complete and opens a pull request | CI is green |
+
+Nobody did anything silly here, and that is the unsettling part. Each agent made a defensible local choice with the tools you gave it.
+
+Then you try three fixes, and none of them work. A sixth agent to review the other five adds one more voice with the same blind spots. Longer instructions make each agent file harder to read and still only ask politely. Asking a person to approve the finished pull request sounds right, but the diff now spans the entity, the bloc and the rules, so the approval is a skim.
+
+<figure>
+
+![Vertical flow of the scenario. One sentence from you, let customers give a reason when they cancel an order, goes to the architecture agent, which warns to leave OrderStatus alone because three features read it. The developer agent never sees the warning and adds a new value to OrderStatus. The tester agent sees a failing test and widens canCancel in production code. The security agent, asked to review, rewrites firestore.rules instead. The orchestrator agent reports every phase complete and opens the pull request. CI is green because the tests never load firestore.rules, and the next day on staging, cancel fails with permission denied. The red outcome reads: everything ran, nobody owned the decision. A note says all five agents had no tools list, ran as subagents, and no person read a step.](./images/copilot-five-agents-no-gates-confident-chaos.png)
+
+<figcaption>Figure 1 — confident chaos. Every box is a reasonable local decision, and no box belongs to a person.</figcaption>
+
+</figure>
+
+## The commands that show the real problem
+
+The bug was never in the Dart. It was in the agent files, and you can audit those in under a minute. Run these from the repository root:
+
+```bash
+# Agents with no tools line. Each of these can use every tool.
+grep -L '^tools:' .github/agents/*.agent.md
+
+# Handoffs that submit themselves, with no person reading the prompt.
+grep -l 'send: true' .github/agents/*.agent.md
+
+# What every agent is actually allowed to do.
+grep -H '^tools:' .github/agents/*.agent.md
+```
+
+In the scenario's repository, the first command lists all five files. On the committed MSDevBuild Eats agents, the first two print nothing, and the third prints this:
+
+```text
+.github/agents/orchestrator.agent.md:tools: ['search', 'read', 'githubRepo']
+.github/agents/architecture.agent.md:tools: ['search', 'read', 'githubRepo']
+.github/agents/feature.agent.md:tools: ['search', 'read', 'edit', 'runTests']
+.github/agents/security.agent.md:tools: ['search', 'read']
+.github/agents/tester.agent.md:tools: ['search', 'read', 'edit', 'runTests']
+```
+
+Read that output the way you would read a permissions table. Three agents cannot change anything, because they have no `edit` tool. Two can.
+
+The green CI has an explanation too. Run `grep -rl 'firestore.rules' test .github/workflows` in the app and it prints nothing. No test and no workflow loads the rules, so `flutter test` was never going to notice a rules change. A green check only speaks for what it runs.
+
+## The words you need, in plain language
+
+Most multi-agent writing assumes you already know this vocabulary, so here it is in one place.
+
+| Term | What it means |
+| --- | --- |
+| Custom agent | A Markdown file in `.github/agents/` that gives Copilot a role, instructions and a list of tools |
+| Orchestrator | A custom agent whose only job is to plan the order of work and route it |
+| Least privilege | Giving an agent only the tools its job needs, and nothing more |
+| Handoff | A button that moves you to another agent, with the conversation history |
+| Subagent | An agent another agent starts for a task, in its own separate context |
+| Hook | A script that runs outside the AI model at a fixed moment, so it behaves the same every time |
+| CI gate | An automated check that must pass before a pull request can merge |
+| Seam | The boundary where one phase ends and the next begins |
+| Blast radius | How much breaks if this one thing goes wrong |
+| Characterization test | A test that records what old code does today, before you change it |
+
+A restaurant kitchen is a useful picture, and a fitting one for a food delivery app. The head chef plans the service and does not stand at the grill. Each cook has one station. The pass is where a plate stops so someone can look at it before it leaves. Agents are the cooks, the orchestrator is the head chef, and a gate is the pass.
+
+## What does "multi-agent" really buy you?
+
+It buys you a smaller blast radius per agent and boundaries you can actually review. It does not buy you extra intelligence, because every agent is the same model wearing a different job description.
+
+One giant agent struggles on a legacy system for an ordinary reason. Asked to modernise a module, it has to hold the business rules, the test strategy, the security posture and the architecture in a single context window, and it starts to drift. Split the job and each role has less to keep straight, plus fewer ways to do damage. That is the same instinct that once made you split a large class into smaller ones.
+
+So do not try to make the agents smarter. Make the boundaries between them cleaner, because that is the part you control.
+
+## How to design the Copilot orchestrator
+
+Design the orchestrator as a router that cannot edit anything. It does four things: restates the request, picks the specialists, puts the phases in order, and stops for a person at the points that matter.
+
+Here is the real file from the app, trimmed to two of its four handoffs:
+
+```markdown
+---
+name: orchestrator
+description: 'How to design a GitHub Copilot multi-agent orchestrator for a legacy team: narrow roles, least-privilege tools, handoffs, hooks, CI gates and sign-off.'
+  Routes a feature or bug request in MSDevBuild Eats to the right specialist
+  agent and sequences the work into reviewable phases. Plans and delegates;
+  never edits code. Always surfaces a decision point to a human before and
+  after the implementation phase.
+tools: ['search', 'read', 'githubRepo']
+handoffs:
+  - label: 'Check the boundary first'
+    agent: architecture
+    prompt: 'Which layer does this belong in? Name the files that will change in lib/domain, lib/data and lib/features, and anything it would force across a layer boundary.'
+    send: false
+  - label: 'Implement the approved plan'
+    agent: feature
+    prompt: 'Implement the approved plan following AGENTS.md. Domain contract first, then data, then the use case, then the bloc, then the screen. Do not touch a feature outside the named one.'
+    send: false
+---
+
+You are the orchestrator for MSDevBuild Eats. You do not write or edit code.
+
+Rules:
+
+- Never proceed to implementation without an explicit human "go".
+- If two specialists disagree, present both positions and ask the human to decide.
+- If the request spans more than one feature folder, say so and propose
+  splitting it before any agent starts.
+```
+
+Two lines do the heavy lifting. The `tools` list has no `edit`, so this agent cannot change a file even if it wanted to, and it has no `agent` tool, so it cannot start subagents behind your back. And `send: false` means the next prompt waits for you to read it.
+
+On a real legacy system, add one role in front: the read-only discovery agent from [the discovery article](/blog/github-copilot-understand-legacy-codebase-discovery). The app does not need it, because its layers are documented. A fifteen-year-old billing system does.
+
+### Handoffs and subagents are different tools
+
+The scenario went wrong partly because these two features look alike. A handoff switches the active agent in your conversation and keeps the history. A subagent is started by another agent, works in its own context, and returns a result to that agent.
+
+That separate context explains 09:07. The architecture agent's warning went back to the orchestrator, the developer subagent started fresh, and nothing carried the warning across. A handoff would have kept it in the conversation.
+
+<figure>
+
+![Two step flows side by side. On the left, a handoff, which switches the agent in your conversation: step 1, the agent finishes its reply and a handoff button appears; step 2, you click the button and the next agent opens with the history intact; step 3, a pre-filled prompt waits, because send false means nothing has run yet; step 4, you read it and press enter, so a person moved the work on. The green outcome: use between phases that change something. On the right, a subagent, which delegates a task and waits for the result: step 1, the coordinator needs an answer and must have the agent tool; step 2, it starts a subagent with its own separate context; step 3, the subagent does the task with no person in between; step 4, a focused result comes back and the coordinator carries on. The amber outcome: use for read-only research inside one phase.](./images/copilot-handoff-vs-subagent-human-in-the-loop.png)
+
+<figcaption>Figure 2 — two ways for one agent to reach another. Only one of them has a place for a person to stand.</figcaption>
+
+</figure>
+
+Neither feature is bad. Subagents are excellent for "go and find every file that reads `OrderStatus`", which changes nothing. They are a poor fit for a chain of edits nobody reads.
+
+Where these features run also changes your design, and it shifts month to month, so confirm against the current docs before you rely on it:
+
+| Feature | Where it works as of October 2026 |
+| --- | --- |
+| Handoffs | IDE custom agents such as VS Code. Ignored by the cloud agent on GitHub.com |
+| `send: true` | Submits the handoff prompt automatically. Leave it off between phases that edit code |
+| Subagents | The coordinator needs the `agent` tool, and an `agents` list limits which ones it may call |
+| Hooks in `.github/hooks/` | Copilot CLI and the cloud agent, and VS Code in preview |
+
+If your work runs on the cloud agent, there are no handoff buttons. The pull request review and your required checks become the gates instead.
+
+## Designing clean role boundaries
+
+Give every agent a one-line job, an explicit tools list, and a written list of what it must never do. Leave `tools` out and GitHub's documented default is all tools, which is exactly what produced the scenario.
+
+| Agent | Job | Tools | Must NOT do | Next |
+| --- | --- | --- | --- | --- |
+| `orchestrator` | Plan and route | read, search | Edit code; skip a human gate | `architecture` |
+| `architecture` | Name the layers and blast radius | read, search | Implement; block without a trade-off | You, then `feature` |
+| `feature` | Implement the approved plan | read, edit, run tests | Touch another feature; test its own work | `tester` |
+| `tester` | Write tests against mocked use cases | read, edit, run tests | Edit `lib/`; approve its own change | You, after CI |
+| `security` | Report exploit paths | read, search | Fix code; sign off | You |
+
+The "Must NOT do" column is the one that saves you. A role is defined as much by what it may not touch as by what it does.
+
+### The limit nobody mentions
+
+The `tools` list works per tool, not per folder. The tester needs `edit` to write tests, so nothing in that list stops it editing `lib/` too. In the committed agent that rule is a sentence in the charter, and a charter is a request. That is the exact mistake at 09:12.
+
+So back the sentence with something that cannot be talked out of it. The simplest option is a `CODEOWNERS` file, which makes GitHub ask a named person to review any change to a path once you turn on "Require review from Code Owners" in branch protection:
+
+```text
+# .github/CODEOWNERS
+/firebase/      @your-tech-lead
+/lib/domain/    @your-tech-lead
+```
+
+The app commits its own at [`.github/CODEOWNERS`](https://github.com/jssuthahar/food-delivery-app/blob/main/.github/CODEOWNERS). One catch: GitHub does not let you approve your own pull request, so on a one-person repository this setting needs a second reviewer or an admin bypass.
+
+VS Code also lets a custom agent declare its own `hooks` in frontmatter, which apply only while that agent is active. That is the tighter fix, though it is still in preview.
+
+Every agent also reads one shared source of truth, so they do not argue about naming or what "done" means. In the app that is `AGENTS.md`. If you have not set that up yet, start with [custom instructions](/blog/github-copilot-custom-instructions) and the [Skills explainer](/blog/github-copilot-skills-deep-dive).
+
+## A reusable prompt starts every run the same way
+
+Store the sequence in a prompt file, so nobody starts the agents with a fresh, vague sentence. This is the app's `.github/prompts/orchestrate-feature.prompt.md`, lightly trimmed:
+
+```markdown
+# Orchestrate: a feature in MSDevBuild Eats
+
+Run this as the `orchestrator` agent.
+
+Request: <one sentence: what to build, and in which feature folder>
+
+Sequence, and STOP for my approval at each gate:
+
+1. **Boundary.** Hand off to `architecture`. Which layers change, in what
+   order, and what else reads the thing being changed. No code yet.
+   -> STOP. I approve the boundary.
+2. **Plan.** Name the files that will be created or changed, layer by layer.
+   -> STOP. I approve the plan.
+3. **Implement.** Hand off to `feature`. Only the named feature folder.
+4. **Test.** Hand off to `tester`. A `bloc_test` covering loading, data and
+   failure, with a mocked use case.
+   -> CI gate: `flutter test` must pass.
+5. **Security.** Only if this touches auth, an order, or `firebase/*.rules`.
+   Hand off to `security`, read-only. Say so if you are skipping this step.
+6. **Human sign-off.** Summarise the diff, the tests added, and any security
+   findings. I decide whether it ships.
+
+If any specialist contradicts another, present both positions and ask me to
+decide. Do not resolve it yourself.
+```
+
+Step 5 is a small piece of judgement worth copying. A security review of a padding change teaches people to ignore security reviews, so it only runs when the change touches something an attacker cares about.
+
+## Which gates actually block an agent?
+
+Only hooks, required CI checks and branch protection block an agent. Instructions, Skills and agent charters all shape advice, and a model can weigh advice and move on. I covered that split in [the limits of AI code review](/blog/github-copilot-automate-code-review-limits) and the [hooks beginner guide](/blog/github-copilot-hooks-for-beginners).
+
+A hook is a JSON file in `.github/hooks/`. This one runs a guard script before every bash command an agent tries:
+
+```json
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "matcher": "bash",
+        "bash": ".github/hooks/scripts/guard-commit.sh",
+        "timeoutSec": 30
+      }
+    ],
+    "sessionEnd": [
+      {
+        "type": "command",
+        "bash": ".github/hooks/scripts/audit-session.sh"
+      }
+    ]
+  }
+}
+```
+
+The script decides. Write a JSON answer to stdout and exit 2, and the agent receives your reason, which gives it something it can fix:
+
+```bash
+#!/usr/bin/env bash
+# A deny needs a reason, or the agent has nothing to act on.
+if grep -rq "package:flutter/" lib/domain/ 2>/dev/null; then
+  echo '{"permissionDecision":"deny","permissionDecisionReason":"lib/domain must stay pure Dart. Remove the package:flutter import."}'
+  exit 2
+fi
+exit 0
+```
+
+Three behaviours from GitHub's hooks reference are worth knowing before you trust this:
+
+- **Other non-zero exits also deny.** `preToolUse` fails closed, but with any code other than 2 the agent only gets a generic "hook errored" message.
+- **A timeout lets the call through.** The tool call falls back to the normal permission flow, so keep hooks fast and never treat one as your only wall.
+- **Skills cannot do this.** Putting the rule in a Skill and calling it enforcement is the most common mistake here.
+
+Then add the real wall in branch protection: `flutter test` as a required check, a human review required before merge, and security scanning such as CodeQL and Dependabot as required checks where your plan includes them. A hook catches the problem early on one machine. Branch protection catches it at the door for everyone.
+
+<figure>
+
+![Gated pipeline for the same request. Your request, started from a reusable prompt file, passes the orchestrator agent, read-only, which plans the phases and edits nothing, then the architecture agent, read-only, which names the layers and the blast radius. A human gate follows where you approve the plan. The feature agent edits lib inside one feature folder, and the tester agent edits test only and cannot approve its own change. A CI gate requires flutter test to pass, and red goes back to the feature agent. The security agent is read-only and reports exploit paths but fixes nothing. A hook and CI gate covers layering, credentials and CodeQL, and a denial goes back to the feature agent. A final human gate is where you sign off and own what ships, before the pull request is merged.](./images/copilot-multi-agent-orchestrator-pipeline-gates.png)
+
+<figcaption>Figure 3 — the same sentence, gated. The dashed boxes are conditions rather than work, and no agent can move the flow past one by itself.</figcaption>
+
+</figure>
+
+## How efficient is the gated design?
+
+The gated design costs a little of your time on every change and removes the most expensive kind of failure, which is finding out the next day. First, look at where each mistake from the timeline now ends up:
+
+| Mistake from the timeline | Where it stops now |
+| --- | --- |
+| New `OrderStatus` value | You read the architecture warning at the plan gate, and the plan says no enum change |
+| Tester widens `canCancel` | `CODEOWNERS` and your sign-off, because the diff shows `lib/` changed in the test phase |
+| Security agent rewrites the rules | It has no `edit` tool, so it can only report |
+| Green CI that never loaded the rules | `CODEOWNERS` on `/firebase/` puts a person on that path |
+
+The before and after, for this one change:
+
+| Measure | Five open agents | Gated design |
+| --- | --- | --- |
+| Agents that can edit files | 5 | 2 |
+| Agent pairs that can overwrite each other | 10 | 1 |
+| Read-only agents | 0 | 3 |
+| Decisions made by a named person | 0 | 2 |
+| Your time spent reading (illustrative) | about 5 minutes, skimming a large diff | about 15 minutes, across two small reads |
+| When the failure surfaced (illustrative) | the next day, on staging | the same session |
+
+The scaling rule is plain arithmetic: **writers × (writers − 1) ÷ 2 is the number of agent pairs that can step on each other.** Five writers make 10 pairs and two writers make 1. Adding a read-only agent adds nothing to that number, which is why reviewers are cheap to add and writers are not.
+
+## Rolling this out on a legacy team
+
+Start with one agent, because each one you add is something a person has to keep current. On a legacy system that first agent is almost always read-only discovery, since understanding the code is the bottleneck for everything else, and it cannot break anything while you learn.
+
+Give every agent, Skill and hook a named owner. An unowned agent goes stale quietly, then one day confidently recommends a pattern you abandoned a year ago.
+
+These failure modes are worth naming early, so you can spot them in your own repository:
+
+- **Too many agents.** More roles than the team can own or remember. The cure is deleting some.
+- **Overlapping charters.** Two roles that both think they own a decision. Narrow them and share one source of truth.
+- **Autonomy theatre.** A workflow that looks self-driving because a person clicks approve without reading. It is worse than doing it by hand, because it looks like a process.
+- **Unused agents.** Files nobody has invoked in a month are maintenance with a personality. A `sessionEnd` log shows you which ones, so delete them.
+- **No name on the decision.** If no person signed it, you have built a way to avoid blame.
+
+Treat this like bringing on a new engineer. You would not give someone commit rights to everything on day one with no reviewer.
+
+## Questions a tech lead will ask about this
+
+1. **"Why can't the orchestrator just run everything as subagents?"** It can, for read-only research. For edits, a subagent's separate context drops warnings between phases and leaves no place for a person to stop it.
+2. **"Doesn't a human gate cancel out the speed?"** It adds minutes of reading to a change that took the agents twenty. Skipping it risks a day of rework and a rollback.
+3. **"What if we only use the cloud agent?"** Handoffs are ignored there, so your gates become required checks, `CODEOWNERS` and pull request review. The role boundaries still apply.
+4. **"Why does the tester have the edit tool at all?"** It has to write test files, and the `tools` list cannot scope by folder. So you enforce the folder rule with `CODEOWNERS`, or an agent-scoped hook, and by reading the diff.
+5. **"How do we know an agent is worth keeping?"** Log sessions, count invocations for a month, and ask the owner what it caught. If nobody can answer, delete it.
+
+## What to do on day one
+
+- Run the three `grep` audit commands above on your own repository.
+- Add a `tools` line to every agent that has none, starting with read and search.
+- Remove `send: true` from any handoff that leads to a phase which edits code.
+- Add `CODEOWNERS` for the two paths that would hurt most, and turn on the branch protection setting that enforces it.
+- Write one `preToolUse` hook for the rule you care about most, and test that it denies.
+- Check what your CI really runs. Find one thing you assumed was covered and is not.
+
+## Before you add another agent
+
+If you cannot tick a line for a role, that role is not ready.
+
+```markdown
+## Copilot orchestration checklist
+
+### Roles
+- [ ] The agent has a one-sentence job and overlaps with no other agent
+- [ ] A named person owns it
+
+### Tools
+- [ ] It has an explicit tools list
+- [ ] Read-only roles have no edit tool
+- [ ] Folder limits are enforced by CODEOWNERS or a hook, not only a charter
+
+### Moving between phases
+- [ ] Phases that edit code use handoffs with send: false, or a review gate
+- [ ] Subagents are used for read-only research only
+- [ ] We confirmed what works on our surface (IDE, CLI, cloud agent)
+
+### Gates
+- [ ] Tests are a required check, and we know what they do not cover
+- [ ] A preToolUse hook denies our most expensive mistake
+- [ ] A person signs off before merge
+```
+
+## Key takeaways
+
+- A GitHub Copilot multi-agent orchestrator is a read-only agent that plans and routes. It is separation of concerns for AI, not a self-running team.
+- If you leave out `tools`, the agent gets all tools. Write the list for every agent.
+- A handoff keeps the history and can wait for you. A subagent works in its own context with no person in between. Use each for the right job.
+- The `tools` list works per tool, not per folder, so back folder rules with `CODEOWNERS` or a hook.
+- Hooks, required checks and branch protection block. Instructions, Skills and charters only ask.
+- Writers × (writers − 1) ÷ 2 is your collision count. Keep writers few and add read-only agents freely.
+- Start with one agent, give it an owner, and delete the ones nobody uses.
+
+## The same sentence, a week later
+
+You delete two agent files, add `tools` lines to the rest, and type the same sentence into the prompt file.
+
+The architecture agent names three files and says to leave `OrderStatus` alone. It also points out that `CancelOrder` calls `_repository.cancelOrder(orderId)` and drops the reason, even though the repository already accepts one. You read that, and approve a two-layer change. The feature agent passes the reason through. The tester writes a `bloc_test`. CI goes green.
+
+The security agent reports something the first run also noticed. The customer rule in `firestore.rules` limits which fields can change, not what `status` can become, so a signed-in customer could mark their own order `delivered`. This time it changes nothing. It gives you the exploit path, a proposed diff and a failing test, and you open a separate ticket with your name on it.
+
+The pull request is small enough to read in four minutes. You read it, and you sign it.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above, because each one needs two sections put together. Reply in the comments with the question number and your answer.
+
+1. **The lost warning.** Your architecture agent warned about a shared enum, and the developer agent changed it anyway. The team blames the model. What in the setup more likely caused it, and which feature would have kept the warning in view?
+2. **The tidy tester.** A teammate says your tester is safe because its charter forbids editing `lib/`. What can still go wrong, and what would you add so the rule holds?
+3. **The cloud move.** Your team moves this design from VS Code to the cloud agent on GitHub.com. Which gates stop working, and what replaces them?
+4. **The slow guard.** A `preToolUse` hook runs a four-minute scan, and agents start getting past it. Why, and where should that scan live instead?
+5. **The sixth agent.** Someone proposes a sixth agent with edit rights to "clean up" after the others. Work out the collision count before and after, and say what you would propose instead.
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>
+
+Sources, checked October 2026: [Custom agents configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration) and [hooks reference](https://docs.github.com/en/copilot/reference/hooks-reference) on GitHub Docs, and [custom agents](https://code.visualstudio.com/docs/copilot/customization/custom-agents), [subagents](https://code.visualstudio.com/docs/copilot/agents/subagents) and [hooks](https://code.visualstudio.com/docs/copilot/customization/hooks) in the VS Code docs. These features change often, so confirm the details before you rely on them.

@@ -178,6 +178,39 @@ const pushConfigured = PUSH.publicKey.length > 0;
   const DISMISS_KEY = 'pwa:bar-dismissed';
   const UPDATE_SNOOZE_KEY = 'pwa:update-snoozed';
 
+  /*
+   * Notifications cannot be switched on for the reader at install time.
+   * No browser lets an origin grant itself Notification permission, installing
+   * a PWA does not confer it, and Safari and Firefox both reject
+   * `requestPermission()` unless it comes from a real tap. Firing it without one
+   * on Chrome gets the quiet-UI treatment, and three ignored prompts auto-block
+   * the origin for good.
+   *
+   * So the ask is automatic but the grant is not: installing surfaces the offer
+   * on its own, and the native prompt stays behind the button. That keeps the
+   * one prompt this origin gets for a moment the reader has already opted in to
+   * the app, instead of spending it on a passer-by.
+   */
+  const PUSH_ASKED_KEY = 'push:install-asked';
+
+  /** Set by `appinstalled`, so Android and desktop can ask in the same breath. */
+  let justInstalled = false;
+
+  /**
+   * True at the one moment worth asking: the app is installed, permission has
+   * never been answered either way, and this ask has not been made yet.
+   *
+   * `isPushSupported()` must be tested before `Notification.permission` — the
+   * property does not exist on browsers without the API.
+   */
+  function installAsk(): boolean {
+    if (!isPushSupported()) return false;
+    if (!justInstalled && !isStandalone()) return false;
+    return (
+      Notification.permission === 'default' && localStorage.getItem(PUSH_ASKED_KEY) !== '1'
+    );
+  }
+
   /** The registration, kept so the update check can ask it to look again. */
   let registration: ServiceWorkerRegistration | null = null;
 
@@ -345,7 +378,17 @@ const pushConfigured = PUSH.publicKey.length > 0;
 
   async function renderBar() {
     const bar = document.getElementById('pwa-bar') as HTMLElement | null;
-    if (!bar || localStorage.getItem(DISMISS_KEY) === '1') return;
+    if (!bar) return;
+
+    /*
+     * Installing is the reader actively choosing this app, so a dismissal made
+     * earlier as a passing visitor should not have silenced the offer for the
+     * app they went on to install. The install ask overrides that one dismissal
+     * — once, and never again after they answer it.
+     */
+    const onInstall = installAsk();
+    if (!onInstall && localStorage.getItem(DISMISS_KEY) === '1') return;
+
     // One bar at a time, and an update outranks a notifications nudge: it is
     // actionable now, and the nudge will still be there next launch.
     if (updateBarVisible()) return;
@@ -356,12 +399,18 @@ const pushConfigured = PUSH.publicKey.length > 0;
 
     const hideBar = () => { bar.hidden = !notifyBtn || notifyBtn.hidden; };
 
+    // The app is on their home screen now, so the offer can name that rather
+    // than pitch the site again.
+    if (onInstall) msg.textContent = 'App installed — get notified about new articles?';
+
     closeBtn.onclick = () => {
       bar.hidden = true;
       localStorage.setItem(DISMISS_KEY, '1');
+      // "No" to the install ask is an answer, not a snooze.
+      if (onInstall) localStorage.setItem(PUSH_ASKED_KEY, '1');
     };
 
-    if (notifyBtn) await renderNotify(notifyBtn, msg, hideBar);
+    if (notifyBtn) await renderNotify(notifyBtn, msg, hideBar, onInstall);
     hideBar();
   }
 
@@ -369,6 +418,7 @@ const pushConfigured = PUSH.publicKey.length > 0;
     btn: HTMLButtonElement,
     msg: HTMLElement,
     hideBar: () => void,
+    onInstall = false,
   ) {
     // Only offer when it can work and hasn't already been dealt with. On iOS,
     // push only works once installed, so don't offer it before then — the
@@ -389,6 +439,9 @@ const pushConfigured = PUSH.publicKey.length > 0;
       btn.disabled = true;
       const original = btn.textContent;
       btn.textContent = 'Enabling…';
+      // The tap is the user gesture the permission API requires; everything from
+      // here is an answer to the install ask, whichever way it goes.
+      if (onInstall) localStorage.setItem(PUSH_ASKED_KEY, '1');
       try {
         await enablePush();
         btn.textContent = 'Notifications on';
@@ -438,6 +491,14 @@ const pushConfigured = PUSH.publicKey.length > 0;
       if (typeof (window as any).gtag === 'function') {
         (window as any).gtag('event', 'pwa_install', { method: 'browser_prompt' });
       }
+      /*
+       * Ask right here, in the browser tab, while the install is the thing they
+       * just did — the strongest moment there is. iOS never fires this event, so
+       * there the same ask lands on first standalone launch instead; installAsk()
+       * covers both and only fires once between them.
+       */
+      justInstalled = true;
+      void renderBar();
     });
 
     // Both capture and clear announce themselves, so the header icon also

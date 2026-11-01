@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:02,400
+The app, the database, and a straight line between them.
+
+2
+00:00:02,800 --> 00:00:05,200
+No token, no owner check, and a database on the internet.
+
+3
+00:00:05,600 --> 00:00:08,200
+The firewall drops junk at the edge, before it costs you anything.
+
+4
+00:00:08,600 --> 00:00:11,200
+It is the one public thing you own. Everything else hides behind it.
+
+5
+00:00:11,600 --> 00:00:14,200
+Your API checks the token signature. No token, no entry.
+
+6
+00:00:14,600 --> 00:00:17,200
+Entra ID says she is Priya. Your API decides she gets Priya rows.
+
+7
+00:00:17,600 --> 00:00:20,000
+A private endpoint. You cannot attack what you cannot reach.
+
+8
+00:00:20,400 --> 00:00:22,800
+Four checks in front, and no public address behind.

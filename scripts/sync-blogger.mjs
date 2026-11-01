@@ -3,12 +3,15 @@
  * Syncs the article index from the main site's Blogger feed into a local
  * JSON cache that /articles renders at build time.
  *
- * Why a cache file rather than fetching during the build:
- *   - the build must not fail when Blogger is slow or unreachable
- *   - the cache is committed, so a fresh clone builds offline
- *   - diffs show exactly what changed when the list updates
+ * The deploy workflow runs this before every build, so the published list is
+ * current without anyone committing. The result is still written to a
+ * committed cache rather than fetched inside the build itself:
+ *   - the build must not fail when Blogger is slow or unreachable — a failed
+ *     sync leaves the last good copy in place and the build uses that
+ *   - a fresh clone builds offline
  *
- * Run with `npm run sync:articles`.
+ * Run with `npm run sync:articles`. Commit the result when you want the diff
+ * on the record; otherwise CI refreshes it in the runner and throws it away.
  */
 
 import { writeFile, readFile } from 'node:fs/promises';

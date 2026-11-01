@@ -6,7 +6,9 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme {
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Segoe UI matches the session decks where it is installed; Inter is the
+     self-hosted stand-in everywhere else, and only downloads when it is used. */
+  --font-sans: 'Segoe UI Variable Text', 'Segoe UI', 'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-serif: 'Source Serif 4 Variable', ui-serif, Georgia, Cambria, serif;
   --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'JetBrains Mono', Menlo, monospace;
 
@@ -14,38 +16,69 @@
      the range that tests fastest for sustained reading. */
   --container-prose: 68ch;
 
-  --color-brand-50: oklch(0.97 0.02 255);
-  --color-brand-100: oklch(0.93 0.04 255);
-  --color-brand-300: oklch(0.78 0.11 255);
-  --color-brand-500: oklch(0.58 0.18 255);
-  --color-brand-600: oklch(0.51 0.19 258);
-  --color-brand-700: oklch(0.44 0.17 260);
-  --color-brand-900: oklch(0.3 0.11 262);
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+
+  --color-brand-50: #f3f8fd;
+  --color-brand-100: #deecf9;
+  --color-brand-300: #8db9e2;
+  --color-brand-500: #0078d4;
+  --color-brand-600: #006cbe;
+  --color-brand-700: #005a9e;
+  --color-brand-900: #003a66;
 }
 
 /* ---------- Design tokens (light) ----------
-   Light-first, high-contrast: near-black ink on white, one vivid accent,
-   and saturated support colours reserved for full-bleed feature bands. */
+   The same system as the MSDEVBUILD session decks: Azure blue as the one hue,
+   soft blobs behind translucent "glass" cards. `--bg` stays opaque because
+   inputs, dialogs and the sticky header sit on it. */
 :root {
-  --bg: oklch(1 0 0);
-  --bg-subtle: oklch(0.972 0.002 265);
-  --bg-code: oklch(0.968 0.003 265);
-  --border: oklch(0.9 0.004 265);
-  --text: oklch(0.22 0.01 265);
-  --text-muted: oklch(0.5 0.012 265);
+  --bg: #ffffff;
+  --bg-subtle: #f3f8fd;
+  --bg-code: #f3f8fd;
+  --border: #d5dfea;
+  --text: #0b1020;
+  --text-muted: #4a5163;
 
-  /* One restrained corporate blue. Colour marks actions and state — it is
-     never decoration, which is what separates enterprise UI from consumer. */
-  --accent: oklch(0.52 0.17 252);
-  --accent-soft: oklch(0.955 0.025 252);
+  --accent: #0078d4;
+  --accent-deep: #005a9e;
+  --accent-soft: #deecf9;
 
-  /* Ink is the primary button surface; it inverts in dark mode. */
-  --ink: oklch(0.19 0.012 265);
-  --ink-text: oklch(1 0 0);
+  --ink: #005a9e;
+  --ink-text: #ffffff;
 
-  /* Deep neutral for feature bands — contrast without hue noise. */
-  --navy: oklch(0.245 0.028 258);
-  --navy-soft: oklch(0.32 0.03 258);
+  --navy: #005a9e;
+  --navy-soft: #0078d4;
+  --band: linear-gradient(160deg, #006cbe, #004f8c);
+
+  /* The page behind everything: diagonal wash, then the three soft blobs. */
+  --page-wash:
+    radial-gradient(34vmax 34vmax at 0% 0%, rgb(0 120 212 / 0.2), transparent 70%),
+    radial-gradient(30vmax 30vmax at 100% 12%, rgb(199 224 244 / 0.55), transparent 70%),
+    radial-gradient(34vmax 34vmax at 96% 100%, rgb(0 90 158 / 0.13), transparent 70%),
+    linear-gradient(135deg, #ffffff, #f3f8fd 55%, #deecf9);
+  --band-subtle: rgb(222 236 249 / 0.26);
+
+  --bar: linear-gradient(90deg, #deecf9, #f3f8fd);
+  --bar-line: #c7e0f4;
+
+  --glass: rgb(255 255 255 / 0.66);
+  --glass-line: rgb(255 255 255 / 0.9);
+  --glass-shadow: 0 10px 32px -6px rgb(0 90 158 / 0.14), 0 1px 2px rgb(0 90 158 / 0.06);
+
+  /* The premium glass of the carousels: stronger light, a lit edge, a real lift. */
+  --gp-fill: linear-gradient(145deg, rgb(255 255 255 / 0.86), rgb(255 255 255 / 0.68));
+  --gp-edge: linear-gradient(145deg, rgb(255 255 255 / 1), rgb(255 255 255 / 0.25) 45%, rgb(0 120 212 / 0.4));
+  --gp-shadow:
+    0 28px 64px -20px rgb(0 72 130 / 0.36), 0 6px 16px -8px rgb(0 72 130 / 0.16),
+    inset 0 1px 0 rgb(255 255 255 / 0.85);
+  --gp-tile: rgb(255 255 255 / 0.55);
+  --gp-tile-line: rgb(255 255 255 / 0.85);
+  --gp-blob-a: rgb(0 120 212 / 0.5);
+  --gp-blob-b: rgb(120 190 245 / 0.6);
+  --gp-blob-c: rgb(0 90 158 / 0.38);
+  --gp-text: linear-gradient(100deg, #006abc, #004f8c);
+  --gp-label: #004f8c;
 
   color-scheme: light;
   scrollbar-gutter: stable;
@@ -53,21 +86,50 @@
 
 /* ---------- Design tokens (dark) ---------- */
 [data-theme='dark'] {
-  --bg: oklch(0.165 0.01 265);
-  --bg-subtle: oklch(0.215 0.012 265);
-  --bg-code: oklch(0.205 0.012 265);
-  --border: oklch(0.31 0.014 265);
-  --text: oklch(0.95 0.004 265);
-  --text-muted: oklch(0.7 0.01 265);
+  --bg: #0b1424;
+  --bg-subtle: #122036;
+  --bg-code: #101c30;
+  --border: #263a55;
+  --text: #eef4fb;
+  --text-muted: #a9b7c9;
 
-  --accent: oklch(0.72 0.14 250);
-  --accent-soft: oklch(0.3 0.06 252);
+  --accent: #63b1ee;
+  --accent-deep: #63b1ee;
+  --accent-soft: #12375a;
 
-  --ink: oklch(0.97 0 0);
-  --ink-text: oklch(0.18 0.012 265);
+  --ink: #0078d4;
+  --ink-text: #ffffff;
 
-  --navy: oklch(0.22 0.025 258);
-  --navy-soft: oklch(0.3 0.028 258);
+  --navy: #0b3a63;
+  --navy-soft: #0f4a7d;
+  --band: linear-gradient(160deg, #0b3f6c, #0a2746);
+
+  --page-wash:
+    radial-gradient(34vmax 34vmax at 0% 0%, rgb(0 120 212 / 0.24), transparent 70%),
+    radial-gradient(30vmax 30vmax at 100% 12%, rgb(0 90 158 / 0.2), transparent 70%),
+    radial-gradient(34vmax 34vmax at 96% 100%, rgb(0 120 212 / 0.16), transparent 70%),
+    linear-gradient(135deg, #0b1424, #0d1a2e 55%, #10233d);
+  --band-subtle: rgb(18 32 54 / 0.45);
+
+  --bar: linear-gradient(90deg, #12375a, #122036);
+  --bar-line: #1e4468;
+
+  --glass: rgb(20 36 60 / 0.62);
+  --glass-line: rgb(120 170 220 / 0.18);
+  --glass-shadow: 0 10px 32px -6px rgb(0 0 0 / 0.45);
+
+  --gp-fill: linear-gradient(145deg, rgb(24 44 74 / 0.86), rgb(12 24 44 / 0.8));
+  --gp-edge: linear-gradient(145deg, rgb(160 205 245 / 0.55), rgb(120 170 220 / 0.1) 45%, rgb(0 120 212 / 0.5));
+  --gp-shadow:
+    0 28px 64px -20px rgb(0 0 0 / 0.7), 0 6px 16px -8px rgb(0 0 0 / 0.4),
+    inset 0 1px 0 rgb(255 255 255 / 0.1);
+  --gp-tile: rgb(255 255 255 / 0.07);
+  --gp-tile-line: rgb(160 205 245 / 0.18);
+  --gp-blob-a: rgb(0 120 212 / 0.55);
+  --gp-blob-b: rgb(0 90 158 / 0.55);
+  --gp-blob-c: rgb(40 150 230 / 0.32);
+  --gp-text: linear-gradient(100deg, #8fcbf7, #63b1ee);
+  --gp-label: #8fcbf7;
 
   color-scheme: dark;
 }
@@ -111,6 +173,19 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Fixed and painted once, on its own layer, so scrolling never repaints it.
+     Glass here is translucency and shadow only: no backdrop-filter, for the
+     scroll-jank reason recorded in Header.astro. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--page-wash);
+    transform: translateZ(0);
+    pointer-events: none;
+  }
+
   ::selection {
     background-color: var(--accent-soft);
     color: var(--text);
@@ -129,7 +204,7 @@
 
 @layer components {
   /* ---------- Buttons ----------
-     Fully-rounded pills. Primary is solid ink, accent is reserved for the
+     Fully-rounded pills. Primary is dark azure, accent is reserved for the
      single highest-intent action on a page so it keeps its weight. */
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold whitespace-nowrap transition-all duration-150;
@@ -144,11 +219,12 @@
   }
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 8px 20px -8px oklch(0 0 0 / 0.45);
+    box-shadow: 0 8px 20px -8px var(--accent-deep);
   }
 
+  /* A fixed azure, not --accent: dark mode's lighter accent fails against white text. */
   .btn-accent {
-    background: var(--accent);
+    background: #0078d4;
     color: #fff;
   }
   .btn-accent:hover {
@@ -159,17 +235,252 @@
   .btn-outline {
     background: var(--bg);
     color: var(--text);
-    border: 1.5px solid var(--text);
+    border: 1.5px solid var(--accent-deep);
   }
   .btn-outline:hover {
-    background: var(--text);
+    background: var(--accent-deep);
     color: var(--bg);
   }
 
-  /* Eyebrow label above section headings. */
+  /* Eyebrow label above section headings: the decks' kicker, a short rule
+     then spaced capitals. */
   .eyebrow {
-    @apply text-xs font-bold tracking-[0.14em] uppercase;
+    @apply text-xs font-bold tracking-[0.16em] uppercase;
+    color: var(--accent-deep);
+  }
+  /* Inline, not a flex gap: some eyebrows hold several spans of text. */
+  .eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 28px;
+    height: 3px;
+    margin-inline-end: 0.75rem;
+    vertical-align: 0.2em;
+    background: var(--accent);
+  }
+
+  /* Stat chip in the sticky reader bar: the decks' pill, with an azure icon. */
+  .meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid var(--bar-line);
+    border-radius: 999px;
+    background: var(--bg);
+    padding: 0.25rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 550;
+    line-height: 1.25rem;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .meta-chip svg {
+    width: 0.95rem;
+    height: 0.95rem;
+    flex: none;
     color: var(--accent);
+  }
+  /* The topic leads the row, filled so it reads as a label and not a stat. */
+  .meta-chip--lead {
+    border-color: #0078d4;
+    background: #0078d4;
+    font-weight: 650;
+    color: #fff;
+  }
+
+  /* The tile: every post, article and repository card on the site. A plain border
+     rather than the carousels' masked edge, because a page can hold 300 of these. */
+  .tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--gp-tile-line);
+    border-radius: 1.25rem;
+    background: var(--gp-fill);
+    box-shadow: 0 14px 32px -18px rgb(0 72 130 / 0.32), 0 2px 6px -3px rgb(0 72 130 / 0.1);
+    transition: transform 0.25s cubic-bezier(0.22, 0.8, 0.3, 1), box-shadow 0.25s, border-color 0.25s;
+  }
+  .tile:hover {
+    border-color: var(--accent);
+    box-shadow: 0 26px 48px -20px rgb(0 72 130 / 0.5), 0 4px 10px -4px rgb(0 72 130 / 0.16);
+    transform: translateY(-4px);
+  }
+  .tile-media {
+    aspect-ratio: 1200 / 630;
+    flex: none;
+    overflow: hidden;
+    background: var(--bg-subtle);
+  }
+  .tile-media img {
+    transition: transform 0.5s ease;
+  }
+  .tile:hover .tile-media img {
+    transform: scale(1.04);
+  }
+  .tile-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 1.1rem 1.25rem 1rem;
+  }
+  .tile-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.6rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .tile-topic {
+    border-radius: 999px;
+    background: var(--accent-soft);
+    padding: 0.125rem 0.6rem;
+    font-weight: 650;
+    color: var(--accent-deep);
+  }
+  .tile-title {
+    margin-top: 0.6rem;
+    font-size: 1.0625rem;
+    font-weight: 650;
+    line-height: 1.32;
+    letter-spacing: -0.015em;
+    text-wrap: pretty;
+    transition: color 0.15s;
+  }
+  .tile:hover .tile-title {
+    color: var(--accent-deep);
+  }
+  .tile-text {
+    margin-top: 0.4rem;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--text-muted);
+  }
+  /* Pinned to the bottom, so every tile in a row ends on the same line. */
+  .tile-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+    margin-top: auto;
+    border-top: 1px solid var(--border);
+    padding-top: 0.7rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .tile-text + .tile-foot,
+  .tile-title + .tile-foot {
+    margin-top: auto;
+  }
+  .tile-body > :nth-last-child(2) {
+    margin-bottom: 0.85rem;
+  }
+  .tile-cta {
+    display: inline-flex;
+    gap: 0.25rem;
+    margin-left: auto;
+    font-weight: 650;
+    color: var(--accent-deep);
+  }
+  .tile-cta span {
+    transition: transform 0.2s;
+  }
+  .tile:hover .tile-cta span {
+    transform: translateX(3px);
+  }
+  .tile-tag {
+    border-radius: 0.4rem;
+    background: var(--accent-soft);
+    padding: 0.1rem 0.45rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+  }
+  /* The azure square a repository or project is marked with. */
+  .tile-mark {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #0078d4, #005a9e);
+    box-shadow: 0 8px 16px -8px rgb(0 90 158 / 0.7);
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  /* The azure panel standing in where there is no artwork. */
+  .tile-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    overflow: hidden;
+    background:
+      radial-gradient(90% 90% at 100% 0%, rgb(255 255 255 / 0.2), transparent 70%),
+      linear-gradient(155deg, #0068b8, #003e70);
+    padding: 1rem 1.25rem;
+    color: #fff;
+  }
+  .tile-panel-mark {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.26em;
+  }
+  .tile-panel-topic {
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  /* Rises into view as it scrolls in. Done by the browser, with no script, so
+     anywhere without support simply shows it. `translate`, not `transform`, so
+     it never fights a tile's hover lift. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .reveal-in {
+        animation: reveal-rise linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 28%;
+      }
+      @keyframes reveal-rise {
+        from {
+          opacity: 0;
+          translate: 0 22px;
+        }
+      }
+    }
+  }
+
+  /* Premium glass, for the carousels. No backdrop-filter: what sits behind it is
+     already soft blobs, so a blur would cost frames and change nothing visible.
+     The lit edge is a masked ring, because a gradient border would also show
+     through the translucent fill. */
+  .glass-premium {
+    position: relative;
+    background: var(--gp-fill);
+    box-shadow: var(--gp-shadow);
+  }
+  .glass-premium::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--gp-edge);
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+
+  /* Glass card, the decks' signature surface. */
+  .glass {
+    background: var(--glass);
+    border: 1px solid var(--glass-line);
+    box-shadow: var(--glass-shadow);
   }
 
   /* Display headline: tight, but sized for density rather than spectacle. */
@@ -188,6 +499,24 @@
   .section-head {
     @apply flex flex-wrap items-end justify-between gap-4 border-b pb-4;
     border-color: var(--border);
+  }
+
+  /* The heading of a section further down a page: the decks' kicker rule, above
+     a bold label and a hairline. */
+  .section-title {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .section-title::before {
+    content: '';
+    display: block;
+    width: 28px;
+    height: 3px;
+    margin-bottom: 0.6rem;
+    background: var(--accent);
   }
 
   /* Small outlined chip used to label feature bands. */
@@ -271,7 +600,7 @@
   }
 
   .prose-reading a:not(.heading-anchor) {
-    color: var(--accent);
+    color: var(--accent-deep);
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
@@ -361,11 +690,17 @@
 
   /* Tables are high-value for both readers and AI extraction — make them legible. */
   .prose-reading table {
-    @apply w-full text-left text-base;
+    @apply text-left text-base;
     font-family: var(--font-sans);
     border-collapse: collapse;
     display: block;
+    /* Hugs its cells, so the glass behind it never runs past the last column. */
+    width: fit-content;
+    max-width: 100%;
     overflow-x: auto;
+    border-radius: 0.75rem;
+    background: var(--glass);
+    box-shadow: var(--glass-shadow);
   }
   .prose-reading th,
   .prose-reading td {
@@ -374,7 +709,7 @@
     vertical-align: top;
   }
   .prose-reading th {
-    background: var(--bg-subtle);
+    background: var(--accent-soft);
     font-weight: 620;
   }
 
@@ -397,7 +732,23 @@
   .border-default {
     border-color: var(--border);
   }
+  /* The deep azure: #0078d4 misses 4.5:1 on the tinted glass, this does not. */
   .text-accent {
-    color: var(--accent);
+    color: var(--accent-deep);
+  }
+
+  /* Every existing card is a rounded box with the default border, so they all
+     become glass here instead of in each of the 50-odd components. Form fields
+     keep their opaque fill: typing on a translucent box reads badly. */
+  main :is(.rounded-lg, .rounded-xl, .rounded-2xl).border-default:not(input, select, textarea),
+  main :is(.rounded-xl, .rounded-2xl).bg-subtle {
+    background: var(--glass);
+    border-color: var(--glass-line);
+    box-shadow: var(--glass-shadow);
+  }
+
+  /* Full-bleed bands let the blobs show through instead of painting over them. */
+  main section.bg-subtle {
+    background: var(--band-subtle);
   }
 }

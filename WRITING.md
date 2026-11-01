@@ -87,8 +87,22 @@ coverAlt: 'Diagram of the Entra ID authentication flow for a Blazor Server app'
 
 `coverAlt` is **required** whenever `cover` is set — the build refuses otherwise.
 
-**No cover image is fine.** Posts without one get a gradient generated from the
-slug, so cards never look empty. Same post, same artwork, every build.
+Aim for **1200×630** — the size cards and share images are cropped to. A
+screenshot of the thing you built beats a diagram of it.
+
+**No cover image still works.** Posts without one show their own share card —
+title, category, and the MSDEVBUILD wordmark, drawn at build time by
+`src/lib/og-card.ts`, the same image LinkedIn and X show when the post is
+shared. Nothing looks empty, but the fallback is a stand-in, not the goal:
+
+```bash
+npm run check:covers          # published posts still on the fallback
+npm run check:covers -- --all # drafts too
+```
+
+It never blocks a build. It does flag a `cover:` that points at a missing file,
+one under 1200px wide, or one shaped so differently from 1200×630 that the card
+crop cuts into it.
 
 ### Images inside the article
 
@@ -170,6 +184,24 @@ the label.
 
 ---
 
+## 5b. The reference project
+
+Code samples come from **one real app** wherever the topic allows it — the
+MSDevBuild Eats Flutter food delivery project — so readers follow a working
+implementation instead of isolated snippets.
+
+| | |
+| --- | --- |
+| Source | <https://github.com/jssuthahar/food-delivery-app> |
+| Live web | <https://jssuthahar.github.io/food-delivery-app/> |
+| Android build | <https://appdistribution.firebase.dev/i/00432c5aa60de58b> |
+
+Put the three links near the top of the post in a `<Callout type="tip">`, use
+real file paths from the repo, and give the reader something to run. Full
+guidance, including when *not* to use it: [`tools/blog/docs/REFERENCE-PROJECT.md`](tools/blog/docs/REFERENCE-PROJECT.md).
+
+---
+
 ## 6. Writing the body
 
 Plain Markdown below the frontmatter.
@@ -237,5 +269,5 @@ Then commit and push to `main`. GitHub Actions builds and deploys automatically.
 
 ## 8. Full template
 
-Copy [`docs/post-template.mdx`](docs/post-template.mdx) into
+Copy [`tools/blog/docs/post-template.mdx`](tools/blog/docs/post-template.mdx) into
 `src/content/blog/`, rename it, and delete what you don't need.

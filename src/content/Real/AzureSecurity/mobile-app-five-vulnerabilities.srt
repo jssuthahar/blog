@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:02,200
+Run one scan first. This is a normal, working app.
+
+2
+00:00:02,600 --> 00:00:05,000
+An API key in strings.xml. The package is public.
+
+3
+00:00:05,400 --> 00:00:07,800
+Saved in SharedPreferences or UserDefaults. Readable on a rooted phone.
+
+4
+00:00:08,200 --> 00:00:10,600
+The /admin route you added to test. It never got a check.
+
+5
+00:00:11,000 --> 00:00:13,400
+Someone disabled it to test against a local server. It stayed off.
+
+6
+00:00:13,800 --> 00:00:16,200
+Contacts, location, camera. Copied in from a sample and left there.
+
+7
+00:00:16,600 --> 00:00:19,000
+It is the only one that needs no phone at all. Anyone with curl can use it.
+
+8
+00:00:19,400 --> 00:00:21,800
+Nobody chose any of them. That is exactly why they are still there.

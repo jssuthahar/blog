@@ -1,0 +1,380 @@
+---
+title: 'AI Agents for Accessibility, Localization, Documentation and SEO'
+seoTitle: 'AI Accessibility and SEO Agents'
+description: 'Four AI agents for the work that decides who can use your product (accessibility, localization, documentation and SEO) with prompts and hooks.'
+highlight: 'A favourite button that looks exactly like a heart can announce itself to a screen reader as nothing but "button", and it will pass every code review. Four agents cover work that is invisible from inside the team: accessible names and contrast, strings a translator can actually translate, documentation that cannot drift, and pages that both rank and get quoted.'
+publishedAt: 2026-10-02
+updatedAt: 2026-10-01
+category: web
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Accessibility', 'Localization', 'Documentation', 'SEO', 'AEO', 'Flutter', 'WCAG']
+series: 'ai-agent-team'
+seriesOrder: 8
+cover: './images/ai-agents-accessibility-localization-documentation-seo-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "The AI Engineering Team" above the title "It looks like a heart. It says button." and the line "Accessibility, localization, documentation and SEO agents.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "A favourite button passes review, it looks exactly right", an arrow labelled "screen reader on" to a red box reading "TalkBack reads button, silent for the team", and an arrow labelled "the fix" to a green box reading "A hook flags, an agent confirms: Add to favourites, button".'
+draft: true
+faq:
+  - q: 'Can an AI agent make an app accessible on its own?'
+    a: 'It can fix the mechanical layer (missing labels, contrast ratios, tap target sizes, focus order), which is most of the findings by count. It cannot tell you whether a flow makes sense to somebody who cannot see the screen. That still needs a person with a screen reader, and the agent can write the short script they follow.'
+  - q: 'What is the difference between localization and translation?'
+    a: 'Translation swaps words. Localization removes the assumptions your code makes about language: that word order is fixed, that a label fits in the same width, that plurals work like English, that dates and currency read one way. A string built by concatenation cannot be translated at all.'
+  - q: 'Which documentation is worth automating?'
+    a: 'The parts that go stale: setup steps, configuration, API contracts and indexes. Leave the reasoning to people. An agent can regenerate how to run the project, but if it writes why the team chose an architecture, it will invent a reason that reads well and was never true.'
+  - q: 'What is the difference between SEO and AEO?'
+    a: 'SEO gets a page ranked in search results. AEO, answer engine optimization, gets it quoted by AI assistants and AI overviews. Ranking rewards depth and links; quoting rewards short, self-contained answers under headings phrased as real questions.'
+  - q: 'Why measure page titles in pixels instead of characters?'
+    a: 'Because search results truncate by width, not by count. A title full of capitals and wide letters is cut off well before a title of the same length in narrow letters. Character limits are a rough proxy that fails on exactly the titles people care about.'
+  - q: 'How do you find Flutter buttons with no accessible name?'
+    a: 'Search for interactive widgets such as IconButton, InkWell and GestureDetector that have no semanticLabel, tooltip or Semantics wrapper nearby. A simple script finds candidates; an agent then confirms each one, because a Tooltip a few lines above or a Text child already gives the control a name.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+A favourite button that looks exactly like a heart can announce itself to a screen reader as nothing but "button", and it will pass every code review. Four agents cover work that is invisible from inside the team. The accessibility agent covers names and contrast. The localization agent covers strings a translator can actually translate. The documentation agent covers setup that cannot drift. The SEO and AEO agent covers pages that both rank and get quoted.
+
+Picture a week before launch. Someone turns on TalkBack and opens MSDevBuild Eats. On the home screen, every restaurant card has a heart in its corner. Swipe to it, and the phone says "button". Not "add to favourites". Just "button", on every card.
+
+It passed review every time, because to everyone reading the code, an `InkWell` around a heart icon looks exactly like a favourite button.
+
+<Callout type="tip" title="A real repository, open alongside">
+Every widget and string quoted below is in **MSDevBuild Eats**, an open-source Flutter food delivery app.
+
+- **Source code**: [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web**: [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`)
+</Callout>
+
+## Why do accessibility and localization get found last?
+
+Because the team cannot see the failure. Everyone testing has the screen reader off, the font at default size, and the device in the language the app was written in. Under those conditions the bugs do not exist.
+
+| When | What the team sees | What a user sees |
+| --- | --- | --- |
+| Every review | A heart icon on each restaurant card | TalkBack: "button" |
+| Every demo | "Order o-1042 → Preparing" | A sentence no translator can reorder |
+| Every PR | Text at default size | Labels clipped at 200% font scale |
+| Launch week | Nothing wrong | All three, at once |
+
+A crash announces itself. These are silent for everyone on the team and loud for everyone who is not. That asymmetry is why a mechanical check beats good intentions.
+
+## The command that finds unnamed controls
+
+```bash
+for f in $(grep -rl "IconButton(\|GestureDetector(\|InkWell(" lib); do
+  awk '/IconButton\(|GestureDetector\(|InkWell\(/{start=NR; buf=""}
+       start && NR<=start+8 {buf=buf $0}
+       start && NR==start+8 { if (buf !~ /semanticLabel|Semantics\(|tooltip:/) print FILENAME ":" start; start=0 }' "$f"
+done | wc -l
+```
+
+```text
+15
+```
+
+Fifteen interactive widgets in `lib/` have no `semanticLabel`, `tooltip` or `Semantics` within eight lines. That number is a list of candidates, not fifteen bugs, and checking the first five by hand shows why the agent has to confirm each one:
+
+- `restaurant_hero.dart:215` is an icon-only `InkWell`, but its `_CircleAction` wraps it in a `Tooltip` a few lines above the window. **Named.**
+- `food_detail_screen.dart:150` and `home_header.dart:159` have a `Text` child inside the `InkWell`. **Named.**
+- `home_header.dart:206` is a widget that takes a `tooltip` parameter. **Named.**
+- `restaurant_card.dart:343` is `_FavouriteButton`: an `InkWell` around a heart `Icon`, inside a `Material`, with nothing above it. **No name.** This is the button TalkBack reads as "button".
+
+<figure>
+
+![Two step flows side by side. On the left, reviewed by eye, with everyone testing with the screen reader off: _FavouriteButton on a restaurant card is an InkWell around a heart Icon; it passes review because it looks exactly like a heart; it has no Tooltip and no Semantics, so there is nothing for a screen reader to say; TalkBack reads it aloud as "button". The red outcome: silent for the team, loud for the user. On the right, checked at commit, where a hook flags and the agent confirms: the hook flags interactive widgets with no name, 15 across lib; the agent sorts real misses from controls named by a Tooltip above or a Text inside; the fix wraps it in Semantics with the label "Add to favourites" or "Remove from favourites"; and a four-step manual TalkBack script covers what no agent can judge. The green outcome: "Add to favourites, button".](./images/ai-accessibility-agent-favourite-button-name.png)
+
+<figcaption>Figure 1 — the same favourite button, reviewed by eye and checked at commit.</figcaption>
+
+</figure>
+
+<ShortHighlight slugs={['ai-reach-agents-heart-says-button']} />
+
+## The Accessibility Agent
+
+Start with what this agent can honestly do, because accessibility tooling is often oversold.
+
+It can find missing semantic labels, contrast ratios below the threshold, tap targets under the minimum, broken focus order, images with no description, and text that breaks at large font scales. By count, that is most of the findings on most screens.
+
+What it cannot do is tell you whether the *experience* works: whether the order flow is followable without seeing the layout, whether an error message means anything read aloud out of context. That is a person with a screen reader, and no agent replaces them.
+
+**What it gets:** the widget code, the design tokens with their colour values, and one line on what the screen is for.
+
+**What it returns:** findings with the fix as a diff, plus a short manual test script for the human pass.
+
+```markdown
+<!-- .ai/prompts/accessibility.md -->
+Screen: {file}. Purpose: {one line}. Tokens: lib/core/theme/
+Target: WCAG 2.2 AA, Android and iOS.
+
+Check and report with the fix as a diff:
+1. Every interactive widget: does it announce a name that says what it
+   DOES? "button" is a failure. So is an icon name like "chevron".
+   A Tooltip above or a Text child counts as a name; check before flagging.
+2. Contrast of every text and icon colour against its actual background,
+   with the computed ratio. Include disabled and placeholder states.
+3. Tap targets under 48dp, and targets closer together than 8dp.
+4. Focus and reading order. Does it match the visual order?
+5. Text at 200% font scale: what overflows or truncates?
+
+Then write a MANUAL test script: the four things a person must try with
+TalkBack and VoiceOver that you could not check. Be specific about
+what "correct" sounds like.
+```
+
+For `_FavouriteButton`, the fix is a few lines: wrap the `InkWell` in `Semantics(button: true, label: isFavourite ? 'Remove from favourites' : 'Add to favourites')`, so the announcement changes with the state. The manual script then says exactly what to listen for: swipe to the heart, hear "Add to favourites, button", double-tap, hear "Remove from favourites, button".
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: an icon-only control must announce itself
+for f in $(git diff --cached --name-only --diff-filter=ACM | grep -E '\.dart$'); do
+  awk '/IconButton\(|GestureDetector\(|InkWell\(/{start=NR; buf=""}
+       start && NR<=start+8 {buf=buf $0}
+       start && NR==start+8 {
+         if (buf !~ /semanticLabel|Semantics\(|tooltip:|Text\(/)
+           print FILENAME ":" start " interactive widget with no accessible name"
+         start=0 }' "$f"
+done | grep . && {
+  echo "a11y: add a semanticLabel, a Tooltip, or wrap it in Semantics()."
+  echo "      If a Tooltip sits further up, add it to docs/a11y-exceptions.md."
+  exit 1
+}
+exit 0
+```
+
+The `Text(` match and the exceptions file exist because of what the hand check showed: a hook with false positives and no escape gets switched off. The [Flutter accessibility guide](https://docs.flutter.dev/ui/accessibility-and-internationalization/accessibility) covers the semantics API in full.
+
+| | |
+| --- | --- |
+| **Skills** | WCAG 2.2 AA · Flutter semantics · contrast maths · screen reader behaviour |
+| **Triggers on** | Any new screen or interactive widget, any palette change |
+| **Fails the build when** | An interactive widget has no accessible name and no listed exception |
+
+## The Localization Agent
+
+MSDevBuild Eats is English-only today: there is no `lib/l10n`, no `flutter_localizations` in `pubspec.yaml`, and 96 `Text('…')` strings written directly in `lib/features`. That is a fair choice for a demo. It also means the localization agent's first job is to say how much work a second language is, honestly, before anyone promises one.
+
+The most useful thing it finds is not the hard-coded strings. It is the sentences built from fragments:
+
+```dart
+// lib/features/partner/bloc/partner_bloc.dart:125
+successMessage: 'Order ${order.id} → ${order.status.label}',
+```
+
+This is an English sentence assembled in English word order, inside a bloc. A translator receives it in pieces, or not at all, and cannot reorder it. The rider dashboard has the plural version: `'${state.available.length} waiting for a rider'` reads fine for 2 and needs a different form in many languages for 1 or 0.
+
+**Localization is not translation. It is the removal of assumptions your code makes about language**: that word order is fixed, that a label fits the same width, that plurals behave like English, that dates and currency read one way.
+
+<figure>
+
+![Step flow of five steps. One, the string 'Order ${order.id} → ${order.status.label}' in partner_bloc.dart line 125, in English word order. Two, the localization agent flags it, because a sentence built from fragments cannot be translated. Three, it becomes one ICU message with placeholders, orderStatusChanged with id and status. Four, a description for the translator: a toast after a status change, a noun phrase. Five, the width is checked at plus 35 percent, so the snackbar still fits in a longer language.](./images/ai-localization-agent-concatenation-to-icu.png)
+
+<figcaption>Figure 2 — one real string, from English fragments to a message a translator can work with.</figcaption>
+
+</figure>
+
+The other common miss is translator context. A key called `order_label` with the value "Order" gives a translator no way to know whether it is a noun on a heading or a verb on a button, and many languages use different words for each.
+
+**What it gets:** the screen code, any existing `.arb` files, and the target locales.
+
+**What it returns:** extracted keys with a description for each, concatenations and format assumptions flagged, and a width report for the labels most likely to overflow.
+
+```markdown
+<!-- .ai/prompts/localization.md -->
+Locales: {list}. Existing: lib/l10n/*.arb (if any). Files: {list}
+
+1. Extract every user-visible string, including those built in blocs.
+   For each key, write a DESCRIPTION for the translator: part of speech,
+   where it appears, character limit if the layout has one.
+2. Flag every string assembled by concatenation or interpolation across
+   sentence parts. Rewrite as a single parameterised ICU message.
+3. Flag plural handling. Use ICU plural syntax, never
+   `count == 1 ? 'item' : 'items'`.
+4. Flag every date, time, number and currency formatted by hand.
+5. Estimate which labels overflow at +35% length.
+
+Never translate. Produce keys, descriptions and findings only.
+```
+
+The last instruction matters more than it sounds. Translations that are almost right to a native speaker are worse than obviously missing ones, because nobody reports them.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: no new hard-coded user-visible strings (once l10n is adopted)
+[ -d lib/l10n ] || exit 0
+offenders=""
+for f in $(git diff --cached --name-only --diff-filter=ACM | grep -E '^lib/features/.*\.dart$'); do
+  git diff --cached -U0 "$f" | grep '^+' | grep -qE "Text\(\s*'[A-Z][a-z ]{3,}" && offenders="$offenders $f"
+done
+[ -z "$offenders" ] || { echo "l10n: new hard-coded string in:$offenders"; exit 1; }
+```
+
+The first line is deliberate. A hook that fails 96 existing strings on day one gets disabled; one that only blocks *new* strings, once localization is adopted, stops the number growing.
+
+| | |
+| --- | --- |
+| **Skills** | ICU message format · ARB files · locale-aware formatting · layout under text growth |
+| **Triggers on** | Any new user-visible string, any new locale |
+| **Fails the build when** | A new hard-coded string is added after localization is adopted |
+
+## The Documentation Agent
+
+A README that says `flutter pub get`, then `flutter run`, is a whole week of a new joiner asking questions. Which backend? Where does the config come from? Why does the Android build need signing secrets? Every answer exists in someone's head.
+
+MSDevBuild Eats sits at the other end: a 476-line `README.md`, plus `docs/SETUP.md`, `docs/DEPLOYMENT.md` and `docs/ARCHITECTURE.md`. That creates the opposite risk. The more documentation exists, the more of it can be quietly wrong.
+
+**Automate the documentation that goes stale; keep the documentation that needs judgement.** Setup steps, configuration and API contracts drift the moment code changes, and an agent can regenerate them from the real sources. The reasoning behind an architecture cannot be regenerated, only invented.
+
+**What it gets:** the repo, the workflow files, the config files and the scripts. Real sources, not prose.
+
+**What it returns:** a setup section derived from what the build actually requires, a configuration table, and a list of statements in the existing docs that the sources no longer support.
+
+```markdown
+<!-- .ai/prompts/documentation.md -->
+Sources of truth: pubspec.yaml, .github/workflows/, lib/core/config/,
+firebase/, .githooks/. Read these, not the existing docs.
+
+Produce:
+1. Setup: the exact steps to a running app on a clean machine, derived
+   from what the workflows actually do. Include what a person must
+   obtain from someone else (access, keys, project invitation).
+2. Configuration: every switch the app reads (backend, flags), where it
+   is set, and its default. Never print a real secret.
+3. Statements in README.md and docs/ that the sources contradict.
+4. Anything the workflows do that a developer cannot do locally, and why.
+
+Do NOT write rationale, architecture explanations, or "why" sections.
+If a reason is not stated in the repo, leave a TODO with the question.
+```
+
+The last rule exists because an agent asked to explain a decision will write a paragraph of convincing, well-written reasoning nobody ever had. A TODO with the right question is more useful than a confident answer that is false. `AGENTS.md` follows the same rule, and [the AGENTS.md playbook](/blog/agents-md-complete-playbook) covers what belongs in it.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: a new build-time switch must be documented before it is used
+for v in $(git diff --cached -U0 -- '*.dart' | grep '^+' \
+           | grep -oE "String\.fromEnvironment\('[A-Z_]+'" \
+           | grep -oE "'[A-Z_]+'" | tr -d "'" | sort -u); do
+  grep -q "$v" docs/SETUP.md || {
+    echo "docs: '$v' is read by the app but is not in docs/SETUP.md."
+    echo "The next person to clone this repo will hit it on day one."
+    exit 1
+  }
+done
+```
+
+This pairs with [the DevOps agent's change](/blog/ai-agents-devops-release-monitoring-analytics): once the backend becomes a `--dart-define`, the first new variable is `BACKEND`, and this hook makes sure the setup guide mentions it the same day.
+
+| | |
+| --- | --- |
+| **Skills** | Reading config as source of truth · onboarding paths · drift detection |
+| **Triggers on** | A new build switch, a workflow change, a new ADR |
+| **Fails the build when** | Code reads a build-time variable that the setup guide does not mention |
+
+## The SEO and AEO Agent
+
+Every mobile product has a web surface: a landing page, a help centre, a blog. This is the one agent in the series that can be shown running on a real site, because it runs on this one. Two scripts gate every article published here: `check:seo` measures the search-facing fields, and `check:aeo` measures whether a page can be quoted.
+
+The first lesson: **search results truncate by pixel width, not by character count.** A title in wide capitals gets cut off well before one of the same length in narrow lowercase, and the site suffix on every page uses part of the budget.
+
+The second is newer. A reader who gets their answer from an AI overview never visits the page. What survives is whether the answer carried your name with it. That is answer engine optimization, and it rewards a different structure: headings phrased as the questions people type, a two-sentence answer directly under each, and FAQ entries that make sense lifted out of the page.
+
+**What it gets:** the page, the target query, and what already ranks for it.
+
+**What it returns:** title and description inside the width budget, a FAQ block of real questions, internal links to related pages, and the sections that are not quotable as written.
+
+```markdown
+<!-- .ai/prompts/seo-aeo.md -->
+Page: {file}. Target query: {query}. Already ranking: {competitors}
+
+SEO:
+1. Title and description, measured by RENDERED WIDTH, not characters.
+   Include the site suffix in the measurement.
+2. The query in the title, the first 100 words, and one heading,
+   written the way a person writes, not stuffed.
+
+AEO:
+3. Headings phrased as the exact question someone types. Under each,
+   answer in the first two sentences, then explain.
+4. Three to six FAQ entries. Real queries only. Each answer must make
+   sense lifted out of the page with no surrounding context.
+5. At least one answer to the sceptical question: when NOT to do this,
+   what it costs. Competing pages skip it, so that is what gets quoted.
+6. Sections that are not quotable as written, and why.
+
+Do not add keywords to prose that reads worse for having them.
+```
+
+Point 5 tends to matter most. Pages that answer only the enthusiastic question all say the same thing, so an answer engine has no reason to prefer any of them.
+
+```json
+// package.json on this blog: the same gates, run before publish
+"check:seo": "node tools/guards/check-seo.mjs",
+"check:aeo": "node tools/guards/check-aeo.mjs"
+```
+
+| | |
+| --- | --- |
+| **Skills** | Rendered-width measurement · answer engine structure · internal linking · schema |
+| **Triggers on** | Every page, before publish |
+| **Fails the build when** | A published page exceeds the width budget or has no FAQ block |
+
+## Mistakes worth skipping
+
+- **Treating accessibility as a phase.** A launch-week audit instead of a commit-time check, so every finding is expensive by the time it is seen.
+- **A hook with false positives and no escape.** It gets disabled within a week, and then catches nothing.
+- **Extracting strings without context for translators.** Correct keys, grammatically fine translations, and the wrong tone everywhere.
+- **Letting an agent write the "why" sections.** It produces reasoning you never had, well enough that nobody questions it.
+- **Optimising for ranking and ignoring quoting.** An AI overview answers your question without naming you.
+
+## What changes with these four?
+
+| Problem | Found by | With the agent |
+| --- | --- | --- |
+| Favourite button reads "button" | A user, after launch | Hook candidate, agent confirms, `Semantics` label, manual script |
+| `'Order ${id} → ${status}'` | A translator who cannot reorder it | One ICU message with a description |
+| Docs that contradict the code | A new joiner's first week | Statements the sources do not support, listed |
+| A page that is never quoted | Nobody | Question headings, two-sentence answers, FAQ |
+
+## Questions a tech lead will ask about this
+
+1. **"Is a script enough for accessibility?"** For finding candidates, yes. For deciding which are real, no: a `Tooltip` above or a `Text` inside already names a control.
+2. **"We only ship in English. Do we need the localization agent?"** Not yet for translation. Yes for stopping new concatenated sentences, which are what make a second language expensive later.
+3. **"Our README is long. Isn't that enough?"** Length is not accuracy. The agent's job is the statements the code no longer supports.
+4. **"Is AEO different work from SEO?"** Same page, different structure. Ranking rewards depth; quoting rewards self-contained answers.
+5. **"Who runs the manual screen reader pass?"** A person, from a four-step script the agent writes. Ten minutes per screen.
+
+## What to do on day one
+
+- Run the unnamed-control loop on your app and check the first five by hand.
+- Turn on TalkBack or VoiceOver and listen to your busiest screen for two minutes.
+- Search for interpolated English sentences in blocs and widgets.
+- Ask the documentation agent which statements in your README the code contradicts.
+- Rewrite one FAQ answer so it makes sense with no surrounding context.
+
+## Key takeaways
+
+- Accessibility and localization defects are silent for the team and loud for everyone else. A mechanical check beats good intentions.
+- A script finds candidates; an agent confirms them. Both are needed, and a person still runs the screen reader.
+- A sentence built from fragments cannot be translated. Localization removes assumptions; it does not swap words.
+- Automate the documentation that goes stale. Leave the reasoning to people, and accept a TODO over an invented explanation.
+- Search truncates by pixels. Answer engines quote self-contained blocks. Two jobs on the same page.
+
+## The next screen
+
+A new rider earnings screen goes up for review. The hook flags two icon-only controls; the agent confirms one is already in a `Tooltip` and adds a `Semantics` label to the other. The localization agent turns `'${count} deliveries this week'` into an ICU plural before it ever ships. The manual script takes eight minutes.
+
+Nothing on that screen says "button" on its own.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
+
+1. **The heart.** Write the `Semantics` label for `_FavouriteButton` so the announcement changes when a restaurant is already a favourite.
+2. **False positive.** The hook flags `restaurant_hero.dart:215`. Why is it named anyway, and how do you stop the hook flagging it again?
+3. **The arrow.** Rewrite `'Order ${order.id} → ${order.status.label}'` as one ICU message, and write the translator description.
+4. **96 strings.** Why does the localization hook exit early when `lib/l10n` does not exist, instead of failing all 96?
+5. **The quotable answer.** Take any FAQ answer from this article. What makes it usable by an answer engine with no surrounding page?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

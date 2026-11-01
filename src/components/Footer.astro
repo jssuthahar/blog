@@ -1,81 +1,343 @@
 ---
-import { SITE, AUTHOR, MAIN_SITE, SOCIAL, COMMUNITY } from '../config';
+import { SITE, AUTHOR, MAIN_SITE } from '../config';
+import Avatar from './Avatar.astro';
 import { TOPIC_GROUPS } from '../lib/taxonomy';
 import FollowCTA from './FollowCTA.astro';
 
 const year = new Date().getFullYear();
 
-// Follow targets come from SOCIAL so the verbs stay consistent with the CTA.
-const elsewhere = [
-  ...SOCIAL.map(({ cta, href }) => ({ label: cta, href })),
-  { label: 'Install the app', href: '/install/' },
-  { label: 'Help your friends share this', href: '/share/' },
+/**
+ * The footer is the one internal-linking surface that appears on every page, so
+ * it is grouped by what a link is *for* rather than kept as one list: read the
+ * work, verify the work, browse by subject, and everything about the site.
+ *
+ * Anchor text is descriptive on purpose — "Contribution record" tells a crawler
+ * and an answer engine what sits behind the link; "Contributions" does not.
+ */
+const read = [
+  { label: 'Blog posts', href: '/blog/' },
+  { label: 'Article series', href: '/series/' },
+  { label: 'Article library', href: '/articles/' },
+  { label: 'Short videos', href: '/shorts/' },
+  { label: 'All topics', href: '/topics/' },
+  { label: 'Tags', href: '/tags/' },
+  { label: 'Search the site', href: '/search/' },
+];
+
+// Everything a reviewer, recruiter, or answer engine would check before citing
+// the work. Contribution record leads because it is the dated, linkable one.
+const impact = [
+  { label: 'Contribution record', href: '/contributions/' },
+  { label: 'Open-source projects', href: '/open-source/' },
+  { label: 'Events', href: '/events/' },
+  { label: 'Speaking', href: '/speaking/' },
   { label: 'Testimonials', href: '/testimonials/' },
-  { label: 'Contact', href: '/contact/' },
-  { label: `Main site — ${MAIN_SITE.label}`, href: MAIN_SITE.url },
-  { label: 'Full profile — suthahar.msdevbuild.com', href: 'https://suthahar.msdevbuild.com' },
-  { label: 'RSS', href: '/rss.xml' },
+  { label: `About ${AUTHOR.name.split(' ')[0]}`, href: '/about/' },
+];
+
+/**
+ * `rel="me"` belongs on profile URLs only — it is an identity claim that ties
+ * these accounts to one person, which is what consolidates the author entity.
+ * Putting it on an internal page link says nothing and dilutes the signal.
+ */
+const site = [
+  { label: MAIN_SITE.label, href: MAIN_SITE.url, me: true },
+  { label: 'Full profile', href: 'https://suthahar.msdevbuild.com', me: true },
+  { label: 'Install the app', href: '/install/' },
+  { label: 'Share this blog', href: '/share/' },
+  { label: 'Reading history', href: '/history/' },
+];
+
+/**
+ * Machine-readable endpoints, named rather than buried in <head>.
+ *
+ * A visible row costs almost nothing and gives an AI crawler that renders the
+ * page — increasingly the common case — a direct path to the structured
+ * inventory instead of leaving it to guess at URLs.
+ */
+const machineReadable = [
+  { label: 'sitemap.xml', href: '/sitemap-index.xml', hint: 'Full page inventory' },
+  { label: 'llms.txt', href: '/llms.txt', hint: 'Site summary for language models' },
+  { label: 'rss.xml', href: '/rss.xml', hint: 'Full-text feed' },
+  { label: 'robots.txt', href: '/robots.txt', hint: 'Crawl policy' },
 ];
 ---
 
-<footer class="mt-24 border-t border-default bg-subtle">
-  <!-- Site-wide follow ask: present on every page without each page adding it. -->
-  <div class="mx-auto max-w-6xl border-b border-default px-4 py-10 sm:px-6">
-    <FollowCTA />
-  </div>
+<footer class="site-footer">
+  <div class="site-footer-full mx-auto max-w-6xl px-4 sm:px-6">
+    <!-- Who this is, and the site-wide follow ask, on every page. -->
+    <div class="footer-brand">
+      <div class="flex min-w-0 items-center gap-3.5">
+        <Avatar size={52} class="footer-avatar shrink-0" />
+        <div class="min-w-0">
+          <p class="text-lg font-semibold tracking-tight">
+            <span class="footer-ms">MS</span>DEVBUILD
+            <span class="font-normal opacity-80">/ blog</span>
+          </p>
+          <p class="text-sm opacity-85">{SITE.alternateName} · {SITE.byline} Jegatheesan</p>
+        </div>
+      </div>
 
-  <div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[2fr_1fr_1fr]">
-    <div>
-      <p class="font-semibold tracking-tight">
-        <span class="text-accent">MS</span>DEVBUILD
-        <span class="font-normal text-muted">/ blog</span>
-      </p>
-      <p class="mt-0.5 text-sm font-medium">{SITE.alternateName}</p>
-      <p class="mt-0.5 text-sm text-muted">{SITE.byline} Jegatheesan</p>
-      <p class="mt-3 max-w-sm text-sm leading-relaxed text-muted">{SITE.description}</p>
-      <p class="mt-3 text-sm text-muted">
-        The main site lives at <a href={MAIN_SITE.url} class="hover:text-accent">{MAIN_SITE.label}</a>.
-      </p>
+      <div>
+        <h2 class="footer-head">Follow the work</h2>
+        <FollowCTA variant="footer" class="mt-2.5" />
+      </div>
     </div>
 
-    <nav aria-labelledby="footer-topics">
-      <h2 id="footer-topics" class="text-sm font-semibold">
-        <a href="/topics/" class="hover:text-accent">Topics</a>
-      </h2>
-      <ul class="mt-3 space-y-2 text-sm text-muted">
-        {TOPIC_GROUPS.map((g) => (
-          <li>
-            <a href={`/category/${g.slug}/`} class="hover:text-accent">
-              <span aria-hidden="true">{g.emoji}</span> {g.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <div class="footer-columns">
+      <p class="footer-about">{SITE.description}</p>
 
-    <nav aria-labelledby="footer-elsewhere">
-      <h2 id="footer-elsewhere" class="text-sm font-semibold">Elsewhere</h2>
-      <ul class="mt-3 space-y-2 text-sm text-muted">
-        {elsewhere.map(({ label, href }) => (
-          <li><a href={href} class="hover:text-accent" rel="me noopener">{label}</a></li>
-        ))}
-      </ul>
+      <nav aria-labelledby="footer-read">
+        <h2 id="footer-read" class="footer-head">Read</h2>
+        <ul class="footer-links">
+          {read.map(({ label, href }) => <li><a href={href}>{label}</a></li>)}
+        </ul>
+      </nav>
+
+      <nav aria-labelledby="footer-impact">
+        <h2 id="footer-impact" class="footer-head">Impact &amp; recognition</h2>
+        <ul class="footer-links">
+          {impact.map(({ label, href }) => <li><a href={href}>{label}</a></li>)}
+        </ul>
+      </nav>
+
+      <nav aria-labelledby="footer-topics">
+        <h2 id="footer-topics" class="footer-head">Browse by topic</h2>
+        <ul class="footer-links footer-links--two">
+          {TOPIC_GROUPS.map((g) => <li><a href={`/category/${g.slug}/`}>{g.label}</a></li>)}
+        </ul>
+      </nav>
+
+      <nav aria-labelledby="footer-utility">
+        <h2 id="footer-utility" class="footer-head">This site</h2>
+        <ul class="footer-links">
+          {site.map(({ label, href, me }) => (
+            <li><a href={href} rel={me ? 'me noopener' : undefined}>{label}</a></li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+
+    <!-- Structured endpoints, kept as their own band so they read as a set. -->
+    <nav class="footer-machine" aria-labelledby="footer-machine">
+      <h2 id="footer-machine" class="footer-head">For crawlers &amp; answer engines</h2>
+      {machineReadable.map(({ label, href, hint }) => (
+        <a href={href} title={hint} class="font-mono text-xs">{label}</a>
+      ))}
     </nav>
   </div>
 
-  <div class="border-t border-default">
-    <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+  <!--
+    The one band that survives in app mode, so attribution and the privacy path
+    are never lost. Kept deliberately short: in the installed app this is the
+    entire footer.
+  -->
+  <div class="footer-bottom">
+    <div class="mx-auto flex max-w-6xl flex-col gap-x-6 gap-y-2 px-4 py-4 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <p>&copy; {year} {AUTHOR.name}. All rights reserved.</p>
-      <p class="flex flex-wrap gap-4">
-        {COMMUNITY.enabled && (
-          <a href="/profile/" class="hover:text-accent" data-account-link>Your profile</a>
-        )}
-        <a href="/history/" class="hover:text-accent">Reading history</a>
-        <a href="/privacy/" class="hover:text-accent">Privacy</a>
-        <a href="/llms.txt" class="hover:text-accent">llms.txt</a>
-        <a href="/rss.xml" class="hover:text-accent">RSS</a>
-        <a href="/sitemap-index.xml" class="hover:text-accent">Sitemap</a>
+      <p class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        <a href="/privacy/">Privacy</a>
+        <a href="/legal/">Legal</a>
+        <a href="/contact/">Contact</a>
+        <span class="site-footer-full">{AUTHOR.jobTitle} · {AUTHOR.location}</span>
       </p>
     </div>
   </div>
 </footer>
+
+<style>
+  /* The decks' azure panel, in both themes: the page ends on the brand colour. */
+  .site-footer {
+    position: relative;
+    margin-top: 5rem;
+    overflow: hidden;
+    border-radius: 2rem 2rem 0 0;
+    background: linear-gradient(160deg, #00528f, #002c50);
+    color: #fff;
+  }
+  :global([data-theme='dark']) .site-footer {
+    background: linear-gradient(160deg, #0a3f6c, #071f38);
+  }
+  /* Light drifting slowly behind the columns. */
+  .site-footer::before {
+    content: '';
+    position: absolute;
+    top: -40%;
+    right: -10%;
+    width: 46rem;
+    aspect-ratio: 1;
+    background: radial-gradient(closest-side, rgb(120 190 245 / 0.28), transparent);
+    animation: footer-drift 24s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  @keyframes footer-drift {
+    from {
+      transform: translate(0, 0);
+    }
+    to {
+      transform: translate(-22rem, 5rem);
+    }
+  }
+  .site-footer > * {
+    position: relative;
+  }
+  .site-footer :global(:focus-visible) {
+    outline-color: #fff;
+  }
+
+  .footer-brand {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem 2.5rem;
+    border-bottom: 1px solid rgb(255 255 255 / 0.18);
+    padding-block: 2.25rem 1.75rem;
+  }
+  .footer-brand :global(.footer-avatar) {
+    box-shadow: 0 0 0 2px rgb(255 255 255 / 0.9), 0 0 0 7px rgb(255 255 255 / 0.12);
+  }
+  .footer-ms {
+    color: #8fcbf7;
+  }
+  .footer-head {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  .footer-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.75rem 1.5rem;
+    padding-block: 1.75rem;
+  }
+  .footer-about {
+    grid-column: 1 / -1;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    opacity: 0.88;
+    text-wrap: pretty;
+  }
+  .footer-links {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 0.7rem;
+    font-size: 0.875rem;
+  }
+  .footer-links--two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 0.75rem;
+  }
+  /* Below desktop: topics get the room two columns of long names need, and this
+     site's few links run in a line. */
+  @media (max-width: 1023px) {
+    .footer-columns nav:last-child {
+      grid-column: 1 / -1;
+    }
+    .footer-columns nav:last-child .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem 1.5rem;
+    }
+  }
+  @media (max-width: 639px) {
+    .footer-columns nav:nth-of-type(3) {
+      grid-column: 1 / -1;
+    }
+    .footer-links--two {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  .footer-links a,
+  .footer-machine a,
+  .footer-bottom a {
+    display: inline-block;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .footer-links a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    transform: translateX(3px);
+  }
+  .footer-machine a:hover,
+  .footer-bottom a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .footer-machine {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 1.25rem;
+    border-top: 1px solid rgb(255 255 255 / 0.18);
+    padding-block: 0.9rem;
+  }
+  .footer-bottom {
+    background: rgb(0 0 0 / 0.2);
+  }
+
+  @media (min-width: 640px) {
+    .footer-columns {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1024px) {
+    .footer-columns {
+      grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr)) minmax(0, 1.35fr) minmax(0, 1.1fr);
+      column-gap: 2rem;
+    }
+    .footer-about {
+      grid-column: auto;
+      padding-right: 1rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .site-footer::before {
+      animation: none;
+    }
+  }
+</style>
+
+<style is:global>
+  /*
+   * A feed opened from the home screen must not end in a sitemap.
+   *
+   * On app-shell pages at phone widths the tab bar is the navigation, so the
+   * marketing footer below it is dead scroll between the last card and the
+   * bar — and "For crawlers & answer engines" reads as a bug inside an app.
+   * Only the attribution band survives.
+   *
+   * The selectors mirror AppTabBar.astro exactly: same 767px breakpoint, and
+   * the same split between `data-app-shell` (the /app route in a normal tab),
+   * `display-mode` (Android and desktop installs) and `data-standalone` (iOS,
+   * which does not report display-mode reliably).
+   */
+  @media (max-width: 767px) {
+    html[data-app-shell] .site-footer-full,
+    html[data-standalone] .site-footer-full {
+      display: none;
+    }
+    /* 6rem of air made sense above a full footer; above a single line it reads
+       as the feed having failed to load something. */
+    html[data-app-shell] .site-footer,
+    html[data-standalone] .site-footer {
+      margin-top: 2.5rem;
+    }
+  }
+
+  @media (display-mode: standalone) and (max-width: 767px),
+    (display-mode: minimal-ui) and (max-width: 767px),
+    (display-mode: fullscreen) and (max-width: 767px) {
+    .site-footer-full {
+      display: none;
+    }
+    .site-footer {
+      margin-top: 2.5rem;
+    }
+  }
+</style>

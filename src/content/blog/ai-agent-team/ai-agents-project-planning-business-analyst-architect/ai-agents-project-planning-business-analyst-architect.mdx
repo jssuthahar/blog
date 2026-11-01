@@ -1,0 +1,351 @@
+---
+title: 'AI Agents for Project Planning, Business Analysis and Solution Architecture'
+seoTitle: 'AI Planning and Architect Agents'
+description: 'The three AI agents that run before anyone writes code: planning, business analyst and solution architect, with real prompts and blocking hooks.'
+highlight: 'Most release delays are decided before anyone opens an editor: a four-bullet kickoff, a requirement with no edge cases, and an architecture decision nobody wrote down. A planning agent orders the work, a business analyst agent lists the states and open questions, and a solution architect agent turns each decision into an ADR plus a rule a hook can check.'
+publishedAt: 2026-09-18
+updatedAt: 2026-10-01
+category: architecture
+tags: ['AI Coding Agents', 'GitHub Copilot', 'Solution Architecture', 'Business Analysis', 'Project Planning', 'Flutter', 'Firebase', 'ADR', 'AGENTS.md']
+series: 'ai-agent-team'
+seriesOrder: 2
+cover: './images/ai-agents-project-planning-business-analyst-architect-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "The AI Engineering Team" above the title "Six words are not a spec" and the lines "Users can cancel an order. Plan, analyse, decide first.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Four-bullet kickoff, everyone nods", an arrow labelled "no edge cases" to an amber box reading "Cancel rule in one screen, cooking orders still cancellable", and an arrow labelled "the fix" to a green box reading "Analyst, then architect, rule in the domain, enforced".'
+draft: true
+faq:
+  - q: 'Can an AI agent write project requirements on its own?'
+    a: 'No, and an agent that claims it can is the one to distrust. A business analyst agent is useful because it lists the states, the edge cases and the open questions a requirement leaves unanswered. Answering those questions needs a person who knows the business.'
+  - q: 'What is the difference between a planning agent and a business analyst agent?'
+    a: 'A planning agent works on sequence: what must be finished before what, and where the schedule breaks. A business analyst agent works on meaning: what a feature does at its edges. One produces an order of work, the other produces acceptance criteria and open questions.'
+  - q: 'Where should an AI solution architect agent write its decisions?'
+    a: 'In two places: an ADR file recording the decision and the rejected option, and the rules section of AGENTS.md so every later agent inherits it. A decision that exists only in a chat window gets contradicted within a month, usually by an agent that never saw it.'
+  - q: 'How do you stop an architect agent from inventing a design nobody asked for?'
+    a: 'Give it constraints as input (team size, deadline, existing stack, offline needs) and require two options with trade-offs rather than one recommendation. An agent asked for the best design invents ambition. An agent asked to choose under constraints reasons about cost.'
+  - q: 'Are planning agents worth it on a two-person project?'
+    a: 'The architect agent is. The planning agent usually is not, because with two people the sequencing conversation takes ten minutes in person. Build the architect agent first on a small team and add planning when a third or fourth person joins.'
+  - q: 'Where should a business rule like order cancellation live in a Flutter app?'
+    a: 'In the domain layer, on the entity or use case, not in a screen. A rule kept in one screen state, like a canCancel getter, protects only that screen. Any other caller, such as a partner dashboard, an API or an agent, goes straight past it.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+Most release delays are decided before anyone opens an editor: a four-bullet kickoff, a requirement with no edge cases, and an architecture decision nobody wrote down. Three agents run before the code. A planning agent orders the work, a business analyst agent lists the states and the open questions, and a solution architect agent turns each decision into an ADR plus a rule a hook can check.
+
+Picture the kickoff for MSDevBuild Eats. The document is four bullet points long. Login. Orders. Payments. Notifications.
+
+Everyone in the room has built apps before. Nobody thinks four bullets is a problem, because everyone has the same picture in their head. Nine weeks later it turns out they do not.
+
+<Callout type="tip" title="A scenario, on a real app you can open">
+The kickoff below is a scenario. The code it leads to is real: **MSDevBuild Eats** is an open-source Flutter food delivery app, and every file path in this article exists in it.
+
+- **Source code**: [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web**: [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`)
+</Callout>
+
+## Four bullets, and where they led
+
+| When | What happened |
+| --- | --- |
+| Week 1 | Kickoff: four bullets. All four streams start the same morning |
+| Week 3 | Payments needs a payment state on the order document. Orders was built without room for one. Four days of rework |
+| Week 4 | Three developers decide where Firestore calls live, separately, in three different files |
+| Week 9 | Code-complete |
+| Month 4 | A support ticket: a customer cancels an order the kitchen has already started, and the restaurant asks who pays for the food |
+
+In [the first part of this series](/blog/ai-coding-agent-team-software-project), the release slipped by five weeks of non-code work. Three of those problems were decided in this kickoff. In a document database [the shape is the design](https://firebase.google.com/docs/firestore/data-model), so a schema that cannot hold a payment state is a rework, not a tweak. "Users can cancel an order" reached production as a support ticket. And the question of where Firebase calls may live was answered three ways in one week.
+
+These are planning, analysis and architecture failures. They are the cheapest problems in software to fix and the most expensive to leave.
+
+## The command that finds the hole
+
+The cancellation ticket is the easiest to trace, because the hole is still visible in the code. Two searches:
+
+```bash
+grep -n "canCancel" -A4 lib/features/orders/bloc/order_tracking_state.dart
+grep -n "cancelOrder" -A6 lib/data/repositories/order_repository_impl.dart
+```
+
+```text
+23:  bool get canCancel =>
+24-      order != null &&
+25-      (order!.status == OrderStatus.placed ||
+26-          order!.status == OrderStatus.confirmed) &&
+27-      !isCancelling;
+
+142:  Future<Result<Order>> cancelOrder(String orderId, {String? reason}) {
+143-    return guard<Order>(() async {
+144-      final OrderModel current = await _remote.getOrderById(orderId);
+145-      final OrderModel updated = OrderModel.fromEntity(
+146-        current.advanceTo(
+147-          OrderStatus.cancelled,
+148-          note: reason ?? 'Cancelled by customer',
+```
+
+The business rule exists, and it lives in the wrong place. The order tracking screen only shows the cancel button while the order is `placed` or `confirmed`. The `CancelOrder` use case and the repository behind it accept any order in any of the seven `OrderStatus` states. The screen is safe. Every other caller is not: the partner dashboard, a future API, or an agent asked to "cancel order 1042" can cancel an order that is already in the oven.
+
+Nothing here is a bug in the usual sense. Each line does what it was written to do. The requirement had a hole, and six words looked finished.
+
+<figure>
+
+![Two step flows side by side. On the left, the rule in one screen, from the six words "users can cancel an order": OrderTrackingState.canCancel allows placed or confirmed only; the CancelOrder use case has no status check; OrderRepositoryImpl.cancelOrder turns any order into cancelled; any other caller, a partner screen, an API or an agent, goes past the screen. The red outcome: a cooking order can still be cancelled. On the right, the rule in the domain, from a business analyst agent and then an architect agent: the analyst lists seven states and one question, who pays once cooking starts; a person answers, cancel only before preparing; the architect puts the rule on the Order entity with an ADR and a line in AGENTS.md; every caller goes through it, screen, partner, API and agent. The green outcome: the rule holds wherever cancel is called.](./images/ai-agents-cancel-rule-screen-vs-domain.png)
+
+<figcaption>Figure 1 — the same six-word requirement, with the rule kept in one screen and with the rule moved into the domain.</figcaption>
+
+</figure>
+
+<ShortHighlight slugs={['ai-agents-six-words-not-a-spec']} />
+
+## Why build planning agents before coding agents?
+
+Because the failure is cheap here and expensive later. A bad plan costs an afternoon of rework. A bad architecture costs a rewrite in month four, when thirty screens depend on it.
+
+There is a second reason, specific to AI. Every coding agent built afterwards inherits these three decisions. The Flutter agent needs to know where Firebase calls may live. The testing agent needs acceptance criteria to test against. Skip these three and every later agent guesses, confidently, in slightly different directions.
+
+<figure>
+
+![Step flow of six steps. One, kickoff notes as they are, four bullets and the real constraints. Two, the planning agent writes docs/delivery-plan.md with the order of work and dependencies. Three, the business analyst agent writes docs/requirements/cancel-order.md with states and open questions. Four, a person answers the BLOCKING questions, because the agent never invents a business rule. Five, the solution architect agent writes an ADR and checkable rules for AGENTS.md. Six, a hook enforces the rule, and every later agent and developer inherits it.](./images/ai-agents-planning-analyst-architect-handoff.png)
+
+<figcaption>Figure 2 — the three agents in order, each handing a file to the next, with a person in the middle.</figcaption>
+
+</figure>
+
+## The Project Planning Agent
+
+The morning after the kickoff, someone asks the question that should have stopped the meeting: "Which of these can we start at the same time?" Nobody has an answer, so all four start at once. Payments needs a payment state on the order. Orders has already been built without one. Four days of rework, fully predictable from the four bullets if anyone had drawn the arrows between them.
+
+That is the whole job of this agent. Not estimating; an AI agent does not fix estimation. Its job is **sequence and dependency**: what blocks what, what can genuinely run in parallel, and which item hurts most if it slips.
+
+**What it gets:** the kickoff notes as they actually exist, however rough, plus the real constraints. Team size, who knows what, the deadline, and anything already built.
+
+**What it returns:** an ordered list of deliverables with the dependency stated for each, the decisions needed before work starts, and a risk list where every risk names what it delays. It lives in `docs/delivery-plan.md`, in the repo, reviewed like code.
+
+```markdown
+<!-- .ai/prompts/project-planning.md -->
+You are the project planning agent for a Flutter + Firebase mobile app.
+
+Input: the kickoff notes below, plus these constraints:
+- Team: {n} developers, skill gaps: {gaps}
+- Fixed date: {date}. Already built: {existing}
+
+Produce:
+1. Deliverables in dependency order. For each: what must exist first, and why.
+2. What can safely run in parallel, and what would make that unsafe.
+3. Decisions needed before coding starts (data shape, auth model, offline behaviour).
+4. Risks. Each one names the deliverable it delays and an early warning sign.
+
+Rules:
+- Do not estimate in days. Sequence only.
+- If the notes do not say something you need, list it as an open question.
+  Do not assume it.
+```
+
+The last rule earns its place. Without it the agent quietly invents a requirement and the plan looks complete, which is worse than a plan with four honest gaps.
+
+The hook keeps the plan from going stale. A plan that describes work nobody is doing is how teams learn to ignore plans.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: a new feature folder must appear in the delivery plan
+PLAN="docs/delivery-plan.md"
+new_features=$(git diff --cached --name-only --diff-filter=A \
+  | grep -oE '^lib/features/[a-z_]+' | sort -u)
+
+for f in $new_features; do
+  name=$(basename "$f")
+  if ! grep -qi "$name" "$PLAN"; then
+    echo "planning: lib/features/$name has no entry in $PLAN."
+    echo "Either add it to the plan or explain why it is unplanned work."
+    exit 1
+  fi
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Delivery planning · your stack's dependency shapes (a Firestore schema blocks more than a screen does) |
+| **Triggers on** | Kickoff, scope change, any new feature folder |
+| **Fails the build when** | Feature work appears that no plan entry covers |
+
+## The Business Analyst Agent
+
+"Users can cancel an order." Six words. Everyone nods.
+
+A business analyst agent is a cheap hole-finder. Give it a requirement in the words the business used, and it gives back the edges: the boundaries, the states the thing can be in, and the questions it cannot answer without a person.
+
+That last part is what makes it valuable. **An agent that answers every question has invented most of the answers.** Judge this agent by its open questions, not by its acceptance criteria.
+
+**What it gets:** the requirement as written, the roles involved, and the existing rules it must not contradict, such as refund policy or payment provider limits.
+
+**What it returns:** acceptance criteria in Given/When/Then form, an explicit state list, an edge case table, and open questions marked BLOCKING or NON-BLOCKING. The file lands in `docs/requirements/<feature>.md`, and it is what the testing agent later tests against.
+
+```markdown
+<!-- .ai/prompts/business-analyst.md -->
+Requirement (verbatim from the business): "{requirement}"
+Roles: {roles}. Existing rules you must not contradict: {policies}
+
+Produce:
+1. Acceptance criteria, Given/When/Then. One behaviour per criterion.
+2. Every state this entity can be in, and which transitions are legal.
+3. Edge cases as a table: situation | expected behaviour | confidence.
+4. Open questions, each marked BLOCKING or NON-BLOCKING.
+
+Rules:
+- Never invent a business rule to close a gap. Raise it as a question.
+- For anything involving money or timing, assume it is underspecified.
+```
+
+Run against those six words with `OrderStatus` as context, the agent lists all seven states (`placed`, `confirmed`, `preparing`, `readyForPickup`, `outForDelivery`, `delivered`, `cancelled`) and raises the question the kickoff skipped: *"Can a customer cancel after the restaurant starts preparing? If yes, who absorbs the cost?"* That one BLOCKING question is worth the whole exercise.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-push: feature code needs a requirements file with no BLOCKING gaps
+changed=$(git diff --name-only origin/main...HEAD \
+  | grep -oE '^lib/features/[a-z_]+' | sort -u)
+
+for f in $changed; do
+  name=$(basename "$f")
+  doc="docs/requirements/$name.md"
+  [ -f "$doc" ] || { echo "analysis: $doc missing for feature '$name'"; exit 1; }
+  if grep -q "BLOCKING" "$doc"; then
+    echo "analysis: $doc still has BLOCKING open questions:"
+    grep -n "BLOCKING" "$doc"
+    exit 1
+  fi
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Requirements analysis · your domain's rules (payments, refunds, delivery windows) |
+| **Triggers on** | A new requirement, a change to an existing one |
+| **Fails the build when** | Feature code is pushed with no requirements file, or with unresolved BLOCKING questions |
+
+## The Solution Architect Agent
+
+The pattern is older than AI, only faster now. One developer puts a Firestore call inside a widget's `build()` method. Another puts one in a service class. A third has already put one behind a repository and never said that was the rule, because it seemed obvious.
+
+Three reasonable engineers, three answers, no argument, because nobody knows there is a disagreement. That is what an undocumented architecture decision looks like from inside. It does not feel like chaos. It feels like everyone quietly getting on with it.
+
+The architect agent's real output is not a diagram. **It is a written decision plus the rule that enforces it.** A diagram nobody reads changes no code.
+
+**What it gets:** the constraints, honestly stated. Team size and experience, offline needs, the stack that is already chosen, the deadline.
+
+**What it returns:** two viable options with the trade-off named, a recommendation, and the condition that would flip it. Then two artefacts: an ADR in `docs/adr/` recording the decision and the rejected option, and rules to paste into [AGENTS.md](/blog/agents-md-complete-playbook) so every later agent inherits the decision instead of re-deciding it.
+
+```markdown
+<!-- .ai/prompts/solution-architect.md -->
+Constraints:
+- Team: {size}, experience: {experience}
+- Stack (fixed): {stack}. Offline: {offline}. Deadline: {deadline}
+- Non-negotiables: {constraints}
+
+Produce:
+1. TWO viable architectures. For each: structure, state management,
+   where external calls live, and the cost of being wrong about it.
+2. A recommendation, and the single condition that would flip it.
+3. An ADR: context, decision, rejected option, consequences.
+4. Rules for AGENTS.md, written as things an agent can check,
+   not as principles. "No Firestore import outside lib/data/" beats
+   "keep concerns separated".
+
+Rules:
+- Optimise for this team on this deadline, not for an ideal team.
+- If a constraint makes an option impossible, say so and drop it.
+```
+
+Point 4 is where most architecture documents fail. "Separation of concerns" cannot be checked by anything. "No Firestore import outside `lib/data/`" can be checked by a few lines of shell, and MSDevBuild Eats holds to it: one file in the whole of `lib/` imports `cloud_firestore`, and it is `lib/data/datasources/remote/firestore_data_source.dart`.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: ADR-002, Firebase stays behind the data layer
+offenders=""
+for f in $(git diff --cached --name-only --diff-filter=ACM | grep -E '^lib/.*\.dart$' | grep -v '^lib/data/'); do
+  grep -qE "package:(cloud_firestore|firebase_auth)/" "$f" && offenders="$offenders $f"
+done
+
+if [ -n "$offenders" ]; then
+  echo "architecture: Firebase imported outside lib/data (ADR-002):$offenders"
+  echo "Move the call into a data source and reach it through a repository."
+  exit 1
+fi
+```
+
+The same agent fixes the cancellation hole once a person has answered the analyst's question. The rule moves onto the entity, so every caller meets it:
+
+```dart
+// lib/domain/entities/order.dart: the rule, once, in the domain
+bool get canBeCancelled =>
+    status == OrderStatus.placed || status == OrderStatus.confirmed;
+```
+
+`cancelOrder` returns a failure when `canBeCancelled` is false, the screen's `canCancel` reads the entity instead of repeating the condition, and `AGENTS.md` gains one line: *business rules live on entities or use cases, never in a screen's state.* If you want the mechanics of blocking hooks, [Copilot hooks for beginners](/blog/github-copilot-hooks-for-beginners) covers them, and [the Flutter Copilot Skill walkthrough](/blog/build-flutter-github-copilot-skill-riverpod-firebase) turns rules like these into knowledge Copilot loads while it writes.
+
+| | |
+| --- | --- |
+| **Skills** | Your stack's architecture (layered Flutter, BLoC, repository pattern) · ADR writing |
+| **Triggers on** | Project start, a new external dependency, any decision that will be repeated |
+| **Fails the build when** | Code violates a recorded ADR that has a mechanical rule |
+
+## Mistakes worth skipping
+
+- **Letting the architect agent design for the team you wish you had.** Asked for the best architecture, it returns a layout right for eight developers. With three, one still learning Firebase, the constraints in the prompt are what fix it.
+- **Accepting acceptance criteria with no open questions.** A complete-looking answer to a six-word requirement means the agent filled the gaps itself.
+- **Writing ADRs and never turning them into rules.** A month of well-argued decision records and code that ignores them. The ADR is the reasoning; the hook is the enforcement.
+- **Running planning once.** A plan from week one describes a project that no longer exists by week five. Re-run it at every scope change; it takes ten minutes.
+
+## When does each failure get caught?
+
+| Failure from the kickoff | Without these agents | With them |
+| --- | --- | --- |
+| Payments needs a field orders lacks | Week 3, four days of rework | Planning agent's dependency list, before work starts |
+| Three places for Firestore calls | Week 4, found in review | ADR-002 and a `pre-commit` check from day one |
+| Cancel after cooking starts | Month 4, as a support ticket | BLOCKING question in `docs/requirements/`, before the screen exists |
+
+Each row moves from the expensive end of the project to the cheap end. None of them needs a better coding agent.
+
+## Questions a tech lead will ask about this
+
+1. **"Will the analyst agent slow down kickoff?"** By about an hour. It saves the week the six-word requirement would cost later.
+2. **"Who answers the BLOCKING questions?"** A person who owns the business rule. The agent's job is to ask; deciding is not delegated.
+3. **"Why an ADR and a hook? Isn't one enough?"** The ADR keeps the reasoning for the next person who wants to change it. The hook keeps the rule true until they do.
+4. **"Where should business rules live?"** On entities and use cases. A rule in a screen's state protects one screen.
+5. **"Do we need all three on a small team?"** Start with the architect. Add the analyst when requirements start arriving as one-liners, and planning when the team passes three people.
+
+## What to do on day one
+
+- Run the analyst prompt against your three most important one-line requirements.
+- Search for business rules that live in screen state, like `canCancel`, and list them.
+- Write one ADR for the decision your team has made three ways.
+- Turn that ADR into a hook.
+- Add the rule to `AGENTS.md` so every agent inherits it.
+
+## Key takeaways
+
+- These three agents run before any code exists, and every later agent inherits their output.
+- Judge a business analyst agent by its open questions. Complete answers to an incomplete requirement mean it invented the missing parts.
+- A planning agent sequences; it does not estimate. Dependencies are where rework hides.
+- An architecture decision is finished when it exists as an ADR and as a rule a script can check.
+- Business rules belong in the domain. A rule in one screen protects one screen.
+
+## The next requirement
+
+Two months later a new one-liner arrives: "Restaurants can pause orders when the kitchen is full." The analyst agent returns five states and two BLOCKING questions, one of them about orders already placed when the pause starts. A person answers both in the same meeting. The architect agent puts the rule on the `Restaurant` entity and adds a line to `AGENTS.md`.
+
+The feature reaches production with no support ticket attached.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
+
+1. **The six words.** Using the seven `OrderStatus` values, write the one BLOCKING question the analyst agent should raise about cancellation, and say who must answer it.
+2. **The partner screen.** Why does `canCancel` in the tracking screen's state not protect an order cancelled from the partner dashboard?
+3. **ADR or hook.** Your team agrees "no Firestore import outside `lib/data/`". What goes in the ADR, and what goes in the hook?
+4. **The dream team.** The architect agent recommends a layout for eight developers. You have three. What do you change in the prompt?
+5. **The stale plan.** Which hook stops `docs/delivery-plan.md` from describing a project that no longer exists, and what does it check?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

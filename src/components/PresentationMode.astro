@@ -1,0 +1,1324 @@
+---
+/**
+ * The article, as a deck.
+ *
+ * It runs in the same order as a session deck built from the PPT First template:
+ * title, about the speaker, agenda, the article, then its FAQ. Every H2 becomes a
+ * slide and everything under it comes along — prose, lists, code, images, and any
+ * highlights the reader has left. Nothing is authored twice and nothing is
+ * stored: the deck is built from the page's own DOM when the button is pressed,
+ * so a post edited today presents correctly today.
+ *
+ * It earns its place because of who reads this site and what they do with it.
+ * These articles get walked through — in a session, at a desk with someone
+ * learning, on a screen in a room. Doing that today means scrolling a blog post
+ * in front of people, with a nav bar, a cookie-sized line length and an advert
+ * halfway down. This is the same words at a size a room can read.
+ *
+ * It is the site, not a separate product. The surface uses the site's own
+ * tokens, glass cards and blobs, and follows the light/dark theme; the header carries the same avatar
+ * and the same MSDEVBUILD / blog wordmark the site header does, character for
+ * character; the footer repeats the wordmark the way the site footer does; and
+ * slide bodies carry `prose-reading`, so a paragraph, a table and a code block
+ * are styled by exactly the rules that style them in the article. A deck that
+ * invented its own look would be someone else's slides with our words in them.
+ *
+ * The one hard rule: never lose content. A section too tall for the screen is
+ * scaled down to fit, and if it is still too tall at the floor of that scale it
+ * scrolls. Splitting a section automatically would cut code blocks in half and
+ * separate a paragraph from the list it introduces.
+ */
+import Avatar from './Avatar.astro';
+import { SITE, AUTHOR, IMPACT } from '../config';
+import { qrSvg } from '../lib/qr';
+
+interface Props {
+  title: string;
+  /** Sub-line on the opening slide. */
+  description: string;
+  category: string;
+  hue: number;
+  author: string;
+  /** Shown in the footer and on the closing slide, so a photograph of the
+   *  screen is still useful to whoever took it. */
+  url: string;
+  /**
+   * 'sections' splits at every H2 — an article.
+   * 'items'    makes each direct child of the root its own slide — a short's steps.
+   */
+  mode?: 'sections' | 'items';
+  /** The closing slides of an article. Without any, the deck ends on its link. */
+  faq?: { q: string; a: string }[];
+}
+
+const {
+  title,
+  description,
+  category,
+  hue,
+  author,
+  url,
+  mode = 'sections',
+  faq = [],
+} = Astro.props;
+
+// Shown without a scheme: this is read off a screen, not clicked.
+const readableUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+const [firstName, ...restOfName] = AUTHOR.name.split(' ');
+const recognition = [...AUTHOR.awards, 'Microsoft Certified Trainer'];
+const stats = [
+  { value: IMPACT[0].value, label: 'years in IT' },
+  { value: IMPACT[1].value, label: 'articles' },
+  { value: IMPACT[4].value, label: 'sessions' },
+  { value: IMPACT[3].value, label: 'developers' },
+];
+const linkedinQr = mode === 'sections' ? await qrSvg(AUTHOR.linkedin, { size: 120, margin: 1 }) : '';
+---
+
+<div
+  class="deck"
+  data-deck
+  data-mode={mode}
+  data-title={title}
+  data-description={description}
+  data-category={category}
+  data-author={author}
+  data-role={AUTHOR.jobTitle}
+  data-url={readableUrl}
+  style={`--deck-hue: ${hue};`}
+  hidden
+>
+  <!--
+    The site header's identity block, copied exactly — same avatar, same
+    wordmark, same byline. Not a link: navigating away is not something anyone
+    wants to do by accident three slides into talking to a room.
+  -->
+  <header class="deck__header">
+    <span class="deck__logo">
+      <Avatar size={32} eager class="shrink-0 ring-1 ring-[var(--border)]" />
+      <span class="min-w-0 leading-tight">
+        <span class="block truncate font-semibold tracking-tight">
+          <span class="text-accent">MS</span>DEVBUILD
+          <span class="font-normal text-muted">/ blog</span>
+        </span>
+        <span class="block truncate text-[0.7rem] text-muted">
+          {SITE.alternateName} · {SITE.byline}
+        </span>
+      </span>
+    </span>
+
+    <span class="deck__chip">{category}</span>
+
+    <div class="deck__tools">
+      <button type="button" class="deck__icon" data-deck-full aria-label="Full screen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+        </svg>
+      </button>
+      <button type="button" class="deck__icon" data-deck-exit aria-label="Leave the deck">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="m6 6 12 12M18 6 6 18" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Rendered at build time, because the photo and the QR code are; the script
+       clones it in as the second slide. -->
+  {mode === 'sections' && (
+    <template data-deck-about>
+      <div class="deck__about">
+        <div class="deck__about-photo">
+          <img src={AUTHOR.avatar} alt={AUTHOR.name} loading="eager" />
+          <span class="deck__about-badge">Since 2007</span>
+          <p class="deck__about-place">India · Malaysia<br />Speaks English and Tamil</p>
+        </div>
+
+        <div class="deck__about-text">
+          <p class="eyebrow">About the speaker</p>
+          <h2 class="deck__about-name">{firstName}<br />{restOfName.join(' ')}</h2>
+          <p class="deck__about-role">{AUTHOR.jobTitle}</p>
+          <p class="deck__about-bio">
+            Helping the IT industry since 2007, with a passion for giving developers a helping
+            hand across India and Malaysia.
+          </p>
+
+          <ul class="deck__stats">
+            {stats.map(({ value, label }, i) => (
+              <li data-accent={i === 3 ? '' : undefined}>
+                <strong>{value}</strong>
+                <span>{label}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div class="deck__about-foot">
+            <div>
+              <p class="deck__label">Recognition</p>
+              <ul class="deck__pills">
+                {recognition.map((name) => <li>{name}</li>)}
+              </ul>
+            </div>
+            <div class="deck__qr">
+              <div class="deck__qr-plate" set:html={linkedinQr} />
+              <p>LinkedIn<br /><span>in/jssuthahar</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+  )}
+
+  {faq.length > 0 && (
+    <template data-deck-faq>
+      {faq.map(({ q, a }) => (
+        <div class="deck__faq-item glass">
+          <p class="deck__faq-q">{q}</p>
+          <p class="deck__faq-a">{a}</p>
+        </div>
+      ))}
+    </template>
+  )}
+
+  <!-- Slides are built here when the deck opens. -->
+  <div class="deck__stage" data-deck-stage></div>
+
+  <footer class="deck__footer">
+    <p class="deck__wordmark">
+      <span><span class="text-accent">MS</span>DEVBUILD</span>
+      <span class="font-normal text-muted">/ blog</span>
+      <span class="deck__url">{readableUrl}</span>
+    </p>
+
+    <div class="deck__controls">
+      <button type="button" class="deck__icon" data-deck-prev aria-label="Previous slide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 6 9 12l6 6" />
+        </svg>
+      </button>
+
+      <div class="deck__meter">
+        <div class="deck__meter-fill" data-deck-fill></div>
+      </div>
+
+      <p class="deck__count"><span data-deck-at>1</span> / <span data-deck-of>1</span></p>
+
+      <button type="button" class="deck__icon" data-deck-next aria-label="Next slide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m9 6 6 6-6 6" />
+        </svg>
+      </button>
+    </div>
+  </footer>
+</div>
+
+<style>
+  /*
+   * Site surface, site tokens, site theme. The deck follows light and dark with
+   * the rest of the property rather than forcing a look of its own.
+   */
+  .deck {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--page-wash);
+    color: var(--text);
+  }
+  .deck[hidden] {
+    display: none;
+  }
+
+  /* ── Header: the site header's identity block ── */
+  .deck__header {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    padding: 0.75rem clamp(1rem, 4vw, 3rem);
+  }
+
+  .deck__logo {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.625rem;
+  }
+
+  .deck__chip {
+    border-radius: 999px;
+    background: oklch(0.62 0.17 var(--deck-hue) / 0.14);
+    padding: 0.2rem 0.65rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: oklch(0.5 0.17 var(--deck-hue));
+    white-space: nowrap;
+  }
+  :global([data-theme='dark']) .deck__chip {
+    color: oklch(0.8 0.14 var(--deck-hue));
+  }
+  @media (max-width: 640px) {
+    .deck__chip {
+      display: none;
+    }
+  }
+
+  .deck__tools {
+    display: flex;
+    margin-left: auto;
+    gap: 0.35rem;
+  }
+
+  .deck__icon {
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 0.65rem;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .deck__icon:hover {
+    border-color: var(--accent);
+    background: var(--bg-subtle);
+    color: var(--accent);
+  }
+  .deck__icon svg {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+  .deck__icon:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .deck__icon:disabled:hover {
+    border-color: var(--border);
+    background: transparent;
+    color: var(--text-muted);
+  }
+
+  /* ── The slide ── */
+  .deck__stage {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* ── Footer: the site footer's wordmark, and the controls ── */
+  .deck__footer {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    background: var(--bg-subtle);
+    padding: 0.6rem clamp(1rem, 4vw, 3rem);
+  }
+
+  .deck__wordmark {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .deck__url {
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  @media (max-width: 640px) {
+    .deck__url {
+      display: none;
+    }
+  }
+
+  .deck__controls {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .deck__meter {
+    height: 3px;
+    width: clamp(4rem, 18vw, 16rem);
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--border);
+  }
+  .deck__meter-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--accent);
+    transition: width 0.25s ease;
+  }
+  .deck__count {
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+  }
+</style>
+
+<style is:global>
+  /*
+   * Slides are cloned out of the article in the browser, so everything they
+   * carry has to be styled globally — a scope attribute cannot be attached to a
+   * node the script built.
+   */
+  .deck__slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* On the slide, not the stage: an absolutely placed slide ignores the stage's
+       padding. Generous enough that the scroll container keeps the cards' shadows. */
+    padding: clamp(0.75rem, 2.5vh, 2rem) clamp(1rem, 4vw, 3rem);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+  }
+  .deck__slide[data-current] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Scaled as one block so a section never loses its last paragraph. The script
+     works out the factor; the floor is in the script too. */
+  .deck__scale {
+    flex: none;
+    width: 100%;
+    transform: scale(var(--deck-scale, 1));
+    transform-origin: top center;
+  }
+
+  /*
+   * `prose-reading` is applied to every slide body, so a paragraph, a list, a
+   * table, a blockquote and a Shiki code block are styled by exactly the rules
+   * that style them in the article — including the dual-theme code swap, which
+   * would otherwise need a second copy here that could drift.
+   *
+   * Only two things change for a room: the type is bigger, and the column is
+   * not capped at reading width, because a slide is read from further away than
+   * a laptop and 68 characters wastes half a screen.
+   */
+  .deck__body.prose-reading {
+    max-width: none;
+    font-size: clamp(1.0625rem, 1.5vw, 1.5rem);
+  }
+  .deck__body.prose-reading > :first-child {
+    margin-top: 0;
+  }
+  /* A short's step is cloned out of its list, and carries its own number. */
+  .deck__body.prose-reading > li {
+    list-style: none;
+  }
+
+  /* The glass card every content slide sits on. */
+  .deck__card {
+    border-radius: 1.25rem;
+    padding: clamp(1.1rem, 3vh, 2.25rem) clamp(1.1rem, 3vw, 2.75rem);
+  }
+  .deck__kicker {
+    margin-bottom: 0.75rem;
+  }
+
+  .deck__slide h2.deck__heading {
+    margin: 0 0 clamp(0.75rem, 2vh, 1.4rem);
+    font-family: var(--font-sans);
+    font-size: clamp(1.6rem, 3.4vw, 2.9rem);
+    font-weight: 800;
+    line-height: 1.14;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+    color: var(--text);
+  }
+
+  /* CodeCopyButton wraps every block and appends its own button. The clone in a
+     slide carries no listener — cloneNode never copies them — so it is a button
+     that cannot do anything. Out. */
+  .deck__body [data-code-block] > button {
+    display: none !important;
+  }
+
+  /* ── Session title ── */
+  .deck__cover {
+    display: grid;
+    grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+    gap: clamp(0.75rem, 1.5vw, 1.25rem);
+    align-items: stretch;
+  }
+  .deck__cover-main {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-radius: 1.25rem;
+    padding: clamp(1.25rem, 4vh, 3rem) clamp(1.25rem, 3.5vw, 3rem);
+  }
+  .deck__title {
+    font-family: var(--font-sans);
+    font-size: clamp(1.9rem, 4vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+    color: var(--text);
+  }
+  .deck__title-accent {
+    display: block;
+    color: var(--accent);
+  }
+  .deck__sub {
+    margin-top: 1.1rem;
+    font-size: clamp(1rem, 1.5vw, 1.35rem);
+    line-height: 1.5;
+    color: var(--text-muted);
+    text-wrap: pretty;
+  }
+  .deck__meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-top: clamp(1rem, 3vh, 2rem);
+    border-top: 1px solid var(--border);
+    padding-top: clamp(0.75rem, 2vh, 1.25rem);
+  }
+  .deck__label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+  }
+  .deck__meta-value {
+    margin-top: 0.4rem;
+    font-weight: 650;
+    color: var(--text);
+  }
+  .deck__meta-note {
+    margin-top: 0.1rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+
+  /* The dark azure panel beside the title: what this session covers. */
+  .deck__panel {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.75rem, 2.5vh, 1.25rem);
+    border-left: 6px solid #0078d4;
+    border-radius: 1.25rem;
+    background: var(--band);
+    padding: clamp(1.25rem, 3.5vh, 2.25rem) clamp(1rem, 2vw, 1.75rem);
+    color: #fff;
+  }
+  .deck__panel-mark {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.26em;
+  }
+  .deck__ring {
+    display: grid;
+    place-items: center;
+    align-self: center;
+    width: clamp(4rem, 11vh, 6.5rem);
+    height: clamp(4rem, 11vh, 6.5rem);
+    border: 1px solid rgb(255 255 255 / 0.55);
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.14);
+    box-shadow: 0 0 0 7px rgb(255 255 255 / 0.08);
+  }
+  .deck__ring svg {
+    width: 45%;
+    height: 45%;
+  }
+  .deck__panel-title {
+    text-align: center;
+    font-weight: 650;
+  }
+  .deck__steps {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: clamp(0.5rem, 1.6vh, 0.9rem);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .deck__steps li {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    border: 1px solid rgb(255 255 255 / 0.3);
+    border-radius: 0.75rem;
+    background: rgb(255 255 255 / 0.12);
+    padding: 0.55rem 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .deck__steps span {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #005a9e;
+  }
+
+  /* ── About the speaker ── */
+  .deck__about {
+    display: grid;
+    grid-template-columns: minmax(0, 0.62fr) minmax(0, 1.38fr);
+    gap: clamp(1rem, 3vw, 2.75rem);
+    align-items: stretch;
+    border-radius: 1.25rem;
+  }
+  .deck__about-photo {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 1.25rem;
+    background: var(--band);
+    padding: clamp(0.75rem, 2vw, 1.5rem);
+    color: #fff;
+  }
+  .deck__about-photo img {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    border-radius: 0.75rem;
+    object-fit: cover;
+    object-position: top;
+  }
+  .deck__about-badge {
+    position: absolute;
+    top: clamp(1.25rem, 3vw, 2.25rem);
+    left: clamp(1.25rem, 3vw, 2.25rem);
+    border-radius: 999px;
+    background: #0078d4;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  .deck__about-place {
+    margin-top: 0.75rem;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .deck__about-text {
+    min-width: 0;
+    align-self: center;
+  }
+  .deck__about-name {
+    margin-top: 0.6rem;
+    font-family: var(--font-sans);
+    font-size: clamp(2rem, 3.6vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+  .deck__about-role {
+    margin-top: 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+  }
+  .deck__about-bio {
+    margin-top: 0.85rem;
+    border-left: 3px solid #0078d4;
+    padding-left: 0.9rem;
+    font-size: clamp(0.95rem, 1.25vw, 1.15rem);
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+  .deck__stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin: clamp(0.8rem, 2.2vh, 1.25rem) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .deck__stats li {
+    border-radius: 0.75rem;
+    background: var(--accent-soft);
+    padding: 0.6rem 0.75rem;
+  }
+  .deck__stats strong {
+    display: block;
+    font-size: clamp(1.2rem, 2vw, 1.75rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--accent-deep);
+  }
+  .deck__stats li[data-accent] strong {
+    color: var(--accent);
+  }
+  .deck__stats span {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .deck__about-foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: clamp(0.8rem, 2.2vh, 1.25rem);
+  }
+  .deck__pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .deck__pills li {
+    border-radius: 0.5rem;
+    background: var(--accent-soft);
+    padding: 0.25rem 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--accent-deep);
+  }
+  .deck__qr {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.6rem;
+    border-radius: 0.75rem;
+    background: #0078d4;
+    padding: 0.5rem 0.75rem 0.5rem 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #fff;
+  }
+  .deck__qr span {
+    font-weight: 500;
+  }
+  /* QR codes stay dark on white in both themes; see lib/qr.ts. */
+  .deck__qr-plate {
+    width: clamp(3.5rem, 8vh, 5rem);
+    border-radius: 0.4rem;
+    overflow: hidden;
+    background: #fff;
+  }
+  .deck__qr-plate svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* ── Agenda ── */
+  .deck__agenda-title {
+    font-family: var(--font-sans);
+    font-size: clamp(1.75rem, 3.2vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    color: var(--text);
+  }
+  .deck__agenda {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: clamp(0.9rem, 2.5vh, 1.5rem) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .deck__agenda[data-few] {
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    grid-auto-flow: column;
+  }
+  .deck__agenda li {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    border-radius: 0.9rem;
+    padding: 0.7rem 0.9rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text);
+  }
+  .deck__agenda[data-few] li {
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: clamp(10rem, 34vh, 19rem);
+    padding: 1.25rem;
+    font-size: 1.2rem;
+  }
+  .deck__agenda-no {
+    flex: none;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #8db9e2;
+  }
+  .deck__agenda[data-few] .deck__agenda-no {
+    margin-bottom: auto;
+    font-size: 2.75rem;
+  }
+  .deck__agenda li[data-accent] .deck__agenda-no {
+    color: var(--accent);
+  }
+
+  /* ── FAQ ── */
+  .deck__faq {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-top: clamp(0.9rem, 2.5vh, 1.5rem);
+  }
+  .deck__faq[data-one] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .deck__faq-item {
+    border-radius: 0.9rem;
+    padding: clamp(0.9rem, 2.2vh, 1.4rem) clamp(1rem, 1.6vw, 1.5rem);
+  }
+  .deck__faq-q {
+    font-size: clamp(1rem, 1.35vw, 1.25rem);
+    font-weight: 650;
+    line-height: 1.3;
+    color: var(--text);
+  }
+  .deck__faq-a {
+    margin-top: 0.5rem;
+    font-size: clamp(0.9rem, 1.15vw, 1.05rem);
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+
+  /* ── Closing slide, for a deck with no FAQ ── */
+  .deck__link {
+    margin-top: 0.75rem;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 0.95rem;
+    color: var(--accent);
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 800px) {
+    .deck__cover,
+    .deck__about,
+    .deck__faq {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .deck__panel {
+      display: none;
+    }
+    .deck__about-photo {
+      flex-direction: row;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .deck__about-photo img {
+      width: 4.5rem;
+      height: 4.5rem;
+      flex: none;
+      border-radius: 999px;
+    }
+    .deck__about-badge {
+      position: static;
+      order: 3;
+      margin-left: auto;
+    }
+    .deck__about-place {
+      margin: 0;
+      text-align: left;
+    }
+    .deck__stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .deck__about-foot {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .deck__agenda,
+    .deck__agenda[data-few] {
+      grid-template-columns: minmax(0, 1fr);
+      grid-auto-flow: row;
+    }
+    .deck__agenda[data-few] li {
+      flex-direction: row;
+      align-items: center;
+      min-height: 0;
+      padding: 0.7rem 0.9rem;
+      font-size: 1rem;
+    }
+    .deck__agenda[data-few] .deck__agenda-no {
+      margin-bottom: 0;
+      font-size: 1.5rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .deck__slide {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  /**
+   * Builds and drives the deck.
+   *
+   * Slides are cloned from the live article rather than from any stored copy,
+   * so a deck is always the article as it stands — including the reader's own
+   * highlights, which is the detail that makes presenting from your own notes
+   * work at all.
+   */
+  const SCALE_FLOOR = 0.62;
+  const AGENDA_PER_SLIDE = 12;
+  const FAQ_PER_SLIDE = 4;
+
+  let bound: HTMLElement | null = null;
+
+  /**
+   * Bound once for the session and re-pointed at the current deck. View
+   * Transitions swap the body on every navigation, and a keydown handler per
+   * article visited would eventually have a dozen decks listening for the
+   * arrow keys.
+   */
+  let documentBound = false;
+  let onPresent: () => void = () => {};
+  let onKey: (event: KeyboardEvent) => void = () => {};
+  let onResize: () => void = () => {};
+
+  function initDeck(): void {
+    const deckEl = document.querySelector<HTMLElement>('[data-deck]');
+    const rootEl = document.querySelector<HTMLElement>('[data-reader-root]');
+    if (!deckEl || !rootEl || deckEl === bound) return;
+    bound = deckEl;
+
+    // Typed rather than narrowed: the builders below are function declarations,
+    // which are hoisted, and TypeScript drops a narrowing across a hoist.
+    const deck: HTMLElement = deckEl;
+    const root: HTMLElement = rootEl;
+
+    const stage = deck.querySelector<HTMLElement>('[data-deck-stage]')!;
+    const fill = deck.querySelector<HTMLElement>('[data-deck-fill]')!;
+    const atEl = deck.querySelector<HTMLElement>('[data-deck-at]')!;
+    const ofEl = deck.querySelector<HTMLElement>('[data-deck-of]')!;
+    const prevBtn = deck.querySelector<HTMLButtonElement>('[data-deck-prev]')!;
+    const nextBtn = deck.querySelector<HTMLButtonElement>('[data-deck-next]')!;
+
+    let slides: HTMLElement[] = [];
+    let index = 0;
+
+    /* ──────────────────────────────────────────────────────── building ── */
+
+    function slideShell(): HTMLElement {
+      const slide = document.createElement('section');
+      slide.className = 'deck__slide';
+      const scale = document.createElement('div');
+      scale.className = 'deck__scale';
+      slide.append(scale);
+      return slide;
+    }
+
+    function el<K extends keyof HTMLElementTagNameMap>(
+      tag: K,
+      className: string,
+      text?: string,
+    ): HTMLElementTagNameMap[K] {
+      const node = document.createElement(tag);
+      node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+
+    function chunk<T>(items: T[], size: number): T[][] {
+      const out: T[][] = [];
+      for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+      return out;
+    }
+
+    /** A heading's words, without the "#" link the article appends to it. */
+    function headingText(heading: Element): string {
+      const clone = heading.cloneNode(true) as Element;
+      clone.querySelectorAll('.heading-anchor').forEach((a) => a.remove());
+      return clone.textContent?.trim() ?? '';
+    }
+
+    /** The two-tone title: a subtitle after a colon takes the accent. */
+    function titleInto(heading: HTMLElement, title: string): void {
+      const at = title.indexOf(':');
+      if (at === -1) {
+        heading.textContent = title;
+        return;
+      }
+      heading.append(title.slice(0, at + 1));
+      heading.append(el('span', 'deck__title-accent', title.slice(at + 1).trim()));
+    }
+
+    function titleSlide(covers: string[]): HTMLElement {
+      const slide = slideShell();
+      const scale = slide.firstElementChild!;
+      const cover = el('div', 'deck__cover');
+
+      const main = el('div', 'deck__cover-main glass');
+      main.append(el('p', 'eyebrow deck__kicker', `MSDEVBUILD · ${deck.dataset.category ?? ''}`));
+      const heading = el('h1', 'deck__title');
+      titleInto(heading, deck.dataset.title ?? '');
+      main.append(heading, el('p', 'deck__sub', deck.dataset.description ?? ''));
+
+      const meta = el('div', 'deck__meta');
+      const column = (label: string, value: string, note: string) => {
+        const box = el('div', '');
+        box.append(el('p', 'deck__label', label), el('p', 'deck__meta-value', value), el('p', 'deck__meta-note', note));
+        return box;
+      };
+      meta.append(
+        column('Topic', deck.dataset.category ?? '', deck.dataset.url ?? ''),
+        column('Speaker', deck.dataset.author ?? '', deck.dataset.role ?? ''),
+      );
+      main.append(meta);
+
+      const panel = el('div', 'deck__panel');
+      panel.append(el('p', 'deck__panel-mark', 'MSDEVBUILD'));
+      const ring = el('div', 'deck__ring');
+      ring.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18M5 4v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4M12 16v4M8 20h8"/></svg>';
+      panel.append(ring, el('p', 'deck__panel-title', 'What this covers'));
+      const steps = el('ol', 'deck__steps');
+      covers.slice(0, 3).forEach((text, i) => {
+        const item = el('li', '');
+        item.append(el('span', '', String(i + 1)), text);
+        steps.append(item);
+      });
+      panel.append(steps);
+
+      cover.append(main, panel);
+      scale.append(cover);
+      return slide;
+    }
+
+    function aboutSlide(): HTMLElement | null {
+      const template = deck.querySelector<HTMLTemplateElement>('[data-deck-about]');
+      if (!template) return null;
+      const slide = slideShell();
+      slide.firstElementChild!.append(template.content.cloneNode(true));
+      return slide;
+    }
+
+    /** One slide per dozen sections, and the longest section takes the accent. */
+    function agendaSlides(sections: Section[]): HTMLElement[] {
+      const main = sections.reduce((best, s) => (s.weight > best.weight ? s : best), sections[0]!);
+      const pages = chunk(sections, AGENDA_PER_SLIDE);
+
+      return pages.map((page, p) => {
+        const slide = slideShell();
+        const scale = slide.firstElementChild!;
+        const label = pages.length > 1 ? `MSDEVBUILD · Agenda ${p + 1} of ${pages.length}` : 'MSDEVBUILD · Agenda';
+        scale.append(el('p', 'eyebrow deck__kicker', label), el('h2', 'deck__agenda-title', 'Agenda'));
+
+        const list = el('ol', 'deck__agenda');
+        if (sections.length <= 4) list.dataset.few = '';
+        page.forEach((section) => {
+          const item = el('li', 'glass');
+          if (section === main) item.dataset.accent = '';
+          item.append(el('span', 'deck__agenda-no', pad(sections.indexOf(section) + 1)), section.title);
+          list.append(item);
+        });
+        scale.append(list);
+        return slide;
+      });
+    }
+
+    function faqSlides(): HTMLElement[] {
+      const template = deck.querySelector<HTMLTemplateElement>('[data-deck-faq]');
+      if (!template) return [];
+      const pages = chunk([...template.content.children], FAQ_PER_SLIDE);
+
+      return pages.map((page, p) => {
+        const slide = slideShell();
+        const scale = slide.firstElementChild!;
+        const label = pages.length > 1 ? `MSDEVBUILD · FAQ ${p + 1} of ${pages.length}` : 'MSDEVBUILD · FAQ';
+        scale.append(el('p', 'eyebrow deck__kicker', label), el('h2', 'deck__agenda-title', 'Frequently asked questions'));
+
+        const grid = el('div', 'deck__faq');
+        if (page.length === 1) grid.dataset.one = '';
+        for (const item of page) grid.append(item.cloneNode(true));
+        scale.append(grid);
+        return slide;
+      });
+    }
+
+    function endSlide(): HTMLElement {
+      const slide = slideShell();
+      const card = el('div', 'deck__card glass');
+      const heading = el('p', 'deck__title');
+      titleInto(heading, deck.dataset.title ?? '');
+      card.append(
+        el('p', 'eyebrow deck__kicker', 'MSDEVBUILD · Read the whole thing'),
+        heading,
+        el('p', 'deck__link', deck.dataset.url ?? ''),
+      );
+      slide.firstElementChild!.append(card);
+      return slide;
+    }
+
+    /** A slide from a heading and the nodes that belong to it. */
+    function contentSlide(kicker: string, heading: string, nodes: Element[]): HTMLElement {
+      const slide = slideShell();
+      const card = el('div', 'deck__card glass');
+
+      card.append(el('p', 'eyebrow deck__kicker', kicker), el('h2', 'deck__heading', heading));
+
+      const body = el('div', 'deck__body prose-reading');
+      // The article's own typography, verbatim — see the note in the styles.
+      for (const node of nodes) body.append(node.cloneNode(true));
+      card.append(body);
+
+      slide.firstElementChild!.append(card);
+      return slide;
+    }
+
+    type Section = { title: string; nodes: Element[]; weight: number };
+
+    /** Splits the article at its H2s. Anything before the first is the introduction. */
+    function readSections(): Section[] {
+      const sections: Section[] = [];
+      let current: Section | null = null;
+
+      for (const child of [...root.children]) {
+        if (child.tagName === 'H2') {
+          current = { title: headingText(child), nodes: [], weight: 0 };
+          sections.push(current);
+          continue;
+        }
+        if (!current) {
+          current = { title: 'Introduction', nodes: [], weight: 0 };
+          sections.push(current);
+        }
+        current.nodes.push(child);
+        current.weight += child.textContent?.length ?? 0;
+      }
+      return sections;
+    }
+
+    function build(): void {
+      const mode = deck.dataset.mode ?? 'sections';
+      let built: HTMLElement[];
+
+      if (mode === 'items') {
+        // A short's steps: each one is already a single idea, which is exactly
+        // what a slide is.
+        const items = [...root.children];
+        const titles = items.map((item) => {
+          const heading = item.querySelector('h3, h4');
+          return heading ? headingText(heading) : '';
+        });
+        built = [titleSlide(titles)];
+
+        items.forEach((item, i) => {
+          const clone = item.cloneNode(true) as HTMLElement;
+
+          // On the short's page each step is a button that drives the player.
+          // There is no player here, and a slide full of button chrome reads as
+          // a broken interface — so the controls are unwrapped back into the
+          // text they were built around.
+          clone.querySelectorAll('button').forEach((btn) => btn.replaceWith(...btn.childNodes));
+          clone.querySelectorAll('h3, h4').forEach((heading) => heading.remove());
+
+          built.push(contentSlide(`Step ${pad(i + 1)}`, titles[i] ?? '', [clone]));
+        });
+        built.push(endSlide());
+      } else {
+        const sections = readSections();
+        const faq = faqSlides();
+        const about = aboutSlide();
+
+        built = [titleSlide(sections.map((s) => s.title))];
+        if (about) built.push(about);
+        if (sections.length > 0) built.push(...agendaSlides(sections));
+        sections.forEach((s, i) => built.push(contentSlide(`Section ${pad(i + 1)}`, s.title, s.nodes)));
+        built.push(...(faq.length > 0 ? faq : [endSlide()]));
+      }
+
+      stage.replaceChildren(...built);
+      slides = built;
+      ofEl.textContent = String(slides.length);
+    }
+
+    /* ───────────────────────────────────────────────────────── fitting ── */
+
+    /**
+     * Shrinks a slide until it fits, and lets it scroll if it still does not.
+     *
+     * Measured with the scale reset, because `scrollHeight` on an already
+     * transformed element reports the untransformed height anyway and mixing the
+     * two is how this kind of code ends up oscillating. A transform leaves the
+     * layout box at full height, so the negative margin gives back what the scale
+     * took: without it a centred slide would start above the top of the stage.
+     */
+    function fit(slide: HTMLElement): void {
+      const scale = slide.firstElementChild as HTMLElement | null;
+      if (!scale) return;
+
+      scale.style.setProperty('--deck-scale', '1');
+      scale.style.marginBottom = '0';
+      const { paddingTop, paddingBottom } = getComputedStyle(slide);
+      const available = slide.clientHeight - parseFloat(paddingTop) - parseFloat(paddingBottom);
+      const natural = scale.scrollHeight;
+      if (natural <= 0 || available <= 0) return;
+
+      const factor = Math.min(1, available / natural);
+      const applied = Math.max(factor, SCALE_FLOOR);
+      scale.style.setProperty('--deck-scale', String(applied));
+      scale.style.marginBottom = `${natural * (applied - 1)}px`;
+      // Only a slide that could not be shrunk enough is left to scroll.
+      slide.style.justifyContent = factor < 1 ? 'flex-start' : 'center';
+    }
+
+    /* ────────────────────────────────────────────────────────── moving ── */
+
+    function show(next: number): void {
+      index = Math.max(0, Math.min(next, slides.length - 1));
+      slides.forEach((slide, i) => {
+        if (i === index) slide.dataset.current = '';
+        else delete slide.dataset.current;
+      });
+
+      const current = slides[index];
+      if (current) {
+        current.scrollTop = 0;
+        fit(current);
+      }
+
+      atEl.textContent = String(index + 1);
+      fill.style.width = `${((index + 1) / slides.length) * 100}%`;
+      prevBtn.disabled = index === 0;
+      nextBtn.disabled = index === slides.length - 1;
+    }
+
+    function open(): void {
+      build();
+      deck.hidden = false;
+      document.documentElement.style.overflow = 'hidden';
+      show(0);
+    }
+
+    function close(): void {
+      deck.hidden = true;
+      document.documentElement.style.overflow = '';
+      stage.replaceChildren();
+      slides = [];
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    }
+
+    prevBtn.addEventListener('click', () => show(index - 1));
+    nextBtn.addEventListener('click', () => show(index + 1));
+    deck.querySelector('[data-deck-exit]')?.addEventListener('click', close);
+    deck.querySelector('[data-deck-full]')?.addEventListener('click', () => {
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+      else void deck.requestFullscreen?.().catch(() => {});
+    });
+
+    onPresent = open;
+
+    onKey = (event) => {
+      if (deck.hidden) return;
+      const key = event.key;
+      if (key === 'Escape') return close();
+      if (key === 'ArrowRight' || key === 'PageDown' || key === ' ') {
+        event.preventDefault();
+        show(index + 1);
+      }
+      if (key === 'ArrowLeft' || key === 'PageUp') {
+        event.preventDefault();
+        show(index - 1);
+      }
+      if (key === 'Home') show(0);
+      if (key === 'End') show(slides.length - 1);
+      if (key === 'f') deck.querySelector<HTMLElement>('[data-deck-full]')?.click();
+    };
+
+    onResize = () => {
+      if (!deck.hidden) show(index);
+    };
+
+    if (!documentBound) {
+      documentBound = true;
+      document.addEventListener('reader:present', () => onPresent());
+      document.addEventListener('keydown', (event) => onKey(event));
+      window.addEventListener('resize', () => onResize());
+    }
+
+    // Swipe, with a threshold high enough that scrolling a tall slide does not
+    // register as a page turn.
+    let startX = 0;
+    let startY = 0;
+    deck.addEventListener(
+      'touchstart',
+      (event) => {
+        startX = event.touches[0]!.clientX;
+        startY = event.touches[0]!.clientY;
+      },
+      { passive: true },
+    );
+    deck.addEventListener(
+      'touchend',
+      (event) => {
+        const dx = event.changedTouches[0]!.clientX - startX;
+        const dy = event.changedTouches[0]!.clientY - startY;
+        if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
+        show(index + (dx < 0 ? 1 : -1));
+      },
+      { passive: true },
+    );
+  }
+
+  initDeck();
+  document.addEventListener('astro:page-load', () => {
+    bound = null;
+    initDeck();
+  });
+</script>

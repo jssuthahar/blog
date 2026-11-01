@@ -1,7 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import AppLaunchRedirect from '../components/AppLaunchRedirect.astro';
-import Avatar from '../components/Avatar.astro';
 import EventCard from '../components/EventCard.astro';
 import Newsletter from '../components/Newsletter.astro';
 import SubscribePopup from '../components/SubscribePopup.astro';
@@ -11,19 +10,22 @@ import SiteChat from '../components/SiteChat.astro';
 import TestimonialForm from '../components/TestimonialForm.astro';
 import { homeTestimonials } from '../lib/testimonials';
 import { SITE, AUTHOR, BOOKING, SPEAKING_TOPICS, ADSENSE_SLOT_DISPLAY } from '../config';
-import { CATEGORIES, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
+import { CATEGORIES, coverArt, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
 import { allArticles, articleCategories, primaryCategory, capturePayload } from '../lib/articles';
+import { getShorts, shortUrl } from '../lib/shorts';
 import { featuredRepos, repoIndex, languageColor } from '../lib/repos';
 import { getUpcomingEvents, eventSchema } from '../lib/speaking';
 import { contributionPillars, publishingSpan } from '../lib/evidence';
 import ContributionTimeline from '../components/ContributionTimeline.astro';
 import AdUnit from '../components/AdUnit.astro';
-import HeroCarousel, { type Slide } from '../components/HeroCarousel.astro';
+import HomeCarousel from '../components/HomeCarousel.astro';
+import TopicLinks from '../components/TopicLinks.astro';
 import MicrosoftBadges from '../components/MicrosoftBadges.astro';
 import RecentlyRead from '../components/RecentlyRead.astro';
 import SeriesQuickNav from '../components/SeriesQuickNav.astro';
 import CoverArt from '../components/CoverArt.astro';
-import { formatEventDate, FORMAT_LABELS } from '../lib/speaking';
+import ShortPoster from '../components/ShortPoster.astro';
+import ViewCount from '../components/ViewCount.astro';
 
 const posts = await getPublishedPosts();
 
@@ -49,53 +51,16 @@ const upcoming = await getUpcomingEvents();
 const pillars = contributionPillars();
 const span = publishingSpan();
 
+// One row of four — the newest, and the whole row plays. Eight filled two rows
+// of static cards, which read as a contact sheet of everything rather than an
+// invitation to watch one; the count on the button is what says there are more.
+const allShorts = getShorts();
+const shorts = allShorts.slice(0, 4);
+const shortCount = allShorts.length;
+
 const testimonials = homeTestimonials(5);
 const leadQuote = testimonials.filter((t) => t.featured).slice(0, 2);
 const restQuotes = testimonials.filter((t) => !t.featured);
-
-/**
- * Banner slides, interleaved so the first three cover all three kinds — a
- * visitor sees a post, an article, and an event without waiting through a
- * run of the same type. Blog posts go first in each round: they are the
- * writing this site is actually for.
- */
-const articleSlides: Slide[] = articles.slice(0, 3).map((a) => ({
-  kind: 'Latest article',
-  title: a.title,
-  href: a.url,
-  external: true,
-  image: a.image,
-  meta: a.categories[0],
-  cta: 'Read the article',
-}));
-
-const blogSlides: Slide[] = posts.slice(0, 3).map((p) => ({
-  kind: 'From the blog',
-  title: p.data.title,
-  href: postUrl(p),
-  meta: CATEGORIES[p.data.category].label,
-  cta: 'Read the post',
-}));
-
-const eventSlides: Slide[] = upcoming.slice(0, 2).map((e) => ({
-  kind: 'Upcoming event',
-  title: e.data.talk ?? e.data.title,
-  href: e.data.registrationUrl ?? e.data.url ?? '/speaking/',
-  external: Boolean(e.data.registrationUrl ?? e.data.url),
-  // The event name rides along in the meta line when the title is the talk,
-  // so dropping the slide summary costs the reader nothing.
-  meta: [FORMAT_LABELS[e.data.format], formatEventDate(e), e.data.talk ? e.data.title : e.data.location]
-    .filter(Boolean)
-    .join(' · '),
-  cta: 'Event details',
-}));
-
-const slides: Slide[] = [];
-for (let i = 0; i < 3; i++) {
-  for (const group of [blogSlides, articleSlides, eventSlides]) {
-    if (group[i]) slides.push(group[i]);
-  }
-}
 
 // No email is published; booking goes to the scheduler or the contact page.
 const bookingHref = BOOKING.scheduler || '/contact/';
@@ -127,76 +92,10 @@ const schema = [
   <!-- An installed launch belongs on the app feed, not the marketing page. -->
   <AppLaunchRedirect />
 
-  <!-- ══════════════ Hero: claim, proof, and action on one screen ══════════════ -->
-  <section class="mx-auto max-w-6xl px-4 pt-12 pb-10 sm:px-6 lg:pt-16 lg:pb-12">
-    <div class="grid items-center gap-10 lg:grid-cols-[1.3fr_0.9fr]">
-      <div>
-        <p class="eyebrow">
-          <span class="text-accent">MS</span>DEVBUILD — {SITE.alternateName}
-        </p>
-        <div class="mt-3 flex items-center gap-3">
-          <Avatar size={40} />
-          <div class="text-sm">
-            <p class="font-semibold">{AUTHOR.name}</p>
-            <p class="text-muted">{AUTHOR.jobTitle} · {AUTHOR.location}</p>
-          </div>
-        </div>
-
-        <h1 class="display mt-6 text-[2.25rem] sm:text-[2.75rem] lg:text-[3rem]">
-          {span.activeYears} years contributing to the
-          <span style="color: var(--accent);">developer community</span>
-        </h1>
-
-        <!-- The lead deliberately repeats the H1 wording ("contributing to the
-             developer community") — auditors flag an H1 whose terms never
-             appear in the body copy. -->
-        <p class="mt-4 max-w-xl leading-relaxed text-muted text-pretty">
-          {AUTHOR.yearsExperience}+ years as a solutions architect across Cloud, AI, Mobile and Web —
-          Azure, .NET, Flutter and modern web. {span.activeYears} of those years went into
-          contributing to the developer community: {articles.length} articles, 50+ conference
-          sessions, {repoIndex.count} open-source projects, 15,000+ developers reached.
-        </p>
-
-        <!-- Recognition moved inline so the panel slot can carry the banner. -->
-        <ul class="mt-6 flex flex-wrap gap-2">
-          {[...AUTHOR.awards, 'Microsoft Certified Trainer'].map((award) => (
-            <li class="inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1.5 text-xs font-medium">
-              <svg class="size-3.5 shrink-0" viewBox="0 0 20 20" fill="currentColor" style="color: var(--accent);" aria-hidden="true">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.86-9.47a.75.75 0 0 0-1.22-.86l-3.24 4.53-1.62-1.62a.75.75 0 0 0-1.06 1.06l2.24 2.24a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
-              </svg>
-              {award}
-            </li>
-          ))}
-        </ul>
-
-        <!-- Prominent power search: opens the ⌘K palette over all content. -->
-        <button
-          type="button"
-          data-open-search
-          class="mt-6 flex w-full max-w-md items-center gap-3 rounded-full border border-default bg-[var(--bg)] px-5 py-3 text-left text-sm text-muted transition-colors hover:border-[var(--accent)]"
-        >
-          <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
-          </svg>
-          <span class="flex-1">Search {articles.length}+ articles, posts and pages…</span>
-          <kbd class="hidden rounded border border-default px-1.5 py-0.5 text-xs sm:inline">⌘K</kbd>
-        </button>
-
-        <div class="mt-6 flex flex-wrap items-center gap-3">
-          <a href={bookingHref} class="btn btn-primary">Book me to speak</a>
-          <a href="/about/" class="btn btn-outline">Full profile</a>
-          {BOOKING.available && (
-            <span class="inline-flex items-center gap-2 text-sm text-muted">
-              <span class="size-2 rounded-full" style="background: var(--accent);"></span>
-              {BOOKING.availabilityNote}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <HeroCarousel slides={slides} label="Latest articles, blog posts and events" />
-
-    </div>
+  <!-- ══════════════ Hero: one carousel, slide by slide like a session deck ══════════════ -->
+  <section class="mx-auto max-w-6xl px-4 pt-8 pb-10 sm:px-6 lg:pt-10 lg:pb-12">
+    <HomeCarousel activeYears={span.activeYears} bookingHref={bookingHref} />
+    <TopicLinks class="mt-6" />
   </section>
 
   <!-- ══════════════ Recently read ══════════════
@@ -243,7 +142,7 @@ const schema = [
         <div class="mt-6 grid gap-8 lg:grid-cols-[1.05fr_1fr]">
           <!-- Newest post, full card. -->
           <article class="group relative flex flex-col overflow-hidden rounded-xl border border-default bg-[var(--bg)]">
-            <div class="aspect-[16/9] overflow-hidden">
+            <div class="aspect-[1200/630] overflow-hidden bg-subtle">
               <CoverArt
                 post={latestPost}
                 large
@@ -256,7 +155,7 @@ const schema = [
               <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                 <span
                   class="rounded-full px-2 py-0.5 font-medium"
-                  style={`background: oklch(0.62 0.17 ${latestCategory!.hue} / 0.14); color: oklch(0.62 0.17 ${latestCategory!.hue});`}
+                  style={`background: oklch(0.62 0.17 ${latestCategory!.hue} / 0.14); color: var(--accent-deep);`}
                 >
                   {latestCategory!.label}
                 </span>
@@ -265,6 +164,7 @@ const schema = [
                   {formatDate(latestPost.data.publishedAt)}
                 </time>
                 <span class="text-muted">{readingTime(latestPost.body ?? '')} min read</span>
+                <ViewCount slug={latestPost.id} class="text-muted" />
               </div>
 
               <h3 class="mt-2.5 text-xl leading-snug font-semibold tracking-tight text-balance sm:text-2xl">
@@ -293,7 +193,7 @@ const schema = [
                 return (
                   <li class="group relative py-3.5">
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                      <span class="font-medium" style={`color: oklch(0.62 0.17 ${category.hue});`}>
+                      <span class="font-medium" style={`color: var(--accent-deep);`}>
                         {category.label}
                       </span>
                       <time datetime={post.data.publishedAt.toISOString()} class="text-muted">
@@ -303,6 +203,7 @@ const schema = [
                       {post.data.series && (
                         <span class="text-muted">Part {post.data.seriesOrder}</span>
                       )}
+                      <ViewCount slug={post.id} class="text-muted" />
                     </div>
                     <h4 class="mt-1 leading-snug font-medium">
                       <a href={postUrl(post)} class="after:absolute after:inset-0 group-hover:text-accent">
@@ -326,6 +227,132 @@ const schema = [
         <!-- Series entry points: the fastest way into a multi-part guide. -->
         <div class="mt-8 border-t border-default pt-5">
           <SeriesQuickNav label="Jump into a series" />
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- ══════════════ Short videos ══════════════
+       Directly after the blog, because it is the same material at a different
+       speed: a visitor who is not ready to start a 12-minute read will still
+       give 30 seconds to one idea, and that is a real entry point rather than
+       a bounce. Portrait cards, because the shorts are drawn portrait. -->
+  {shorts.length > 0 && (
+    <section class="mx-auto max-w-6xl px-4 section sm:px-6" aria-labelledby="shorts-heading">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">30-second learning</p>
+          <h2 id="shorts-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">
+            A new way to learn — 30 seconds a day
+          </h2>
+        </div>
+        <a href="/shorts/" class="btn btn-outline btn-sm">All {shortCount} short videos</a>
+      </div>
+
+      <!-- The promise, stated as a number rather than a mood: three or four of
+           these, back to back, is the same half hour a real architecture
+           question takes to actually think through — just spent watching the
+           shape of the fix instead of staring at a blank diagram. The number
+           gets its own stat treatment — the accent-left-border callout the
+           short pages already use for "The takeaway" — so it reads at a
+           glance before anyone reads the sentence. -->
+      <div
+        class="mt-5 flex flex-col gap-4 rounded-xl border-l-4 bg-subtle p-5 sm:flex-row sm:items-center sm:gap-6"
+        style="border-left-color: var(--accent);"
+      >
+        <div class="flex shrink-0 items-baseline gap-2 sm:flex-col sm:items-center sm:gap-0.5 sm:border-r sm:border-default sm:pr-6">
+          <span class="text-4xl leading-none font-extrabold tracking-tight text-accent">30</span>
+          <span class="text-xs font-semibold tracking-wider uppercase text-muted">minutes</span>
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm font-semibold tracking-wider uppercase text-accent">Not 3 hours</p>
+          <p class="mt-1.5 leading-relaxed text-pretty">
+            Most architecture problems don't need a redesign, they need the
+            right idea at the right time. Three or four of these back to back
+            is about 30 minutes — usually enough to get unstuck, instead of a
+            week guessing at it on your own.
+          </p>
+        </div>
+      </div>
+
+      <!-- One short, full treatment; the rest as a list you can scan in a
+           glance. The same asymmetric shape "New on the blog" uses above,
+           on purpose — a visitor already knows how to read this page. -->
+      <div class="mt-7 grid items-start gap-8 lg:grid-cols-[1.05fr_1fr]">
+        {shorts[0] && (
+          <!-- Same card language "New on the blog" uses above: badge row,
+               title, description, CTA. The poster is 9:16, so media sits in
+               its own left column at its own width instead of spanning the
+               card top — that is what stopped the top strip being mostly
+               empty background either side of a narrow centred image. -->
+          <article class="group relative flex overflow-hidden rounded-xl border border-default bg-[var(--bg)]">
+            <div class="w-32 shrink-0 overflow-hidden bg-subtle sm:w-40">
+              <ShortPoster short={shorts[0]} preview class="transition-transform duration-500 group-hover:scale-[1.03]" />
+            </div>
+
+            <div class="flex flex-1 flex-col p-5 min-w-0">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                <span
+                  class="rounded-full px-2 py-0.5 font-medium"
+                  style={`background: oklch(0.62 0.17 ${CATEGORIES[shorts[0].category].hue} / 0.14); color: var(--accent-deep);`}
+                >
+                  {shorts[0].folderLabel}
+                </span>
+                <span class="font-semibold text-accent">Today's short</span>
+                <span class="text-muted">{shorts[0].stages.length} steps · {shorts[0].seconds}s</span>
+              </div>
+
+              <h3 class="mt-2.5 text-xl leading-snug font-semibold tracking-tight text-balance sm:text-2xl">
+                <a href={shortUrl(shorts[0])} class="after:absolute after:inset-0 group-hover:text-accent">
+                  {shorts[0].title}
+                </a>
+              </h3>
+
+              <!-- `sub` is the short's own punchy tagline (also on the
+                   poster itself); `topic` is the full plain-language
+                   description — the pair the blog card's title + description
+                   already mirrors, so the short gets the same treatment. -->
+              <p class="mt-2 leading-relaxed text-muted text-pretty">
+                {shorts[0].topic}
+              </p>
+
+              <span class="mt-4 text-sm font-semibold text-accent">Watch it →</span>
+            </div>
+          </article>
+        )}
+
+        <div>
+          <h3 class="border-b border-default pb-2 text-xs font-semibold tracking-wider uppercase text-muted">
+            More shorts
+          </h3>
+
+          <ul class="divide-y divide-[var(--border)]">
+            {shorts.slice(1).map((short) => {
+              const category = CATEGORIES[short.category];
+              return (
+                <li class="group relative py-3.5">
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                    <span class="font-medium" style={`color: var(--accent-deep);`}>
+                      {short.folderLabel}
+                    </span>
+                    <span class="text-muted">{short.stages.length} steps · {short.seconds}s</span>
+                  </div>
+                  <h4 class="mt-1 leading-snug font-medium">
+                    <a href={shortUrl(short)} class="after:absolute after:inset-0 group-hover:text-accent">
+                      {short.title}
+                    </a>
+                  </h4>
+                  <p class="mt-1 line-clamp-2 text-sm leading-relaxed text-muted">
+                    {short.topic}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+
+          <a href="/shorts/" class="mt-4 inline-block text-sm font-semibold text-accent hover:underline">
+            Every short, {shortCount} and counting →
+          </a>
         </div>
       </div>
     </section>
@@ -469,17 +496,17 @@ const schema = [
   <section
     id="speaking"
     class="scroll-mt-16"
-    style="background: var(--navy); color: oklch(0.96 0.004 265);"
+    style="background: var(--band); color: #fff;"
     aria-labelledby="speaking-heading"
   >
     <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6">
       <div class="grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
         <div>
-          <span class="badge-chip" style="opacity: 0.7;">Speaker</span>
+          <span class="badge-chip" style="opacity: 0.9;">Speaker</span>
           <h2 id="speaking-heading" class="display mt-4 text-2xl sm:text-[2rem]">
             50+ sessions. 15,000+ developers reached.
           </h2>
-          <p class="mt-3 max-w-md leading-relaxed" style="opacity: 0.72;">
+          <p class="mt-3 max-w-md leading-relaxed" style="opacity: 0.9;">
             Conference sessions, webinars, and community meetups on Azure, applied AI,
             and .NET — in English or Tamil, on site or online.
           </p>
@@ -497,11 +524,11 @@ const schema = [
             </a>
           </div>
 
-          <p class="mt-3 text-sm" style="opacity: 0.6;">{BOOKING.responseTime}</p>
+          <p class="mt-3 text-sm" style="opacity: 0.88;">{BOOKING.responseTime}</p>
         </div>
 
         <div>
-          <h3 class="text-xs font-semibold tracking-wider uppercase" style="opacity: 0.6;">
+          <h3 class="text-xs font-semibold tracking-wider uppercase" style="opacity: 0.88;">
             {upcoming.length > 0 ? 'Upcoming' : 'Talks I give'}
           </h3>
 
@@ -518,7 +545,7 @@ const schema = [
               {SPEAKING_TOPICS.map(({ title, description }) => (
                 <li class="border-t py-3.5" style="border-color: rgb(255 255 255 / 0.16);">
                   <h4 class="text-sm font-semibold">{title}</h4>
-                  <p class="mt-1 text-sm leading-relaxed" style="opacity: 0.66;">{description}</p>
+                  <p class="mt-1 text-sm leading-relaxed" style="opacity: 0.9;">{description}</p>
                 </li>
               ))}
             </ul>
@@ -627,6 +654,7 @@ const schema = [
             { label: 'LinkedIn', value: 'in/jssuthahar', href: AUTHOR.linkedin },
             { label: 'GitHub', value: '@jssuthahar', href: 'https://github.com/jssuthahar' },
             { label: 'YouTube', value: '@MSDEVBUILD', href: 'https://www.youtube.com/@MSDEVBUILD' },
+            { label: 'X', value: '@jssuthahar', href: AUTHOR.x },
             { label: 'Contact', value: 'Send a message', href: '/contact/' },
           ].map(({ label, value, href }) => (
             <div class="min-w-0">

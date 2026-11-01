@@ -24,7 +24,22 @@ export interface ArticleIndex {
   posts: Article[];
 }
 
-export const articleIndex = data as ArticleIndex;
+/**
+ * Blogger's feed hands out thumbnails sized `s72-w640-h360-c`, where `s72` wins
+ * and the image arrives 72px square. Dropping it serves the same image at the
+ * 640px the rest of the token asks for. Done here rather than in the committed
+ * cache, so the next sync cannot bring the blurry version back.
+ */
+function fullSizeImage(image: string | null): string | null {
+  return image?.replace(/([/=])s72-(w\d+-h\d+)/, '$1$2') ?? null;
+}
+
+const raw = data as ArticleIndex;
+
+export const articleIndex: ArticleIndex = {
+  ...raw,
+  posts: raw.posts.map((post) => ({ ...post, image: fullSizeImage(post.image) })),
+};
 
 export function allArticles(): Article[] {
   return articleIndex.posts;

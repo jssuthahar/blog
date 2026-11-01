@@ -1,0 +1,363 @@
+---
+title: 'AI Agents for DevOps, Release, Monitoring and Analytics'
+seoTitle: 'AI DevOps and Release Agents'
+description: 'The four AI agents that ship software and keep it watched (DevOps, release management, monitoring and analytics) with working prompts and hooks.'
+highlight: 'Finishing the code and shipping the software are separate events. A DevOps agent makes the backend and signing of every build explicit, a release agent writes notes from requirements instead of commit messages, a monitoring agent lists the incident questions before the incident, and an analytics agent writes the event spec before the first event ships.'
+publishedAt: 2026-09-25
+updatedAt: 2026-10-01
+category: devops
+tags: ['AI Coding Agents', 'GitHub Copilot', 'DevOps', 'GitHub Actions', 'Release Management', 'Monitoring', 'Analytics', 'Flutter', 'Firebase']
+series: 'ai-agent-team'
+seriesOrder: 5
+cover: './images/ai-agents-devops-release-monitoring-analytics-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "The AI Engineering Team" above the title "Code complete is not shipped" and the line "DevOps, release, monitoring and analytics agents.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "The build works on a laptop, nobody owns the pipeline", an arrow labelled "it ships" to an amber box reading "Which backend? Which notes? No crash report, three event names", and an arrow labelled "the fix" to a green box reading "Four agents decide first, shipped, and watched".'
+draft: true
+faq:
+  - q: 'What should a DevOps agent produce that a developer would not?'
+    a: 'The environment separation. A developer writes the build that works; a DevOps agent asks which backend, which signing key and which config each build uses, and makes the wrong combination impossible to build by accident, from a laptop or from CI.'
+  - q: 'Can an AI agent write release notes automatically?'
+    a: 'It can draft them from merged pull requests, but notes generated from commit messages read like a diff. Give the agent the requirements files as well, so the notes describe what a user can now do rather than which files changed.'
+  - q: 'What is the real deliverable of a monitoring agent?'
+    a: 'The list of questions you will want answered at two in the morning, written before the incident. Dashboards and alerts follow from that list. Instrumentation decided during an outage is instrumentation for the last outage.'
+  - q: 'Why do analytics events need a specification file?'
+    a: 'Because event names drift within weeks: order_placed, OrderComplete and purchase all end up in the same product. Bad data cannot be fixed after it is collected, so the taxonomy has to exist before the first event ships, and a hook should refuse undefined events.'
+  - q: 'Do small teams need a separate release management agent?'
+    a: 'Not at first. On a small team the DevOps agent can own versioning and the changelog. Split release management out when you have staged rollouts, more than one store, or anyone outside the team asking what changed.'
+  - q: 'How do you know which backend a Flutter build talks to?'
+    a: 'Make it a build input instead of a code default. Pass it with --dart-define, fail the build if it is missing for a release, and show it on an About screen. Then anyone holding the APK can answer the question without reading the code.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+Finishing the code and shipping the software are separate events, and the gap between them does not shrink when coding gets faster. Four agents close it. A DevOps agent makes the backend and signing of every build explicit. A release agent writes notes from requirements instead of commit messages. A monitoring agent writes the incident questions before the incident. An analytics agent writes the event spec before the first event ships.
+
+Picture three weeks before launch. A developer sends a build to a reviewer. It installs and it works. Nobody can say, from the APK alone, which backend it is talking to.
+
+The code was finished in [week nine](/blog/ai-coding-agent-team-software-project). The software is nowhere near shipped.
+
+<Callout type="tip" title="Four agents against two real pipelines">
+**MSDevBuild Eats** ships two ways from one commit: [GitHub Pages](https://jssuthahar.github.io/food-delivery-app/) for web and [Firebase App Distribution](https://appdistribution.firebase.dev/i/00432c5aa60de58b) for Android. The four agent prompts are committed in the [repository](https://github.com/jssuthahar/food-delivery-app) as `.ai/prompts/devops.md`, `release.md`, `monitoring.md` and `analytics.md`, and the analytics spec they produced is `analytics/events.yaml`.
+</Callout>
+
+## From code-complete to shipped, with nobody owning it
+
+| Week | What happened |
+| --- | --- |
+| 10 | A reviewer build goes out. Nobody can say which backend it uses |
+| 11 | Testers receive a build whose release notes read "fix: null check in order repository" |
+| 12 | Launch. A crash on one Android version closes the app at start-up. No crash reporting is wired up, so nobody knows |
+| 15 | A support message mentions the crash in passing. Three weeks of those users are gone |
+| 16 | Product asks for the order funnel. Events exist in two screens, under three names |
+
+Not one of those weeks is a feature. Each is a decision that was never made because it was nobody's job.
+
+## The command that shows what a build cannot tell you
+
+```bash
+grep -n "this.backend" lib/core/config/app_config.dart
+grep -n "NOTES=\"\$(git log" .github/workflows/android-distribute.yml
+grep -nE "crashlytics|sentry" pubspec.yaml || echo "no crash reporting"
+```
+
+```text
+17:    this.backend = Backend.demo,
+97:            NOTES="$(git log -1 --pretty=format:'%s')"
+no crash reporting
+```
+
+Three real gaps in MSDevBuild Eats, each one a decision rather than a bug:
+
+- **The backend is a constructor default.** `AppConfig` picks `Backend.demo` unless code says otherwise. No flavour, no build flag, nothing visible in the installed app. A build that talks to Firebase and one that runs the offline demo look identical.
+- **Tester release notes fall back to the last commit subject.** When nobody types notes into the Android distribute workflow, testers get `git log -1`, which is a description of a diff.
+- **There is no crash reporting.** Nothing is wired up, so when the monitoring agent runs against this app, its list of questions it cannot answer today is most of its output.
+
+The fourth, analytics, is the one MSDevBuild Eats got right early: `analytics/events.yaml` defines 14 events before any SDK is wired in, and a pre-commit check refuses any event the spec does not name.
+
+<figure>
+
+![Two step flows side by side. On the left, nobody owns the pipeline, so the build works and it ships: the backend is chosen by a code default, so the APK cannot say which it uses; tester notes are the last commit subject from git log -1; there is no crash reporting in pubspec.yaml, so a crash on launch is silent; events are named on the day, order_placed, OrderComplete and purchase. The red outcome: shipped, and blind. On the right, four agents before the first release, each deciding before it ships: DevOps sets the backend per build with --dart-define and shows it in About; release writes notes from requirements with a pre-push check on tag, version and CHANGELOG; monitoring writes incident questions first, with a pre-commit check against empty catch blocks; analytics writes events.yaml first, 14 events with one name per action. The green outcome: shipped, and watched.](./images/ai-ship-agents-pipeline-owner-vs-four-agents.png)
+
+<figcaption>Figure 1 — the same release, with nobody owning the pipeline and with four agents deciding first.</figcaption>
+
+</figure>
+
+<ShortHighlight slugs={['ai-ship-agents-code-complete-not-shipped']} />
+
+## The DevOps Agent
+
+A DevOps agent's contribution is not the workflow file. Copilot writes a passable GitHub Actions workflow with very little help. Its job is the questions that turn a build into a pipeline: which backend, which config, which key, which secret store, and what makes the wrong combination impossible rather than merely unlikely.
+
+MSDevBuild Eats already does the signing part properly: the Android workflow decodes the keystore from `ANDROID_KEYSTORE_BASE64` and three other repository secrets, and `.gitignore` keeps `google-services.json`, `*.jks` and `*.keystore` out of git. What it does not do yet is make the backend a build input.
+
+**What it gets:** the platforms, the environments, an honest inventory of every secret and where it lives today, and the constraint that hurts.
+
+**What it returns:** workflows per environment, a config layout where each environment is a build input, a secrets list mapped to repository secrets, and a plain statement of what still needs a person.
+
+```markdown
+<!-- .ai/prompts/devops.md -->
+Stack: Flutter + Firebase. Platforms: {platforms}.
+Environments: {list}, each with its own Firebase project or backend.
+Secrets today: {inventory, honestly, including any in the repo}
+
+Produce:
+1. A GitHub Actions workflow per environment. Build, test, artefact.
+2. The config layout: which input each build reads, and how the
+   build fails loudly if an environment and a config disagree.
+3. Every secret mapped to a repository secret. Name each one.
+4. What cannot be automated yet, and what it would take.
+
+Rules:
+- No credential is ever committed. If one is in the repo today,
+  list it in a migration section with the rotation step.
+- A production build must not be producible from a developer machine
+  without an explicit override. Say how you enforce that.
+```
+
+For the backend gap, the agent's answer is small: read it with `String.fromEnvironment('BACKEND')`, pass `--dart-define=BACKEND=firebase` in the release workflow, fail a release build where it is missing, and print it on the About screen.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: credentials and platform config never enter the repo
+blocked='google-services\.json|GoogleService-Info\.plist|\.keystore$|\.jks$|\.p12$|serviceAccount.*\.json$'
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+
+if echo "$staged" | grep -qE "$blocked"; then
+  echo "devops: credential or platform config staged for commit."
+  echo "        These belong in repository secrets, not in git history."
+  exit 1
+fi
+```
+
+That is the check MSDevBuild Eats runs today, in `.githooks/pre-commit`.
+
+| | |
+| --- | --- |
+| **Skills** | GitHub Actions · Flutter build configuration · Firebase environments · secret management |
+| **Triggers on** | A new environment, a new platform, any change to build config |
+| **Fails the build when** | A credential or platform config file is staged for commit |
+
+## The Release Management Agent
+
+A changelog says `fix: null check in order_repository.dart`. Release notes say a customer can now cancel an order before the restaurant accepts it. Only one is useful to the person reading your store listing, and only one needs real input.
+
+MSDevBuild Eats has both sides of this. `CHANGELOG.md` was written with `.ai/prompts/release.md` and reads like a user would: "Browse 20 restaurants and 100 dishes… Watch the order move from confirmed to delivered." The tester notes in the Android workflow fall back to the last commit subject. The fix for the second is to feed it from the first.
+
+**What it gets:** the merged pull requests since the last tag, the requirements files those PRs implemented, and the current version.
+
+**What it returns:** the next version with the reason for the bump, release notes in user language, store metadata, a rollout plan, and the rollback step. The rollback step is not optional, and it is the one people skip. The same problem one level down is covered in [the PR summary article](/blog/github-copilot-pr-summary-reviewers-actually-read): give the generator the intent, not only the change.
+
+```markdown
+<!-- .ai/prompts/release.md -->
+Since tag {last}: {merged PRs}. Requirements: docs/requirements/*.md
+Current version: {version}. Store: {Play / App Store}. Audience: {who}
+
+Produce:
+1. Next version, and one line on why that bump (breaking / feature / fix).
+2. Release notes in user language. What can a person now DO?
+   No file names. No internal terms. Under 500 characters for the store.
+3. A staged rollout plan with the number that would make you stop.
+4. The rollback step, written so someone who did not build this
+   can follow it at 2am.
+
+Flag anything in this release that changes stored data shape.
+Those cannot be rolled back by reinstalling an older build.
+```
+
+The last flag matters on this app in particular: the cart is persisted in `shared_preferences` under `cart_state`, and a release that changes its shape cannot be undone by installing the previous APK.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-push: a tag needs a version bump and a changelog entry
+tag=$(git describe --tags --exact-match HEAD 2>/dev/null) || exit 0
+version=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}')
+
+[ "$tag" = "v${version%%+*}" ] || {
+  echo "release: tag $tag does not match pubspec version $version"; exit 1; }
+
+grep -q "## ${version%%+*}" CHANGELOG.md || {
+  echo "release: no CHANGELOG entry for ${version%%+*}"; exit 1; }
+```
+
+| | |
+| --- | --- |
+| **Skills** | Semantic versioning · store listing rules · staged rollout · migration awareness |
+| **Triggers on** | A release tag |
+| **Fails the build when** | The tag, the version and the changelog disagree |
+
+## The Monitoring and Observability Agent
+
+Users whose app closes at start-up rarely complain. They uninstall, and retention drops by an amount that looks like normal variance. Without crash reporting, the first signal is a support message that mentions it in passing, weeks later.
+
+The deliverable of this agent is not dashboards. **It is the list of questions you will want answered at two in the morning, written before the incident.** Dashboards and alerts fall out of that list.
+
+<figure>
+
+![Step flow of five steps. One, a bad night in one sentence: orders are placed but restaurants never see them. Two, the questions you will ask at 2am: which build, which backend, which screen, since when? Three, the signal that answers each one: crash reports, logs, a placed versus seen count. Four, alerts with a first step: a threshold, who it wakes, and what they do first. Five, what you cannot answer today, written down before the incident and not during it.](./images/ai-monitoring-agent-incident-questions-first.png)
+
+<figcaption>Figure 2 — the monitoring agent works backwards from the questions, not forwards from the dashboards.</figcaption>
+
+</figure>
+
+Notice the first question: *which build, which backend?* That is the DevOps gap again. A monitoring agent run against MSDevBuild Eats lists it as "cannot answer today" until the backend is a build input.
+
+**What it gets:** the architecture, the failure modes already known, and what a bad night looks like: payments failing, orders not arriving, the app not opening.
+
+**What it returns:** what to instrument, alerts with thresholds and who they wake, the context every error report must carry, and the questions the current instrumentation cannot answer.
+
+```markdown
+<!-- .ai/prompts/monitoring.md -->
+System: {architecture}. Known failure modes: {list}.
+A bad night looks like: {symptoms}
+
+Produce:
+1. The questions we will need answered during an incident.
+   Start here. Everything else follows from this list.
+2. For each question: the signal that answers it, and where it comes from.
+3. Alerts. Threshold, who it wakes, and what they should do first.
+   An alert nobody acts on gets muted, so justify each one.
+4. The context every error report must carry (build, backend, screen,
+   device class). Never anything that identifies a person.
+5. Questions from (1) that we cannot answer today.
+
+Rank alerts by how much a false positive costs. Noisy alerting
+is how teams learn to ignore real alerts.
+```
+
+Point 4 has a hard boundary. Attaching a user identifier to every error makes debugging easier, and that decision belongs to the privacy agent, not the monitoring agent.
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: a swallowed exception is an invisible incident
+offenders=""
+for f in $(git diff --cached --name-only --diff-filter=ACM | grep -E '\.dart$'); do
+  grep -nE 'catch\s*\([^)]*\)\s*\{\s*\}' "$f" && offenders="$offenders $f"
+done
+
+if [ -n "$offenders" ]; then
+  echo "monitoring: empty catch block. This failure will never be seen:$offenders"
+  echo "Report it, map it to a Failure, or rethrow."
+  exit 1
+fi
+```
+
+MSDevBuild Eats has zero empty `catch` blocks in `lib/`, which is what the hook is for: keeping that number at zero.
+
+| | |
+| --- | --- |
+| **Skills** | [Crashlytics](https://firebase.google.com/docs/crashlytics) · structured logging · alert design · incident questions |
+| **Triggers on** | Before first release, after every incident |
+| **Fails the build when** | An exception is caught and discarded |
+
+## The Analytics Agent
+
+Three months of data collected under three names for one action is three months of data nobody can trust. There is no migration for events you never sent correctly.
+
+So this agent's deliverable is a specification, written before the events ship. MSDevBuild Eats has one: `analytics/events.yaml`, with two funnels, 14 events, and a `forbidden_params` list at the bottom. Its header is honest: "STATUS: specification only. No analytics SDK is wired up in this app." The order funnel is derived from `OrderStatus.trackingStages`, so the funnel and the state machine cannot disagree.
+
+**What it gets:** the product questions. Not "add analytics", but the questions someone will ask, such as where people abandon the order flow.
+
+**What it returns:** the event spec, the funnel each event completes, and the questions the spec cannot answer.
+
+```markdown
+<!-- .ai/prompts/analytics.md -->
+Questions the business will ask: {questions}
+Screens and flows: {list}
+
+Produce analytics/events.yaml:
+- name (snake_case, verb_noun, past tense: order_placed)
+- when it fires, exactly once, and from where
+- parameters with types
+- which funnel it belongs to and its position
+
+Then:
+1. Funnels with a missing step. The gap makes the whole funnel unusable.
+2. Events that would collect anything personal. List them separately;
+   they need a privacy decision before they ship.
+3. Questions from the list that this spec cannot answer.
+
+Never propose two names for one user action.
+```
+
+```bash
+#!/usr/bin/env bash
+# .githooks/pre-commit: no event may be logged that the spec does not define
+for name in $(git diff --cached -U0 -- '*.dart' \
+              | grep '^+' | grep -oE "logEvent\(\s*name:\s*'[a-z_]+'" \
+              | grep -oE "'[a-z_]+'" | tr -d "'" | sort -u); do
+  grep -q "name: $name" analytics/events.yaml || {
+    echo "analytics: '$name' is not defined in analytics/events.yaml."
+    exit 1
+  }
+done
+```
+
+| | |
+| --- | --- |
+| **Skills** | Event taxonomy · funnel design · Firebase Analytics · privacy boundaries |
+| **Triggers on** | A new flow, a new product question |
+| **Fails the build when** | Code logs an event the specification does not define |
+
+## Mistakes worth skipping
+
+- **Treating the pipeline as a week-one chore and then a week-nine emergency.** By then secrets have drifted into odd places, and rotating them is its own small project.
+- **Release notes from commit messages.** A diff in prose. The requirements files sit right there, unused.
+- **Wiring crash reporting after launch.** The weeks without it are weeks you have no data for, permanently.
+- **Shipping events before the spec.** Three names for one action, and no way to reconcile them afterwards.
+
+Every one is the same mistake: doing the thinking after the shipping instead of before.
+
+## What changes with these four?
+
+| Gap | Nobody owns it | With the agent |
+| --- | --- | --- |
+| Which backend is this build? | A constructor default | A build input, shown in About |
+| Tester release notes | Last commit subject | Written from requirements; tag checked against `CHANGELOG.md` |
+| A crash at start-up | Found weeks later in support | An incident question with a signal and an alert |
+| Event names | Invented per screen | 14 events in `events.yaml`, undefined events refused |
+
+## Questions a tech lead will ask about this
+
+1. **"Our CI already builds and signs. What is left for a DevOps agent?"** The environment question. Signing is solved in MSDevBuild Eats; knowing which backend a build talks to is not.
+2. **"Can we generate release notes from commits?"** Drafts, yes. Final notes need the requirements, or they describe files instead of features.
+3. **"What do we instrument first?"** Whatever answers the first question on the 2am list. For most apps: is the app opening, and are orders arriving.
+4. **"Should every error carry the user ID?"** Not by the monitoring agent's decision. That is a privacy call.
+5. **"Analytics before any SDK is wired up?"** Yes. The spec costs an afternoon; renaming events after three months of data costs the data.
+
+## What to do on day one
+
+- Ask "which backend does this build talk to?" of your last release and see if anyone can answer from the artefact.
+- Make that answer a build input.
+- Replace commit-subject release notes with notes fed from requirements.
+- Write the five questions for your worst plausible night.
+- Write `events.yaml` before the next `logEvent`.
+
+## Key takeaways
+
+- Finishing the code and shipping the software are separate events.
+- A DevOps agent's value is environment separation, not workflow syntax. Make the wrong build impossible, not unlikely.
+- Release notes need intent as input. From commits alone, they read like a diff.
+- Write incident questions before the incident. Dashboards follow from them.
+- An analytics spec has to exist before the first event ships.
+
+## The next release
+
+The next build of MSDevBuild Eats goes to testers with `BACKEND=firebase` printed on its About screen and notes that say what a user can now do. The release agent flags one change to the persisted cart shape and writes the rollback step for it. The monitoring agent's list still has two questions marked "cannot answer today", and both are written down.
+
+Nobody has to reconstruct anything at eleven at night.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
+
+1. **The backend.** A tester reports a bug. Using only the installed APK, how do they tell you which backend they were on, after the DevOps agent's change?
+2. **The notes.** The Android workflow's notes read "fix: null check". Which two inputs would the release agent need to replace them?
+3. **The rollback.** Why can a release that changes the `cart_state` shape not be undone by installing the previous APK?
+4. **The 2am list.** Write three questions for "orders are placed but restaurants never see them", and the signal for each.
+5. **The fourth name.** A developer logs `order_complete`. What stops it, and what should they do instead?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

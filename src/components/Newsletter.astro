@@ -16,11 +16,11 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
 
 <section
   class:list={['rounded-xl border border-default bg-subtle', compact ? 'p-6' : 'p-8 md:p-12']}
-  aria-labelledby="newsletter-heading"
+  aria-labelledby={`newsletter-heading-${source}`}
 >
   <div class="mx-auto max-w-xl text-center">
     <h2
-      id="newsletter-heading"
+      id={`newsletter-heading-${source}`}
       class:list={['font-semibold tracking-tight', compact ? 'text-lg' : 'text-2xl']}
     >
       Get new posts by email

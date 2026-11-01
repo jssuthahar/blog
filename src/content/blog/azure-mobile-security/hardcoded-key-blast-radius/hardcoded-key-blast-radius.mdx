@@ -1,0 +1,113 @@
+---
+title: 'The Blast Radius of a Hardcoded API Key in a Mobile App'
+seoTitle: 'Hardcoded API Keys in Mobile Apps'
+description: 'The attacker costs you hours. Rotating a key baked into 40,000 installed apps costs you days — and that gap is the real price of a hardcoded secret.'
+highlight: 'A key hardcoded in a mobile app lives in every installed copy, so revoking it breaks every customer at once and the fix has to wait for an app store review. A secret is only a secret if you can replace it in one place, right now — which means your API holds it, in Key Vault, and the app never does.'
+publishedAt: 2026-10-26
+category: azure
+categories: ['mobile']
+tags: ['Azure', 'Mobile Security', 'Azure Key Vault', 'DevSecOps', 'FinOps', 'Managed Identity']
+series: 'azure-mobile-security'
+seriesOrder: 3
+cover: './images/hardcoded-key-blast-radius-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "Four hours to attack. Three days to rotate." and the line "A hardcoded key cannot be replaced without breaking every install.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Key inside the app, in every installed copy", an arrow labelled "an attacker" to a red box reading "Revoke it, every copy fails at once", and an arrow labelled "the fix" to a green box reading "Key in Key Vault, rotated in minutes".'
+draft: false
+faq:
+  - q: 'What happens if you hardcode an API key in a mobile app?'
+    a: 'Anyone who unzips the app can read it, and it can be used from anywhere until you revoke it. Worse, the key exists in every installed copy, so revoking it breaks every customer at the same moment, and the fix has to go through an app store release before users get it.'
+  - q: 'Why does rotating a hardcoded API key break a mobile app?'
+    a: 'Because the key is inside the shipped binary, it exists in every installed copy. Revoking it to stop an attacker makes every one of those copies fail at the same moment — the fix for the security incident becomes an outage, and the repair has to pass an app store review.'
+  - q: 'How do you know if a leaked key is being actively used?'
+    a: 'Check Azure Monitor logs grouped by caller IP before doing anything else. A stolen key is rarely used to delete data, since deletion gets noticed — on consumption services like Azure OpenAI, misuse usually shows up first as an unexpected line on the bill.'
+  - q: 'What is the safe order of operations when a key leaks?'
+    a: 'Check whether it is in use, ship the version that no longer needs the key (or put an API in front of it), move traffic to the secondary key most Azure services issue, then regenerate the primary and repeat for the secondary. Regenerating the key you are actively using first is what turns an incident into an outage.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+
+The attacker cost four hours. Rotating the key cost three days.
+
+Everyone repeats "don't hardcode keys." Almost nobody explains what actually happens on the day you have to undo it, and that day is where the real damage is.
+
+## What happens when you hardcode an API key in a mobile app?
+
+Two things, and the second one hurts more.
+
+First, it's public. An app package is a zip file, and anyone who unzips it can read the key (that's [the first post in this series](../mobile-secret-in-apk)).
+
+Second, the part nobody warns you about: the key is now inside **every installed copy**. Say 40,000 of them. The moment you revoke it to stop the attacker, all 40,000 start failing at the same second. You didn't have a security incident and then fix it. You had a security incident, and then you caused an outage on top of it.
+
+And the repair goes through an app store: new build, submission, review, release, then you wait for people to update. Some never will.
+
+## Hardcoded key vs Key Vault: the cost of rotation
+
+<figure>
+
+![Two columns showing the same leaked key. Left, "Key inside the app": the key leaks because someone unzipped the app; in red, you switch the key off and all 40,000 installed apps stop working at the same second; in red, the fix waits for a new build, app store review and users updating, which takes days. Right, "Key in Key Vault, behind your API": the key leaks from a log or laptop but was never in the app; you rotate it in Key Vault with one command; in green, customers notice nothing, in minutes rather than days.](./images/rotation-side-by-side.png)
+
+<figcaption>Figure 1 — the same leak, two outcomes. The difference is where the key lived.</figcaption>
+
+</figure>
+
+| | Key hardcoded in the app | Key in Key Vault behind your API |
+| --- | --- | --- |
+| Who can read it | Anyone with the app | Your API's managed identity |
+| How you rotate it | New build + store review | One CLI command |
+| Time to fix | Days | Minutes |
+| What customers see | Broken app until they update | Nothing |
+| Old installs | Broken forever | Unaffected |
+
+## The rule
+
+> A secret is only a secret if you can replace it in one place, right now, without asking anyone for permission.
+
+If fixing it needs an app store release, it was never a secret.
+
+## What that looks like on Azure
+
+1. The app holds no service key — only a user token from Microsoft Entra ID that expires in about an hour.
+2. Your API holds the relationship with Azure and reads secrets from Azure Key Vault at runtime with a managed identity.
+3. Rotation is a Key Vault operation. New version, done. The app never knew the key existed, so it doesn't care that it changed.
+
+```bash
+az keyvault secret set --vault-name msdev-kv \
+  --name OpenAiKey --value <new-key>
+```
+
+No build. No store review. No waiting. (One catch: if your API caches secrets at startup, set a `ReloadInterval`: details in [Azure Key Vault explained](../azure-key-vault-explained).)
+
+## Better still: no key at all
+
+For Azure-to-Azure calls, use managed identity and skip keys entirely. Azure SQL, Storage, Service Bus, Cosmos DB and Azure OpenAI all support it. A key you never created can't leak, and never needs rotating.
+
+## How a stolen key usually shows up
+
+As a bill, not an alert. A stolen key is rarely used to delete things: deletion gets noticed. It gets used quietly, and on consumption services like Azure OpenAI, that looks like a very large invoice.
+
+<Callout type="warning">
+  Set a budget alert on the subscription **and** a cost anomaly alert on the resource now, before you need them. Otherwise your first signal is the invoice.
+</Callout>
+
+## What should you do if a key leaks today?
+
+Order matters more than speed here:
+
+<figure>
+
+![Five steps top to bottom: check whether the key is being used in Azure Monitor logs grouped by caller IP; ship a version that no longer needs it; move traffic to the secondary key; a dashed check asking whether anything still uses the primary, with "yes: keep moving traffic first" beside it; and finally, in green, regenerate the primary, then the secondary.](./images/leak-response-order.png)
+
+<figcaption>Figure 2 — swap, confirm, then regenerate. Regenerating first is what turns an incident into an outage.</figcaption>
+
+</figure>
+
+Write this down somewhere your team can find at 3am. You don't want to be reconstructing it from memory during one.
+
+## Key takeaways
+
+- A key hardcoded in a mobile app can't be rotated without breaking every installed copy — the fix and the outage are the same event.
+- If replacing a secret needs an app store release, it doesn't meet the bar for "secret".
+- Key Vault plus managed identity makes rotation a one-line command customers never notice.
+- Stolen keys on consumption services usually show up on the bill first — set budget and cost anomaly alerts in advance.
+- When a key leaks, swap to the secondary before regenerating the primary.
+
+Official documentation: [Azure Key Vault overview](https://learn.microsoft.com/azure/key-vault/general/overview) and [managed identities](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview).

@@ -19,7 +19,7 @@ draft: false
 ## Overview
 
 A build-along workshop taking developers from an Azure OpenAI resource to a
-working AI application that answers questions grounded in private documents —
+working AI application that answers questions grounded in private documents,
 not just a raw chat wrapper.
 
 ## What we built

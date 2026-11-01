@@ -10,10 +10,10 @@ export const SITE = {
   /** Shown beside the wordmark so the blog is always attributed. */
   byline: 'by Suthahar',
   /** Also used as the home-page <title> suffix, so it must read as a positioning line. */
-  tagline: 'Cloud, AI, Mobile & Web developer platform',
+  tagline: 'Azure, AI & Mobile developer platform',
   /** Kept under ~155 chars so Google renders it without truncating (~1000px). */
   description:
-    'Multi-stack developer learning platform by Suthahar — hands-on Cloud, Azure, AI, GitHub Copilot, Flutter, .NET MAUI and Web. Real code, real trade-offs.',
+    'Developer platform by Suthahar — hands-on Azure, Microsoft Foundry, AI agents, GitHub Copilot, C#, Flutter and .NET MAUI. Real code, real trade-offs.',
   /**
    * The technology pillars the platform covers. Emitted as schema.org `about`
    * + `keywords` on the WebSite entity and listed in llms.txt, so search
@@ -47,6 +47,19 @@ export const MAIN_SITE = {
   label: 'msdevbuild.com',
 } as const;
 
+/**
+ * This blog's own public source repo — powers the "Edit this page on GitHub"
+ * link on every post (see blog/[...slug].astro). Microsoft Learn does the
+ * same on every docs page: a link straight to the source file and its commit
+ * history is a stronger trust/provenance signal than any meta tag, because a
+ * reader (or a crawler) can go verify it themselves rather than take the
+ * page's word for it.
+ */
+export const REPO = {
+  url: 'https://github.com/jssuthahar/blog',
+  branch: 'main',
+} as const;
+
 export const AUTHOR = {
   name: 'Suthahar Jegatheesan',
   alternateName: 'MSDEVBUILD',
@@ -55,6 +68,9 @@ export const AUTHOR = {
    * LinkedIn or the contact form so the address is never scrapeable.
    */
   linkedin: 'https://my.linkedin.com/in/jssuthahar',
+  x: 'https://x.com/jssuthahar',
+  /** Bare handle, for the `twitter:creator` / `twitter:site` card metadata. */
+  xHandle: '@jssuthahar',
   jobTitle: 'Cloud, AI & Mobile Solutions Architect',
   location: 'Malaysia',
   yearsExperience: 18,
@@ -72,11 +88,13 @@ export const AUTHOR = {
     'https://my.linkedin.com/in/jssuthahar',
     'https://github.com/jssuthahar',
     'https://www.youtube.com/@MSDEVBUILD',
+    'https://x.com/jssuthahar',
     // The two MSDEVBUILD-branded channels. They belong on the Person node
     // because this Person is also the publisher — MSDEVBUILD is its
     // alternateName, not a separate Organization entity anywhere in the graph.
     'https://www.linkedin.com/company/31318247/',
     'https://whatsapp.com/channel/0029Va5j2rHEFeXcTlUhQB0J',
+    'https://www.instagram.com/msdevbuild/',
   ],
 
   /** Emitted as schema.org `award`. Award reviewers and LLMs both read this. */
@@ -89,6 +107,7 @@ export const AUTHOR = {
   /** Emitted as schema.org `hasCredential`. */
   certifications: [
     'Microsoft Certified Trainer (MCT)',
+    'GH-300 — GitHub Copilot',
     'AZ-300 — Microsoft Azure Architect Technologies',
     'AZ-301 — Microsoft Azure Architect Design',
     'AZ-104 — Microsoft Azure Administrator',
@@ -245,6 +264,18 @@ export const SOCIAL = [
     blurb: 'The publication feed for the blog',
   },
   {
+    id: 'instagram',
+    icon: 'instagram',
+    label: 'Instagram',
+    handle: '@msdevbuild',
+    action: 'Follow',
+    cta: 'Follow on Instagram',
+    href: 'https://www.instagram.com/msdevbuild/',
+    // The short videos are drawn at 1080×1920 — the same frame Instagram is
+    // built around — so this is where they land natively rather than embedded.
+    blurb: 'The short videos, in the feed they were drawn for',
+  },
+  {
     id: 'github',
     icon: 'github',
     label: 'GitHub',
@@ -264,6 +295,16 @@ export const SOCIAL = [
     href: 'https://www.youtube.com/@MSDEVBUILD?sub_confirmation=1',
     blurb: 'Video walkthroughs in English and Tamil',
   },
+  {
+    id: 'x',
+    icon: 'x',
+    label: 'X',
+    handle: '@jssuthahar',
+    action: 'Follow',
+    cta: 'Follow on X',
+    href: 'https://x.com/jssuthahar',
+    blurb: 'Short takes and new posts as they publish',
+  },
 ] as const;
 
 export const NAV = [
@@ -274,6 +315,9 @@ export const NAV = [
   { label: 'Blog', href: '/blog/' },
   { label: 'Series', href: '/series/' },
   { label: 'Articles', href: '/articles/' },
+  // The short videos. Named "Shorts" — the reader already knows what a short
+  // is, and it sits next to three links that all mean "read".
+  { label: 'Shorts', href: '/shorts/' },
   { label: 'Events', href: '/events/' },
   { label: 'Speaking', href: '/speaking/' },
   { label: 'Open source', href: '/open-source/' },
@@ -456,6 +500,30 @@ export const CONTACT_FORM = {
  */
 export const GA_ID = 'G-X0V2Y2GH4D';
 
+/**
+ * Search engine site-verification codes.
+ *
+ * Both Google Search Console and Bing Webmaster Tools also offer DNS-record
+ * verification, which needs no code here at all — use that if it's already
+ * done. This slot is for the HTML-tag method: paste the `content` value from
+ * each dashboard's "HTML tag" option (not the whole `<meta>` tag) and
+ * `BaseHead.astro` renders it. Leave a value empty and its tag doesn't render,
+ * so an unverified site never ships a meaningless placeholder meta tag.
+ */
+export const SITE_VERIFICATION = {
+  google: '',
+  bing: '',
+} as const;
+
+/**
+ * IndexNow key — proves ownership of the domain to Bing/Yandex/etc. so
+ * `scripts/indexnow-ping.mjs` can push a URL for near-instant re-crawl instead
+ * of waiting for the next scheduled one. The key itself needs no account or
+ * secret: it only has to match the filename of the `.txt` file it's paired
+ * with in `public/`. Change one, change the other.
+ */
+export const INDEXNOW_KEY = 'fac4b4f6b8d24cb30f334703d427d0fa';
+
 // Google AdSense publisher ID. Approval is account-level and already covers
 // this subdomain; ownership is verified via /ads.txt in public/.
 export const ADSENSE_CLIENT = 'ca-pub-3425499927549926';
@@ -481,5 +549,5 @@ export const ADSENSE_SLOT_MULTIPLEX = '4098254574';
  * Until both are filled the feed falls back to the responsive DISPLAY unit,
  * which is a valid placement — just not the native one.
  */
-export const ADSENSE_SLOT_IN_FEED = '';
-export const ADSENSE_LAYOUT_KEY_IN_FEED = '';
+export const ADSENSE_SLOT_IN_FEED = '6814226876';
+export const ADSENSE_LAYOUT_KEY_IN_FEED = '-6r+di+5g-2m-8y';

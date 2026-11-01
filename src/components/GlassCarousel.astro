@@ -1,0 +1,907 @@
+---
+/**
+ * The site's one carousel, laid out like a slide from the session decks: a glass
+ * card with the pitch, beside the azure panel with a diagram explaining the
+ * section. The home page and each section page hand it their own slides.
+ *
+ * Every slide shares one grid cell, so the block is always as tall as its tallest
+ * slide and the page below never moves as it rotates.
+ */
+import Avatar from './Avatar.astro';
+import FollowCTA from './FollowCTA.astro';
+import HeroDemo from './HeroDemo.astro';
+import { AUTHOR } from '../config';
+import type { GlassSlide } from '../lib/carousels';
+
+interface Props {
+  slides: GlassSlide[];
+  label: string;
+}
+
+const { slides, label } = Astro.props;
+---
+
+<section class="hc" data-glass-carousel role="region" aria-roledescription="carousel" aria-label={label}>
+  <!-- The light behind the glass. Moves to new corners on every slide, as the
+       decks' blobs do from one slide to the next. -->
+  <div class="hc-blobs" aria-hidden="true">
+    <span class="hc-blob hc-blob--a"></span>
+    <span class="hc-blob hc-blob--b"></span>
+    <span class="hc-blob hc-blob--c"></span>
+  </div>
+
+  <div class="hc-stage">
+    {slides.map((slide, index) => {
+      const Heading = index === 0 ? 'h1' : 'h2';
+      const { panel } = slide;
+      return (
+        <div
+          class="hc-slide"
+          data-slide
+          role="group"
+          aria-roledescription="slide"
+          aria-label={`${index + 1} of ${slides.length}: ${slide.tab}`}
+          aria-hidden={index === 0 ? 'false' : 'true'}
+        >
+          <div class="hc-main glass-premium" data-spot>
+            <p class="eyebrow">{slide.kicker}</p>
+            <Heading class:list={['display', index === 0 ? 'hc-h1' : 'hc-h2']}>
+              {slide.title} {slide.accent && <span>{slide.accent}</span>}
+            </Heading>
+            {slide.text && <p class="hc-text">{slide.text}</p>}
+            {slide.pills && (
+              <ul class="mt-4 flex flex-wrap gap-1.5">
+                {slide.pills.map((pill) => <li class="hc-pill">{pill}</li>)}
+              </ul>
+            )}
+            {slide.tiles && (
+              <ul class="hc-tiles">
+                {slide.tiles.map(({ value, label }) => <li><strong>{value}</strong><span>{label}</span></li>)}
+              </ul>
+            )}
+            {slide.follow && <FollowCTA variant="row" heading="" class="mt-5" />}
+            {(slide.actions || slide.note) && (
+              <div class="mt-5 flex flex-wrap items-center gap-3">
+                {slide.actions?.map(({ label, href, primary, external }) => (
+                  <a href={href} rel={external ? 'noopener' : undefined} class:list={['btn', primary ? 'btn-primary' : 'btn-outline']}>
+                    {label}
+                  </a>
+                ))}
+                {slide.note && (
+                  <span class="inline-flex items-center gap-2 text-sm text-muted">
+                    <span class="size-2 rounded-full" style="background: var(--accent);"></span>
+                    {slide.note}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div class:list={['hc-panel', (panel.person || panel.qr) && 'hc-panel--person', panel.demoOnlyOnPhone && 'hc-panel--wide-only']}>
+            <p class="hc-mark">MSDEVBUILD</p>
+            {panel.person && (
+              <>
+                <div class="hc-pulse"><div class="hc-photo"><Avatar size={136} eager={index === 0} /></div></div>
+                <div>
+                  <p class="font-semibold">{AUTHOR.name}</p>
+                  <p class="mt-0.5 text-xs">{AUTHOR.jobTitle}</p>
+                  <p class="mt-0.5 text-xs">{AUTHOR.location} · Since 2007</p>
+                </div>
+              </>
+            )}
+            {panel.qr && <div class="hc-pulse"><div class="hc-qr" set:html={panel.qr} /></div>}
+            {panel.qr && panel.title && <p class="hc-panel-title">{panel.title}</p>}
+            {panel.demo && !panel.qr && !panel.person && <HeroDemo {...panel.demo} />}
+            {!panel.qr && panel.title && <p class="hc-panel-title">{panel.title}</p>}
+            {panel.steps && (
+              <ol class="hc-steps">
+                {panel.steps.map(({ title, note, href, external }, i) => (
+                  <li>
+                    <a href={href} rel={external ? 'noopener' : undefined}>
+                      <span class="hc-no">{i + 1}</span>
+                      <span><strong>{title}</strong>{note && <small>{note}</small>}</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            )}
+            {panel.demo && (panel.qr || panel.person) && <HeroDemo {...panel.demo} />}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+
+  <!-- Named tabs rather than anonymous dots, so a visitor can see what is behind
+       each one. The current tab's rule fills over the slide's dwell time. -->
+  <div class="hc-controls glass-premium">
+    <div class="hc-tabs" role="tablist" aria-label="Choose slide">
+      {slides.map(({ tab }, index) => (
+        <button type="button" data-dot role="tab" aria-selected={index === 0 ? 'true' : 'false'} class="hc-tab">
+          {tab}
+        </button>
+      ))}
+    </div>
+
+    <p class="hc-count" aria-hidden="true"><span data-at>1</span> / {slides.length}</p>
+
+    <div class="flex shrink-0 items-center">
+      <button type="button" data-prev class="hc-btn" aria-label="Previous slide">
+        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+      </button>
+      <button type="button" data-next class="hc-btn" aria-label="Next slide">
+        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </button>
+      <button type="button" data-play class="hc-btn" aria-label="Pause automatic rotation">
+        <svg class="size-4" data-pause-icon viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <rect x="7" y="6" width="3.5" height="12" rx="1" /><rect x="13.5" y="6" width="3.5" height="12" rx="1" />
+        </svg>
+        <svg class="size-4" data-play-icon style="display:none" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M8 5.5v13l10-6.5-10-6.5Z" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hc {
+    position: relative;
+    /* Keeps the blobs behind this block without sending them behind the page. */
+    isolation: isolate;
+  }
+
+  /* ── The light behind the glass ── */
+  .hc-blobs {
+    position: absolute;
+    inset: -3rem -4rem;
+    z-index: -1;
+    pointer-events: none;
+  }
+  .hc-blob {
+    position: absolute;
+    width: clamp(18rem, 36vw, 30rem);
+    aspect-ratio: 1;
+    border-radius: 999px;
+    transform: translate(var(--x, 0), var(--y, 0)) scale(var(--s, 1));
+    transition: transform 1.6s cubic-bezier(0.22, 0.8, 0.3, 1);
+    /* `translate`, not `transform`: the drift never fights the per-slide move. */
+    animation: hc-drift 16s ease-in-out infinite alternate;
+    will-change: transform, translate;
+  }
+  .hc-blob--b {
+    animation-duration: 21s;
+    animation-direction: alternate-reverse;
+  }
+  .hc-blob--c {
+    animation-duration: 26s;
+  }
+  @keyframes hc-drift {
+    from {
+      translate: -2.5rem -1.5rem;
+    }
+    to {
+      translate: 2.5rem 2rem;
+    }
+  }
+  .hc-blob--a {
+    top: 0;
+    left: 0;
+    background: radial-gradient(closest-side, var(--gp-blob-a), transparent);
+  }
+  .hc-blob--b {
+    top: 15%;
+    right: 0;
+    background: radial-gradient(closest-side, var(--gp-blob-b), transparent);
+  }
+  .hc-blob--c {
+    bottom: 0;
+    left: 35%;
+    background: radial-gradient(closest-side, var(--gp-blob-c), transparent);
+  }
+
+  .hc-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hc-slide {
+    grid-area: 1 / 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    align-content: start;
+    min-width: 0;
+    opacity: 0;
+    /* Hidden, not just transparent: a faded-out slide's links must not take focus. */
+    visibility: hidden;
+    transition: opacity 0.4s ease, visibility 0s linear 0.4s;
+  }
+  .hc-slide[aria-hidden='false'] {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.4s ease, visibility 0s;
+  }
+
+  .hc-main {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    padding: clamp(1.25rem, 3vw, 2.5rem);
+  }
+  /* A soft light that follows the pointer across the glass. */
+  .hc-main::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(22rem circle at var(--mx, 50%) var(--my, 0%), rgb(255 255 255 / 0.5), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .hc-main:hover::after {
+    opacity: 1;
+  }
+  :global([data-theme='dark']) .hc-main::after {
+    background: radial-gradient(22rem circle at var(--mx, 50%) var(--my, 0%), rgb(120 190 245 / 0.12), transparent 70%);
+  }
+  .hc-main > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Content rises in, a beat apart. Only after the first change: the first paint
+     holds the h1, and animating that would cost the page its largest paint. */
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-main > * {
+    animation: hc-rise 0.65s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+  }
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-main > :nth-child(2) { animation-delay: 0.06s; }
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-main > :nth-child(3) { animation-delay: 0.12s; }
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-main > :nth-child(4) { animation-delay: 0.18s; }
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-main > :nth-child(5) { animation-delay: 0.24s; }
+  .hc-slide[aria-hidden='false'] .hc-panel {
+    animation: hc-panel-in 0.75s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+  }
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-steps li {
+    animation: hc-rise 0.6s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+  }
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-steps li:nth-child(1) { animation-delay: 0.16s; }
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-steps li:nth-child(2) { animation-delay: 0.24s; }
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-steps li:nth-child(3) { animation-delay: 0.32s; }
+  @keyframes hc-rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+  }
+  @keyframes hc-panel-in {
+    from {
+      opacity: 0;
+      transform: translateX(18px) scale(0.985);
+    }
+  }
+
+  .hc-main :global(.eyebrow) {
+    color: var(--gp-label);
+  }
+  .hc-h1 {
+    margin-top: 0.75rem;
+    font-size: clamp(2rem, 4.2vw, 3rem);
+  }
+  .hc-h2 {
+    margin-top: 0.75rem;
+    font-size: clamp(1.8rem, 3.6vw, 2.6rem);
+  }
+  .hc-h1 span,
+  .hc-h2 span {
+    display: block;
+    background: var(--gp-text);
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* The accent line shimmers as its slide arrives, then rests. */
+  [data-moved] .hc-slide[aria-hidden='false'] :is(.hc-h1, .hc-h2) span {
+    animation: hc-shimmer 1.6s ease-out 0.2s both;
+  }
+  @keyframes hc-shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: 0 0;
+    }
+  }
+  .hc-text {
+    margin-top: 0.85rem;
+    max-width: 40rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+    text-wrap: pretty;
+  }
+  .hc-pill {
+    border: 1px solid var(--gp-tile-line);
+    border-radius: 0.5rem;
+    background: var(--gp-tile);
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent-deep);
+  }
+
+  /* The decks' stat tiles. */
+  .hc-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+    max-width: 38rem;
+    margin-top: 1.1rem;
+  }
+  .hc-tiles li {
+    border: 1px solid var(--gp-tile-line);
+    border-radius: 0.9rem;
+    background: var(--gp-tile);
+    box-shadow: 0 6px 16px -10px rgb(0 72 130 / 0.3);
+    padding: 0.65rem 0.8rem;
+  }
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-tiles li {
+    animation: hc-rise 0.6s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+  }
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-tiles li:nth-child(1) { animation-delay: 0.2s; }
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-tiles li:nth-child(2) { animation-delay: 0.28s; }
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-tiles li:nth-child(3) { animation-delay: 0.36s; }
+  .hc-tiles li {
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .hc-tiles li:hover {
+    box-shadow: 0 12px 22px -10px rgb(0 72 130 / 0.45);
+    transform: translateY(-3px);
+  }
+  .hc-tiles strong {
+    font-variant-numeric: tabular-nums;
+    display: block;
+    font-size: clamp(0.95rem, 1.7vw, 1.25rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    color: var(--accent-deep);
+  }
+  .hc-tiles span {
+    display: block;
+    margin-top: 0.1rem;
+    font-size: 0.75rem;
+    line-height: 1.3;
+    color: var(--text-muted);
+  }
+
+  /* The azure panel beside the card. */
+  .hc-panel {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.9rem;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    background:
+      radial-gradient(90% 55% at 100% 0%, rgb(255 255 255 / 0.2), transparent 70%),
+      linear-gradient(155deg, rgb(0 96 170 / 0.97), rgb(0 58 106 / 0.98));
+    box-shadow:
+      0 28px 64px -20px rgb(0 62 112 / 0.6),
+      inset 0 1px 0 rgb(255 255 255 / 0.35),
+      inset 0 0 0 1px rgb(255 255 255 / 0.12);
+    padding: clamp(1.1rem, 2.5vw, 1.75rem);
+    color: #fff;
+  }
+  /* The band of light across the panel's corner. */
+  .hc-panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 58%, rgb(255 255 255 / 0.11) 68%, transparent 78%);
+    pointer-events: none;
+  }
+  /* The band of light crosses the panel once as each slide arrives. */
+  .hc-slide[aria-hidden='false'] .hc-panel::after {
+    animation: hc-sweep 1.5s cubic-bezier(0.22, 0.8, 0.3, 1) 0.15s both;
+  }
+  @keyframes hc-sweep {
+    from {
+      transform: translateX(-110%);
+    }
+  }
+
+  /* A ring breathing out from the photo and the QR code. */
+  .hc-pulse {
+    position: relative;
+    line-height: 0;
+  }
+  .hc-pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgb(255 255 255 / 0.6);
+    border-radius: 999px;
+    animation: hc-ring 3.2s ease-out infinite;
+    pointer-events: none;
+  }
+  .hc-pulse:has(.hc-qr)::after {
+    border-radius: 1rem;
+  }
+  @keyframes hc-ring {
+    from {
+      opacity: 0.7;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(1.28);
+    }
+  }
+  .hc-panel > * {
+    position: relative;
+    z-index: 1;
+  }
+  :global([data-theme='dark']) .hc-panel {
+    background:
+      radial-gradient(90% 55% at 100% 0%, rgb(120 190 245 / 0.18), transparent 70%),
+      linear-gradient(155deg, rgb(10 70 122 / 0.9), rgb(8 34 62 / 0.94));
+  }
+  .hc-mark {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.26em;
+  }
+  .hc-panel-title {
+    font-weight: 650;
+  }
+  .hc-panel--person {
+    align-items: center;
+    text-align: center;
+  }
+  /* The mark stays in the corner; auto margins centre what is left. */
+  .hc-panel--person .hc-mark {
+    align-self: flex-start;
+    margin-bottom: auto;
+  }
+  .hc-panel--person > :last-child {
+    margin-bottom: auto;
+  }
+  .hc-panel > .hc-steps {
+    margin-bottom: auto;
+  }
+  .hc-photo {
+    overflow: hidden;
+    border: 3px solid rgb(255 255 255 / 0.95);
+    border-radius: 999px;
+    box-shadow:
+      0 0 0 8px rgb(255 255 255 / 0.12),
+      0 0 0 18px rgb(255 255 255 / 0.06),
+      0 18px 40px -10px rgb(0 0 0 / 0.5);
+    line-height: 0;
+  }
+  .hc-qr {
+    width: 9rem;
+    overflow: hidden;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 0 0 8px rgb(255 255 255 / 0.12), 0 18px 40px -10px rgb(0 0 0 / 0.5);
+    padding: 0.5rem;
+  }
+  .hc-qr :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .hc-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .hc-steps a {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    border: 1px solid rgb(255 255 255 / 0.28);
+    border-radius: 0.9rem;
+    background: rgb(255 255 255 / 0.1);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18);
+    padding: 0.5rem 0.7rem;
+    transition: background-color 0.15s, transform 0.2s;
+  }
+  .hc-steps a[href]:hover {
+    background: rgb(255 255 255 / 0.2);
+    transform: translateX(3px);
+  }
+  .hc-steps strong {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.3;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .hc-steps small {
+    display: block;
+    margin-top: 0.1rem;
+    font-size: 0.72rem;
+    line-height: 1.3;
+  }
+  .hc-no {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #005a9e;
+  }
+
+  [data-moved] .hc-slide[aria-hidden='false'] .hc-no {
+    animation: hc-pop 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) 0.3s both;
+  }
+  @keyframes hc-pop {
+    from {
+      transform: scale(0.4);
+    }
+  }
+
+  /* A glint across the buttons on hover. */
+  .hc-main :global(.btn) {
+    position: relative;
+    overflow: hidden;
+  }
+  .hc-main :global(.btn)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgb(255 255 255 / 0.4) 50%, transparent 70%);
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+  .hc-main :global(.btn):hover::after {
+    transform: translateX(120%);
+    transition: transform 0.7s ease;
+  }
+
+  /* ── Controls ── */
+  .hc-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    border-radius: 999px;
+    padding: 0.35rem 0.5rem;
+  }
+  .hc-tabs {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    gap: 0.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .hc-tab {
+    position: relative;
+    flex: none;
+    overflow: hidden;
+    border-radius: 999px;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.8125rem;
+    font-weight: 550;
+    color: var(--text-muted);
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .hc-tab:hover {
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+  }
+  .hc-tab[aria-selected='true'] {
+    background: linear-gradient(135deg, #0078d4, #005a9e);
+    box-shadow: 0 6px 14px -6px rgb(0 90 158 / 0.7);
+    font-weight: 650;
+    color: #fff;
+  }
+  .hc-tab::after {
+    content: '';
+    position: absolute;
+    inset: auto auto 0 0;
+    width: 0;
+    height: 2px;
+    background: rgb(255 255 255 / 0.85);
+  }
+  [data-running] .hc-tab[aria-selected='true']::after {
+    animation: hc-fill 8s linear;
+  }
+  @keyframes hc-fill {
+    from {
+      width: 0;
+    }
+    to {
+      width: 100%;
+    }
+  }
+  .hc-count {
+    flex: none;
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+  }
+  .hc-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem;
+    border-radius: 0.375rem;
+    color: var(--text-muted);
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .hc-btn:hover {
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+  }
+
+  /* Narrow screens: tabs on top, so a shorter slide never leaves a gap between
+     itself and its own controls. */
+  @media (max-width: 899px) {
+    .hc {
+      display: flex;
+      flex-direction: column;
+    }
+    .hc-controls {
+      order: -1;
+      margin: 0 0 0.75rem;
+    }
+    /* Off to the sides, where they would only clip against the screen edge. */
+    .hc-blobs {
+      inset: -2rem -1rem;
+    }
+    /* The links beside them repeat these two panels on a phone, and nobody scans
+       a QR code with the phone showing it. The diagrams still explain the slide. */
+    :global(.hc-panel--wide-only > :not(.demo)) {
+      display: none;
+    }
+    /* Photo beside the name on one row, with the diagram under both. */
+    .hc-panel--person {
+      flex-flow: row wrap;
+      gap: 0.9rem;
+      text-align: left;
+    }
+    .hc-panel--person > div:not(.hc-pulse) {
+      flex: 1;
+      min-width: 0;
+    }
+    .hc-pulse::after {
+      display: none;
+    }
+    .hc-panel--person .hc-mark {
+      display: none;
+    }
+    .hc-panel--person > :last-child {
+      margin-bottom: 0;
+    }
+    .hc-photo {
+      flex: none;
+      border-width: 2px;
+      box-shadow: none;
+    }
+    .hc-photo :global(img) {
+      width: 4.5rem !important;
+      height: 4.5rem !important;
+    }
+  }
+
+  @media (min-width: 900px) {
+    .hc-slide {
+      grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+      align-content: stretch;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .hc-count {
+      display: none;
+    }
+    /* The tabs do the arrows' job, and a phone has no room for both. */
+    .hc-btn[data-prev],
+    .hc-btn[data-next] {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hc-slide,
+    .hc-slide[aria-hidden='false'],
+    .hc-blob {
+      transition: none;
+    }
+    [data-running] .hc-tab[aria-selected='true']::after,
+    [data-moved] .hc-slide[aria-hidden='false'] .hc-main > *,
+    .hc-slide[aria-hidden='false'] .hc-panel,
+    .hc-slide[aria-hidden='false'] .hc-panel::after,
+    [data-moved] .hc-slide[aria-hidden='false'] .hc-steps li,
+    [data-moved] .hc-slide[aria-hidden='false'] .hc-tiles li,
+    [data-moved] .hc-slide[aria-hidden='false'] .hc-no,
+    [data-moved] .hc-slide[aria-hidden='false'] :is(.hc-h1, .hc-h2) span,
+    .hc-blob,
+    .hc-pulse::after {
+      animation: none;
+    }
+    .hc-pulse::after {
+      opacity: 0;
+    }
+  }
+</style>
+
+<script>
+  const DWELL = 8000;
+
+  function initGlassCarousel() {
+    const root = document.querySelector<HTMLElement>('[data-glass-carousel]');
+    // astro:page-load also fires on the first load, so this runs twice there.
+    // Bound twice, every arrow press would count double.
+    if (!root || root.dataset.bound === '') return;
+    root.dataset.bound = '';
+
+    const slides = [...root.querySelectorAll<HTMLElement>('[data-slide]')];
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-dot]')];
+    const playBtn = root.querySelector<HTMLButtonElement>('[data-play]');
+    const pauseIcon = root.querySelector<SVGElement>('[data-pause-icon]');
+    const playIcon = root.querySelector<SVGElement>('[data-play-icon]');
+    const atEl = root.querySelector<HTMLElement>('[data-at]');
+    if (slides.length <= 1) return;
+
+    // Auto-rotation is motion the user did not ask for, so it is off entirely
+    // when the OS requests reduced motion — not merely slowed down.
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    let index = 0;
+    let timer: number | undefined;
+    let playing = !reduced.matches;
+
+    // Where the three blobs rest on each slide, cycling so that no two neighbours
+    // look alike: x, y and scale for each.
+    const SCENES = [
+      [['0%', '0%', 1], ['0%', '0%', 1], ['0%', '0%', 1]],
+      [['45%', '35%', 1.15], ['-60%', '-15%', 0.9], ['-55%', '-25%', 1.1]],
+      [['110%', '-5%', 0.9], ['-5%', '45%', 1.1], ['-70%', '10%', 0.95]],
+      [['-10%', '50%', 1.2], ['-70%', '-25%', 1], ['50%', '-40%', 1.05]],
+    ];
+    const blobs = [...root.querySelectorAll<HTMLElement>('.hc-blob')];
+
+    const placeBlobs = (at: number) => {
+      SCENES[at % SCENES.length]!.forEach(([x, y, s], i) => {
+        const blob = blobs[i];
+        if (!blob) return;
+        blob.style.setProperty('--x', String(x));
+        blob.style.setProperty('--y', String(y));
+        blob.style.setProperty('--s', String(s));
+      });
+    };
+
+    /**
+     * Counts a tile's leading number up as its slide arrives. The rendered text is
+     * the final value and is always restored, so search and screen readers only
+     * ever meet the real figure.
+     */
+    const countUp = (slide: HTMLElement) => {
+      if (reduced.matches) return;
+      slide.querySelectorAll<HTMLElement>('.hc-tiles strong').forEach((el) => {
+        const final = el.dataset.final ?? el.textContent ?? '';
+        el.dataset.final = final;
+        const match = final.match(/^(\d+)(.*)$/);
+        if (!match) return;
+        const target = Number(match[1]);
+        const began = performance.now();
+        const tick = (now: number) => {
+          const t = Math.min(1, (now - began) / 900);
+          const eased = 1 - (1 - t) ** 3;
+          el.textContent = t < 1 ? `${Math.round(target * eased)}${match[2]}` : final;
+          if (t < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+    };
+
+    const show = (next: number) => {
+      const moved = next !== index;
+      if (moved) root.dataset.moved = '';
+      index = (next + slides.length) % slides.length;
+      placeBlobs(index);
+      slides.forEach((slide, i) => slide.setAttribute('aria-hidden', String(i !== index)));
+      tabs.forEach((tab, i) => tab.setAttribute('aria-selected', String(i === index)));
+      if (atEl) atEl.textContent = String(index + 1);
+      if (moved) countUp(slides[index]!);
+
+      // Scrolls only the tab row, so a phone keeps the current tab in view
+      // without the page moving under the reader.
+      const row = tabs[index]?.parentElement;
+      const tab = tabs[index];
+      if (row && tab) row.scrollLeft = tab.offsetLeft - row.offsetLeft - 16;
+    };
+
+    const stop = () => {
+      if (timer) clearInterval(timer);
+      timer = undefined;
+      delete root.dataset.running;
+    };
+
+    const start = () => {
+      stop();
+      if (!playing) return;
+      timer = window.setInterval(() => show(index + 1), DWELL);
+      // A reflow between the two states restarts the tab's fill from zero.
+      void root.offsetWidth;
+      root.dataset.running = '';
+    };
+
+    const setPlaying = (next: boolean) => {
+      playing = next;
+      // SVG has no `hidden` content attribute in the typed DOM, so toggle
+      // display directly rather than fighting the attribute.
+      if (pauseIcon) pauseIcon.style.display = next ? '' : 'none';
+      if (playIcon) playIcon.style.display = next ? 'none' : '';
+      playBtn?.setAttribute('aria-label', next ? 'Pause automatic rotation' : 'Resume automatic rotation');
+      next ? start() : stop();
+    };
+
+    root.querySelector('[data-prev]')?.addEventListener('click', () => {
+      show(index - 1);
+      start();
+    });
+    root.querySelector('[data-next]')?.addEventListener('click', () => {
+      show(index + 1);
+      start();
+    });
+    tabs.forEach((tab, i) =>
+      tab.addEventListener('click', () => {
+        show(i);
+        start();
+      }),
+    );
+    playBtn?.addEventListener('click', () => setPlaying(!playing));
+
+    // Rotation must not pull content away from someone reading or tabbing it.
+    root.addEventListener('mouseenter', stop);
+    root.addEventListener('mouseleave', () => playing && start());
+    root.addEventListener('focusin', stop);
+    root.addEventListener('focusout', () => playing && start());
+
+    // The light that follows the pointer. A mouse only: on touch there is no
+    // hover, so the highlight would just stick wherever a finger last landed.
+    root.querySelectorAll<HTMLElement>('[data-spot]').forEach((card) =>
+      card.addEventListener('pointermove', (event) => {
+        if (event.pointerType !== 'mouse') return;
+        const box = card.getBoundingClientRect();
+        card.style.setProperty('--mx', `${event.clientX - box.left}px`);
+        card.style.setProperty('--my', `${event.clientY - box.top}px`);
+      }),
+    );
+
+    root.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') show(index - 1);
+      if (event.key === 'ArrowRight') show(index + 1);
+    });
+
+    reduced.addEventListener('change', (e) => setPlaying(!e.matches));
+
+    show(0);
+    setPlaying(playing);
+  }
+
+  initGlassCarousel();
+  document.addEventListener('astro:page-load', initGlassCarousel);
+</script>

@@ -1,0 +1,258 @@
+---
+title: 'The AI Coding Agent Team Every Software Project Needs'
+seoTitle: 'The AI Coding Agent Team'
+description: 'One AI coding agent is not a team. The 30 agent roles a real software project needs, what each one owns, and the four worth building first.'
+highlight: 'An AI coding agent is one developer, not a team. A project can be code-complete in nine weeks and still need five more to ship, because the work around the code (security rules, licences, release notes, crash reporting, accessibility) has no owner. Give each job a role, turn every yes-or-no rule into a hook, and start with four agents: architecture, code review, testing and security.'
+publishedAt: 2026-09-16
+updatedAt: 2026-10-01
+category: copilot
+tags: ['GitHub Copilot', 'AI Coding Agents', 'Copilot Skills', 'AGENTS.md', 'Hooks', 'Flutter', 'Firebase', 'BLoC', 'Architecture']
+series: 'ai-agent-team'
+seriesOrder: 1
+cover: './images/ai-coding-agent-team-software-project-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "The AI Engineering Team" above the title "One agent is not a team" and the line "Code done in week nine. Released in week fourteen.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "One coding agent, code-complete in week nine", an arrow labelled "the rest of the work" to an amber box reading "Rules, licences, crashes, labels, five weeks nobody owned", and an arrow labelled "the fix" to a green box reading "Four agents, fourteen hook checks, every job owned by a role".'
+draft: true
+faq:
+  - q: 'What is the difference between an AI agent and a Copilot Skill?'
+    a: 'A Skill is knowledge: a file describing how your team does one job, loaded when a task matches it. An agent is a role: a scope of work, the skills it loads, the tools it may use and a definition of done. One agent can use several skills, and the same skill can be shared by several agents.'
+  - q: 'Do I need 30 AI agents on a small project?'
+    a: 'No. A small team needs about four: architecture, code review, testing and security. The other roles are still real work, but do them by hand until doing them by hand hurts more than writing the agent. Many of them turn out to be hooks rather than agents anyway.'
+  - q: 'Can one AI agent do all of these jobs?'
+    a: 'It can attempt them, and that is the trap. An agent with thirty responsibilities has no clear definition of done, so it returns a broad answer that covers everything shallowly. A narrow scope, with a written list of what the agent must not do, is what makes its output reviewable.'
+  - q: 'Where do AI agent files live in a repository?'
+    a: 'Shared context goes in AGENTS.md at the repo root and tool-specific instructions where the tool reads them, such as .github/copilot-instructions.md and .github/agents/. Saved prompts can live in a .ai/ folder, but a folder wires up nothing on its own, so check what your tool actually loads.'
+  - q: 'When should you not use an AI agent for a task?'
+    a: 'When a script can answer it yes or no. Licence deny lists, secret detection and dependency checks are deterministic, so a hook that exits 1 is faster, cheaper and cannot be talked out of a finding. Use agents for judgement and hooks for rules, and pair them when a job needs both.'
+  - q: 'Which AI agents should a team build first?'
+    a: 'Solution architect, code review, testing and security, in that order. The architect decides the structure every other agent inherits, review turns repeated comments into a file, testing becomes practical once the structure is enforced, and security has real structure to reason about by then.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+An AI coding agent is one developer, not a team. A project can be code-complete in nine weeks and still need five more to ship, because the work around the code (security rules, licences, release notes, crash reporting, accessibility) has no owner. The fix is to give each of those jobs a role, turn every rule a script can check into a hook, and start with four agents rather than thirty.
+
+Picture a small team building MSDevBuild Eats, a Flutter and Firebase food delivery app, with one coding agent doing a good share of the typing. The build is green. Every test passes. The code is finished in week nine, which everyone is pleased about.
+
+The app ships in week fourteen.
+
+<Callout type="tip" title="A scenario, on a real app you can open">
+The weeks below are a scenario. The repository is not. **MSDevBuild Eats** is an open-source Flutter food delivery app, and the agents, prompts and hooks this series describes are committed in it, so every path in this article is real.
+
+- **Source code**: [github.com/jssuthahar/food-delivery-app](https://github.com/jssuthahar/food-delivery-app)
+- **Live web**: [jssuthahar.github.io/food-delivery-app](https://jssuthahar.github.io/food-delivery-app/) (`customer@msdevbuild.com` / `demo1234`)
+- **Android build**: [download and install](https://appdistribution.firebase.dev/i/00432c5aa60de58b)
+
+It runs with no API keys and no Firebase project, so you can point an agent at it this afternoon.
+</Callout>
+
+## Five weeks after code-complete
+
+None of the five weeks went on code.
+
+| Week | What held the release |
+| --- | --- |
+| 10 | A review of the Firestore rules, written in week two and never read again, finds that any signed-in user can read any other user's orders |
+| 11 | A package under a licence the store build cannot ship turns up in `pubspec.yaml`. It was added to save two hours and has spread into three features. Removing it takes four days |
+| 12 | There is no changelog, because there have been no releases. Nobody has wired up crash reporting, and several `catch` blocks swallow errors silently |
+| 13 | The analytics events the kickoff asked for exist in two screens out of eleven, under three different naming styles |
+| 14 | Someone turns on TalkBack a week before launch. Half the icon buttons announce themselves only as "button". Fixed, then shipped |
+
+Every one of these is normal. They have appeared on projects since long before AI wrote any code. What changes is the ratio. When the coding half moves three times faster and the other half moves at its old speed, the other half becomes the whole schedule.
+
+That is the honest case for an AI engineering team. Agents do not write better code than the coding agent already does. When code stops being the bottleneck, the same automation has to point at everything else.
+
+## The command that counts the jobs
+
+Here is what MSDevBuild Eats looks like after the team takes that lesson seriously. Each week of the table above now has a file that owns it:
+
+```bash
+# The non-code jobs, each with an owner in the repo
+ls firebase/firestore.rules analytics/events.yaml privacy/data-inventory.md \
+   docs/security/permissions.md docs/dependencies.md ATTRIBUTIONS.md CHANGELOG.md
+
+ls .github/agents/*.agent.md | wc -l      # role agents
+ls .ai/prompts/*.md | wc -l               # saved agent prompts
+grep -c '^# --- ' .githooks/pre-commit .githooks/pre-push   # hook checks
+```
+
+```text
+       5
+      15
+.githooks/pre-commit:10
+.githooks/pre-push:4
+```
+
+Five role agents, fifteen saved prompts and fourteen hook checks, in a repository with 154 Dart files. The hooks cover the weeks that hurt most: a new package needs a line in `docs/dependencies.md`, a denied licence fails the push, an asset without an `ATTRIBUTIONS.md` entry fails the commit, an empty `catch` fails the commit, and an analytics event the spec does not define fails the commit.
+
+<figure>
+
+![Two step flows side by side. On the left, one coding agent, code-complete in week nine and then nobody owns the rest: weeks 1 to 9, the code, fast, green and reviewed; week 10, the Firestore rules, any signed-in user reads any order; week 11, a licence problem, one package spread into three features; weeks 12 to 14, the rest, no changelog, no crash signal, no labels. The red outcome: released five weeks after code-complete. On the right, four agents and fourteen hook checks, each job owned the week it appears: architecture agent in week 1, layers decided before screen one; security agent on every rules diff, reading the deployed rules and not a copy; a pre-push licence deny list that fails the day the package is added; pre-commit checks for empty catch blocks, analytics events and assets, ten checks, each one a script. The green outcome: each blocker caught when it was introduced.](./images/ai-coding-agent-team-one-agent-vs-team-release-weeks.png)
+
+<figcaption>Figure 1 — the same fourteen weeks, with one coding agent and with a small team of agents and hooks.</figcaption>
+
+</figure>
+
+<ShortHighlight slugs={['ai-agent-team-one-agent-not-a-team']} />
+
+## What is an AI agent, and how is it different from a prompt?
+
+An AI agent is a role with a narrow scope, its own knowledge, the tools it may use and a clear definition of done. Everything else in this series is the machinery that makes a role repeatable.
+
+These seven words get used interchangeably and they are not the same thing. Here they are, with MSDevBuild Eats as the example.
+
+| Thing | What it is | Where it lives | In MSDevBuild Eats |
+| --- | --- | --- | --- |
+| **Prompt** | One instruction you run when you remember to | `.ai/prompts/` once you save it | `security-review.md`: exploit paths in a diff |
+| **Skill** | Reusable knowledge loaded when a task matches | A `SKILL.md` file | `flutter-feature`: domain, repository, use case, Cubit, test |
+| **Agent** | A role: scope, skills, tools, done criteria | `.github/agents/*.agent.md` | `tester`: writes `bloc_test`, never edits `lib/` |
+| **Hook** | A script that fires automatically and can block | `.githooks/`, `.github/hooks/`, CI | Fail the commit if `lib/domain` imports Flutter |
+| **AGENTS.md** | Repo-wide context every agent reads first | Repo root | Layers, naming, the dependency rule |
+| **Custom instructions** | Always-on preferences for Copilot | `.github/copilot-instructions.md` | "Not Riverpod, not Provider, not setState" |
+| **MCP** | A protocol that lets an agent call outside tools and data | Server config | Read the real Firestore schema instead of guessing |
+
+The row that matters most is the hook. **A prompt is something you remember to run. A hook runs whether you remember or not.** The licence problem in week eleven was not a knowledge gap. Somebody on the team knew about licences. Nobody checked on the Tuesday the package was added, and only a hook fixes that class of failure.
+
+Model Context Protocol, if it is new to you, is a standard way for an AI tool to reach live systems (your database, your issue tracker, your cloud) instead of working from the text you paste in. It matters because several of these agents are far more useful when they see real data rather than a guess about it.
+
+Three of these layers already have long versions on this blog: [custom instructions](/blog/github-copilot-custom-instructions) for the always-on layer, the [Copilot Skills guide](/blog/github-copilot-skills-deep-dive) for skills, and [the AGENTS.md playbook](/blog/agents-md-complete-playbook) for what belongs in that file.
+
+## The thirty roles, grouped by when you need them
+
+This is the map for the whole series. Each phase gets three or four agents, and each agent gets its scope, a real prompt, a working hook where a rule is checkable, and the failure it would have caught in the fourteen weeks above.
+
+| Phase | Agents |
+| --- | --- |
+| **Plan** | Project Planning · Business Analyst · Solution Architect |
+| **Build** | Mobile Developer (Flutter) · Backend API · Database · Firebase |
+| **Verify** | UI/UX Review · Testing · Code Review · Performance Optimization |
+| **Ship** | DevOps · Release Management · Monitoring & Observability · Analytics |
+| **Defend** | Security · Cybersecurity · Penetration Testing |
+| **Supply chain** | Dependency Management · Open Source Licence Compliance · Copyright Compliance · Privacy & Compliance |
+| **Reach** | Accessibility · Localization · Documentation · SEO/AEO |
+| **Meta** | Prompt Engineering · Skill Builder · Hooks Generator · AGENTS.md Generator |
+
+Three groupings usually raise an eyebrow, so here are the answers up front.
+
+**Security, Cybersecurity and Penetration Testing are three agents, not one.** The Security agent reviews your code and your rules. The Cybersecurity agent thinks about the system around the code: identity, secrets, network, blast radius. The Penetration Testing agent tries to break what the other two approved. They have different inputs and they disagree with each other, which is the point.
+
+**Copyright is separate from licences.** A licence agent asks whether you may ship a dependency. A copyright agent asks whether an asset, or a block of generated code, is substantially somebody else's. Different question, different evidence, and the second one usually gets asked properly only after it has gone wrong once.
+
+**The last four are agents that build agents.** They feel indulgent until you have twenty-six of the others and no consistent way to write the twenty-seventh.
+
+## Agent or hook? Decide before you write either
+
+Most of the thirty jobs contain at least one rule a script can check. That part should never be an agent.
+
+<figure>
+
+![Flowchart. A job the release needs. Can a script answer it yes or no? If no, it is an agent: judgement, advisory. If yes, write it as a hook that exits 1. Then: does it still need judgement after? If no, the hook alone is enough. If yes, pair them: the agent advises, the hook enforces.](./images/ai-coding-agent-team-agent-or-hook-decision.png)
+
+<figcaption>Figure 2 — the routing question. A rule a script can check becomes a hook first; the agent keeps only the judgement.</figcaption>
+
+</figure>
+
+The licence job shows the split well. "Is any resolved package under a denied licence?" is yes or no, so in MSDevBuild Eats it is a `pre-push` check. "What do the remaining licences oblige us to do in the store listing?" needs reading and judgement, so it is the `license-review.md` prompt. The agent advises. The hook enforces. Neither does the other's job.
+
+## Where do these files actually go?
+
+Here is the layout MSDevBuild Eats uses, trimmed to the parts that matter:
+
+```
+.
+├─ AGENTS.md                      # repo-wide context, read by every agent
+├─ .ai/
+│  ├─ README.md                   # the roster: each prompt and its paired hook
+│  └─ prompts/                    # fifteen saved agent prompts, reviewed like code
+├─ .github/
+│  ├─ copilot-instructions.md     # always-on preferences for Copilot
+│  ├─ agents/                     # architecture, feature, orchestrator, security, tester
+│  ├─ skills/                     # flutter-feature, pr-review-mechanical
+│  ├─ hooks/copilot-hooks.json    # the Copilot preToolUse guard
+│  └─ workflows/                  # pr-checks, deploy-web, android-distribute
+└─ .githooks/                     # pre-commit (10 checks), pre-push (4 checks)
+```
+
+Now the honest part, because people copy a tree like this and wonder why nothing happens. **A folder is organisation, not wiring.** Copilot reads `AGENTS.md`, `.github/copilot-instructions.md` and `.github/agents/` because those paths are conventions the tool supports. It does not scan `.ai/` looking for work. The git hooks fire because `git config core.hooksPath .githooks` points at them, not because they sit in a folder.
+
+Treat `.ai/` as the human-readable home for prompts you version and review, and wire each one up on purpose. Check the [GitHub Copilot documentation](https://docs.github.com/en/copilot) for what your version loads today, because these paths have moved more than once.
+
+## Which four agents should you build first?
+
+If you have never written one, build these four in this order: **Solution Architect, Code Review, Testing, Security.** Two weeks part-time, not a quarter.
+
+1. **Solution Architect first**, because every other agent inherits the structure it decides. Getting this after forty screens means retrofitting.
+2. **Code Review second.** It is the fastest to show value, and it turns review comments typed twenty times a month into a file.
+3. **Testing third.** Once review enforces structure, tests become writable, because the code is finally testable.
+4. **Security fourth.** By now the agent has real structure to reason about, so its findings are specific rather than a printout of OWASP.
+
+MSDevBuild Eats has exactly this shape in `.github/agents/`: `architecture`, `tester` and `security`, with `feature` as the only agent allowed to edit `lib/` and `orchestrator` sequencing the handoffs. Code review lives in the `pr-review-mechanical` skill.
+
+Then stop and use them for a month before adding a fifth. The common failure is defining fifteen agents in one enthusiastic weekend; most are never invoked again, because nobody can remember which one does what. Four agents everyone uses beat fifteen nobody trusts.
+
+## Mistakes worth skipping
+
+- **One giant agent.** A single "senior engineer" agent with everything in it gives a broad answer to every question and has no definition of done, so its output is never finished.
+- **Prompts living in chat history.** The good review prompt exists, in one developer's chat window, on one laptop. That is not a process. Save it in `.ai/prompts/` and review it like code.
+- **An agent where a script belongs.** An agent scanning licences is slower, costs tokens and can be talked out of a finding. A hook cannot.
+- **No AGENTS.md.** Every agent rediscovers the folder conventions, slightly differently, every session.
+- **Trusting a clean report on stale inputs.** A security agent that says the Firestore rules are fine is only as right as the rules file it was given. If the deployed rules are four commits older, the agent is right and the app is still open. That is why the `security` agent in MSDevBuild Eats is scoped to the deployed rules in `firebase/`.
+
+## What changes with a team of agents?
+
+| Blocker from the scenario | With one coding agent | With agents and hooks |
+| --- | --- | --- |
+| Open Firestore rules | Found in week 10 | Security agent reviews every diff that touches `firebase/firestore.rules` |
+| Denied licence | Found in week 11, four days to remove | `pre-push` fails the day the package is added |
+| No changelog | Written in week 12 | `pre-push` fails a tag without a `CHANGELOG.md` entry |
+| Swallowed errors | Found in week 12 | `pre-commit` fails an empty `catch` |
+| Analytics in 2 of 11 screens | Found in week 13 | `analytics/events.yaml` first; `pre-commit` fails an undefined event |
+| Unlabelled buttons | Found in week 14 | Accessibility agent in UI review, before the screen merges |
+
+The work does not disappear. It moves to the day it is created, when it is small.
+
+## Questions a tech lead will ask about this
+
+1. **"Is this thirty more things to maintain?"** No. Most teams need four agents and a handful of hooks. The thirty is a map of the work, not a shopping list.
+2. **"Do agents replace the people in those roles?"** No. Every agent in MSDevBuild Eats is advisory or narrowly scoped, and every handoff has a human in it. Agents draft; people decide.
+3. **"Which of these should be a hook instead?"** Anything a script can answer yes or no: licences, secrets, credentials, permissions, empty catches, undefined events.
+4. **"How do we stop agents stepping on each other?"** Write what each one must not do. In the reference app only `feature` may edit `lib/`, and that one line prevents most collisions.
+5. **"Where do we start on Monday?"** The solution architect agent, and one hook for the rule your reviews repeat most often.
+
+## What to do on day one
+
+- List the non-code jobs your last release waited on.
+- Mark each one: can a script answer it yes or no?
+- Write the first hook for the most frequent yes-or-no rule.
+- Write the solution architect agent with a "must not do" list.
+- Put `AGENTS.md` at the root before you write a second agent.
+
+## Key takeaways
+
+- An AI coding agent is one developer, not a team. When coding speeds up and nothing else does, everything else becomes the schedule.
+- Prompts run when you remember them. Hooks run anyway. Most release blockers are the second kind of problem.
+- Narrow scope, with a written "must not do", is what makes an agent's output reviewable.
+- Start with four agents (architecture, code review, testing, security) and let real pain justify the fifth.
+- A folder wires up nothing. Check what your tool actually loads.
+
+## The next release
+
+The same team starts the next version of MSDevBuild Eats with the four agents and the hooks in place. In week three someone adds a package to save an afternoon. The push fails before lunch with the licence name and a pointer to `docs/dependencies.md`, and the package is swapped for one the store build can ship while it is still used in one file.
+
+Code-complete in week nine again. This time it ships in week ten.
+
+## Test yourself: answer in the comments
+
+<Callout type="quiz" title="Test yourself · five questions">
+
+Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
+
+1. **The weekend.** A colleague defines fifteen agents in one weekend. What happens to most of them, and what would you keep?
+2. **Agent or hook.** "Every new Android permission needs a written reason." Is that an agent, a hook, or both? Use the decision in Figure 2.
+3. **The clean report.** The security agent says the rules are fine and the app is still open. Name the input that was wrong and how to scope the agent so it cannot happen.
+4. **Copyright versus licence.** Give one question only the copyright agent asks, and one only the licence agent asks.
+5. **Must not do.** Why does "only `feature` may edit `lib/`" prevent more problems than any line in the agents' instructions?
+
+<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
+
+</Callout>

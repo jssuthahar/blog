@@ -1,0 +1,111 @@
+---
+title: 'Five Mobile App Security Vulnerabilities a Scan Finds — and Nobody Chose'
+seoTitle: 'Five Mobile App Security Vulnerabilities'
+description: 'A security scan on a perfectly working mobile app turns up five findings. Every one is a default or a testing leftover, not a mistake — here is the fix for each.'
+highlight: 'The five most common mobile app findings are a secret in the package, a token in plain storage, an endpoint with no auth, a disabled TLS check and unused permissions. Fix the open endpoint first — it is the only one that needs no access to the phone or the network. curl and a URL reach it from anywhere.'
+publishedAt: 2026-10-22
+category: azure
+categories: ['mobile']
+tags: ['Azure', 'Mobile Security', 'OWASP', 'App Security', 'Android', 'iOS', '.NET MAUI']
+series: 'azure-mobile-security'
+seriesOrder: 5
+cover: './images/mobile-app-five-vulnerabilities-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "Five findings, no mistakes" and the line "Every one is a default or a testing leftover.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "A working app, one scan, five findings", an arrow labelled "the scan" to a red box reading "An endpoint with no auth, reachable with curl", and an arrow labelled "the order" to a green box reading "Fix that one first, then the other four".'
+draft: false
+faq:
+  - q: 'What are the most common mobile app security vulnerabilities?'
+    a: 'Five show up again and again: an API key or secret inside the app package, the session token stored in plain storage, a backend endpoint with no authentication, TLS certificate checking disabled after testing, and permissions the app never actually uses. Almost all of them are defaults or testing leftovers rather than deliberate choices.'
+  - q: 'Which mobile app security finding should be fixed first?'
+    a: 'An endpoint with no authentication, because it is the only common finding that needs no access to the phone or the local network. A secret in the package, a token in plain storage and a disabled TLS check need the app or the same network. An open endpoint is reachable from anywhere with curl, and bots already scan for it.'
+  - q: 'What is the difference between SharedPreferences/UserDefaults and secure storage on mobile?'
+    a: 'SharedPreferences on Android and UserDefaults on iOS are plain files, readable on a rooted or jailbroken device and from a device backup. Android Keystore, iOS Keychain and — in .NET MAUI — the SecureStorage API store values encrypted and tied to the device. In MAUI, Preferences is one word away from SecureStorage and very different.'
+  - q: 'Why does an app end up with unused permissions like contacts, camera or location?'
+    a: 'Usually they were copied in from a starter template or tutorial and never removed. Unused permissions lower install rates, fail store review more often, and widen what an attacker gains if the app is compromised. Delete every permission, then add back only the ones that break something.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+
+The app works. Customers are ordering. Reviews are fine. Then somebody runs a security scan, and the report comes back with five findings.
+
+Here's the uncomfortable bit: nobody on the team made a mistake. Every one of these is a default, a leftover from testing, or a line copied from a sample. None of them would survive a code review, because nobody ever wrote them on purpose.
+
+## What are the five findings?
+
+| # | Finding | Severity | What an attacker needs |
+| --- | --- | --- | --- |
+| 1 | Secret in the app package | High | A copy of your app |
+| 2 | Session token in plain storage | High | The phone, rooted, or a backup |
+| 3 | Endpoint with no auth | **Critical** | curl and a URL |
+| 4 | TLS certificate check disabled | High | The same coffee-shop wifi |
+| 5 | Permissions the app never uses | Medium | A compromise of the app first |
+
+## 1. A secret in the app package
+
+An API key in `strings.xml`, `Info.plist`, a `.env` bundled into assets, or a constant in your code. An `.apk` or `.ipa` is a zip file; anything inside is public.
+
+**Fix:** the app holds a short-lived user token, your API holds the keys, and Key Vault holds them at rest. The full walkthrough is [the first post in this series](../mobile-secret-in-apk).
+
+## 2. The session token in plain storage
+
+`SharedPreferences` and `UserDefaults` are plain files. On a rooted or jailbroken phone — or straight out of a device backup — they're readable.
+
+**Fix:** Android Keystore or `EncryptedSharedPreferences`, and the iOS Keychain. In .NET MAUI, use `SecureStorage`, not `Preferences`. They're one word apart and completely different.
+
+## 3. An endpoint with no auth
+
+Usually `/admin`, a `/health` route that happily returns config, `/debug`, or an internal route someone added to test and never locked down.
+
+**Fix:** make authorization the default and opt *out* explicitly, not the other way round:
+
+```csharp
+builder.Services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser().Build());
+```
+
+Now a route you forget about fails closed instead of open.
+
+## 4. TLS certificate checking disabled
+
+Someone switched it off to test against a local server with a self-signed cert, and it shipped. Every request is now readable by anyone on the same network.
+
+**Fix:** remove the override. Wrap any dev-only handler in `#if DEBUG` so it physically can't end up in a release build.
+
+## 5. Permissions the app never uses
+
+Contacts, location, camera, storage — copied in from a tutorial. They lower install rates, fail store review more often, and widen what an attacker gets if the app is ever compromised.
+
+**Fix:** delete every permission, then add back only the ones that break.
+
+## Which one should you fix first?
+
+Number 3, and it isn't close. Findings 1, 2 and 4 need somebody to have your app, your phone or your network. An endpoint with no auth needs nothing — it's reachable from anywhere on earth right now, and bots are already scanning for it (see [the post on automated attacks](../ai-bot-attacks-mobile-app)).
+
+After that, I'd go by how little the attacker needs:
+
+<figure>
+
+![Five findings in fix order, each with who can attack. 1, in red, fix first: an API route with no lock, attackable by anyone on the internet with the URL. 2, a key inside the app, attackable by anyone who downloads and unzips it. 3, the HTTPS security check turned off, attackable by someone on the same wifi. 4, the login token saved in a plain file, attackable by someone holding the phone or its backup. 5, permissions the app does not use, which only help someone who has already broken in. A green box reads "Fix in this order: least access needed first."](./images/five-findings-fix-order.png)
+
+<figcaption>Figure 1 — a practical fix order: whatever the attacker can reach with the least access goes first.</figcaption>
+
+</figure>
+
+## How to check your own app today
+
+<Callout type="tip" title="A 20-minute self-scan">
+  - Unzip your APK and grep it for `key`, `secret`, `password`, `Bearer` and `http://`.
+  - Sign in, then look at what the app wrote to disk.
+  - List your API routes and mark which ones require a token.
+  - Diff the permissions in your manifest against the ones your code actually calls.
+</Callout>
+
+## Key takeaways
+
+- The five common findings are defaults or testing leftovers, which is exactly why they reach production.
+- An unauthenticated endpoint is the top priority because exploiting it needs no access to the device or network.
+- `SharedPreferences` and `UserDefaults` aren't secure storage — use Keystore/Keychain, or `SecureStorage` in .NET MAUI.
+- A fallback authorization policy makes a forgotten route fail closed.
+- Audit manifest permissions against what the app really uses, and remove the rest.
+
+Official documentation: [.NET MAUI secure storage](https://learn.microsoft.com/dotnet/maui/platform-integration/storage/secure-storage) and [the OWASP Mobile Top 10](https://owasp.org/www-project-mobile-top-10/).

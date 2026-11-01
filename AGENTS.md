@@ -21,6 +21,7 @@ Key places to inspect when making changes:
 
 - `src/content/blog/` — blog posts and frontmatter-driven content
 - `src/content/events/`, `src/content/speaking/`, `src/content/contributions/` — other Markdown collections
+- `src/content/Real/<Technology>/` — short videos (`.html` + `.spec.json` + `.md` per short); see [tools/blog/docs/SHORTS.md](tools/blog/docs/SHORTS.md)
 - `src/content.config.ts` — collection schemas and validation rules
 - `src/lib/taxonomy.ts` — category/topic slugs and site taxonomy
 - `src/config.ts` — site-wide settings, feature flags, analytics, and comment integrations
@@ -34,22 +35,41 @@ Key places to inspect when making changes:
 Conventions agents should follow:
 
 - Prefer small, focused changes; do not refactor unrelated files.
+- Documentation and agent definitions do not live in this repo. They sit in a
+  separate checkout symlinked in as `tools/`. Write docs to `tools/blog/docs/`
+  and agents to `tools/agents/` — never recreate `docs/` or `.claude/agents/`
+  here, since both are gitignored and a file put there would never commit.
 - When editing content, follow `WRITING.md` and run `npm run check` locally.
+- Ground article code samples in the reference project (MSDevBuild Eats Flutter food delivery app) rather than generic snippets — see [tools/blog/docs/REFERENCE-PROJECT.md](tools/blog/docs/REFERENCE-PROJECT.md).
 - The build fails on invalid frontmatter or schema violations, so fix those before merging.
 - `src/data/` is a committed cache, not a source of truth; update it only by running the appropriate `npm run sync:*` command.
 - Use relative image paths for post images and `coverAlt` whenever `cover` is set.
 - If a post uses MDX-only UI like custom callouts or YouTube embeds, keep the file extension `.mdx`.
 - Do not add blog categories outside the slug set defined in `src/lib/taxonomy.ts`.
 - Keep content changes separate from UI or layout changes unless they are directly related.
+- Each article lives in its own folder — `src/content/blog/<series>/<article-slug>/`
+  holding the `.mdx`, an `images/` folder and a `diagrams/` folder. The filename is
+  the URL, so moving an article into a folder never changes its slug; its cover and
+  body images must move with it.
+- Article figures are drawn in draw.io, never as components. Sources live in the
+  article's `diagrams/`, exports in its `images/`, and the shared builders in
+  [scripts/drawio_kit.py](scripts/drawio_kit.py). Reference an exported PNG relatively
+  so Astro optimises it, and wrap it in `<figure>`/`<figcaption>` with descriptive alt text.
+- Any request for a PPT, deck or slides on a topic uses the `msdevbuild-glass-session-deck` skill, built from
+  `src/content/Slide/PPT First.pptx`. The skill lives in `tools/skills/`, symlinked into `.claude/skills/`.
 
 Useful references in this repo:
 
 - Primary README: [README.md](README.md)
 - Writing guide and frontmatter rules: [WRITING.md](WRITING.md)
+- Publishing a short video: [tools/blog/docs/SHORTS.md](tools/blog/docs/SHORTS.md)
+- Reference project used in article samples: [tools/blog/docs/REFERENCE-PROJECT.md](tools/blog/docs/REFERENCE-PROJECT.md)
 - Content schema and collections: [src/content.config.ts](src/content.config.ts)
 - Topic/category source of truth: [src/lib/taxonomy.ts](src/lib/taxonomy.ts)
 - Site settings and feature flags: [src/config.ts](src/config.ts)
 - Sync scripts and data caches: [scripts/](scripts)
+- Diagram builders and the draw.io workflow: [scripts/drawio_kit.py](scripts/drawio_kit.py)
+- Icon sets and their licences: [public/icons/NOTICE.md](public/icons/NOTICE.md)
 
 If you (the human) want additional agent behaviors, ask to create:
 

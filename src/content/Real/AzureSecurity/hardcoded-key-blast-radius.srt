@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:02,400
+A key in the code, in the app, on forty thousand phones.
+
+2
+00:00:02,800 --> 00:00:05,200
+He unzipped the app. It took him a minute.
+
+3
+00:00:05,600 --> 00:00:08,200
+He does not delete anything. He just uses it.
+
+4
+00:00:08,600 --> 00:00:11,200
+One click at three in the morning. The bleeding stops.
+
+5
+00:00:11,600 --> 00:00:14,200
+Every installed copy carries the key you just revoked.
+
+6
+00:00:14,600 --> 00:00:17,200
+New build, store review, and then people have to update.
+
+7
+00:00:17,600 --> 00:00:20,000
+If the key had lived in Key Vault, rotation changes nothing for users.
+
+8
+00:00:20,400 --> 00:00:22,800
+If fixing it needs an app store release, it was never a secret.

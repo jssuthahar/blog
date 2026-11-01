@@ -1,5 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Newsletter from '../components/Newsletter.astro';
+import TopicLinks from '../components/TopicLinks.astro';
 import { SITE, AUTHOR } from '../config';
 import { TOPIC_GROUPS, TAGS } from '../lib/taxonomy';
 import { slugifyCategory } from '../lib/articles';
@@ -19,7 +21,7 @@ const schema = [
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
-      { '@type': 'ListItem', position: 2, name: 'Topics' },
+      { '@type': 'ListItem', position: 2, name: 'Topics', item: `${SITE.url}/topics` },
     ],
   },
 ];
@@ -39,6 +41,8 @@ const schema = [
       enterprise architecture.
     </p>
   </header>
+
+  <TopicLinks class="mt-6" />
 
   <div class="mt-12 grid gap-6 sm:grid-cols-2">
     {TOPIC_GROUPS.map((group) => (
@@ -86,4 +90,8 @@ const schema = [
       ))}
     </ul>
   </section>
+
+  <div class="mt-16">
+    <Newsletter source="topics" compact />
+  </div>
 </BaseLayout>

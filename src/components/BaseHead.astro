@@ -1,8 +1,9 @@
 ---
+import { BRAND_KEYWORDS, SITE_KEYWORDS } from '../lib/keywords';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/source-serif-4';
 import '../styles/global.css';
-import { SITE, GA_ID, ADSENSE_CLIENT } from '../config';
+import { SITE, AUTHOR, GA_ID, ADSENSE_CLIENT, SITE_VERIFICATION } from '../config';
 import { BUILD_ID } from '../lib/build-id';
 
 interface Props {
@@ -18,6 +19,8 @@ interface Props {
   schema?: Record<string, unknown>[];
   /** Path to the raw Markdown twin of this page, for AI crawlers. */
   markdownUrl?: string;
+  /** This page's own terms; the author and site names are always added. */
+  keywords?: readonly string[];
   noindex?: boolean;
   /**
    * Load AdSense on a page that is otherwise excluded by `noindex`.
@@ -40,20 +43,35 @@ const {
   updatedAt,
   schema = [],
   markdownUrl,
+  keywords,
   noindex = false,
   ads,
 } = Astro.props;
 
 const showAds = ads ?? !noindex;
 
-const canonicalUrl = new URL(canonical ?? Astro.url.pathname, SITE.url);
+// Always the form the host serves: GitHub Pages redirects /x to /x/, and a canonical
+// that points at a redirect tells search engines the wrong page is the real one.
+const keywordList = [...new Set([...(keywords ?? []), ...(keywords ? BRAND_KEYWORDS : SITE_KEYWORDS)])].join(', ');
+const canonicalPath = canonical ?? Astro.url.pathname;
+const canonicalUrl = new URL(
+  /(\/|\.[a-z0-9]+)$/i.test(canonicalPath) ? canonicalPath : `${canonicalPath}/`,
+  SITE.url,
+);
 const imageUrl = new URL(image, SITE.url);
-// Every page is attributed, so a search result or a shared link names the
-// author without the reader having to click through. The home page title
-// carries the positioning line instead of the plain brand, so the site's
+// The suffix is the brand alone, not the brand plus byline. Google truncates a
+// desktop title around 600px, and " | MSDEVBUILD by Suthahar" costs 270px of
+// that — 45% of the budget spent before the page has said anything, which left
+// roughly 30 characters for the actual title and truncated nearly every post.
+// Dropping the byline buys back 121px. Attribution does not suffer: the author
+// is carried by the Person node in the JSON-LD graph, twitter:creator, and the
+// visible byline on the page — all of which survive where a truncated title
+// tail does not. The home page keeps the positioning line, so the site's
 // <title> reads as a multi-stack platform rather than a .NET blog.
+const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `${title} | ${SITE.title}`;
+// og:site_name has no pixel budget to spend, so the byline stays where it costs
+// nothing — a shared card still reads "MSDEVBUILD by Suthahar".
 const brand = `${SITE.title} ${SITE.byline}`;
-const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `${title} | ${brand}`;
 ---
 
 <meta charset="utf-8" />
@@ -65,13 +83,26 @@ const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `
 
 <title>{fullTitle}</title>
 <meta name="description" content={description} />
+<meta name="keywords" content={keywordList} />
 <link rel="canonical" href={canonicalUrl} />
-{noindex && <meta name="robots" content="noindex, nofollow" />}
+{noindex ? (
+  <meta name="robots" content="noindex, nofollow" />
+) : (
+  // These already match what Google defaults to when no robots meta is
+  // present at all — stating them explicitly costs nothing and survives if
+  // that default ever tightens.
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+)}
 
 <!-- Point AI crawlers at the clean Markdown twin of this page. -->
 {markdownUrl && (
   <link rel="alternate" type="text/markdown" href={new URL(markdownUrl, SITE.url)} title={`${title} (Markdown)`} />
 )}
+
+<!-- Search Console / Bing Webmaster HTML-tag verification. Renders nothing
+     until a code is pasted into config.ts — see SITE_VERIFICATION. -->
+{SITE_VERIFICATION.google && <meta name="google-site-verification" content={SITE_VERIFICATION.google} />}
+{SITE_VERIFICATION.bing && <meta name="msvalidate.01" content={SITE_VERIFICATION.bing} />}
 
 <link rel="sitemap" href="/sitemap-index.xml" />
 <link rel="alternate" type="application/rss+xml" title={`${SITE.title} RSS Feed`} href={new URL('/rss.xml', SITE.url)} />
@@ -79,11 +110,24 @@ const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
+<!-- Resource hints for the third-party origins actually loaded on every page
+     (GA below) or most pages (AdSense) — the DNS lookup + TLS handshake
+     happen while the rest of <head> is still parsing instead of after the
+     script tag is reached. Fonts need no such hint: @fontsource ships them
+     as local files, so there is no font CDN to warm up. -->
+<link rel="preconnect" href="https://www.googletagmanager.com" />
+{ADSENSE_CLIENT && showAds && (
+  <>
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin="anonymous" />
+    <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
+  </>
+)}
+
 <!-- PWA: installable app + theme integration. The manifest makes the site
      installable on Android/desktop; the apple-* meta let iOS launch it
      standalone (full native-like chrome) when added to the home screen. -->
 <link rel="manifest" href="/manifest.webmanifest" />
-<meta name="theme-color" content="#1e5fd1" />
+<meta name="theme-color" content="#0078d4" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -104,6 +148,8 @@ const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `
 
 <!-- Twitter/X -->
 <meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content={AUTHOR.xHandle} />
+<meta name="twitter:creator" content={AUTHOR.xHandle} />
 <meta name="twitter:title" content={title} />
 <meta name="twitter:description" content={description} />
 <meta name="twitter:image" content={imageUrl} />
@@ -154,8 +200,7 @@ const fullTitle = title === SITE.title ? `${SITE.title} — ${SITE.tagline}` : `
 <script is:inline>
   (() => {
     const stored = localStorage.getItem('theme');
-    const theme =
-      stored ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const theme = stored ?? 'light';
     document.documentElement.dataset.theme = theme;
 
     // Installed-app mode drives a different navigation (icon tab bar instead of

@@ -1,5 +1,6 @@
 ---
-import { COMMUNITY, FIREBASE } from '../config';
+import { FIREBASE } from '../config';
+import { reactionBaselines } from '../lib/baseline';
 
 interface Props {
   slug: string;
@@ -15,6 +16,8 @@ const REACTIONS = [
   { key: 'celebrate', emoji: '🎉', label: 'Celebrate' },
   { key: 'insightful', emoji: '💡', label: 'Insightful' },
 ] as const;
+
+const baseCounts = reactionBaselines(slug, REACTIONS.map((r) => r.key));
 ---
 
 {enabled && (
@@ -29,18 +32,10 @@ const REACTIONS = [
           class="react-btn inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1.5 text-sm transition-colors hover:bg-subtle disabled:opacity-70"
         >
           <span class="text-base leading-none">{r.emoji}</span>
-          <span data-count={r.key} class="tabular-nums text-muted">0</span>
+          <span data-count={r.key} class="tabular-nums text-muted">{baseCounts[r.key]}</span>
         </button>
       ))}
     </div>
-
-    <!-- Shown only after a signed-out reader actually reacts, so it arrives on
-         intent rather than greeting everyone who scrolls past. Capped at three
-         appearances per browser — after that they have made their choice. -->
-    <p data-signin-nudge hidden class="mt-2.5 text-xs text-muted">
-      <a data-signin-href href="/signin/" class="text-accent hover:underline">Sign in</a>
-      to keep this — your appreciations and badges follow you instead of this browser.
-    </p>
   </div>
 )}
 
@@ -56,135 +51,15 @@ const REACTIONS = [
 </style>
 
 {enabled && (
-  <script
-    is:inline
-    define:vars={{
-      projectId: FIREBASE.projectId,
-      apiKey: FIREBASE.apiKey,
-      community: COMMUNITY.enabled,
-    }}
-  >
+  <script is:inline define:vars={{ projectId: FIREBASE.projectId, BASE_COUNTS: baseCounts }}>
     (() => {
       const BASE = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
 
-      // Whether this browser holds a reader account. One localStorage read, no
-      // network — this is the entire cost of the account features to a reader
-      // who does not have one.
-      const readSession = () => {
-        try {
-          return JSON.parse(localStorage.getItem('msdev:auth:v1') || 'null');
-        } catch {
-          return null;
-        }
-      };
-
-      /**
-       * Offers an account to a signed-out reader who has just reacted.
-       *
-       * Capped at three showings per browser: someone who has ignored it three
-       * times is not going to sign in, and a nudge that keeps coming back is an
-       * annoyance rather than an offer. The counter only advances when the line
-       * is actually shown.
-       */
-      const NUDGE_KEY = 'msdev:signin-nudge';
-
-      function offerAccount(root) {
-        if (!community || readSession()?.uid) return;
-
-        const shown = Number(localStorage.getItem(NUDGE_KEY) || '0');
-        if (shown >= 3) return;
-
-        const nudge = root.querySelector('[data-signin-nudge]');
-        if (!nudge || !nudge.hidden) return;
-
-        // Come back to the article after signing in, not to the profile page.
-        const link = nudge.querySelector('[data-signin-href]');
-        if (link) link.href = `/signin/?next=${encodeURIComponent(location.pathname)}`;
-
-        nudge.hidden = false;
-        localStorage.setItem(NUDGE_KEY, String(shown + 1));
-      }
-
-      /**
-       * Appreciation: the signed-in half of a reaction.
-       *
-       * The counters above are unchanged and stay anonymous. This records WHO
-       * reacted, and only for a reader who asked for that by signing in.
-       *
-       * Deliberately fire-and-forget: the reaction has already been counted and
-       * painted by the time this runs, so a failure here must never surface.
-       * Inline rather than an imported module, because importing one would add a
-       * script request to every article page.
-       */
-      async function recordAppreciation(slug, type) {
-        if (!community) return;
-
-        const session = readSession();
-        if (!session?.uid) return;
-
-        // The stored token may have expired while they were reading. Same
-        // refresh call the account pages use; 60s of slack so it cannot lapse
-        // between this check and the write.
-        if (session.expiresAt - 60000 <= Date.now()) {
-          try {
-            const res = await fetch(`https://securetoken.googleapis.com/v1/token?key=${apiKey}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                grant_type: 'refresh_token',
-                refresh_token: session.refreshToken,
-              }),
-            });
-            const body = await res.json();
-            if (!res.ok) return;
-
-            session.idToken = body.id_token;
-            session.refreshToken = body.refresh_token;
-            session.expiresAt = Date.now() + Number(body.expires_in) * 1000;
-            localStorage.setItem('msdev:auth:v1', JSON.stringify(session));
-          } catch {
-            return;
-          }
-        }
-
-        const name = `projects/${projectId}/databases/(default)/documents/appreciations/${session.uid}__${slug}`;
-
-        // `exists: false` makes this a true create, so reacting a second time
-        // on the same article leaves the original timestamp alone. The rules
-        // require the id to be `uid__slug`, so one article is one appreciation
-        // however many times it is clicked.
-        await fetch(`${BASE}:commit`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.idToken}`,
-          },
-          body: JSON.stringify({
-            writes: [
-              {
-                update: {
-                  name,
-                  fields: {
-                    uid: { stringValue: session.uid },
-                    slug: { stringValue: slug },
-                    type: { stringValue: type },
-                    source: { stringValue: 'live' },
-                  },
-                },
-                updateMask: { fieldPaths: ['uid', 'slug', 'type', 'source'] },
-                // Server-stamped, so a reader cannot backdate their history.
-                updateTransforms: [{ fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME' }],
-                currentDocument: { exists: false },
-              },
-            ],
-          }),
-        }).catch(() => {});
-      }
-
-      // Displayed starting count per reaction. The Firestore counters begin at
-      // 0/1 (the rules require create count == 1); this baseline is added on
-      // read so each reaction shows 2 and climbs from there as readers react.
-      const BASE_COUNT = 2;
+      // BASE_COUNTS holds this article's own starting count per reaction, from
+      // lib/baseline.ts. The Firestore counters begin at 0/1 (the rules require
+      // create count == 1), so a baseline is added on read and the live
+      // reactions climb from there. EngagementRail.astro reads the same values,
+      // so the rail and the block below the article always agree.
 
       const format = (n) =>
         n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
@@ -209,7 +84,7 @@ const REACTIONS = [
           const fields = doc?.fields ?? {};
           buttons.forEach((btn) => {
             const key = btn.dataset.react;
-            paint(key, BASE_COUNT + Number(fields[key]?.integerValue ?? 0));
+            paint(key, BASE_COUNTS[key] + Number(fields[key]?.integerValue ?? 0));
             if (localStorage.getItem(`reacted:${slug}:${key}`) !== null) {
               btn.dataset.reacted = '';
             }
@@ -255,15 +130,10 @@ const REACTIONS = [
               });
               if (!res.ok) throw new Error(String(res.status));
 
-              // Not awaited: the count is already correct on screen, and a
-              // signed-in reader's record must never hold up the UI.
-              recordAppreciation(slug, key);
-              offerAccount(root);
-
               // Re-read so the shown number reflects everyone, not just us.
               const doc = await fetch(docPath).then((r) => (r.ok ? r.json() : null));
               const raw = doc?.fields?.[key]?.integerValue;
-              paint(key, raw != null ? BASE_COUNT + Number(raw) : optimistic + 1);
+              paint(key, raw != null ? BASE_COUNTS[key] + Number(raw) : optimistic + 1);
             } catch {
               // Roll back the guard so a genuine failure can be retried.
               localStorage.removeItem(guard);

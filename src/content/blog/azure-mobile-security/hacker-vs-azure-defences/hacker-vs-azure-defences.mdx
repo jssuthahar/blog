@@ -1,0 +1,98 @@
+---
+title: 'Hacker vs Azure: Five Attacks and the Five Defences That Stop Them'
+seoTitle: 'Hacker vs Azure: Five Attacks'
+description: 'Five real attacks on a mobile backend, matched one-for-one to the Azure service that stops each — and the default setting that quietly undoes the last one.'
+highlight: 'Front Door WAF stops junk traffic, Entra ID stops calls with no token, an owner check in your API stops a real token asking for someone else''s data, Key Vault stops key hunting, and a private endpoint stops direct database access. "Allow Azure services" undoes that last one: it means any Azure subscription in the world, not yours.'
+publishedAt: 2026-10-24
+category: azure
+categories: ['mobile']
+tags: ['Azure', 'Cybersecurity', 'Azure Front Door', 'Microsoft Entra ID', 'OWASP', 'Azure Key Vault', 'Private Endpoint']
+series: 'azure-mobile-security'
+seriesOrder: 4
+cover: './images/hacker-vs-azure-defences-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile App" above the title "Five attacks, five defences" and the line "One Azure backend, and the named control that stops each attack.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Junk, no token, wrong id, keys in a repo, a direct DB dial", an arrow labelled "five attacks" to an amber box reading "Each needs its own door, one missing door is enough", and an arrow labelled "five controls" to a green box reading "WAF, Entra ID, owner check, Key Vault, private endpoint".'
+draft: false
+faq:
+  - q: 'Which Azure services protect a mobile app backend from attackers?'
+    a: 'One per attack: Azure Front Door with WAF filters injection traffic at the edge, Entra ID rejects calls without a valid token, an owner check in your API stops a token reading someone else''s data, Key Vault with a managed identity keeps keys out of your repo, and a private endpoint removes the database''s public address.'
+  - q: 'What stops a flood of junk traffic and injection attempts against an Azure API?'
+    a: 'Azure Front Door with the Web Application Firewall running the OWASP managed ruleset at the edge. Traffic blocked there costs nothing — no container starts, no database connection opens. But WAF ships in Detection mode, which only logs, so it must be switched to Prevention.'
+  - q: 'Why is a valid token from a real, logged-in attacker still dangerous?'
+    a: 'Because authentication only proves who is calling, not what they may see. An attacker who signs in as themselves and then requests another user''s record has a perfectly valid token. Only an owner check inside your API stops them — this is broken object level authorization, number one on the OWASP API Security Top 10.'
+  - q: 'Does the "allow Azure services and resources" firewall setting only allow my own resources?'
+    a: 'No, and it is one of the most misread settings in Azure. It allows any resource in any Azure subscription worldwide, not just resources in your tenant. Leave it off and use a private endpoint or explicit firewall rules instead.'
+---
+
+import Callout from '../../../../components/mdx/Callout.astro';
+
+One attacker. One food delivery backend on Azure. Five different ways in.
+
+For each one, there's a specific, named Azure control that shuts it. Miss one, and the other four don't cover for it. Each door guards a different thing.
+
+<figure>
+
+![An attacker at the top, in red, with five doors below. Door 1, Front Door WAF asks "Is this junk?" and must be in Prevention mode. Door 2, Entra ID asks "Who are you?": no valid signed pass, no entry. Door 3, your API asks "Is this yours?": you only get your own orders. Door 4, Key Vault: nothing in the code or repo to steal. Door 5, a private endpoint asks "Can you reach me?": the database has no internet address. A green box at the bottom reads "Customer data: reachable only through all five doors."](./images/five-doors-beginner.png)
+
+<figcaption>Figure 1 — five attacks, five doors. Each one guards something the others don't.</figcaption>
+
+</figure>
+
+## Attack 1: A flood of junk and injection strings
+
+**Stopped by:** Azure Front Door WAF, running the OWASP managed ruleset at the edge. Traffic dropped here costs you nothing. No container spins up, no database connection opens.
+
+**The catch:** WAF ships in **Detection** mode, which only logs. Switch it to **Prevention**, or it's a very expensive diary.
+
+## Attack 2: Calls with no token
+
+**Stopped by:** Microsoft Entra ID. Your API validates the token's signature, issuer and audience against Microsoft's published keys. Locally, in microseconds.
+
+**The catch:** validate the `aud` claim, not just the signature. A valid token issued for a different app is still a valid token.
+
+## Attack 3: A real token asking for someone else's data
+
+This is the one people miss. The attacker signs in, legitimately, as themselves. Then they call `GET /orders/1043`, which belongs to someone else. Authentication passed. There's nothing wrong with their token.
+
+**Stopped by:** an owner check in your own API. This bug is called **broken object level authorization**, and it's number one on the OWASP API Security Top 10.
+
+```csharp
+db.Orders.Where(o => o.UserId == me.GetObjectId())
+```
+
+Take the user id from the validated token, never from the body, the query string or a header, because the moment the client can tell you who it is, the check is decoration.
+
+## Attack 4: Someone searching your repo for keys
+
+**Stopped by:** Azure Key Vault plus a managed identity, so the repo holds a vault URI and nothing else. Turn on GitHub secret scanning too, and scan history, not just the latest commit: a key deleted in a later commit is still sitting in the repo.
+
+## Attack 5: Someone dialling the database directly
+
+**Stopped by:** a private endpoint, with public network access set to `Disabled`, so the server gets a private IP inside your VNet and no internet-facing address at all.
+
+## Which default setting undoes door 5?
+
+<Callout type="warning" title="“Allow Azure services and resources to access this server”">
+  It sounds like it means *your* Azure resources. It doesn't. It means **any resource in any Azure subscription in the world**. Including one an attacker creates in five minutes with a free trial. Leave it off. Use a private endpoint or explicit firewall rules.
+</Callout>
+
+## Which Azure defences should you check this week?
+
+1. Is WAF in Prevention or Detection?
+2. Can you fetch another user's record with your own valid token?
+3. Is public network access `Disabled` on SQL, Storage and Key Vault?
+4. Is "allow Azure services" off?
+5. Is Microsoft Defender for Cloud on, so you hear about trouble before the invoice does?
+
+The same five layers, seen as a request flow rather than as attacks, are in [the full request-flow walkthrough](../azure-mobile-app-layers).
+
+## Key takeaways
+
+- Five common attacks map onto five named controls: WAF, Entra ID, an owner check in your code, Key Vault, and a private endpoint.
+- Owner checks are the one control authentication can't provide — a real, valid token is exactly what BOLA uses.
+- WAF's default Detection mode only logs; switch it to Prevention.
+- "Allow Azure services and resources" means every Azure tenant, not yours — keep it off.
+- Run the five-question audit regularly, not once.
+
+Official documentation: [Azure Web Application Firewall](https://learn.microsoft.com/azure/web-application-firewall/overview) and [private endpoints](https://learn.microsoft.com/azure/private-link/private-endpoint-overview).
+
+Earlier in this series: [The Blast Radius of a Hardcoded API Key in a Mobile App](/blog/hardcoded-key-blast-radius/) and [How Azure Protects a Mobile App: The Full Request Flow, Layer by Layer](/blog/azure-mobile-app-layers/).

@@ -1,0 +1,31 @@
+1
+00:00:00,000 --> 00:00:02,200
+Your config file. Everyone with repo access has all of them.
+
+2
+00:00:02,600 --> 00:00:05,000
+Secrets, keys and certificates. Three kinds, one place.
+
+3
+00:00:05,400 --> 00:00:07,800
+The credential that opens the vault. You moved the problem.
+
+4
+00:00:08,200 --> 00:00:10,600
+A secret to get the secrets. It leaks the same way, and it expires.
+
+5
+00:00:11,000 --> 00:00:13,400
+Azure issues it. Nothing is stored, so nothing can be stolen.
+
+6
+00:00:13,800 --> 00:00:16,200
+The app may read. Your laptop may not. That is an RBAC role.
+
+7
+00:00:16,600 --> 00:00:19,000
+And the audit log says who read which secret, and when.
+
+8
+00:00:19,400 --> 00:00:21,800
+The vault holds them. The identity opens it. Nothing is written down.

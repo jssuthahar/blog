@@ -1,0 +1,128 @@
+---
+// The short-video counterpart to ReadingTracker: records a visit into the
+// same local reading-history store, tracks watch progress off the player's
+// own stage events instead of scroll position, and provides the per-short
+// bookmark toggle. Without this a short was invisible to bookmarks, the
+// reading streak, "Most read" and the homepage "Pick up again" strip —
+// backwards for the format pitched as the daily-habit one.
+//
+// Keyed as `short-<slug>` in reading-history, the same prefix ViewCounter and
+// Reactions already use on this page, so a short's engagement signals share
+// one identity across every feature that tracks by slug.
+import { shortUrl, type Short } from '../lib/shorts';
+import { CATEGORIES } from '../lib/posts';
+import type { ArticleMeta } from '../lib/reading-history';
+
+interface Props {
+  short: Short;
+  /** Renders the bookmark as an icon in the reader tool cluster. */
+  compact?: boolean;
+}
+
+const { short, compact = false } = Astro.props;
+const category = CATEGORIES[short.category];
+
+const meta: ArticleMeta = {
+  slug: `short-${short.slug}`,
+  title: short.title,
+  url: shortUrl(short),
+  description: short.description,
+  // The share-card image already generated for this short — thumbFor()'s
+  // fallback path assumes a blog post's OG naming, which a short's slug
+  // does not match, so this is supplied explicitly rather than left blank.
+  cover: `/og/short-${short.slug}.png`,
+  coverAlt: short.title,
+  category: short.category,
+  categoryLabel: category.label,
+  hue: category.hue,
+  // Shorts run in seconds, not minutes; 0 keeps the "N min" badge off
+  // history cards rather than rounding down to a misleading "0 min".
+  minutes: 0,
+};
+
+const trackerData = JSON.stringify({ meta, stageCount: short.stages.length }).replace(/</g, '\\u003c');
+---
+
+<button
+  type="button"
+  data-short-bookmark-btn
+  aria-pressed="false"
+  title="Save to your library"
+  class:list={
+    compact
+      ? 'rt-tool'
+      : 'inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1 text-sm transition-colors hover:bg-subtle'
+  }
+>
+  <svg
+    data-short-bookmark-icon
+    class:list={compact ? 'rt-tool__icon' : 'size-4'}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.8"
+    aria-hidden="true"
+  >
+    <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" />
+  </svg>
+  <span data-short-bookmark-label class:list={[compact && 'rt-tool__label']}>Bookmark</span>
+</button>
+
+<script is:inline type="application/json" data-short-tracker-meta set:html={trackerData}></script>
+
+<script>
+  import {
+    recordVisit,
+    updateProgress,
+    isBookmarked,
+    toggleBookmark,
+    type ArticleMeta,
+  } from '../lib/reading-history';
+
+  function initShortTracker() {
+    const holder = document.querySelector<HTMLScriptElement>('[data-short-tracker-meta]');
+    if (!holder?.textContent) return;
+
+    let payload: { meta: ArticleMeta; stageCount: number };
+    try {
+      payload = JSON.parse(holder.textContent);
+    } catch {
+      return;
+    }
+    const { meta, stageCount } = payload;
+
+    recordVisit(meta);
+
+    // ── Bookmark toggle ──────────────────────────────────────────────────
+    const btn = document.querySelector<HTMLButtonElement>('[data-short-bookmark-btn]');
+    const icon = document.querySelector<SVGElement>('[data-short-bookmark-icon]');
+    const label = document.querySelector<HTMLElement>('[data-short-bookmark-label]');
+    const paintBookmark = (on: boolean) => {
+      btn?.setAttribute('aria-pressed', String(on));
+      icon?.setAttribute('fill', on ? 'currentColor' : 'none');
+      if (label) label.textContent = on ? 'Bookmarked' : 'Bookmark';
+      btn?.classList.toggle('text-accent', on);
+      btn?.classList.toggle('border-[var(--accent)]', on);
+    };
+    paintBookmark(isBookmarked(meta.slug));
+    btn?.addEventListener('click', () => paintBookmark(toggleBookmark(meta)));
+
+    // ── Progress, off the player's own stage events ────────────────────────
+    // A short has no scroll-based progress worth measuring — the player
+    // advancing through its stages is the actual watch signal. Reaching the
+    // final stage crosses updateProgress's completion threshold on its own.
+    if (stageCount > 0) {
+      document.addEventListener('short:stage', (event) => {
+        const index = (event as CustomEvent<{ index: number }>).detail?.index;
+        if (typeof index !== 'number') return;
+        const ratio = Math.min((index + 1) / stageCount, 1);
+        updateProgress(meta.slug, ratio, ratio);
+      });
+    }
+  }
+
+  // Same reasoning as ReadingTracker: astro:after-swap (not page-load) avoids
+  // double-binding the bookmark click on the very first page load.
+  initShortTracker();
+  document.addEventListener('astro:after-swap', initShortTracker);
+</script>

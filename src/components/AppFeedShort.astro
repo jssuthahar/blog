@@ -1,0 +1,341 @@
+---
+/**
+ * A short video, as one full-height item in the app feed.
+ *
+ * The player is a complete HTML document passed by `srcdoc` into a sandboxed
+ * frame — see ShortPlayer.astro for why it works that way and what the sandbox
+ * buys. What is different here is that the frame is not in the document: it
+ * sits in a `<template>`, and the feed clones it into the stage only when this
+ * item is the one on screen, then throws it away when the reader moves on.
+ *
+ * That is the whole autoplay design, and it is deliberately not a pause. These
+ * players have no pause — they are a sequencer, a Web Audio graph and a dozen
+ * running timers. Removing the frame stops all three at once and reclaims the
+ * memory, and mounting a fresh one starts the short from its title card, which
+ * is what a reader arriving at an item expects to see. A short that resumed
+ * three-quarters through from a previous visit would just look broken.
+ *
+ * Until the frame mounts — and behind it once it has — the short's own poster
+ * holds the space, so scrolling never lands on an empty black rectangle.
+ */
+import AppFeedRail from './AppFeedRail.astro';
+import ShortPoster from './ShortPoster.astro';
+import { CATEGORIES } from '../lib/posts';
+import type { ArticleMeta } from '../lib/reading-history';
+import type { ShortItem } from '../lib/app-feed';
+import { shortUrl } from '../lib/shorts';
+
+interface Props {
+  item: ShortItem;
+  /**
+   * The first item in the feed. Its player mounts without the short delay the
+   * others use to survive being flicked past — nobody flicks past item one.
+   */
+  first?: boolean;
+}
+
+const { item, first = false } = Astro.props;
+const { short, learnMore } = item;
+const category = CATEGORIES[short.category];
+const url = shortUrl(short);
+
+// `short-` prefixed, matching the reactions key /shorts/[slug] already writes
+// and the OG card id — so a like left here and a like left on the short's own
+// page are the same number, and the library thumbnail resolves.
+const slug = `short-${short.slug}`;
+
+const meta: ArticleMeta = {
+  slug,
+  title: short.title,
+  url,
+  description: short.sub,
+  cover: '',
+  coverAlt: '',
+  category: short.category,
+  categoryLabel: category.label,
+  hue: category.hue,
+  minutes: 1,
+};
+
+// Escape `<` so a value containing `</script>` cannot close the block early.
+const metaJson = JSON.stringify(meta).replace(/</g, '\\u003c');
+---
+
+<article
+  class="feed-item feed-short"
+  data-feed-item
+  data-kind="short"
+  data-slug={slug}
+  data-seconds={short.seconds}
+  data-eager={first ? '' : undefined}
+  style={`--item-hue: ${category.hue};`}
+>
+  <div class="feed-short__stage">
+    <!-- Everything the feed draws over the short lives inside this box, which is
+         the player's exact footprint. Anchoring the overlay to the item instead
+         put the caption and the rail on the letterbox either side of a portrait
+         frame, so the text and the video it described were not the same width. -->
+    <div class="feed-short__frame">
+      <div class="feed-short__screen" data-short-stage>
+        <ShortPoster short={short} class="feed-short__poster" />
+
+        <!-- Cloned into the stage above by the feed. Kept in a template so the
+             player's markup is never parsed, laid out or executed for an item the
+             reader may scroll straight past. -->
+        <template data-short-template>
+          <iframe
+            title={`Short video: ${short.title}`}
+            srcdoc={short.embedHtml}
+            sandbox="allow-scripts"
+            allow="autoplay"
+            referrerpolicy="no-referrer"
+            scrolling="no"
+          ></iframe>
+        </template>
+      </div>
+
+      <!-- Sound cannot start itself: a sandboxed frame has no user activation of
+           its own, so the first tap anywhere is what brings the audio in. This
+           says so, and removes itself the moment that tap happens. -->
+      <p class="feed-short__unlock" data-feed-unlock hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 5 6.5 9H3.5v6h3l4.5 4Z" /><path d="M15 9.2a4 4 0 0 1 0 5.6M17.8 6.4a8 8 0 0 1 0 11.2" />
+        </svg>
+        Tap for sound
+      </p>
+
+      <div class="feed-short__overlay">
+        <div class="feed-short__text">
+          <!-- The view count rides here rather than on the rail: it is a number
+               to read, not a control to press, and the caption line has room
+               the rail does not. -->
+          <p class="feed-short__chip">
+            <span class="feed-short__dot" aria-hidden="true"></span>
+            {category.label} · {short.seconds}s ·
+            <span data-feed-views>—</span> views
+          </p>
+
+          <h2 class="feed-short__title">
+            <a href={url}>{short.title}</a>
+          </h2>
+
+          <!-- The short states the idea; this is where it is worked out. It is
+               the single most valuable control on the item, so it gets the
+               accent and the name of what it opens underneath. -->
+          <a href={learnMore.href} class="feed-short__more" data-feed-learn>
+            <span>{learnMore.label}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h13M12 6l6 6-6 6" />
+            </svg>
+          </a>
+          <p class="feed-short__more-context">{learnMore.context}</p>
+        </div>
+
+        <AppFeedRail slug={slug} commentHref={`${url}#reactions`} sound overlay views={false} />
+      </div>
+    </div>
+  </div>
+
+  <script is:inline type="application/json" data-feed-meta set:html={metaJson}></script>
+</article>
+
+<style>
+  .feed-short {
+    position: relative;
+    /* The player's own canvas colour, so the letterbox around a portrait frame
+       on a taller phone reads as part of the short rather than as a gap. */
+    background: #05080f;
+    color: #fff;
+  }
+
+  .feed-short__stage {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+  }
+
+  /* Width-driven, so the ratio is never at the mercy of a max-height clamp:
+     the frame is as wide as the item allows, or as wide as its own height
+     permits at 9:16, whichever is smaller. --feed-h is set by the feed. */
+  .feed-short__frame {
+    position: relative;
+    width: 100%;
+    max-width: min(100%, calc(var(--feed-h) * 9 / 16));
+    aspect-ratio: 9 / 16;
+    overflow: hidden;
+  }
+
+  /* The player and its poster, under everything the feed draws. */
+  .feed-short__screen {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* `:global` because the poster is ShortPoster's own root element and carries
+     that component's scope, not this one's. Full bleed here: the rounded, bordered
+     tile is right in a rail of thumbnails and wrong as a full-height backdrop. */
+  .feed-short__screen :global(.feed-short__poster) {
+    position: absolute;
+    inset: 0;
+    border-radius: 0;
+    border: 0;
+  }
+
+  /*
+   * The player, and it must win outright.
+   *
+   * ShortPoster puts `z-index: 1` on its own brand, headline and footer so they
+   * sit over its gradient. Nothing between those spans and this iframe opens a
+   * stacking context — the poster, the screen and the frame are all positioned
+   * at `z-index: auto` — so they were competing with the frame in the same
+   * context and painting over it: the poster's headline ghosted across the
+   * running short's code panel, its wordmark across the step title.
+   */
+  .feed-short__screen :global(iframe) {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+
+  /* And once the player has actually painted, the poster is done — it exists to
+     hold the space, not to sit behind a frame being composited over it. */
+  .feed-short[data-loaded] .feed-short__screen :global(.feed-short__poster) {
+    visibility: hidden;
+  }
+
+  .feed-short__unlock {
+    position: absolute;
+    top: 0.85rem;
+    left: 50%;
+    z-index: 4;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: rgb(0 0 0 / 0.62);
+    padding: 0.35rem 0.85rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #fff;
+    backdrop-filter: blur(6px);
+  }
+  .feed-short__unlock svg {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+  /* An author `display` beats the user agent's `[hidden] { display: none }`,
+     so the attribute only actually hides this if the rule is restated here. */
+  .feed-short__unlock[hidden] {
+    display: none;
+  }
+
+  /*
+   * The overlay covers the bottom strip of the player and nothing more.
+   *
+   * It is kept as short as the controls allow, because the middle of the frame
+   * is where the short actually explains itself — the stage diagram and its
+   * caption sit there, and furniture riding up into that band covers the thing
+   * the reader came for. So the caption is a chip and a headline, the rail
+   * drops its word labels (see AppFeedRail), and the summary line that used to
+   * sit under the title is gone: the short says it out loud in its first two
+   * seconds, and the short's own page says it in writing.
+   */
+  .feed-short__overlay {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 3;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    padding: 2rem 0.75rem 0.85rem;
+    background: linear-gradient(to top, rgb(0 0 0 / 0.9) 45%, rgb(0 0 0 / 0.5) 75%, transparent);
+    pointer-events: none;
+  }
+  /* Only the controls take the pointer back, so a tap on the gradient itself
+     still reaches the player underneath. */
+  .feed-short__overlay :global(a),
+  .feed-short__overlay :global(button) {
+    pointer-events: auto;
+  }
+
+  .feed-short__text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .feed-short__chip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    color: oklch(0.86 0.1 var(--item-hue));
+  }
+  .feed-short__dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: currentColor;
+  }
+
+  .feed-short__title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 0.25rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.22;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+  .feed-short__title a {
+    color: inherit;
+  }
+
+  .feed-short__more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.55rem;
+    border-radius: 999px;
+    background: var(--accent);
+    padding: 0.5rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .feed-short__more svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .feed-short__more-context {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 0.4rem;
+    font-size: 0.7rem;
+    color: rgb(255 255 255 / 0.6);
+  }
+
+  /* Wide screens show the feed as a phone-shaped column, so the overlay copy
+     can afford a little more room. */
+  @media (min-width: 640px) {
+    .feed-short__title {
+      font-size: 1.15rem;
+    }
+  }
+</style>

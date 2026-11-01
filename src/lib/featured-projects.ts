@@ -9,8 +9,6 @@
 export interface FeaturedProject {
   /** Display name. */
   name: string;
-  /** Optional trailing emoji/flag, kept out of `name` so it never leaks into schema. */
-  emoji?: string;
   /** One-line positioning statement. */
   tagline: string;
   /** A sentence or two of context. */
@@ -21,15 +19,32 @@ export interface FeaturedProject {
   tech: string[];
   /** Public, hosted demo. Present ⇒ the card shows the primary "Live demo" action. */
   live?: string;
+  /** Installable Android build (Firebase App Distribution), when one is published. */
+  android?: string;
   /** Source repository. */
   source: string;
-  /** Two-stop gradient `[from, to]` for the card banner — a distinct look per project. */
-  gradient: [string, string];
   /** Short monogram shown large in the banner when there is no emoji. */
   monogram: string;
 }
 
 export const featuredProjects: FeaturedProject[] = [
+  {
+    name: 'MSDevBuild Eats',
+    tagline: 'Flutter food delivery app — the reference project for my articles',
+    summary:
+      'Customer, restaurant partner and delivery rider in one Flutter codebase, modelled on the Malaysian super-app experience. Clean Architecture with BLoC, and a seeded offline backend so it runs with no Firebase project and no API keys.',
+    features: [
+      'Three apps, one codebase',
+      'Clean Architecture + BLoC/Cubit',
+      'Offline demo backend, zero config',
+      'Web, Android, iOS and tablet',
+    ],
+    tech: ['Flutter', 'Dart', 'BLoC'],
+    live: 'https://jssuthahar.github.io/food-delivery-app/',
+    android: 'https://appdistribution.firebase.dev/i/00432c5aa60de58b',
+    source: 'https://github.com/jssuthahar/food-delivery-app',
+    monogram: 'ME',
+  },
   {
     name: 'JSON Studio',
     tagline: 'Free, client-side JSON tooling',
@@ -44,12 +59,10 @@ export const featuredProjects: FeaturedProject[] = [
     tech: ['Web', 'Static app'],
     live: 'https://jsonstudio.msdevbuild.com/',
     source: 'https://github.com/jssuthahar/JSON-Studio',
-    gradient: ['#2563eb', '#4f46e5'],
     monogram: 'JS',
   },
   {
     name: 'NikiBhavi',
-    emoji: '🇲🇾',
     tagline: 'Malaysia life guide — built by Indians living in Malaysia',
     summary:
       'Honest, experience-based guidance for people living in Malaysia — no paid promotions, no misleading advice. Built from real day-to-day experience to help the community.',
@@ -62,12 +75,10 @@ export const featuredProjects: FeaturedProject[] = [
     tech: ['Flutter', 'Firebase'],
     live: 'https://nikibhavi.msdevbuild.com/#/home',
     source: 'https://github.com/jssuthahar/Malaysia-Life-Guide',
-    gradient: ['#0d9488', '#16a34a'],
     monogram: 'NB',
   },
   {
     name: 'SpinWheel',
-    emoji: '🎡',
     tagline: 'Gamification & engagement platform',
     summary:
       'Not just a random picker — a customizable engagement platform for events and organizations, with QR-based hidden experiences, branding, and a presentation mode for screens and projectors.',
@@ -80,12 +91,10 @@ export const featuredProjects: FeaturedProject[] = [
     tech: ['Web'],
     live: 'https://spinwheel.msdevbuild.com/',
     source: 'https://github.com/jssuthahar/spinwheel',
-    gradient: ['#7c3aed', '#db2777'],
     monogram: 'SW',
   },
   {
     name: 'Malaysia Living Cost & Savings Calculator',
-    emoji: '🇲🇾',
     tagline: 'Plan monthly expenses and savings',
     summary:
       'Helps people living in Malaysia understand monthly expenses, plan savings, and manage financial decisions — with lifestyle-based adjustments and spending visualization.',
@@ -98,12 +107,10 @@ export const featuredProjects: FeaturedProject[] = [
     tech: ['Flutter Web'],
     live: 'https://malaysialivingcost.msdevbuild.com/',
     source: 'https://github.com/jssuthahar/malaysialivingcost',
-    gradient: ['#ea580c', '#d97706'],
     monogram: 'LC',
   },
   {
     name: 'Malaysia Tax Calculator',
-    emoji: '🇲🇾',
     tagline: 'Fast, accurate income-tax estimator',
     summary:
       'Helps Malaysian residents and foreign professionals estimate income tax — resident progressive and non-resident flat rules, monthly and yearly, with net-salary calculation.',
@@ -116,7 +123,6 @@ export const featuredProjects: FeaturedProject[] = [
     tech: ['Flutter Web'],
     live: 'https://jssuthahar.github.io/malaysiatax/',
     source: 'https://github.com/jssuthahar/malaysiatax',
-    gradient: ['#059669', '#0891b2'],
     monogram: 'TX',
   },
   {
@@ -128,7 +134,6 @@ export const featuredProjects: FeaturedProject[] = [
     tech: ['Web'],
     live: 'https://jssuthahar.github.io/video-downloader/',
     source: 'https://github.com/jssuthahar/video-downloader',
-    gradient: ['#0ea5e9', '#4f46e5'],
     monogram: 'VD',
   },
 ];

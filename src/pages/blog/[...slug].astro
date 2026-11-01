@@ -6,31 +6,48 @@ import TableOfContents from '../../components/TableOfContents.astro';
 import ReadingProgress from '../../components/ReadingProgress.astro';
 import ShareRow from '../../components/ShareRow.astro';
 import Reactions from '../../components/Reactions.astro';
+import LiveReaders from '../../components/LiveReaders.astro';
 import EngagementRail from '../../components/EngagementRail.astro';
 import FeedbackDialog from '../../components/FeedbackDialog.astro';
 import ArticleChat from '../../components/ArticleChat.astro';
 import CodeCopyButton from '../../components/CodeCopyButton.astro';
 import PostCard from '../../components/PostCard.astro';
+import NextRead from '../../components/NextRead.astro';
+import PostNav from '../../components/PostNav.astro';
 import Newsletter from '../../components/Newsletter.astro';
+import SubscribePopup from '../../components/SubscribePopup.astro';
 import Comments from '../../components/Comments.astro';
+import MetaStat from '../../components/MetaStat.astro';
+import Avatar from '../../components/Avatar.astro';
 import ViewCounter from '../../components/ViewCounter.astro';
 import ReadingTracker from '../../components/ReadingTracker.astro';
 import PostHighlight from '../../components/PostHighlight.astro';
+import PresentationMode from '../../components/PresentationMode.astro';
+import ReaderTools from '../../components/ReaderTools.astro';
 import FollowCTA from '../../components/FollowCTA.astro';
 import AdUnit from '../../components/AdUnit.astro';
-import { SITE, AUTHOR, ADSENSE_SLOT_IN_ARTICLE, ADSENSE_SLOT_MULTIPLEX } from '../../config';
+import { SITE, AUTHOR, REPO, ADSENSE_SLOT_IN_ARTICLE, ADSENSE_SLOT_MULTIPLEX } from '../../config';
 import {
   CATEGORIES,
   formatDate,
-  getAdjacentPosts,
+  getNextRead,
   getPostsInSeries,
   getPublishedPosts,
+  getSeriesIndex,
   getRelatedPosts,
+  postMarkdownUrl,
   postUrl,
   readingTime,
   slugifyTag,
+  seriesUrl,
+  stripAuthorNotes,
   type Post,
 } from '../../lib/posts';
+import { entitiesForTags } from '../../lib/taxonomy';
+import { getImage } from 'astro:assets';
+import { relatedShortsForPost } from '../../lib/app-feed';
+import { getShorts, shortUrl } from '../../lib/shorts';
+import ShortHighlight from '../../components/ShortHighlight.astro';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -46,8 +63,11 @@ const { data } = post;
 const { Content, headings } = await render(post);
 
 const minutes = readingTime(post.body ?? '');
-const related = await getRelatedPosts(post);
-const { newer, older } = await getAdjacentPosts(post);
+// The one post the reader is handed at the end — next series part first, then
+// the closest related read. "Keep reading" then drops it, so the primary next
+// step and the grid below it never show the same article twice.
+const { next, prev } = await getNextRead(post);
+const related = (await getRelatedPosts(post, 4)).filter((p) => p.id !== next?.post.id).slice(0, 3);
 const seriesPosts = data.series ? await getPostsInSeries(data.series) : [];
 // A flat list of every part gets unwieldy past a handful. Beyond five, collapse
 // to a "you are here" window (prev · current · next); the full list stays
@@ -61,13 +81,54 @@ const seriesWindow = seriesLong
 const path = postUrl(post);
 const category = CATEGORIES[data.category];
 
+// Straight to the source file on GitHub, same pattern as Microsoft Learn's
+// "Edit this page" links: `filePath` is the project-relative path Astro's
+// glob loader stamps on every entry (e.g. `src/content/blog/foo.mdx`), so
+// this needs no per-post wiring and can't drift out of sync with where the
+// file actually lives.
+const editUrl = post.filePath ? `${REPO.url}/edit/${REPO.branch}/${post.filePath}` : undefined;
+
+// The reverse of the short page's "Read deeper" link: shorts that point at
+// this post, so a reader who arrived by search meets the 20-second version
+// too, instead of it living only where the short happened to publish.
+const relatedShorts = relatedShortsForPost(post, getShorts());
+// Shorts made for this post all get a row; a guessed match only ever gets one.
+const pinnedShorts = relatedShorts.filter((s) => s.articleSlug === post.id);
+const stripShorts = pinnedShorts.length > 0 ? pinnedShorts : relatedShorts.slice(0, 1);
+
 // --- Structured data -------------------------------------------------------
+// The technologies this post is about, as resolvable entities rather than
+// keyword strings. `about` carries the primary subject, `mentions` the rest —
+// the distinction search engines use to decide what the page is *for* versus
+// what it merely references.
+const entities = entitiesForTags(data.tags).map((e) => ({
+  '@type': 'Thing',
+  name: e.name,
+  sameAs: e.sameAs,
+}));
+// A part of a series is not a standalone work, and saying so is what lets a
+// search engine surface the hub for the topic instead of part 7 of it.
+const seriesMeta = data.series
+  ? (await getSeriesIndex()).find((s) => s.id === data.series)
+  : undefined;
+const seriesNode = data.series
+  ? {
+      '@type': 'CreativeWorkSeries',
+      '@id': new URL(seriesUrl(data.series), SITE.url).href + '#series',
+      name: seriesMeta?.title ?? data.series,
+      url: new URL(seriesUrl(data.series), SITE.url).href,
+    }
+  : null;
+
 const schema: Record<string, unknown>[] = [
   {
     '@type': 'BlogPosting',
     '@id': new URL(path, SITE.url).href + '#article',
     headline: data.title,
     description: data.description,
+    // Required for Article/Top-stories rich-result eligibility — Google reads
+    // this off the JSON-LD, not off og:image, even though it's the same file.
+    image: [new URL(`/og/${post.id}.png`, SITE.url).href],
     datePublished: data.publishedAt.toISOString(),
     dateModified: (data.updatedAt ?? data.publishedAt).toISOString(),
     author: { '@id': `${SITE.url}/#person` },
@@ -75,17 +136,22 @@ const schema: Record<string, unknown>[] = [
     mainEntityOfPage: { '@type': 'WebPage', '@id': new URL(path, SITE.url).href },
     articleSection: category.label,
     keywords: data.tags.join(', '),
-    wordCount: (post.body ?? '').split(/\s+/).filter(Boolean).length,
+    wordCount: stripAuthorNotes(post.body ?? '').split(/\s+/).filter(Boolean).length,
     inLanguage: SITE.lang,
-    isPartOf: { '@id': `${SITE.url}/#website` },
+    isPartOf: seriesNode
+      ? [{ '@id': `${SITE.url}/#website` }, { '@id': seriesNode['@id'] }]
+      : { '@id': `${SITE.url}/#website` },
+    ...(entities.length > 0 && { about: entities[0], mentions: entities.slice(1) }),
+    ...(data.seriesOrder != null && { position: data.seriesOrder }),
   },
+  ...(seriesNode ? [seriesNode] : []),
   {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
       { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE.url}/blog` },
       { '@type': 'ListItem', position: 3, name: category.label, item: `${SITE.url}/category/${data.category}` },
-      { '@type': 'ListItem', position: 4, name: data.title },
+      { '@type': 'ListItem', position: 4, name: data.title, item: new URL(path, SITE.url).href },
     ],
   },
 ];
@@ -101,6 +167,20 @@ if (data.faq.length > 0) {
     })),
   });
 }
+
+/**
+ * The share image: an authored cover when the post has one, otherwise the card
+ * drawn at build time in lib/og-card.ts.
+ *
+ * A real banner someone drew beats a generated card in a feed, so the cover
+ * wins when it exists. It is re-emitted at exactly 1200×630 and cropped to fit
+ * rather than letterboxed, because that is the box LinkedIn, X, WhatsApp and
+ * Slack all crop to anyway — better to choose the crop than to be handed one.
+ * PNG rather than WebP: some crawlers still do not fetch WebP share images.
+ */
+const shareImage = data.cover
+  ? (await getImage({ src: data.cover, width: 1200, height: 630, format: 'png', fit: 'cover' })).src
+  : `/og/${post.id}.png`;
 ---
 
 <BaseLayout
@@ -110,16 +190,20 @@ if (data.faq.length > 0) {
   type="article"
   publishedAt={data.publishedAt}
   updatedAt={data.updatedAt}
-  markdownUrl={`${path}.md`}
-  image={`/og/${post.id}.png`}
+  markdownUrl={postMarkdownUrl(post)}
+  keywords={[...data.tags, category.label]}
+  image={shareImage}
   schema={schema}
   wide
 >
   <ReadingProgress />
 
   <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-    <!-- Header spans the full column; the body below is narrower for reading. -->
-    <header class="mx-auto max-w-3xl">
+    <!-- Header spans the full column; the body below is narrower for reading.
+         The bottom margin is the gap above the sticky reader bar — it cannot
+         live on that bar, because a margin on a sticky element adds to where it
+         comes to rest and would leave a gap under the site header. -->
+    <header class="mx-auto mb-6 max-w-3xl lg:mx-0">
       <nav aria-label="Breadcrumb" class="text-sm text-muted">
         <a href="/blog/" class="hover:text-accent">Blog</a>
         <span aria-hidden="true" class="mx-2">/</span>
@@ -132,35 +216,87 @@ if (data.faq.length > 0) {
 
       <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">{data.description}</p>
 
-      <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
-        <span>By <a href="/about/" class="hover:text-accent">{AUTHOR.name}</a></span>
-        <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time>
-        {data.updatedAt && (
-          <span class="text-accent">Updated {formatDate(data.updatedAt)}</span>
-        )}
-        <span>{minutes} min read</span>
-        <ViewCounter slug={post.id} />
-        <ReadingTracker post={post} />
-      </div>
+      <p class="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+        <Avatar size={28} class="shrink-0 ring-1 ring-[var(--border)]" />
+        <span>By <a href="/about/" class="font-medium text-[var(--text)] hover:text-accent">{AUTHOR.name}</a></span>
+        <span aria-hidden="true">·</span>
+        <span>Published <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time></span>
+      </p>
     </header>
 
-    {data.cover && (
-      <figure class="mx-auto mt-10 max-w-4xl">
-        <Image
-          src={data.cover}
-          alt={data.coverAlt ?? ''}
-          widths={[640, 1024, 1600]}
-          sizes="(max-width: 896px) 100vw, 896px"
-          quality={90}
-          loading="eager"
-          fetchpriority="high"
-          class="w-full rounded-xl border border-default"
-        />
-      </figure>
-    )}
+    <!--
+      The article's meta line and every reader tool, in the one row.
 
-    <div class="mt-12 gap-12 lg:grid lg:grid-cols-[minmax(0,1fr)_15rem]">
-      <div class="mx-auto min-w-0 max-w-3xl">
+      The meta used to sit inside the header above and the tools underneath it,
+      which spent a whole row of the page on three buttons. Merged, the row the
+      page was already paying for now carries the controls too — and because it
+      is `position: sticky`, that row follows the reader down the article.
+
+      Outside the header on purpose: a sticky element only stays stuck for the
+      length of its containing block, so nested in the header it would come
+      unstuck after two paragraphs. ReadingTracker is slotted in for the same
+      reason the meta is — the bookmark belongs with the other two tools. It
+      also records the visit and restores scroll position, neither of which
+      cares where in the DOM it renders.
+    -->
+    <ReaderTools
+      slug={post.id}
+      title={data.title}
+      path={path}
+      category={category.label}
+      hue={category.hue}
+      present
+    >
+      <ReadingTracker post={post} compact />
+
+      <Fragment slot="meta">
+        <span class="meta-chip meta-chip--lead">{category.label}</span>
+        <MetaStat icon="clock">{minutes} min read</MetaStat>
+        {data.updatedAt && (
+          <MetaStat icon="updated">Updated {formatDate(data.updatedAt)}</MetaStat>
+        )}
+        <ViewCounter slug={post.id} />
+        {/* Filled by LiveReaders' script once the previous minute has a count,
+            hidden until then so it never shows a stale or invented number.
+            A button, not a span: clicking it opens the five-day breakdown, so
+            it has to be reachable by keyboard and announce its state. */}
+        <button
+          type="button"
+          class="lr-meta meta-chip"
+          data-lr-meta
+          hidden
+          aria-expanded="false"
+          aria-controls="live-readers-panel"
+        >
+          <span class="lr-dot" aria-hidden="true"></span>
+          <strong data-lr-count>—</strong>
+          <span data-lr-word>reading now</span>
+          <span data-lr-meta-countries></span>
+          <span class="lr-caret" aria-hidden="true">›</span>
+        </button>
+      </Fragment>
+    </ReaderTools>
+
+    <!-- Title, cover and body share one left edge from lg up. -->
+    <div class="mt-8 gap-12 lg:grid lg:grid-cols-[minmax(0,1fr)_15rem]">
+      <div class="mx-auto min-w-0 max-w-3xl lg:mx-0 lg:justify-self-start">
+        {data.cover && (
+          <figure class="mb-10">
+            <Image
+              src={data.cover}
+              alt={data.coverAlt ?? ''}
+              widths={[640, 1024, 1600]}
+              sizes="(max-width: 768px) 100vw, 768px"
+              quality={90}
+              loading="eager"
+              fetchpriority="high"
+              class="w-full rounded-xl border border-default"
+            />
+          </figure>
+        )}
+
+        <LiveReaders />
+
         {seriesPosts.length > 1 && (
           <aside class="mb-10 rounded-xl border border-default bg-subtle p-5" aria-label="Series navigation">
             <div class="flex items-baseline justify-between gap-3">
@@ -210,7 +346,16 @@ if (data.faq.length > 0) {
           <PostHighlight text={data.highlight ?? data.description} />
         </div>
 
-        <article class="prose-reading">
+        <!-- The 20-second version, for a reader who wants the shape before the
+             full read — or instead of it. Only appears when a short genuinely
+             covers this post's subject (see relatedShortsForPost), so most
+             posts render nothing here. -->
+        <ShortHighlight shorts={stripShorts} class="mb-9 max-w-[68ch]" />
+
+        <!-- `data-reader-root` scopes highlighting and the deck to the article
+             itself, so nothing in the nav, the FAQ or the footer can be marked
+             or end up on a slide. -->
+        <article class="prose-reading" data-reader-root>
           <Content />
         </article>
 
@@ -219,6 +364,15 @@ if (data.faq.length > 0) {
             <Reactions slug={post.id} />
             <ShareRow title={data.title} path={path} />
           </div>
+
+          {editUrl && (
+            <p class="mt-4 text-xs text-muted">
+              Found a mistake or an outdated step?{' '}
+              <a href={editUrl} target="_blank" rel="noopener noreferrer" class="underline hover:text-accent">
+                Edit this page on GitHub
+              </a>
+            </p>
+          )}
         </div>
 
         {data.faq.length > 0 && (
@@ -258,37 +412,38 @@ if (data.faq.length > 0) {
           )}
         </div>
 
-        <nav class="mx-auto mt-10 grid max-w-[68ch] gap-4 sm:grid-cols-2" aria-label="Adjacent posts">
-          {older && (
-            <a href={postUrl(older)} class="rounded-lg border border-default p-4 transition-colors hover:bg-subtle">
-              <span class="text-xs text-muted">← Previous</span>
-              <span class="mt-1 block font-medium">{older.data.title}</span>
-            </a>
-          )}
-          {newer && (
-            <a href={postUrl(newer)} class="rounded-lg border border-default p-4 text-right transition-colors hover:bg-subtle sm:col-start-2">
-              <span class="text-xs text-muted">Next →</span>
-              <span class="mt-1 block font-medium">{newer.data.title}</span>
-            </a>
-          )}
-        </nav>
+        <NextRead next={next} prev={prev} class="mx-auto mt-10 max-w-[68ch]" />
 
+        <!--
+          Email first, socials second.
+
+          Someone who has just finished the article is the highest-intent reader
+          this page will ever have, and there is only one such moment. It used to
+          go to FollowCTA — six one-tap social buttons directly above the email
+          form — so the easiest action absorbed the attention the hardest one
+          needed. A follow is worth less than an address: the platform owns the
+          former and decides who sees it.
+        -->
         <div class="mx-auto mt-14 max-w-[68ch]">
-          <FollowCTA heading="Found this useful?" />
+          <Newsletter compact source="post-end" />
         </div>
 
         <div class="mx-auto mt-8 max-w-[68ch]">
-          <Newsletter compact />
+          <FollowCTA heading="Prefer a feed?" />
         </div>
 
         <div class="mx-auto mt-14 max-w-[68ch]">
           <Comments />
         </div>
+
+        <!-- Depth-triggered, and only here: an article is the one page where
+             how far someone scrolled actually says how interested they are. -->
+        <SubscribePopup trigger="read" source="article-popup" />
       </div>
 
       <!-- Sticky rail: hidden below lg, where the TOC would crowd the text. -->
       <aside class="hidden lg:block">
-        <div class="sticky top-24">
+        <div class="sticky top-32 max-h-[calc(100dvh-9rem)] overflow-y-auto">
           <TableOfContents headings={headings} />
         </div>
       </aside>
@@ -315,6 +470,20 @@ if (data.faq.length > 0) {
   <EngagementRail slug={post.id} title={data.title} path={path} />
   <FeedbackDialog />
 
+  <!-- Floating prev/next buttons on the right margin, mirroring the rail. -->
+  <PostNav next={next} prev={prev} />
+
   <!-- Floating chat launcher; fixed-position, so it lives at the page root. -->
-  <ArticleChat faq={data.faq} body={post.body ?? ''} title={data.title} intro={data.highlight} />
+  <ArticleChat faq={data.faq} body={stripAuthorNotes(post.body ?? '')} title={data.title} intro={data.highlight} />
+
+  <!-- Full-screen deck built from the article's own H2 sections on demand. -->
+  <PresentationMode
+    title={data.title}
+    description={data.description}
+    category={category.label}
+    hue={category.hue}
+    author={AUTHOR.name}
+    url={new URL(path, SITE.url).href}
+    faq={data.faq}
+  />
 </BaseLayout>

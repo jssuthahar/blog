@@ -5,7 +5,14 @@ import { CATEGORY_SLUGS } from './lib/taxonomy';
 const blog = defineCollection({
   loader: glob({
     base: './src/content/blog',
-    pattern: '**/*.{md,mdx}',
+    /**
+     * Every post lives in its own folder alongside its images and diagram
+     * sources, so a folder can also hold a README explaining how those were
+     * made. Those are documentation for us, not posts, and without this
+     * exclusion the loader tries to validate one against the blog schema and
+     * fails the build.
+     */
+    pattern: ['**/*.{md,mdx}', '!**/README.md'],
     /**
      * Derive the id (and therefore the /blog/<id> URL) from the filename ONLY,
      * ignoring any folders. This lets us group articles into per-series
@@ -162,6 +169,11 @@ const events = defineCollection({
         online: z.boolean().default(false),
         /** Meeting link for online events, revealed on the detail page. */
         joinUrl: z.string().url().optional(),
+
+        /** Search-results title, when the event's own name would truncate.
+         *  The on-page H1 always stays as `title` — an event is known by its
+         *  real name, so shorten what Google shows, never what attendees read. */
+        seoTitle: z.string().max(70).optional(),
 
         cover: image().optional(),
         coverAlt: z.string().optional(),

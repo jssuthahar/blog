@@ -26,8 +26,13 @@ const show = Boolean(ADSENSE_CLIENT && slot && (format !== 'in-feed' || layoutKe
 ---
 
 {show && (
+  <!-- `w-full` is load-bearing, not cosmetic: as a grid child (the /app feed)
+       the `mx-auto` here would cancel `justify-self: stretch` and shrink this to
+       max-content — a slot about as wide as the word "Advertisement", which
+       AdSense will not fill. The explicit width keeps the margins at 0 and the
+       slot the full width of the column. -->
   <aside
-    class:list={['ad-unit mx-auto my-12 max-w-[68ch] text-center', className]}
+    class:list={['ad-unit mx-auto my-12 w-full max-w-[68ch] text-center', className]}
     aria-label="Advertisement"
   >
     <span class="mb-2 block text-[11px] font-medium tracking-wider text-muted uppercase">
@@ -78,3 +83,25 @@ const show = Boolean(ADSENSE_CLIENT && slot && (format !== 'in-feed' || layoutKe
     )}
   </aside>
 )}
+
+<style>
+  /* Google has no ad for this slot: remove the whole frame — label, rules and
+     reserved height — so no empty box is left behind. This has to key off
+     `unfilled` rather than hiding by default and revealing on `filled`: an <ins>
+     inside a `display:none` parent measures 0px wide, and AdSense refuses to
+     fill a zero-width slot, so hiding first would guarantee the empty state it
+     is meant to clean up. */
+  .ad-unit:has(ins[data-ad-status='unfilled']) {
+    display: none;
+  }
+
+  /* Until the fill lands there is nothing to label, so hold the word back and
+     keep its line box — revealing it must not shove the feed downward. */
+  .ad-label {
+    visibility: hidden;
+  }
+
+  .ad-unit:has(ins[data-ad-status='filled']) .ad-label {
+    visibility: visible;
+  }
+</style>

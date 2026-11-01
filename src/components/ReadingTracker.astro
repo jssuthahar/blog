@@ -1,7 +1,7 @@
 ---
 // Records the current article into the reader's local history, tracks how far
 // they scroll, restores that position when they return, and provides the
-// per-article bookmark toggle. Rendered inside the article header meta row.
+// per-article bookmark toggle.
 //
 // Server data (title, cover, category…) is handed to the bundled client script
 // through an inline JSON script block, since bundled modules cannot use define:vars.
@@ -10,9 +10,16 @@ import type { ArticleMeta } from '../lib/reading-history';
 
 interface Props {
   post: Post;
+  /**
+   * Renders the bookmark as an icon in the reader tool cluster rather than as a
+   * labelled pill in the meta row. The classes come from ReaderTools, which is
+   * the component that owns the cluster — this only opts in to them, so the
+   * three tools cannot drift apart visually.
+   */
+  compact?: boolean;
 }
 
-const { post } = Astro.props;
+const { post, compact = false } = Astro.props;
 const { data } = post;
 const category = CATEGORIES[data.category];
 
@@ -37,12 +44,25 @@ const metaJson = JSON.stringify(meta).replace(/</g, '\\u003c');
   type="button"
   data-bookmark-btn
   aria-pressed="false"
-  class="inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1 text-sm transition-colors hover:bg-subtle"
+  title="Save to your library"
+  class:list={
+    compact
+      ? 'rt-tool'
+      : 'inline-flex items-center gap-1.5 rounded-full border border-default px-3 py-1 text-sm transition-colors hover:bg-subtle'
+  }
 >
-  <svg data-bookmark-icon class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+  <svg
+    data-bookmark-icon
+    class:list={compact ? 'rt-tool__icon' : 'size-4'}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.8"
+    aria-hidden="true"
+  >
     <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" />
   </svg>
-  <span data-bookmark-label>Bookmark</span>
+  <span data-bookmark-label class:list={[compact && 'rt-tool__label']}>Bookmark</span>
 </button>
 
 <!-- Resume prompt: fixed, so its position in the DOM does not matter. -->

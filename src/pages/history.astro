@@ -145,7 +145,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         for (const f of stats.favourites) {
           const chip = document.createElement('span');
           chip.className = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium';
-          chip.style.cssText = `background: oklch(0.62 0.17 ${f.hue} / 0.14); color: oklch(0.62 0.17 ${f.hue});`;
+          chip.style.cssText = `background: oklch(0.62 0.17 ${f.hue} / 0.14); color: var(--accent-deep);`;
           chip.textContent = `${f.label} · ${f.count}`;
           favs.appendChild(chip);
         }

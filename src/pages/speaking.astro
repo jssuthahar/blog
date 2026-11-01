@@ -1,13 +1,68 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import EventCard from '../components/EventCard.astro';
-import BookSpeaking from '../components/BookSpeaking.astro';
+import GlassCarousel from '../components/GlassCarousel.astro';
+import type { GlassSlide } from '../lib/carousels';
 import AdUnit from '../components/AdUnit.astro';
-import { SITE, AUTHOR, SPEAKING_TOPICS, SESSION_FORMATS, ADSENSE_SLOT_DISPLAY } from '../config';
+import { SITE, AUTHOR, BOOKING, IMPACT, SPEAKING_TOPICS, SESSION_FORMATS, ADSENSE_SLOT_DISPLAY } from '../config';
 import { getUpcomingEvents, getPastEvents, eventSchema } from '../lib/speaking';
 
 const upcoming = await getUpcomingEvents();
 const past = await getPastEvents();
+
+// No email is published, so booking is the scheduler when one is configured and
+// the contact page otherwise.
+const bookingHref = BOOKING.scheduler || '/contact/';
+const bookingLabel = BOOKING.scheduler ? 'Check availability →' : 'Send a speaking invitation →';
+
+const slides: GlassSlide[] = [
+  {
+    tab: 'Invite',
+    kicker: 'MSDEVBUILD · Speaking',
+    title: 'Sessions for your',
+    accent: 'conference or community',
+    text: `${IMPACT[4].value} sessions delivered to ${IMPACT[3].value} developers across Microsoft Azure, applied AI, and .NET. Available in English or Tamil, on site or online.`,
+    tiles: [
+      { value: IMPACT[4].value, label: 'sessions delivered' },
+      { value: IMPACT[3].value, label: 'developers reached' },
+      { value: '2', label: 'English and Tamil' },
+    ],
+    actions: [{ label: bookingLabel, href: bookingHref, primary: true }],
+    note: BOOKING.available ? BOOKING.availabilityNote : undefined,
+    panel: {
+      demo: { kind: 'flow', labels: ['Invite', 'Pick a topic', 'Session'], caption: BOOKING.responseTime },
+      title: 'Talks I give',
+      steps: SPEAKING_TOPICS.slice(0, 3).map((t) => ({ title: t.title, href: '#topics-heading' })),
+    },
+  },
+  {
+    tab: 'Talks',
+    kicker: 'MSDEVBUILD · Talks',
+    title: 'Azure, applied AI,',
+    accent: 'and .NET in production',
+    text: 'Demo-led sessions, tailored to the audience in the room.',
+    pills: SPEAKING_TOPICS.map((t) => t.title),
+    actions: [{ label: 'See all talks', href: '#topics-heading' }],
+    panel: {
+      demo: { kind: 'ai', caption: 'For example: how an agent calls search and your own functions, then answers.' },
+      title: 'A few of the talks',
+      steps: SPEAKING_TOPICS.slice(0, 3).map((t) => ({ title: t.title, href: '#topics-heading' })),
+    },
+  },
+  {
+    tab: 'Formats',
+    kicker: 'MSDEVBUILD · Formats',
+    title: 'On site or online,',
+    accent: 'in English or Tamil',
+    text: 'Conference stage, online session or community meetup. The content fits the format.',
+    actions: [{ label: bookingLabel, href: bookingHref, primary: true }],
+    panel: {
+      demo: { kind: 'flow', labels: ['Conference', 'Online', 'Meetup'], caption: 'Three formats, one demo-led approach.' },
+      title: 'Formats',
+      steps: SESSION_FORMATS.map((f) => ({ title: f.title, note: f.description, href: '#formats-heading' })),
+    },
+  },
+];
 
 const schema = [
   {
@@ -26,24 +81,11 @@ const schema = [
   description={`Invite ${AUTHOR.name} to speak — conference sessions, webinars, and community meetups on Microsoft Azure, applied AI, and .NET, in English or Tamil.`}
   schema={schema}
 >
-  <header class="max-w-3xl">
-    <p class="eyebrow">Speaking</p>
-    <h1 class="display mt-3 text-3xl sm:text-4xl">
-      Sessions for your conference or community
-    </h1>
-    <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">
-      50+ sessions delivered to 15,000+ developers across Microsoft Azure, applied AI,
-      and .NET. Available in English or Tamil, on site or online.
-    </p>
-  </header>
-
-  <div class="mt-10">
-    <BookSpeaking />
-  </div>
+  <GlassCarousel slides={slides} label="Speaking" />
 
   {upcoming.length > 0 && (
     <section class="mt-16" aria-labelledby="upcoming-heading">
-      <h2 id="upcoming-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
+      <h2 id="upcoming-heading" class="section-title">
         Upcoming
       </h2>
       <div class="mt-6 space-y-3">
@@ -53,7 +95,7 @@ const schema = [
   )}
 
   <section class="mt-16" aria-labelledby="topics-heading">
-    <h2 id="topics-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
+    <h2 id="topics-heading" class="section-title">
       Talks I give
     </h2>
     <div class="mt-6 grid gap-4 sm:grid-cols-2">
@@ -70,7 +112,7 @@ const schema = [
   </section>
 
   <section class="mt-16" aria-labelledby="formats-heading">
-    <h2 id="formats-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
+    <h2 id="formats-heading" class="section-title">
       Formats
     </h2>
     <dl class="mt-6 grid gap-5 sm:grid-cols-3">
@@ -85,7 +127,7 @@ const schema = [
 
   {past.length > 0 && (
     <section class="mt-16" aria-labelledby="past-heading">
-      <h2 id="past-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
+      <h2 id="past-heading" class="section-title">
         Past events
       </h2>
       <div class="mt-6 space-y-3">

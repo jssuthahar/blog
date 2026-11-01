@@ -2,21 +2,42 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Newsletter from '../components/Newsletter.astro';
 import SeriesQuickNav from '../components/SeriesQuickNav.astro';
+import GlassCarousel from '../components/GlassCarousel.astro';
+import { flagshipSeriesSlides, seriesMinutes, type GlassSlide } from '../lib/carousels';
 import { getSeriesIndex, formatDate, postUrl, seriesUrl } from '../lib/posts';
 
 const series = await getSeriesIndex();
+
+const slides: GlassSlide[] = [
+  {
+    tab: 'All series',
+    kicker: 'MSDEVBUILD · Series',
+    title: 'Series,',
+    accent: 'built to read in order',
+    text: 'Multi-part guides meant to be read in order, each building on the last.',
+    tiles: [
+      { value: String(series.length), label: 'series' },
+      { value: String(series.reduce((sum, s) => sum + s.parts.length, 0)), label: 'parts' },
+      { value: `${Math.round(series.reduce((sum, s) => sum + seriesMinutes(s), 0) / 60)} hours`, label: 'of reading' },
+    ],
+    panel: {
+      demo: { kind: 'flow', labels: ['Part 1', 'Part 2', 'Whole system'], caption: 'Start at part 1 and finish with a complete system.' },
+      title: 'Recently updated',
+      steps: [...series]
+        .sort((a, b) => b.latest.data.publishedAt.getTime() - a.latest.data.publishedAt.getTime())
+        .slice(0, 3)
+        .map((s) => ({ title: s.title, note: `${s.parts.length} parts`, href: seriesUrl(s.id) })),
+    },
+  },
+  ...(await flagshipSeriesSlides()),
+];
 ---
 
 <BaseLayout
   title="Series"
   description="Multi-part guides that build a complete system step by step, on .NET, Azure, and AI."
 >
-  <header class="max-w-2xl">
-    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Series</h1>
-    <p class="mt-3 text-muted">
-      Multi-part guides meant to be read in order, each building on the last.
-    </p>
-  </header>
+  <GlassCarousel slides={slides} label="Series" />
 
   <!-- Same chips as the home page, so a link from anywhere lands on a page that
        still offers the other series. -->

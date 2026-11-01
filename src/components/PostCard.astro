@@ -14,38 +14,35 @@ const minutes = readingTime(post.body ?? '');
 const category = CATEGORIES[data.category];
 ---
 
-<article class="group relative flex flex-col overflow-hidden rounded-xl border border-default transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl">
+<article class="tile reveal-in group">
   <!-- The share-card ratio, so a post's own OG art fills the panel with no crop. -->
-  <div class="aspect-[1200/630] overflow-hidden bg-subtle">
-    <CoverArt post={post} eager={eager} class="transition-transform duration-500 group-hover:scale-[1.04]" />
+  <div class="tile-media">
+    <CoverArt post={post} eager={eager} />
   </div>
 
-  <div class="flex flex-1 flex-col p-5">
-    <div class="flex items-center gap-2 text-xs">
-      <span
-        class="rounded-full px-2 py-0.5 font-medium"
-        style={`background: oklch(0.62 0.17 ${category.hue} / 0.14); color: oklch(0.62 0.17 ${category.hue});`}
-      >
-        {category.label}
-      </span>
-      <span class="text-muted">{minutes} min</span>
+  <div class="tile-body">
+    <div class="tile-meta">
+      <span class="tile-topic">{category.label}</span>
+      <span>{minutes} min read</span>
+      {data.series && <span>Part {data.seriesOrder}</span>}
     </div>
 
-    <h3 class="mt-2.5 text-lg leading-snug font-semibold tracking-tight">
-      <a href={postUrl(post)} class="after:absolute after:inset-0 group-hover:text-accent">
+    <h3 class="tile-title line-clamp-3">
+      <a href={postUrl(post)} class="after:absolute after:inset-0">
         {data.title}
       </a>
     </h3>
 
-    <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{data.description}</p>
+    <p class="tile-text line-clamp-2">{data.description}</p>
 
-    <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-default pt-3 text-xs text-muted">
-      <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time>
-      {data.updatedAt && (
-        <span class="text-accent">Updated {formatDate(data.updatedAt)}</span>
+    <div class="tile-foot">
+      {data.updatedAt ? (
+        <span>Updated <time datetime={data.updatedAt.toISOString()}>{formatDate(data.updatedAt)}</time></span>
+      ) : (
+        <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time>
       )}
-      {data.series && <span>· Part {data.seriesOrder}</span>}
-      <ViewCount slug={post.id} class="ml-auto" />
+      <ViewCount slug={post.id} />
+      <span class="tile-cta" aria-hidden="true">Read <span>→</span></span>
     </div>
   </div>
 </article>

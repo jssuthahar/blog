@@ -2,6 +2,8 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import RepoCard from '../components/RepoCard.astro';
 import FeaturedProjectCard from '../components/FeaturedProjectCard.astro';
+import GlassCarousel from '../components/GlassCarousel.astro';
+import type { GlassSlide } from '../lib/carousels';
 import AdUnit from '../components/AdUnit.astro';
 import { SITE, AUTHOR, ADSENSE_SLOT_DISPLAY } from '../config';
 import Newsletter from '../components/Newsletter.astro';
@@ -9,6 +11,53 @@ import { allRepos, repoIndex } from '../lib/repos';
 import { featuredProjects } from '../lib/featured-projects';
 
 const liveCount = featuredProjects.filter((p) => p.live).length;
+
+const slides: GlassSlide[] = [
+  {
+    tab: 'Open source',
+    kicker: 'MSDEVBUILD · Open source',
+    title: 'Code you can read',
+    text: `Flagship apps you can open and try, plus ${repoIndex.count} public repositories, taking each idea end to end across AI and full-stack development, shipping to Android, iOS, and web.`,
+    tiles: [
+      { value: String(repoIndex.count), label: 'public repositories' },
+      { value: String(repoIndex.totalStars), label: 'stars' },
+      { value: String(repoIndex.totalForks), label: 'forks' },
+    ],
+    actions: [{ label: 'View on GitHub ↗', href: `https://github.com/${repoIndex.user}`, primary: true, external: true }],
+    panel: {
+      demo: { kind: 'flow', labels: ['Open', 'Run', 'Learn'], caption: 'Open a project, run it, and read how it was built.' },
+      title: 'Flagship apps',
+      steps: featuredProjects.slice(0, 3).map((p) => ({ title: p.name, note: p.tagline, href: p.live ?? p.source, external: true })),
+    },
+  },
+  {
+    tab: 'Live demos',
+    kicker: 'MSDEVBUILD · Live demos',
+    title: 'Try it right now,',
+    accent: 'in your browser',
+    text: 'Open the app in your browser, then read the source behind it.',
+    tiles: [{ value: String(liveCount), label: 'live demos' }],
+    actions: [{ label: 'See the projects', href: '#featured-heading' }],
+    panel: {
+      demo: { kind: 'flow', labels: ['Live demo', 'Source', 'Learn'], caption: 'See it working first, then read how it is built.' },
+      title: 'Open a demo',
+      steps: featuredProjects.filter((p) => p.live).slice(0, 3).map((p) => ({ title: p.name, note: p.tagline, href: p.live!, external: true })),
+    },
+  },
+  {
+    tab: 'Repositories',
+    kicker: 'MSDEVBUILD · Repositories',
+    title: `${repoIndex.count} repositories,`,
+    accent: 'public on GitHub',
+    text: 'Samples and tools across .NET, Xamarin, Azure and Visual Studio.',
+    actions: [{ label: 'View on GitHub ↗', href: `https://github.com/${repoIndex.user}`, primary: true, external: true }],
+    panel: {
+      demo: { kind: 'flow', labels: ['Clone', 'Explore', 'Learn'], caption: 'Real repositories that show how the work is done.' },
+      title: 'Most starred',
+      steps: [...allRepos()].sort((a, b) => b.stars - a.stars).slice(0, 3).map((r) => ({ title: r.name, note: `${r.stars} stars · ${r.forks} forks`, href: r.url, external: true })),
+    },
+  },
+];
 
 const repos = allRepos();
 const withDescription = repos.filter((r) => r.description.length > 0);
@@ -31,39 +80,13 @@ const schema = [
   description={`${repoIndex.count} public repositories by ${AUTHOR.name} — .NET, Xamarin, Azure samples, Visual Studio extensions, and developer tools.`}
   schema={schema}
 >
-  <header class="max-w-3xl">
-    <p class="eyebrow">Open source</p>
-    <h1 class="display mt-3 text-4xl sm:text-5xl">Code you can read</h1>
-    <p class="mt-5 text-lg leading-relaxed text-muted text-pretty">
-      Flagship apps you can open and try, plus {repoIndex.count} public repositories. In my
-      free time I explore new topics and get hands-on with different technologies — taking
-      each idea end to end, from first commit to delivery — across AI and full-stack
-      development with Dart, C#, React, and React Native, shipping to Android, iOS, and web.
-    </p>
-  </header>
-
-  <section class="mt-10 flex flex-wrap gap-3" aria-label="Totals">
-    {[
-      { value: repoIndex.count, label: 'public repositories' },
-      { value: repoIndex.totalStars, label: 'stars' },
-      { value: repoIndex.totalForks, label: 'forks' },
-    ].map(({ value, label }) => (
-      <div class="rounded-xl border border-default px-5 py-4">
-        <div class="text-2xl font-bold tracking-tight text-accent">{value}</div>
-        <div class="mt-0.5 text-xs text-muted">{label}</div>
-      </div>
-    ))}
-
-    <a href={`https://github.com/${repoIndex.user}`} rel="noopener" class="btn btn-outline self-center">
-      View on GitHub ↗
-    </a>
-  </section>
+  <GlassCarousel slides={slides} label="Open source" />
 
   <section class="mt-14" aria-labelledby="featured-heading">
     <div class="section-head">
       <div>
         <p class="eyebrow">Featured projects</p>
-        <h2 id="featured-heading" class="mt-2 text-xl font-semibold tracking-tight">
+        <h2 id="featured-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">
           Tools you can try right now
         </h2>
       </div>
@@ -74,23 +97,26 @@ const schema = [
 
     <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {featuredProjects.map((project, i) => (
-        <FeaturedProjectCard project={project} index={i} />
+        <FeaturedProjectCard project={project} wide={i === 0} />
       ))}
     </div>
   </section>
 
   <section class="mt-16" aria-labelledby="projects-heading">
-    <h2 id="projects-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
-      More repositories
-    </h2>
-    <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">On GitHub</p>
+        <h2 id="projects-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">More repositories</h2>
+      </div>
+    </div>
+    <div class="repo-grid mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {withDescription.map((repo) => <RepoCard repo={repo} />)}
     </div>
   </section>
 
   {rest.length > 0 && (
     <section class="mt-14" aria-labelledby="more-heading">
-      <h2 id="more-heading" class="border-b-2 border-default pb-3 text-xl font-semibold tracking-tight">
+      <h2 id="more-heading" class="section-title">
         Also on GitHub
       </h2>
       <ul class="mt-5 flex flex-wrap gap-2">
@@ -119,56 +145,18 @@ const schema = [
 </BaseLayout>
 
 <style>
-  /* Scroll-reveal for the featured cards: a gentle fade-up, staggered by the
-     per-card `--reveal-delay`. `.is-in` is toggled by the observer below. */
-  .reveal {
-    opacity: 0;
-    transform: translateY(16px);
+  /* The last row always fills: a leftover tile stretches instead of leaving a hole. */
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .repo-grid > :global(:last-child:nth-child(odd)) {
+      grid-column: span 2;
+    }
   }
-  .reveal.is-in {
-    opacity: 1;
-    transform: none;
-    transition:
-      opacity 0.5s ease,
-      transform 0.5s ease;
-    transition-delay: var(--reveal-delay, 0ms);
-  }
-
-  /* Motion-sensitive readers see the cards immediately, never a transform. */
-  @media (prefers-reduced-motion: reduce) {
-    .reveal {
-      opacity: 1;
-      transform: none;
+  @media (min-width: 1024px) {
+    .repo-grid > :global(:last-child:nth-child(3n + 2)) {
+      grid-column: span 2;
+    }
+    .repo-grid > :global(:last-child:nth-child(3n + 1)) {
+      grid-column: span 3;
     }
   }
 </style>
-
-<script>
-  // Reveal cards as they scroll into view. Runs on every view-transition
-  // navigation, not just first paint. If the API is missing, cards are shown.
-  function armReveal() {
-    const cards = document.querySelectorAll<HTMLElement>('.reveal');
-    if (!cards.length) return;
-
-    if (!('IntersectionObserver' in window)) {
-      cards.forEach((c) => c.classList.add('is-in'));
-      return;
-    }
-
-    const io = new IntersectionObserver(
-      (entries, obs) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-in');
-            obs.unobserve(entry.target);
-          }
-        }
-      },
-      { rootMargin: '0px 0px -10% 0px', threshold: 0.1 },
-    );
-
-    cards.forEach((c) => io.observe(c));
-  }
-
-  document.addEventListener('astro:page-load', armReveal);
-</script>

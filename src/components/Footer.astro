@@ -1,23 +1,25 @@
 ---
-import { SITE, AUTHOR, MAIN_SITE, SOCIAL } from '../config';
+import { SITE, AUTHOR, MAIN_SITE } from '../config';
+import Avatar from './Avatar.astro';
 import { TOPIC_GROUPS } from '../lib/taxonomy';
 import FollowCTA from './FollowCTA.astro';
 
 const year = new Date().getFullYear();
 
 /**
- * The footer is the one internal-linking surface that appears on all 117 pages,
- * so it is grouped by what a link is *for* rather than kept as one list. Three
- * jobs, three columns: read the work, verify the work, follow the author.
+ * The footer is the one internal-linking surface that appears on every page, so
+ * it is grouped by what a link is *for* rather than kept as one list: read the
+ * work, verify the work, browse by subject, and everything about the site.
  *
  * Anchor text is descriptive on purpose — "Contribution record" tells a crawler
  * and an answer engine what sits behind the link; "Contributions" does not.
  */
 const read = [
-  { label: 'Blog posts', href: '/blog/', hint: 'Long-form technical writing' },
-  { label: 'Article series', href: '/series/', hint: 'Multi-part guides in order' },
-  { label: `Article library — ${MAIN_SITE.label}`, href: '/articles/', hint: '500+ articles since 2007' },
-  { label: 'Topics', href: '/topics/', hint: 'Every subject covered' },
+  { label: 'Blog posts', href: '/blog/' },
+  { label: 'Article series', href: '/series/' },
+  { label: 'Article library', href: '/articles/' },
+  { label: 'Short videos', href: '/shorts/' },
+  { label: 'All topics', href: '/topics/' },
   { label: 'Tags', href: '/tags/' },
   { label: 'Search the site', href: '/search/' },
 ];
@@ -25,12 +27,12 @@ const read = [
 // Everything a reviewer, recruiter, or answer engine would check before citing
 // the work. Contribution record leads because it is the dated, linkable one.
 const impact = [
-  { label: 'Contribution record', href: '/contributions/', hint: 'Dated, linkable public record' },
-  { label: 'Open-source projects', href: '/open-source/', hint: 'Repositories and samples' },
-  { label: 'Events', href: '/events/', hint: 'Sessions hosted here' },
-  { label: 'Speaking', href: '/speaking/', hint: 'Conference and community sessions' },
+  { label: 'Contribution record', href: '/contributions/' },
+  { label: 'Open-source projects', href: '/open-source/' },
+  { label: 'Events', href: '/events/' },
+  { label: 'Speaking', href: '/speaking/' },
   { label: 'Testimonials', href: '/testimonials/' },
-  { label: `About ${AUTHOR.name}`, href: '/about/', hint: AUTHOR.jobTitle },
+  { label: `About ${AUTHOR.name.split(' ')[0]}`, href: '/about/' },
 ];
 
 /**
@@ -38,19 +40,12 @@ const impact = [
  * these accounts to one person, which is what consolidates the author entity.
  * Putting it on an internal page link says nothing and dilutes the signal.
  */
-const profiles = [
-  ...SOCIAL.map(({ cta, href }) => ({ label: cta, href })),
-  { label: `Main site — ${MAIN_SITE.label}`, href: MAIN_SITE.url },
-  { label: 'Full profile — suthahar.msdevbuild.com', href: 'https://suthahar.msdevbuild.com' },
-];
-
-const utility = [
+const site = [
+  { label: MAIN_SITE.label, href: MAIN_SITE.url, me: true },
+  { label: 'Full profile', href: 'https://suthahar.msdevbuild.com', me: true },
   { label: 'Install the app', href: '/install/' },
   { label: 'Share this blog', href: '/share/' },
   { label: 'Reading history', href: '/history/' },
-  { label: 'Contact', href: '/contact/' },
-  { label: 'Privacy', href: '/privacy/' },
-  { label: 'Legal', href: '/legal/' },
 ];
 
 /**
@@ -68,119 +63,66 @@ const machineReadable = [
 ];
 ---
 
-<footer class="site-footer mt-24 border-t border-default bg-subtle">
-  <!-- Site-wide follow ask: present on every page without each page adding it. -->
-  <div class="site-footer-full mx-auto max-w-6xl border-b border-default px-4 py-10 sm:px-6">
-    <FollowCTA />
-  </div>
-
+<footer class="site-footer">
   <div class="site-footer-full mx-auto max-w-6xl px-4 sm:px-6">
-    <div class="grid gap-x-8 gap-y-10 py-10 sm:grid-cols-2 sm:py-14 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
-      <div class="sm:col-span-2 lg:col-span-1">
-        <p class="font-semibold tracking-tight">
-          <span class="text-accent">MS</span>DEVBUILD
-          <span class="font-normal text-muted">/ blog</span>
-        </p>
-        <p class="mt-0.5 text-sm font-medium">{SITE.alternateName}</p>
-        <p class="mt-0.5 text-sm text-muted">{SITE.byline} Jegatheesan</p>
-        <p class="mt-3 max-w-sm text-sm leading-relaxed text-muted">{SITE.description}</p>
-        <p class="mt-3 text-sm text-muted">
-          The main site lives at <a href={MAIN_SITE.url} class="hover:text-accent">{MAIN_SITE.label}</a>.
-        </p>
-
-        <nav aria-labelledby="footer-topics" class="mt-6">
-          <h2 id="footer-topics" class="text-xs font-semibold tracking-wider uppercase text-muted">
-            <a href="/topics/" class="hover:text-accent">Browse by topic</a>
-          </h2>
-          <ul class="mt-2.5 flex flex-wrap gap-1.5">
-            {TOPIC_GROUPS.map((g) => (
-              <li>
-                <a
-                  href={`/category/${g.slug}/`}
-                  class="inline-block rounded-full border border-default px-2.5 py-1 text-xs transition-colors hover:bg-[var(--bg)] hover:text-accent"
-                >
-                  <span aria-hidden="true">{g.emoji}</span> {g.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+    <!-- Who this is, and the site-wide follow ask, on every page. -->
+    <div class="footer-brand">
+      <div class="flex min-w-0 items-center gap-3.5">
+        <Avatar size={52} class="footer-avatar shrink-0" />
+        <div class="min-w-0">
+          <p class="text-lg font-semibold tracking-tight">
+            <span class="footer-ms">MS</span>DEVBUILD
+            <span class="font-normal opacity-80">/ blog</span>
+          </p>
+          <p class="text-sm opacity-85">{SITE.alternateName} · {SITE.byline} Jegatheesan</p>
+        </div>
       </div>
 
+      <div>
+        <h2 class="footer-head">Follow the work</h2>
+        <FollowCTA variant="footer" class="mt-2.5" />
+      </div>
+    </div>
+
+    <div class="footer-columns">
+      <p class="footer-about">{SITE.description}</p>
+
       <nav aria-labelledby="footer-read">
-        <h2 id="footer-read" class="text-xs font-semibold tracking-wider uppercase text-muted">
-          Read
-        </h2>
-        <ul class="mt-3 space-y-2.5 text-sm">
-          {read.map(({ label, href, hint }) => (
-            <li>
-              <a href={href} class="group block hover:text-accent">
-                {label}
-                {/* The hint stays in the markup for crawlers but is folded away on
-                    phones, where two lines per link turns the footer into a page. */}
-                {hint && <span class="mt-0.5 hidden text-xs text-muted group-hover:text-accent sm:block">{hint}</span>}
-              </a>
-            </li>
-          ))}
+        <h2 id="footer-read" class="footer-head">Read</h2>
+        <ul class="footer-links">
+          {read.map(({ label, href }) => <li><a href={href}>{label}</a></li>)}
         </ul>
       </nav>
 
       <nav aria-labelledby="footer-impact">
-        <h2 id="footer-impact" class="text-xs font-semibold tracking-wider uppercase text-muted">
-          Impact &amp; recognition
-        </h2>
-        <ul class="mt-3 space-y-2.5 text-sm">
-          {impact.map(({ label, href, hint }) => (
-            <li>
-              <a href={href} class="group block hover:text-accent">
-                {label}
-                {/* The hint stays in the markup for crawlers but is folded away on
-                    phones, where two lines per link turns the footer into a page. */}
-                {hint && <span class="mt-0.5 hidden text-xs text-muted group-hover:text-accent sm:block">{hint}</span>}
-              </a>
-            </li>
-          ))}
+        <h2 id="footer-impact" class="footer-head">Impact &amp; recognition</h2>
+        <ul class="footer-links">
+          {impact.map(({ label, href }) => <li><a href={href}>{label}</a></li>)}
         </ul>
       </nav>
 
-      <div>
-        <nav aria-labelledby="footer-follow">
-          <h2 id="footer-follow" class="text-xs font-semibold tracking-wider uppercase text-muted">
-            Follow &amp; profiles
-          </h2>
-          <ul class="mt-3 space-y-2 text-sm text-muted">
-            {profiles.map(({ label, href }) => (
-              <li><a href={href} class="hover:text-accent" rel="me noopener">{label}</a></li>
-            ))}
-          </ul>
-        </nav>
+      <nav aria-labelledby="footer-topics">
+        <h2 id="footer-topics" class="footer-head">Browse by topic</h2>
+        <ul class="footer-links footer-links--two">
+          {TOPIC_GROUPS.map((g) => <li><a href={`/category/${g.slug}/`}>{g.label}</a></li>)}
+        </ul>
+      </nav>
 
-        <nav aria-labelledby="footer-utility" class="mt-6">
-          <h2 id="footer-utility" class="text-xs font-semibold tracking-wider uppercase text-muted">
-            This site
-          </h2>
-          <ul class="mt-3 space-y-2 text-sm text-muted">
-            {utility.map(({ label, href }) => (
-              <li><a href={href} class="hover:text-accent">{label}</a></li>
-            ))}
-          </ul>
-        </nav>
-      </div>
+      <nav aria-labelledby="footer-utility">
+        <h2 id="footer-utility" class="footer-head">This site</h2>
+        <ul class="footer-links">
+          {site.map(({ label, href, me }) => (
+            <li><a href={href} rel={me ? 'me noopener' : undefined}>{label}</a></li>
+          ))}
+        </ul>
+      </nav>
     </div>
 
     <!-- Structured endpoints, kept as their own band so they read as a set. -->
-    <nav
-      class="flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-default py-5"
-      aria-labelledby="footer-machine"
-    >
-      <h2 id="footer-machine" class="text-xs font-semibold tracking-wider uppercase text-muted">
-        For crawlers &amp; answer engines
-      </h2>
+    <nav class="footer-machine" aria-labelledby="footer-machine">
+      <h2 id="footer-machine" class="footer-head">For crawlers &amp; answer engines</h2>
       {machineReadable.map(({ label, href, hint }) => (
-        <a href={href} class="group text-sm hover:text-accent">
-          <span class="font-mono text-xs">{label}</span>
-          <span class="ml-1.5 hidden text-xs text-muted group-hover:text-accent sm:inline">{hint}</span>
-        </a>
+        <a href={href} title={hint} class="font-mono text-xs">{label}</a>
       ))}
     </nav>
   </div>
@@ -190,18 +132,176 @@ const machineReadable = [
     are never lost. Kept deliberately short: in the installed app this is the
     entire footer.
   -->
-  <div class="border-t border-default">
-    <div class="mx-auto flex max-w-6xl flex-col gap-x-6 gap-y-2 px-4 py-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+  <div class="footer-bottom">
+    <div class="mx-auto flex max-w-6xl flex-col gap-x-6 gap-y-2 px-4 py-4 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <p>&copy; {year} {AUTHOR.name}. All rights reserved.</p>
       <p class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-        <a href="/privacy/" class="hover:text-accent">Privacy</a>
-        <a href="/legal/" class="hover:text-accent">Legal</a>
-        <a href="/contact/" class="hover:text-accent">Contact</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/legal/">Legal</a>
+        <a href="/contact/">Contact</a>
         <span class="site-footer-full">{AUTHOR.jobTitle} · {AUTHOR.location}</span>
       </p>
     </div>
   </div>
 </footer>
+
+<style>
+  /* The decks' azure panel, in both themes: the page ends on the brand colour. */
+  .site-footer {
+    position: relative;
+    margin-top: 5rem;
+    overflow: hidden;
+    border-radius: 2rem 2rem 0 0;
+    background: linear-gradient(160deg, #00528f, #002c50);
+    color: #fff;
+  }
+  :global([data-theme='dark']) .site-footer {
+    background: linear-gradient(160deg, #0a3f6c, #071f38);
+  }
+  /* Light drifting slowly behind the columns. */
+  .site-footer::before {
+    content: '';
+    position: absolute;
+    top: -40%;
+    right: -10%;
+    width: 46rem;
+    aspect-ratio: 1;
+    background: radial-gradient(closest-side, rgb(120 190 245 / 0.28), transparent);
+    animation: footer-drift 24s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  @keyframes footer-drift {
+    from {
+      transform: translate(0, 0);
+    }
+    to {
+      transform: translate(-22rem, 5rem);
+    }
+  }
+  .site-footer > * {
+    position: relative;
+  }
+  .site-footer :global(:focus-visible) {
+    outline-color: #fff;
+  }
+
+  .footer-brand {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem 2.5rem;
+    border-bottom: 1px solid rgb(255 255 255 / 0.18);
+    padding-block: 2.25rem 1.75rem;
+  }
+  .footer-brand :global(.footer-avatar) {
+    box-shadow: 0 0 0 2px rgb(255 255 255 / 0.9), 0 0 0 7px rgb(255 255 255 / 0.12);
+  }
+  .footer-ms {
+    color: #8fcbf7;
+  }
+  .footer-head {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  .footer-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.75rem 1.5rem;
+    padding-block: 1.75rem;
+  }
+  .footer-about {
+    grid-column: 1 / -1;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    opacity: 0.88;
+    text-wrap: pretty;
+  }
+  .footer-links {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 0.7rem;
+    font-size: 0.875rem;
+  }
+  .footer-links--two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 0.75rem;
+  }
+  /* Below desktop: topics get the room two columns of long names need, and this
+     site's few links run in a line. */
+  @media (max-width: 1023px) {
+    .footer-columns nav:last-child {
+      grid-column: 1 / -1;
+    }
+    .footer-columns nav:last-child .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem 1.5rem;
+    }
+  }
+  @media (max-width: 639px) {
+    .footer-columns nav:nth-of-type(3) {
+      grid-column: 1 / -1;
+    }
+    .footer-links--two {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  .footer-links a,
+  .footer-machine a,
+  .footer-bottom a {
+    display: inline-block;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .footer-links a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    transform: translateX(3px);
+  }
+  .footer-machine a:hover,
+  .footer-bottom a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .footer-machine {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 1.25rem;
+    border-top: 1px solid rgb(255 255 255 / 0.18);
+    padding-block: 0.9rem;
+  }
+  .footer-bottom {
+    background: rgb(0 0 0 / 0.2);
+  }
+
+  @media (min-width: 640px) {
+    .footer-columns {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1024px) {
+    .footer-columns {
+      grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr)) minmax(0, 1.35fr) minmax(0, 1.1fr);
+      column-gap: 2rem;
+    }
+    .footer-about {
+      grid-column: auto;
+      padding-right: 1rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .site-footer::before {
+      animation: none;
+    }
+  }
+</style>
 
 <style is:global>
   /*

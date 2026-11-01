@@ -18,15 +18,13 @@ import { getUpcomingEvents, eventSchema } from '../lib/speaking';
 import { contributionPillars, publishingSpan } from '../lib/evidence';
 import ContributionTimeline from '../components/ContributionTimeline.astro';
 import AdUnit from '../components/AdUnit.astro';
-import HeroCarousel, { type Slide } from '../components/HeroCarousel.astro';
-import HeroIntroCarousel from '../components/HeroIntroCarousel.astro';
+import HomeCarousel from '../components/HomeCarousel.astro';
 import MicrosoftBadges from '../components/MicrosoftBadges.astro';
 import RecentlyRead from '../components/RecentlyRead.astro';
 import SeriesQuickNav from '../components/SeriesQuickNav.astro';
 import CoverArt from '../components/CoverArt.astro';
 import ShortPoster from '../components/ShortPoster.astro';
 import ViewCount from '../components/ViewCount.astro';
-import { formatEventDate, FORMAT_LABELS } from '../lib/speaking';
 
 const posts = await getPublishedPosts();
 
@@ -63,53 +61,6 @@ const testimonials = homeTestimonials(5);
 const leadQuote = testimonials.filter((t) => t.featured).slice(0, 2);
 const restQuotes = testimonials.filter((t) => !t.featured);
 
-/**
- * Banner slides, interleaved so the first three cover all three kinds — a
- * visitor sees a post, an article, and an event without waiting through a
- * run of the same type. Blog posts go first in each round: they are the
- * writing this site is actually for.
- */
-const articleSlides: Slide[] = articles.slice(0, 3).map((a) => ({
-  kind: 'Latest article',
-  title: a.title,
-  href: a.url,
-  external: true,
-  image: a.image,
-  meta: a.categories[0],
-  cta: 'Read the article',
-}));
-
-// Every post already has a share card drawn for it, so the banner shows that
-// rather than an empty panel — the same title card people meet in a feed.
-const blogSlides: Slide[] = posts.slice(0, 3).map((p) => ({
-  kind: 'From the blog',
-  title: p.data.title,
-  href: postUrl(p),
-  image: `/og/w1200/${p.id}.webp`,
-  meta: CATEGORIES[p.data.category].label,
-  cta: 'Read the post',
-}));
-
-const eventSlides: Slide[] = upcoming.slice(0, 2).map((e) => ({
-  kind: 'Upcoming event',
-  title: e.data.talk ?? e.data.title,
-  href: e.data.registrationUrl ?? e.data.url ?? '/speaking/',
-  external: Boolean(e.data.registrationUrl ?? e.data.url),
-  // The event name rides along in the meta line when the title is the talk,
-  // so dropping the slide summary costs the reader nothing.
-  meta: [FORMAT_LABELS[e.data.format], formatEventDate(e), e.data.talk ? e.data.title : e.data.location]
-    .filter(Boolean)
-    .join(' · '),
-  cta: 'Event details',
-}));
-
-const slides: Slide[] = [];
-for (let i = 0; i < 3; i++) {
-  for (const group of [blogSlides, articleSlides, eventSlides]) {
-    if (group[i]) slides.push(group[i]);
-  }
-}
-
 // No email is published; booking goes to the scheduler or the contact page.
 const bookingHref = BOOKING.scheduler || '/contact/';
 
@@ -140,20 +91,9 @@ const schema = [
   <!-- An installed launch belongs on the app feed, not the marketing page. -->
   <AppLaunchRedirect />
 
-  <!-- ══════════════ Hero: claim, proof, and action on one screen ══════════════ -->
-  <section class="mx-auto max-w-6xl px-4 pt-12 pb-10 sm:px-6 lg:pt-16 lg:pb-12">
-    <div class="grid items-start gap-10 lg:grid-cols-[1.3fr_0.9fr]">
-      <HeroIntroCarousel
-        activeYears={span.activeYears}
-        articlesCount={articles.length}
-        postsCount={posts.length}
-        shortsCount={shortCount}
-        bookingHref={bookingHref}
-      />
-
-      <HeroCarousel slides={slides} label="Latest articles, blog posts and events" />
-
-    </div>
+  <!-- ══════════════ Hero: one carousel, slide by slide like a session deck ══════════════ -->
+  <section class="mx-auto max-w-6xl px-4 pt-8 pb-10 sm:px-6 lg:pt-10 lg:pb-12">
+    <HomeCarousel activeYears={span.activeYears} bookingHref={bookingHref} />
   </section>
 
   <!-- ══════════════ Recently read ══════════════

@@ -1,10 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import Avatar from '../components/Avatar.astro';
+import GlassCarousel from '../components/GlassCarousel.astro';
+import type { GlassSlide } from '../lib/carousels';
 import Newsletter from '../components/Newsletter.astro';
 import AdUnit from '../components/AdUnit.astro';
 import MicrosoftBadges from '../components/MicrosoftBadges.astro';
-import { SITE, AUTHOR, MAIN_SITE, IMPACT, EXPERTISE, MICROSOFT_ACHIEVEMENTS, ADSENSE_SLOT_DISPLAY } from '../config';
+import { SITE, AUTHOR, BOOKING, MAIN_SITE, IMPACT, EXPERTISE, MICROSOFT_ACHIEVEMENTS, ADSENSE_SLOT_DISPLAY } from '../config';
 
 const schema = [
   {
@@ -28,6 +29,68 @@ const schema = [
   },
 ];
 
+const slides: GlassSlide[] = [
+  {
+    tab: 'Profile',
+    kicker: AUTHOR.jobTitle,
+    title: AUTHOR.name,
+    text: `${AUTHOR.yearsExperience}+ years in enterprise architecture, based in ${AUTHOR.location}. I work across Azure, Google Cloud and Firebase, build with C#, Python, .NET MAUI and Flutter, and apply AI with Azure AI, Claude and GitHub Copilot, publishing what I learn as MSDEVBUILD (Multi-Stack Dev Build) since 2007.`,
+    actions: [
+      { label: 'View my full profile ↗', href: 'https://suthahar.msdevbuild.com', primary: true, external: true },
+      { label: 'Contact', href: '/contact/' },
+    ],
+    panel: { person: true, demo: { kind: 'timeline', caption: '' } },
+  },
+  {
+    tab: 'Community',
+    kicker: 'MSDEVBUILD · Community',
+    title: 'Giving back,',
+    accent: 'since 2007',
+    text: 'Conference sessions, webinars and community meetups, with material published in both English and Tamil.',
+    tiles: [
+      { value: IMPACT[4].value, label: 'conference talks' },
+      { value: IMPACT[3].value, label: 'developers reached' },
+      { value: '2', label: 'English and Tamil' },
+    ],
+    panel: {
+      demo: { kind: 'social', caption: 'One article, session or short video at a time, on the channels developers already use.' },
+      title: 'See the record',
+      steps: [
+        { title: 'Contribution record', note: 'Dated and linkable', href: '/contributions/' },
+        { title: 'Speaking', note: 'Conference and community sessions', href: '/speaking/' },
+      ],
+    },
+  },
+  {
+    tab: 'Connect',
+    kicker: 'MSDEVBUILD · Connect',
+    title: 'Questions and invitations,',
+    accent: 'all welcome',
+    text: 'Corrections, questions, speaking invitations, and topic requests.',
+    actions: [
+      { label: 'Send a message →', href: '/contact/', primary: true },
+      { label: 'Message me on LinkedIn ↗', href: AUTHOR.linkedin, external: true },
+    ],
+    panel: {
+      demo: { kind: 'flow', labels: ['Message', 'Reply', 'Next step'], caption: BOOKING.responseTime },
+      title: 'Elsewhere',
+      steps: [
+        { title: 'YouTube', note: '@MSDEVBUILD', href: 'https://www.youtube.com/@MSDEVBUILD', external: true },
+        { title: 'GitHub', note: 'jssuthahar', href: 'https://github.com/jssuthahar', external: true },
+        { title: 'Full profile', note: 'suthahar.msdevbuild.com', href: 'https://suthahar.msdevbuild.com', external: true },
+      ],
+    },
+  },
+];
+
+/** 24×24 stroke glyphs for the four focus cards. */
+const FOCUS_ICONS = {
+  cloud: 'M7 18a4 4 0 0 1-.6-8A6 6 0 0 1 18 9.5a4.2 4.2 0 0 1-.5 8.5H7Z',
+  ai: 'M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3M7 6h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1ZM10 10h4v4h-4z',
+  blog: 'M5 4h11l3 3v13H5zM9 9h6M9 13h6M9 17h3',
+  community: 'M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM20 20v-1.5a3.5 3.5 0 0 0-2.6-3.4M15 4.2a3.5 3.5 0 0 1 0 6.6',
+};
+
 const links = [
   { label: 'Full profile', value: 'suthahar.msdevbuild.com', href: 'https://suthahar.msdevbuild.com' },
   { label: 'Main site', value: MAIN_SITE.label, href: MAIN_SITE.url },
@@ -44,163 +107,340 @@ const links = [
   description={`${AUTHOR.jobTitle} in ${AUTHOR.location}, ${AUTHOR.yearsExperience}+ years in enterprise architecture across Azure, .NET MAUI and applied AI. Creator of MSDEVBUILD.`}
   schema={schema}
 >
-  <div class="mx-auto max-w-4xl">
-    <header class="flex flex-col gap-7 sm:flex-row sm:items-start">
-      <Avatar size={128} eager class="ring-1 ring-[var(--border)]" />
+  <GlassCarousel slides={slides} label="About Suthahar" />
 
-      <div>
-        <p class="eyebrow">{AUTHOR.jobTitle}</p>
-        <h1 class="display mt-2 text-4xl sm:text-5xl">{AUTHOR.name}</h1>
-        <p class="mt-4 max-w-2xl text-lg leading-relaxed text-muted text-pretty">
-          {AUTHOR.yearsExperience}+ years in enterprise architecture, based in {AUTHOR.location}.
-          I work across Azure, Google Cloud and Firebase, build with
-          C#, Python, .NET MAUI and Flutter, and apply AI with Azure AI, Claude and GitHub
-          Copilot — publishing what I learn as <strong>MSDEVBUILD</strong> (Multi-Stack Dev Build)
-          since 2007.
-        </p>
-
-        <a
-          href="https://suthahar.msdevbuild.com"
-          class="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
-        >
-          View my full profile
-          <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <path d="M7 17 17 7M8 7h9v9" />
-          </svg>
-        </a>
-      </div>
-    </header>
-
-    <section class="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-default bg-[var(--border)] sm:grid-cols-3" aria-label="Reach">
+  <!-- The numbers stay on screen whichever slide is showing. -->
+  <section class="reveal-in glass-premium mt-8 rounded-2xl" aria-label="Impact">
+    <ul class="grid grid-cols-2 lg:grid-cols-5">
       {IMPACT.map(({ value, label }) => (
-        <div class="bg-[var(--bg)] p-5">
-          <div class="text-2xl font-bold tracking-tight text-accent">{value}</div>
-          <div class="mt-1 text-sm leading-snug text-muted">{label}</div>
-        </div>
+        <li class="about-stat">
+          <strong>{value}</strong>
+          <span>{label}</span>
+        </li>
       ))}
-    </section>
+    </ul>
+  </section>
 
-    <MicrosoftBadges variant="full" class="mt-14" />
+  <section class="reveal-in section" aria-labelledby="focus-heading">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Focus</p>
+        <h2 id="focus-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">What I work on</h2>
+      </div>
+    </div>
 
-    <div class="mt-14 grid gap-12 md:grid-cols-[1.6fr_1fr]">
-      <div class="prose-reading">
-        <h2>What I work on</h2>
+    <div class="mt-6 grid gap-4 md:grid-cols-2">
+      <article class="about-card glass-premium">
+        <span class="about-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d={FOCUS_ICONS.cloud} /></svg></span>
+        <h3>Cloud and mobile architecture</h3>
         <p>
           My day work is enterprise cloud and mobile architecture: Azure platform design,
           identity, and cross-platform apps built with .NET MAUI and Flutter, shipped to a
           global user base. Cloud work spans Azure, Google Cloud, and Firebase rather than
           a single provider.
         </p>
+      </article>
+
+      <article class="about-card glass-premium">
+        <span class="about-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d={FOCUS_ICONS.ai} /></svg></span>
+        <h3>Applied AI</h3>
         <p>
           More recently that has extended into applied AI — Azure AI, Claude, and GitHub
           Copilot inside real delivery workflows rather than demos: retrieval-augmented
           generation, agent patterns, and the developer-productivity side of AI assistance.
           Day to day that means C# and Python, APIs, and the DevOps to get it all shipped.
         </p>
+      </article>
 
-        <h2>Why this blog exists</h2>
+      <article class="about-card glass-premium">
+        <span class="about-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d={FOCUS_ICONS.blog} /></svg></span>
+        <h3>Why this blog exists</h3>
         <p>
           Across 500+ published articles the pattern that keeps recurring is this: the
           tutorial gets you to "hello world", then leaves before the hard part. This blog is
           the other half — the configuration that silently disables your security, the
           layout that stops scaling at twenty endpoints, the retrieval step that quietly
-          decides whether your RAG system is any good.
+          decides whether your RAG system is any good. Every post carries runnable code, the
+          reasoning behind each choice, and an honest account of what breaks.
         </p>
-        <p>
-          Every post carries runnable code, the reasoning behind each choice, and an honest
-          account of what breaks.
-        </p>
+      </article>
 
-        <h2>Community</h2>
+      <article class="about-card glass-premium">
+        <span class="about-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d={FOCUS_ICONS.community} /></svg></span>
+        <h3>Community</h3>
         <p>
           Alongside writing, I have delivered 50+ conference sessions reaching 15,000+
           developers, publishing in both English and Tamil so the material reaches people
           who are usually served last. Most of my community work sits at the point where
-          cloud architecture meets people meeting it for the first time.
+          cloud architecture meets people meeting it for the first time. The
+          <a href="/contributions/">contributions log</a> is the dated record of that work.
         </p>
-        <p>
-          The <a href="/contributions/">contributions log</a> is the dated record of that
-          work.
-        </p>
+      </article>
+    </div>
+  </section>
 
-        <h2>Get in touch</h2>
-        <p>
-          Corrections, questions, speaking invitations, and topic requests are all welcome —
-          use the <a href="/contact/">contact page</a> or
-          <a href={AUTHOR.linkedin}>message me on LinkedIn</a>.
-        </p>
+  <div class="reveal-in">
+    <MicrosoftBadges variant="full" />
+
+    <section class="mt-4" aria-labelledby="recognition">
+      <h3 id="recognition" class="sr-only">Community recognition</h3>
+      <ul class="grid gap-4 md:grid-cols-3">
+        {AUTHOR.awards.map((award) => (
+          <li class="about-award glass-premium">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.2 6.1L12 16.8l-5.5 2.9 1.2-6.1-4.5-4.2 6.1-.8L12 3Z" /></svg>
+            {award}
+          </li>
+        ))}
+      </ul>
+    </section>
+  </div>
+
+  <section class="reveal-in section" aria-labelledby="credentials-heading">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Credentials</p>
+        <h2 id="credentials-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">Certifications and skills</h2>
+      </div>
+    </div>
+
+    <div class="mt-6 grid gap-4 lg:grid-cols-2">
+      <section class="about-card about-card--fill glass-premium" aria-labelledby="certifications">
+        <h3 id="certifications">Certifications</h3>
+        <ul class="about-certs">
+          {AUTHOR.certifications.map((cert) => (
+            <li>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4.5 10.5 3.5 3.5 7.5-8" /></svg>
+              <span>{cert}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section class="about-card glass-premium" aria-labelledby="expertise">
+        <h3 id="expertise">Skills</h3>
+
+        <!-- Grouped rather than one long chip cloud: a reader can see the
+             shape of the skill set instead of scanning 16 loose tags. -->
+        <div class="mt-4 space-y-4">
+          {AUTHOR.skillGroups.map(({ title, skills }) => (
+            <div>
+              <p class="text-xs font-semibold tracking-wide uppercase text-muted">{title}</p>
+              <ul class="mt-2 flex flex-wrap gap-1.5">
+                {skills.map((skill) => <li class="about-skill">{skill}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- One display ad after the profile content, before the closing band. -->
+  <AdUnit slot={ADSENSE_SLOT_DISPLAY} format="display" />
+
+  <!-- The close: the deck's azure panel, then the list. -->
+  <section class="reveal-in mt-4 grid gap-4 lg:grid-cols-[1.5fr_1fr]" aria-labelledby="contact-heading">
+    <div class="about-close">
+      <h2 id="contact-heading" class="display text-2xl sm:text-[1.75rem]">Get in touch</h2>
+      <p class="mt-2 max-w-xl leading-relaxed">
+        Corrections, questions, speaking invitations, and topic requests are all welcome.
+      </p>
+      <div class="mt-5 flex flex-wrap gap-3">
+        <a href="/contact/" class="btn" style="background: #fff; color: #005a9e;">Send a message →</a>
+        <a href={AUTHOR.linkedin} rel="noopener" class="btn" style="border: 1.5px solid rgb(255 255 255 / 0.5); color: #fff;">Message me on LinkedIn ↗</a>
       </div>
 
-      <aside class="space-y-8">
-        <section aria-labelledby="recognition">
-          <h2 id="recognition" class="text-xs font-semibold tracking-wider uppercase text-muted">
-            Recognition
-          </h2>
-          <ul class="mt-3 space-y-2">
-            {AUTHOR.awards.map((award) => (
-              <li class="rounded-lg border border-default px-3 py-2 text-sm">{award}</li>
-            ))}
-          </ul>
-        </section>
-
-        <section aria-labelledby="certifications">
-          <h2 id="certifications" class="text-xs font-semibold tracking-wider uppercase text-muted">
-            Certifications
-          </h2>
-          <ul class="mt-3 space-y-1.5 text-sm text-muted">
-            {AUTHOR.certifications.map((cert) => (
-              <li class="flex gap-2">
-                <span class="text-accent" aria-hidden="true">✓</span>
-                <span>{cert}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section aria-labelledby="expertise">
-          <h2 id="expertise" class="text-xs font-semibold tracking-wider uppercase text-muted">
-            Skills
-          </h2>
-
-          <!-- Grouped rather than one long chip cloud: a reader can see the
-               shape of the skill set instead of scanning 16 loose tags. -->
-          <div class="mt-3 space-y-4">
-            {AUTHOR.skillGroups.map(({ title, skills }) => (
-              <div>
-                <p class="text-xs font-medium">{title}</p>
-                <ul class="mt-1.5 flex flex-wrap gap-1.5">
-                  {skills.map((skill) => (
-                    <li class="rounded-full border border-default px-2.5 py-1 text-xs text-muted">
-                      {skill}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+      <h3 id="elsewhere" class="sr-only">Elsewhere</h3>
+      <dl class="about-links" aria-labelledby="elsewhere">
+        {links.filter(({ label }) => label !== 'Contact').map(({ label, value, href }) => (
+          <div>
+            <dt>{label}</dt>
+            <dd><a href={href}>{value}</a></dd>
           </div>
-        </section>
-
-        <section aria-labelledby="elsewhere">
-          <h2 id="elsewhere" class="text-xs font-semibold tracking-wider uppercase text-muted">
-            Elsewhere
-          </h2>
-          <dl class="mt-3 space-y-2 text-sm">
-            {links.map(({ label, value, href }) => (
-              <div class="flex justify-between gap-3">
-                <dt class="text-muted">{label}</dt>
-                <dd class="truncate"><a href={href} class="hover:text-accent">{value}</a></dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      </aside>
+        ))}
+      </dl>
     </div>
 
-    <!-- One display ad after the profile content, before the newsletter. -->
-    <AdUnit slot={ADSENSE_SLOT_DISPLAY} format="display" />
-
-    <div class="mt-16">
-      <Newsletter compact />
-    </div>
-  </div>
+    <div class="about-news"><Newsletter compact /></div>
+  </section>
 </BaseLayout>
+
+<style>
+  .about-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 1.1rem 1.4rem;
+  }
+  /* Hairlines between the figures, on a grid that changes column count. */
+  .about-stat + .about-stat {
+    border-inline-start: 1px solid var(--border);
+  }
+  .about-stat strong {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    color: var(--gp-label);
+  }
+  .about-stat span {
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    color: var(--text-muted);
+  }
+  @media (max-width: 1023px) {
+    .about-stat:nth-child(odd) {
+      border-inline-start: 0;
+    }
+    .about-stat:nth-child(n + 3) {
+      border-top: 1px solid var(--border);
+    }
+    /* Five figures in two columns: the last takes the row, so no hole is left. */
+    .about-stat:last-child {
+      grid-column: span 2;
+    }
+  }
+
+  .about-card {
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    transition: transform 0.2s;
+  }
+  .about-card--fill {
+    display: flex;
+    flex-direction: column;
+  }
+  .about-card:hover {
+    transform: translateY(-2px);
+  }
+  .about-card h3 {
+    font-size: 1.125rem;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+  }
+  .about-card > p {
+    margin-top: 0.5rem;
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    color: var(--text-muted);
+    text-wrap: pretty;
+  }
+  .about-card a {
+    color: var(--accent-deep);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .about-icon {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-bottom: 0.85rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #0078d4, #005a9e);
+    box-shadow: 0 8px 16px -8px rgb(0 90 158 / 0.7);
+  }
+  .about-icon svg {
+    width: 1.3rem;
+    height: 1.3rem;
+    fill: none;
+    stroke: #fff;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .about-award {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    height: 100%;
+    border-radius: 1rem;
+    padding: 0.9rem 1.2rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+  .about-award svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: none;
+    fill: var(--accent);
+  }
+
+  /* Fills the card, so it ends level with the taller Skills card beside it. */
+  .about-certs {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-top: 1rem;
+  }
+  .about-certs li {
+    display: flex;
+    gap: 0.6rem;
+    font-size: 0.9375rem;
+    line-height: 1.4;
+  }
+  .about-certs svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: none;
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .about-skill {
+    border: 1px solid var(--gp-tile-line);
+    border-radius: 0.5rem;
+    background: var(--accent-soft);
+    padding: 0.2rem 0.6rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+  }
+
+  .about-close {
+    border-radius: 1.5rem;
+    background:
+      radial-gradient(90% 70% at 100% 0%, rgb(255 255 255 / 0.18), transparent 70%),
+      linear-gradient(155deg, #0060aa, #003a6a);
+    box-shadow: 0 28px 64px -20px rgb(0 62 112 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.3);
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    color: #fff;
+  }
+  .about-news,
+  .about-news > :global(section) {
+    height: 100%;
+  }
+  .about-news > :global(section) {
+    display: flex;
+    align-items: center;
+  }
+  .about-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+    gap: 0.9rem 1.5rem;
+    margin-top: 1.5rem;
+    border-top: 1px solid rgb(255 255 255 / 0.25);
+    padding-top: 1.1rem;
+    font-size: 0.875rem;
+  }
+  .about-links dt {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+  .about-links dd {
+    margin-top: 0.1rem;
+    overflow-wrap: anywhere;
+  }
+  .about-links a:hover {
+    text-decoration: underline;
+  }
+
+</style>

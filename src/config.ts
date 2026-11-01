@@ -107,6 +107,7 @@ export const AUTHOR = {
   /** Emitted as schema.org `hasCredential`. */
   certifications: [
     'Microsoft Certified Trainer (MCT)',
+    'GH-300 — GitHub Copilot',
     'AZ-300 — Microsoft Azure Architect Technologies',
     'AZ-301 — Microsoft Azure Architect Design',
     'AZ-104 — Microsoft Azure Administrator',

@@ -1,0 +1,413 @@
+---
+/**
+ * A small looping diagram on each home carousel slide, showing what that slide is
+ * about before anyone reads it. Plain SVG and CSS, so it costs no script.
+ *
+ * Each animation is attached only while its slide is current, so it starts from
+ * the beginning whenever the slide arrives. The base styles are the finished
+ * picture, which is what someone who asked for reduced motion sees.
+ */
+import type { DemoKind } from '../lib/carousels';
+
+interface Props {
+  kind: DemoKind;
+  caption: string;
+  /** The three boxes of a 'flow'. */
+  labels?: [string, string, string];
+}
+
+const { kind, caption, labels } = Astro.props;
+
+/** Three boxes in a row with a dot travelling between them. */
+const FLOWS = {
+  azure: ['Request', 'Fix', 'Design holds'],
+  copilot: ['Issue', 'Agent', 'Pull request'],
+} as const;
+const flow = kind === 'flow' ? labels : kind === 'azure' || kind === 'copilot' ? FLOWS[kind] : null;
+---
+
+<figure class="demo" aria-hidden="true">
+  <svg viewBox="0 0 280 92" fill="none">
+    {flow && (
+      <>
+        <path class="line" d="M78 46H102M178 46H202" />
+        {flow.map((label, i) => (
+          <g class={`node n${i + 1}`}>
+            <rect x={4 + i * 100} y="22" width="72" height="48" rx="10" />
+            <text x={40 + i * 100} y={kind === 'copilot' && i === 1 ? 37 : 50} text-anchor="middle">{label}</text>
+          </g>
+        ))}
+        <circle class="dot d1" cx="78" cy="46" r="4" />
+        <circle class="dot d2" cx="178" cy="46" r="4" />
+      </>
+    )}
+
+    {kind === 'azure' && (
+      <>
+        <!-- The first attempt fails at the middle box; the fix lets the second through. -->
+        <g class="cross"><circle cx="140" cy="22" r="9" /><path d="m136 18 8 8m0-8-8 8" /></g>
+        <g class="tick"><circle cx="240" cy="22" r="9" /><path d="m235.5 22 3 3 6-6" /></g>
+      </>
+    )}
+
+    {kind === 'copilot' && (
+      <>
+        <!-- The agent writing code, line by line. -->
+        <path class="code c1" d="M116 46h48" />
+        <path class="code c2" d="M116 53h36" />
+        <path class="code c3" d="M116 60h44" />
+        <g class="tick"><circle cx="240" cy="22" r="9" /><path d="m235.5 22 3 3 6-6" /></g>
+      </>
+    )}
+
+    {kind === 'flow' && (
+      <g class="tick"><circle cx="240" cy="22" r="9" /><path d="m235.5 22 3 3 6-6" /></g>
+    )}
+
+    {kind === 'timeline' && (
+      <>
+        <path class="line" d="M16 34H264" />
+        <path class="draw" d="M16 34H264" pathLength="1" />
+        {[
+          { x: 16, top: '2007', bottom: 'first article', anchor: 'start' },
+          { x: 140, top: '500+', bottom: 'articles', anchor: 'middle' },
+          { x: 264, top: '15,000+', bottom: 'developers', anchor: 'end' },
+        ].map(({ x, top, bottom, anchor }, i) => (
+          <g class={`mile m${i + 1}`}>
+            <circle cx={x} cy="34" r="6" />
+            <text x={x} y="58" text-anchor={anchor} class="strong">{top}</text>
+            <text x={x} y="73" text-anchor={anchor}>{bottom}</text>
+          </g>
+        ))}
+      </>
+    )}
+
+    {kind === 'social' && (
+      <>
+        <path class="line" d="M84 46 C120 46 130 14 176 14M84 46H176M84 46 C120 46 130 78 176 78" />
+        <g class="node n1">
+          <rect x="4" y="24" width="80" height="44" rx="10" />
+          <text x="44" y="50" text-anchor="middle">New post</text>
+        </g>
+        {['LinkedIn', 'YouTube', 'Instagram'].map((label, i) => (
+          <g class={`node f${i + 1}`}>
+            <rect x="176" y={1 + i * 32} width="100" height="26" rx="8" />
+            <text x="226" y={18 + i * 32} text-anchor="middle">{label}</text>
+          </g>
+        ))}
+        <circle class="dot fan1" r="4" />
+        <circle class="dot fan2" r="4" />
+        <circle class="dot fan3" r="4" />
+      </>
+    )}
+
+    {kind === 'shorts' && (
+      <>
+        <rect class="frame" x="4" y="4" width="272" height="84" rx="12" />
+        <path class="play" d="M20 24v20l16-10z" />
+        {['Step 1: the problem', 'Step 2: why it happens', 'Step 3: the fix'].map((label, i) => (
+          <g class={`node s${i + 1}`}>
+            <rect x="50" y={11 + i * 23} width="214" height="19" rx="6" />
+            <text x="62" y={24.5 + i * 23}>{label}</text>
+          </g>
+        ))}
+        <path class="line" d="M16 78h22" />
+        <path class="draw draw--short" d="M16 78h22" pathLength="1" />
+      </>
+    )}
+
+    {kind === 'ai' && (
+      <>
+        <path class="line" d="M64 46H104M176 46H216M140 26V16M140 66V76" />
+        <g class="node n1"><rect x="2" y="26" width="62" height="40" rx="10" /><text x="33" y="50" text-anchor="middle">Question</text></g>
+        <g class="node n2"><rect x="104" y="26" width="72" height="40" rx="10" /><text x="140" y="50" text-anchor="middle">Agent</text></g>
+        <g class="node n3"><rect x="216" y="26" width="62" height="40" rx="10" /><text x="247" y="50" text-anchor="middle">Answer</text></g>
+        <g class="node t1"><rect x="100" y="0" width="80" height="16" rx="6" /><text x="140" y="12" text-anchor="middle" class="tiny">Search</text></g>
+        <g class="node t2"><rect x="100" y="76" width="80" height="16" rx="6" /><text x="140" y="88" text-anchor="middle" class="tiny">Your functions</text></g>
+        <circle class="dot d-in" cx="64" cy="46" r="4" />
+        <circle class="dot d-up" cx="140" cy="26" r="3" />
+        <circle class="dot d-down" cx="140" cy="66" r="3" />
+        <circle class="dot d-out" cx="176" cy="46" r="4" />
+      </>
+    )}
+  </svg>
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<style>
+  .demo {
+    width: 100%;
+    margin: 0;
+  }
+  .demo svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .demo figcaption {
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    text-align: left;
+  }
+  .demo text {
+    fill: #fff;
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+  .demo .strong {
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+  .demo .tiny {
+    font-size: 9px;
+  }
+
+  .line {
+    stroke: rgb(255 255 255 / 0.35);
+    stroke-width: 1.5;
+  }
+  .draw {
+    stroke: #fff;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+  }
+  .node rect {
+    stroke: rgb(255 255 255 / 0.55);
+    fill: rgb(255 255 255 / 0.16);
+  }
+  .frame {
+    stroke: rgb(255 255 255 / 0.35);
+    fill: rgb(255 255 255 / 0.06);
+  }
+  .play {
+    fill: #fff;
+  }
+  .mile circle {
+    fill: #fff;
+  }
+  .dot {
+    fill: #fff;
+    opacity: 0;
+    filter: drop-shadow(0 0 3px #fff);
+  }
+  .code {
+    stroke: #fff;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+  }
+  .tick circle {
+    fill: #fff;
+  }
+  .tick path {
+    stroke: #005a9e;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .cross {
+    opacity: 0;
+  }
+  .cross circle {
+    fill: #fff;
+  }
+  .cross path {
+    stroke: #005a9e;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .node,
+  .mile,
+  .tick,
+  .cross,
+  .code {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  /* ── Flow: box, dot, box, dot, box, tick. Seven seconds, then again. ── */
+  :global([aria-hidden='false']) .n1 rect { animation: lit-1 7s infinite; }
+  :global([aria-hidden='false']) .n2 rect { animation: lit-2 7s infinite; }
+  :global([aria-hidden='false']) .n3 rect { animation: lit-3 7s infinite; }
+  :global([aria-hidden='false']) .d1 { animation: move-1 7s infinite; }
+  :global([aria-hidden='false']) .d2 { animation: move-2 7s infinite; }
+  :global([aria-hidden='false']) .tick { animation: pop-tick 7s infinite; }
+
+  @keyframes lit-1 {
+    0%, 16% { fill: rgb(255 255 255 / 0.42); }
+    26%, 100% { fill: rgb(255 255 255 / 0.12); }
+  }
+  @keyframes lit-2 {
+    0%, 26% { fill: rgb(255 255 255 / 0.12); }
+    34%, 52% { fill: rgb(255 255 255 / 0.42); }
+    62%, 100% { fill: rgb(255 255 255 / 0.12); }
+  }
+  @keyframes lit-3 {
+    0%, 62% { fill: rgb(255 255 255 / 0.12); }
+    70%, 94% { fill: rgb(255 255 255 / 0.42); }
+    100% { fill: rgb(255 255 255 / 0.12); }
+  }
+  @keyframes move-1 {
+    0%, 16% { opacity: 0; transform: translateX(0); }
+    18% { opacity: 1; }
+    32% { opacity: 1; transform: translateX(24px); }
+    34%, 100% { opacity: 0; transform: translateX(24px); }
+  }
+  @keyframes move-2 {
+    0%, 52% { opacity: 0; transform: translateX(0); }
+    54% { opacity: 1; }
+    68% { opacity: 1; transform: translateX(24px); }
+    70%, 100% { opacity: 0; transform: translateX(24px); }
+  }
+  @keyframes pop-tick {
+    0%, 68% { opacity: 0; transform: scale(0.3); }
+    74%, 94% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1); }
+  }
+
+  /* Azure: the first attempt is refused; the cross clears as the fix lands. */
+  :global([aria-hidden='false']) .cross { animation: pop-cross 7s infinite; }
+  @keyframes pop-cross {
+    0%, 30% { opacity: 0; transform: scale(0.3); }
+    35%, 50% { opacity: 1; transform: scale(1); }
+    54%, 100% { opacity: 0; transform: scale(0.3); }
+  }
+
+  /* Copilot: the agent writes three lines while the box is lit. */
+  :global([aria-hidden='false']) .c1 { animation: type-1 7s infinite; }
+  :global([aria-hidden='false']) .c2 { animation: type-2 7s infinite; }
+  :global([aria-hidden='false']) .c3 { animation: type-3 7s infinite; }
+  .code {
+    transform-origin: left center;
+  }
+  @keyframes type-1 {
+    0%, 32% { transform: scaleX(0); }
+    39%, 100% { transform: scaleX(1); }
+  }
+  @keyframes type-2 {
+    0%, 39% { transform: scaleX(0); }
+    45%, 100% { transform: scaleX(1); }
+  }
+  @keyframes type-3 {
+    0%, 45% { transform: scaleX(0); }
+    52%, 100% { transform: scaleX(1); }
+  }
+
+  /* Intro: the line draws from 2007 to today, each milestone arriving on it. */
+  :global([aria-hidden='false']) .draw { animation: draw 7s infinite; stroke-dasharray: 1; }
+  :global([aria-hidden='false']) .m1 { animation: mile-1 7s infinite; }
+  :global([aria-hidden='false']) .m2 { animation: mile-2 7s infinite; }
+  :global([aria-hidden='false']) .m3 { animation: mile-3 7s infinite; }
+  @keyframes draw {
+    0% { stroke-dashoffset: 1; }
+    60%, 100% { stroke-dashoffset: 0; }
+  }
+  @keyframes mile-1 {
+    0% { opacity: 0.2; }
+    6%, 100% { opacity: 1; }
+  }
+  @keyframes mile-2 {
+    0%, 26% { opacity: 0.2; }
+    32%, 100% { opacity: 1; }
+  }
+  @keyframes mile-3 {
+    0%, 54% { opacity: 0.2; }
+    60%, 100% { opacity: 1; }
+  }
+
+  /* Social: one post, fanning out to each channel in turn. */
+  .fan1 { offset-path: path('M84 46 C120 46 130 14 176 14'); }
+  .fan2 { offset-path: path('M84 46 H176'); }
+  .fan3 { offset-path: path('M84 46 C120 46 130 78 176 78'); }
+  :global([aria-hidden='false']) .fan1 { animation: fan 5s infinite; }
+  :global([aria-hidden='false']) .fan2 { animation: fan 5s 0.25s infinite; }
+  :global([aria-hidden='false']) .fan3 { animation: fan 5s 0.5s infinite; }
+  :global([aria-hidden='false']) .f1 rect { animation: reach 5s infinite; }
+  :global([aria-hidden='false']) .f2 rect { animation: reach 5s 0.25s infinite; }
+  :global([aria-hidden='false']) .f3 rect { animation: reach 5s 0.5s infinite; }
+  @keyframes fan {
+    0%, 8% { opacity: 0; offset-distance: 0%; }
+    12% { opacity: 1; }
+    40% { opacity: 1; offset-distance: 100%; }
+    44%, 100% { opacity: 0; offset-distance: 100%; }
+  }
+  @keyframes reach {
+    0%, 38% { fill: rgb(255 255 255 / 0.1); }
+    46%, 86% { fill: rgb(255 255 255 / 0.42); }
+    100% { fill: rgb(255 255 255 / 0.1); }
+  }
+
+  /* Shorts: three steps in thirty seconds, one lit at a time. */
+  :global([aria-hidden='false']) .s1 rect { animation: step-1 6s infinite; }
+  :global([aria-hidden='false']) .s2 rect { animation: step-2 6s infinite; }
+  :global([aria-hidden='false']) .s3 rect { animation: step-3 6s infinite; }
+  :global([aria-hidden='false']) .draw--short { animation-duration: 6s; }
+  @keyframes step-1 {
+    0%, 30% { fill: rgb(255 255 255 / 0.42); }
+    36%, 100% { fill: rgb(255 255 255 / 0.08); }
+  }
+  @keyframes step-2 {
+    0%, 30% { fill: rgb(255 255 255 / 0.08); }
+    36%, 62% { fill: rgb(255 255 255 / 0.42); }
+    68%, 100% { fill: rgb(255 255 255 / 0.08); }
+  }
+  @keyframes step-3 {
+    0%, 62% { fill: rgb(255 255 255 / 0.08); }
+    68%, 96% { fill: rgb(255 255 255 / 0.42); }
+    100% { fill: rgb(255 255 255 / 0.08); }
+  }
+
+  /* Azure AI: the agent asks its tools, then answers. */
+  :global([aria-hidden='false']) .d-in { animation: ai-in 8s infinite; }
+  :global([aria-hidden='false']) .d-up { animation: ai-up 8s infinite; }
+  :global([aria-hidden='false']) .d-down { animation: ai-down 8s infinite; }
+  :global([aria-hidden='false']) .d-out { animation: ai-out 8s infinite; }
+  :global([aria-hidden='false']) .t1 rect { animation: ai-t1 8s infinite; }
+  :global([aria-hidden='false']) .t2 rect { animation: ai-t2 8s infinite; }
+  @keyframes ai-in {
+    0%, 6% { opacity: 0; transform: translateX(0); }
+    8% { opacity: 1; }
+    22% { opacity: 1; transform: translateX(40px); }
+    24%, 100% { opacity: 0; transform: translateX(40px); }
+  }
+  @keyframes ai-up {
+    0%, 26% { opacity: 0; transform: translateY(0); }
+    28% { opacity: 1; }
+    36% { opacity: 1; transform: translateY(-10px); }
+    44% { opacity: 1; transform: translateY(0); }
+    46%, 100% { opacity: 0; }
+  }
+  @keyframes ai-down {
+    0%, 44% { opacity: 0; transform: translateY(0); }
+    46% { opacity: 1; }
+    54% { opacity: 1; transform: translateY(10px); }
+    62% { opacity: 1; transform: translateY(0); }
+    64%, 100% { opacity: 0; }
+  }
+  @keyframes ai-out {
+    0%, 66% { opacity: 0; transform: translateX(0); }
+    68% { opacity: 1; }
+    82% { opacity: 1; transform: translateX(40px); }
+    84%, 100% { opacity: 0; transform: translateX(40px); }
+  }
+  @keyframes ai-t1 {
+    0%, 32% { fill: rgb(255 255 255 / 0.1); }
+    36%, 44% { fill: rgb(255 255 255 / 0.45); }
+    50%, 100% { fill: rgb(255 255 255 / 0.1); }
+  }
+  @keyframes ai-t2 {
+    0%, 50% { fill: rgb(255 255 255 / 0.1); }
+    54%, 62% { fill: rgb(255 255 255 / 0.45); }
+    68%, 100% { fill: rgb(255 255 255 / 0.1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .demo *,
+    :global([aria-hidden='false']) .demo * {
+      animation: none !important;
+    }
+    .cross {
+      display: none;
+    }
+  }
+</style>

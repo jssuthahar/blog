@@ -1,0 +1,97 @@
+---
+/**
+ * The home page's slides, in the order Suthahar presents the site: who he is,
+ * where to follow, short videos, the app, then the three blog series.
+ */
+import GlassCarousel from './GlassCarousel.astro';
+import { AUTHOR, BOOKING, IMPACT, SITE, SOCIAL } from '../config';
+import { flagshipSeriesSlides, type GlassSlide } from '../lib/carousels';
+import { getShorts, shortUrl } from '../lib/shorts';
+import { qrSvg } from '../lib/qr';
+
+interface Props {
+  activeYears: number;
+  bookingHref: string;
+}
+
+const { activeYears, bookingHref } = Astro.props;
+
+const articlesTotal = IMPACT[1].value;
+const sessions = IMPACT[4].value;
+const developers = IMPACT[3].value;
+const shorts = getShorts();
+
+const slides: GlassSlide[] = [
+  {
+    tab: 'Intro',
+    kicker: `MSDEVBUILD · ${SITE.alternateName}`,
+    title: `${activeYears} years contributing to the`,
+    accent: 'developer community',
+    text: `${AUTHOR.yearsExperience}+ years as a solutions architect across Cloud, AI, Mobile and Web: Azure, .NET, Flutter and modern web. ${articlesTotal} articles, ${sessions} conference sessions, ${developers} developers reached.`,
+    pills: [...AUTHOR.awards, 'Microsoft Certified Trainer'],
+    actions: [
+      { label: 'Book me to speak', href: bookingHref, primary: true },
+      { label: 'Full profile', href: '/about/' },
+    ],
+    note: BOOKING.available ? BOOKING.availabilityNote : undefined,
+    panel: { person: true, demo: { kind: 'timeline', caption: '' } },
+  },
+  {
+    tab: 'Social media',
+    kicker: 'MSDEVBUILD · Social media',
+    title: 'Follow the work,',
+    accent: 'wherever you read',
+    text: 'New articles, sample code, short videos and walkthroughs land on these first.',
+    follow: true,
+    panel: {
+      demoOnlyOnPhone: true,
+      demo: { kind: 'social', caption: 'One new post reaches every channel, so follow the one you already use.' },
+      title: 'Where to start',
+      steps: ['linkedin', 'youtube', 'instagram'].flatMap((id) => {
+        const entry = SOCIAL.find((s) => s.id === id);
+        return entry ? [{ title: entry.label, note: entry.blurb, href: entry.href, external: true }] : [];
+      }),
+    },
+  },
+  {
+    tab: 'Shorts',
+    kicker: 'MSDEVBUILD · 30-second learning',
+    title: 'Learn Azure and AI,',
+    accent: '30 seconds a day',
+    text: 'One engineering problem at a time, played out step by step. Every step is written out underneath the player too, so it is still there when you want more than thirty seconds.',
+    tiles: [
+      { value: String(shorts.length), label: 'short videos' },
+      { value: '30 sec', label: 'one idea each' },
+      { value: 'Every step', label: 'written out too' },
+    ],
+    actions: [{ label: 'Watch a short →', href: '/shorts/', primary: true }],
+    panel: {
+      demo: { kind: 'shorts', caption: 'One idea in thirty seconds, explained a step at a time.' },
+      title: 'Newest short videos',
+      steps: shorts.slice(0, 3).map((s) => ({ title: s.title, href: shortUrl(s) })),
+    },
+  },
+  {
+    tab: 'Mobile app',
+    kicker: 'MSDEVBUILD · Mobile app',
+    title: 'The whole blog,',
+    accent: 'on your home screen',
+    text: 'Install it free on Android, iPhone, iPad, Windows or Mac. Short videos and articles in one feed, with no app store and no account.',
+    tiles: [
+      { value: 'Free', label: 'no app store' },
+      { value: 'Offline', label: 'articles you have opened' },
+      { value: 'Alerts', label: 'optional, off by default' },
+    ],
+    actions: [{ label: 'Install the app →', href: '/install/', primary: true }],
+    panel: {
+      demoOnlyOnPhone: true,
+      qr: await qrSvg(`${SITE.url}/install/`, { size: 160, margin: 1 }),
+      title: 'Scan to install on your phone',
+      demo: { kind: 'flow', labels: ['Scan', 'Install', 'Read offline'], caption: 'Three steps, and the blog keeps working with no signal.' },
+    },
+  },
+  ...(await flagshipSeriesSlides()),
+];
+---
+
+<GlassCarousel slides={slides} label="About MSDEVBUILD" />

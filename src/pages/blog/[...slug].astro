@@ -35,6 +35,7 @@ import {
   getPublishedPosts,
   getSeriesIndex,
   getRelatedPosts,
+  postMarkdownUrl,
   postUrl,
   readingTime,
   slugifyTag,
@@ -189,7 +190,8 @@ const shareImage = data.cover
   type="article"
   publishedAt={data.publishedAt}
   updatedAt={data.updatedAt}
-  markdownUrl={`${path}.md`}
+  markdownUrl={postMarkdownUrl(post)}
+  keywords={[...data.tags, category.label]}
   image={shareImage}
   schema={schema}
   wide

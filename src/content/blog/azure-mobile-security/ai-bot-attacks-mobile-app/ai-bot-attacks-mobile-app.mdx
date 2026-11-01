@@ -1,7 +1,7 @@
 ---
 title: 'An AI-Speed Bot Is Attacking Your Login Endpoint Right Now'
 seoTitle: 'How to Stop Bot Attacks on a Mobile App Login API on Azure'
-description: 'A script, not a person, tries 8,000 passwords a minute against your login API at 3am. Rate limiting, smart lockout and Defender for Cloud make speed the losing move.'
+description: 'A script tries 8,000 passwords a minute against your login API at 3am. Rate limiting, smart lockout and Defender for Cloud make speed the losing move.'
 highlight: 'You cannot out-watch a bot, so make the door slow. Rate-limit the login API per user or IP, let Entra ID smart lockout and MFA make a correct guess useless, and alert on the rate of 401s. A CAPTCHA does nothing here — the bot calls your API directly and never sees your UI.'
 publishedAt: 2026-10-16
 category: azure
@@ -88,3 +88,7 @@ Return the same response, **and the same timing**, for "no such user" and "wrong
 - Entra ID smart lockout plus MFA neutralises a correct guess, which rate limiting alone can't.
 - Alert on the rate of 401/403s, and send it to a phone.
 - A CAPTCHA protects a UI the bot never uses; the real control belongs at the API.
+
+Official documentation: [Entra smart lockout](https://learn.microsoft.com/entra/identity/authentication/howto-password-smart-lockout) and [API Management rate limiting](https://learn.microsoft.com/azure/api-management/rate-limit-policy).
+
+Earlier in this series: [Azure Key Vault Explained: The One Secret Tutorials Never Remove](/blog/azure-key-vault-explained/).

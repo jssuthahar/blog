@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE, AUTHOR } from '../config';
 import Newsletter from '../components/Newsletter.astro';
 import SeriesQuickNav from '../components/SeriesQuickNav.astro';
 import GlassCarousel from '../components/GlassCarousel.astro';
@@ -12,8 +13,8 @@ const slides: GlassSlide[] = [
   {
     tab: 'All series',
     kicker: 'MSDEVBUILD · Series',
-    title: 'Series,',
-    accent: 'built to read in order',
+    title: 'Step-by-step series',
+    accent: 'on Azure, AI and GitHub Copilot',
     text: 'Multi-part guides meant to be read in order, each building on the last.',
     tiles: [
       { value: String(series.length), label: 'series' },
@@ -31,11 +32,33 @@ const slides: GlassSlide[] = [
   },
   ...(await flagshipSeriesSlides()),
 ];
+
+const schema = [
+  {
+    '@type': 'CollectionPage',
+    '@id': `${SITE.url}/series/#page`,
+    name: `Multi-part guides by ${AUTHOR.name}`,
+    description: 'Step-by-step guides on Azure, AI agents, GitHub Copilot and mobile security.',
+    url: `${SITE.url}/series/`,
+    about: { '@id': `${SITE.url}/#person` },
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: series.length,
+      itemListElement: series.map(({ id, title }, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: title,
+        url: new URL(seriesUrl(id), SITE.url).href,
+      })),
+    },
+  },
+];
 ---
 
 <BaseLayout
-  title="Series"
-  description="Multi-part guides that build a complete system step by step, on .NET, Azure, and AI."
+  title="Multi-Part Azure & AI Guides"
+  description="Step-by-step guides on Azure system design, GitHub Copilot, AI agents and mobile security. Each part builds on the last, with real code you can run."
+  schema={schema}
 >
   <GlassCarousel slides={slides} label="Series" />
 

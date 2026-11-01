@@ -1,6 +1,6 @@
 ---
 title: 'What Really Happens When You Hardcode an API Key in a Mobile App'
-seoTitle: 'What Happens When You Hardcode an API Key in Your Mobile App'
+seoTitle: 'Hardcoded API Keys in Mobile Apps: The Risk'
 description: 'The attacker costs you hours. Rotating a key baked into 40,000 installed apps costs you days — and that gap is the real price of a hardcoded secret.'
 highlight: 'A key hardcoded in a mobile app lives in every installed copy, so revoking it breaks every customer at once and the fix has to wait for an app store review. A secret is only a secret if you can replace it in one place, right now — which means your API holds it, in Key Vault, and the app never does.'
 publishedAt: 2026-10-26
@@ -109,3 +109,5 @@ Write this down somewhere your team can find at 3am. You don't want to be recons
 - Key Vault plus managed identity makes rotation a one-line command customers never notice.
 - Stolen keys on consumption services usually show up on the bill first — set budget and cost anomaly alerts in advance.
 - When a key leaks, swap to the secondary before regenerating the primary.
+
+Official documentation: [Azure Key Vault overview](https://learn.microsoft.com/azure/key-vault/general/overview) and [managed identities](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview).

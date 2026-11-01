@@ -20,7 +20,12 @@ export async function getStaticPaths() {
 
 const { posts, label } = Astro.props;
 const path = `/tag/${Astro.params.tag}/`;
-const description = `All articles tagged ${label} — ${posts.length} in total.`;
+const description = `${posts.length} MSDEVBUILD ${posts.length === 1 ? 'article' : 'articles'} on ${label}, by Suthahar Jegatheesan, with real code and the trade-offs behind it.`;
+
+// One or two links with no text of their own is a thin page, and 120-odd of them
+// would dilute the rest of the site. They still work for readers; search engines
+// are asked to skip them until the tag has real depth.
+const MIN_POSTS_TO_INDEX = 3;
 
 // Same CollectionPage + ItemList + BreadcrumbList pattern as `/category`.
 // Every tag page was crawlable and in the sitemap already with nothing
@@ -56,8 +61,10 @@ const schema: Record<string, unknown>[] = [
 ---
 
 <BaseLayout
-  title={`Posts tagged ${label}`}
+  title={`Articles tagged ${label}`}
   description={description}
+  noindex={posts.length < MIN_POSTS_TO_INDEX}
+  keywords={[label]}
   canonical={path}
   schema={schema}
 >

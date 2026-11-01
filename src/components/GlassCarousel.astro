@@ -35,7 +35,7 @@ const { slides, label } = Astro.props;
       const Heading = index === 0 ? 'h1' : 'h2';
       const { panel } = slide;
       return (
-        <article
+        <div
           class="hc-slide"
           data-slide
           role="group"
@@ -107,7 +107,7 @@ const { slides, label } = Astro.props;
             )}
             {panel.demo && (panel.qr || panel.person) && <HeroDemo {...panel.demo} />}
           </div>
-        </article>
+        </div>
       );
     })}
   </div>

@@ -1,6 +1,6 @@
 ---
 title: 'Five Mobile App Security Vulnerabilities a Scan Finds — and Nobody Chose'
-seoTitle: 'Five Common Mobile App Security Vulnerabilities (and Fixes)'
+seoTitle: 'Five Mobile App Security Vulnerabilities'
 description: 'A security scan on a perfectly working mobile app turns up five findings. Every one is a default or a testing leftover, not a mistake — here is the fix for each.'
 highlight: 'The five most common mobile app findings are a secret in the package, a token in plain storage, an endpoint with no auth, a disabled TLS check and unused permissions. Fix the open endpoint first — it is the only one that needs no access to the phone or the network. curl and a URL reach it from anywhere.'
 publishedAt: 2026-10-22
@@ -16,9 +16,9 @@ faq:
   - q: 'What are the most common mobile app security vulnerabilities?'
     a: 'Five show up again and again: an API key or secret inside the app package, the session token stored in plain storage, a backend endpoint with no authentication, TLS certificate checking disabled after testing, and permissions the app never actually uses. Almost all of them are defaults or testing leftovers rather than deliberate choices.'
   - q: 'Which mobile app security finding should be fixed first?'
-    a: 'An endpoint with no authentication, because it is the only common finding that needs no access to the phone or the local network. A secret in the package, a token in plain storage and a disabled TLS check all require someone to have the app or share the network — an open endpoint is reachable from anywhere with curl, and bots are already scanning for it.'
+    a: 'An endpoint with no authentication, because it is the only common finding that needs no access to the phone or the local network. A secret in the package, a token in plain storage and a disabled TLS check need the app or the same network. An open endpoint is reachable from anywhere with curl, and bots already scan for it.'
   - q: 'What is the difference between SharedPreferences/UserDefaults and secure storage on mobile?'
-    a: 'SharedPreferences on Android and UserDefaults on iOS are plain files, readable on a rooted or jailbroken device and from a device backup. Android Keystore, iOS Keychain and — in .NET MAUI — the SecureStorage API store values encrypted and tied to the device. In MAUI, Preferences is one word away from SecureStorage and completely different.'
+    a: 'SharedPreferences on Android and UserDefaults on iOS are plain files, readable on a rooted or jailbroken device and from a device backup. Android Keystore, iOS Keychain and — in .NET MAUI — the SecureStorage API store values encrypted and tied to the device. In MAUI, Preferences is one word away from SecureStorage and very different.'
   - q: 'Why does an app end up with unused permissions like contacts, camera or location?'
     a: 'Usually they were copied in from a starter template or tutorial and never removed. Unused permissions lower install rates, fail store review more often, and widen what an attacker gains if the app is compromised. Delete every permission, then add back only the ones that break something.'
 ---
@@ -107,3 +107,5 @@ After that, I'd go by how little the attacker needs:
 - `SharedPreferences` and `UserDefaults` aren't secure storage — use Keystore/Keychain, or `SecureStorage` in .NET MAUI.
 - A fallback authorization policy makes a forgotten route fail closed.
 - Audit manifest permissions against what the app really uses, and remove the rest.
+
+Official documentation: [.NET MAUI secure storage](https://learn.microsoft.com/dotnet/maui/platform-integration/storage/secure-storage) and [the OWASP Mobile Top 10](https://owasp.org/www-project-mobile-top-10/).

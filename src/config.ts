@@ -13,7 +13,7 @@ export const SITE = {
   tagline: 'Cloud, AI, Mobile & Web developer platform',
   /** Kept under ~155 chars so Google renders it without truncating (~1000px). */
   description:
-    'Multi-stack developer learning platform by Suthahar — hands-on Cloud, Azure, AI, GitHub Copilot, Flutter, .NET MAUI and Web. Real code, real trade-offs.',
+    'Developer platform by Suthahar — hands-on Azure, Microsoft Foundry, AI agents, GitHub Copilot, C#, Flutter and .NET MAUI. Real code, real trade-offs.',
   /**
    * The technology pillars the platform covers. Emitted as schema.org `about`
    * + `keywords` on the WebSite entity and listed in llms.txt, so search

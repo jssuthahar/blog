@@ -6,7 +6,7 @@ import { getAllTags } from '../lib/posts';
 const tags = await getAllTags();
 ---
 
-<BaseLayout title="All tags" description="Browse every topic covered on MSDEVBUILD by tag.">
+<BaseLayout title="All tags" description="Every tag used on MSDEVBUILD, from Azure and GitHub Copilot to Flutter and .NET, with a count of the articles on each so you can go straight to one subject.">
   <header class="max-w-2xl">
     <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Tags</h1>
     <p class="mt-3 text-muted">{tags.length} topics covered so far.</p>

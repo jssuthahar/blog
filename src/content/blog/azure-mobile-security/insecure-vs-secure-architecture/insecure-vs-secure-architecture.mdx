@@ -1,6 +1,6 @@
 ---
 title: 'Insecure vs Secure: The Same Mobile App, Two Azure Architectures'
-seoTitle: 'Insecure vs Secure Azure Architecture for a Mobile App'
+seoTitle: 'Insecure vs Secure Mobile App Architecture'
 description: 'Both architectures work perfectly for a real customer. They only differ at six moments — and one of the two designs cannot be patched, only rebuilt.'
 highlight: 'An app that talks straight to Azure SQL and an app that goes through Front Door and your own API look identical to a customer — 40ms versus 52ms. The difference is that every security fix in the first design is an app store release measured in days, and in the second it is a server-side change you make in minutes.'
 publishedAt: 2026-10-14
@@ -90,3 +90,5 @@ You don't have to do it in one go:
 - Migrate in stages: proxy first, add auth and owner checks, close the database's public access last.
 - The ongoing cost of the insecure design is response time: every fix waits on an app store review.
 - The secure design costs more up front; the insecure one costs more later, repeatedly, at the worst possible moment.
+
+Official documentation: [Azure API Management key concepts](https://learn.microsoft.com/azure/api-management/api-management-key-concepts) and [managed identities](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview).

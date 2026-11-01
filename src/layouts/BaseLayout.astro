@@ -1,4 +1,5 @@
 ---
+import { SITE_KEYWORDS, TOPIC_LINKS } from '../lib/keywords';
 import { ClientRouter } from 'astro:transitions';
 import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
@@ -8,7 +9,7 @@ import ArticleCapture from '../components/ArticleCapture.astro';
 import PwaController from '../components/PwaController.astro';
 import AppTabBar from '../components/AppTabBar.astro';
 import ViewCountLoader from '../components/ViewCountLoader.astro';
-import { SITE, AUTHOR, MAIN_SITE } from '../config';
+import { SITE, AUTHOR, MAIN_SITE, EXPERTISE } from '../config';
 
 interface Props {
   title: string;
@@ -20,6 +21,7 @@ interface Props {
   updatedAt?: Date;
   schema?: Record<string, unknown>[];
   markdownUrl?: string;
+  keywords?: readonly string[];
   noindex?: boolean;
   /** Passed through to BaseHead: run ads on a page that is noindex. */
   ads?: boolean;
@@ -48,7 +50,7 @@ const baseSchema = [
     // `about` + `keywords` declare the subject breadth of the whole property,
     // so engines and LLMs classify MSDEVBUILD as multi-stack, not .NET-only.
     about: SITE.topics.map((name) => ({ '@type': 'Thing', name })),
-    keywords: SITE.topics.join(', '),
+    keywords: SITE_KEYWORDS.join(', '),
     publisher: { '@id': `${SITE.url}/#person` },
     inLanguage: SITE.lang,
     // Sitelinks searchbox. /search already reads `?q=` for a deep link
@@ -66,8 +68,11 @@ const baseSchema = [
     '@type': 'Person',
     '@id': `${SITE.url}/#person`,
     name: AUTHOR.name,
-    alternateName: AUTHOR.alternateName,
+    alternateName: ['Suthahar', AUTHOR.alternateName],
     description: AUTHOR.bio,
+    jobTitle: AUTHOR.jobTitle,
+    knowsAbout: [...new Set([...EXPERTISE, ...TOPIC_LINKS.map(({ term }) => term)])],
+    award: [...AUTHOR.awards],
     // The canonical home of the person entity is the main domain, not the
     // blog subdomain — this is what merges authority across both properties.
     url: MAIN_SITE.url,

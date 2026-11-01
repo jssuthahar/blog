@@ -160,7 +160,7 @@ export async function getSeriesIndex(): Promise<SeriesSummary[]> {
  * answer engine to cite as the source for the topic rather than one part of it.
  */
 export function seriesUrl(id: string): string {
-  return `/series/${id}`;
+  return `/series/${id}/`;
 }
 
 export async function getPostsInSeries(seriesId: string): Promise<Post[]> {
@@ -324,6 +324,11 @@ export function readingTime(body: string): number {
 
 export function postUrl(post: Post): string {
   return `/blog/${post.id}/`;
+}
+
+/** The post's Markdown twin. A sibling of the page, not a path under it. */
+export function postMarkdownUrl(post: Pick<Post, 'id'>): string {
+  return `/blog/${post.id}.md`;
 }
 
 export function formatDate(date: Date): string {

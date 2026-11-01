@@ -19,6 +19,7 @@ import { contributionPillars, publishingSpan } from '../lib/evidence';
 import ContributionTimeline from '../components/ContributionTimeline.astro';
 import AdUnit from '../components/AdUnit.astro';
 import HomeCarousel from '../components/HomeCarousel.astro';
+import TopicLinks from '../components/TopicLinks.astro';
 import MicrosoftBadges from '../components/MicrosoftBadges.astro';
 import RecentlyRead from '../components/RecentlyRead.astro';
 import SeriesQuickNav from '../components/SeriesQuickNav.astro';
@@ -94,6 +95,7 @@ const schema = [
   <!-- ══════════════ Hero: one carousel, slide by slide like a session deck ══════════════ -->
   <section class="mx-auto max-w-6xl px-4 pt-8 pb-10 sm:px-6 lg:pt-10 lg:pb-12">
     <HomeCarousel activeYears={span.activeYears} bookingHref={bookingHref} />
+    <TopicLinks class="mt-6" />
   </section>
 
   <!-- ══════════════ Recently read ══════════════
@@ -153,7 +155,7 @@ const schema = [
               <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                 <span
                   class="rounded-full px-2 py-0.5 font-medium"
-                  style={`background: oklch(0.62 0.17 ${latestCategory!.hue} / 0.14); color: oklch(0.62 0.17 ${latestCategory!.hue});`}
+                  style={`background: oklch(0.62 0.17 ${latestCategory!.hue} / 0.14); color: var(--accent-deep);`}
                 >
                   {latestCategory!.label}
                 </span>
@@ -191,7 +193,7 @@ const schema = [
                 return (
                   <li class="group relative py-3.5">
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                      <span class="font-medium" style={`color: oklch(0.62 0.17 ${category.hue});`}>
+                      <span class="font-medium" style={`color: var(--accent-deep);`}>
                         {category.label}
                       </span>
                       <time datetime={post.data.publishedAt.toISOString()} class="text-muted">
@@ -292,7 +294,7 @@ const schema = [
               <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                 <span
                   class="rounded-full px-2 py-0.5 font-medium"
-                  style={`background: oklch(0.62 0.17 ${CATEGORIES[shorts[0].category].hue} / 0.14); color: oklch(0.62 0.17 ${CATEGORIES[shorts[0].category].hue});`}
+                  style={`background: oklch(0.62 0.17 ${CATEGORIES[shorts[0].category].hue} / 0.14); color: var(--accent-deep);`}
                 >
                   {shorts[0].folderLabel}
                 </span>
@@ -330,7 +332,7 @@ const schema = [
               return (
                 <li class="group relative py-3.5">
                   <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                    <span class="font-medium" style={`color: oklch(0.62 0.17 ${category.hue});`}>
+                    <span class="font-medium" style={`color: var(--accent-deep);`}>
                       {short.folderLabel}
                     </span>
                     <span class="text-muted">{short.stages.length} steps · {short.seconds}s</span>

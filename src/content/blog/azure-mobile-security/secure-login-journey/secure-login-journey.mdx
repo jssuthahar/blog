@@ -1,6 +1,6 @@
 ---
 title: 'What Actually Happens When You Tap "Sign In" on a Secure App'
-seoTitle: 'What Happens When You Log In to a Secure Mobile App'
+seoTitle: 'How Secure Mobile App Sign-In Really Works'
 description: 'A secure app never touches your password. It hands you to Microsoft Entra ID, gets back a signed token, and that token is all your API ever sees.'
 highlight: 'Your password goes to exactly one place: Microsoft Entra ID. Your app, your API and your database only ever see a short-lived signed token. If your login screen has a password field you built yourself, that is the thing to replace — with MSAL and the system browser.'
 publishedAt: 2026-10-12
@@ -18,7 +18,7 @@ faq:
   - q: 'Why does a secure mobile app open a system browser instead of its own login form?'
     a: 'Because if the app renders the password field, the app has the password, and every promise about security after that point rests on trust alone. Handing off to the system browser means the password travels to Microsoft Entra ID directly and is never visible to the app''s own code.'
   - q: 'How does an API verify a JWT without calling Microsoft Entra ID on every request?'
-    a: 'It downloads Microsoft''s public signing keys once from the OpenID configuration endpoint and caches them, then checks the signature, issuer, audience and expiry entirely offline. That costs microseconds rather than a network round trip. All four checks matter — a perfectly valid token issued for a different application is still perfectly valid.'
+    a: 'It downloads Microsoft''s public signing keys once from the OpenID configuration endpoint and caches them, then checks the signature, issuer, audience and expiry entirely offline. That costs microseconds rather than a network round trip. All four checks matter: a valid token issued for another application is still valid.'
   - q: 'Where should a mobile app store the access token?'
     a: 'In the platform''s secure store: the iOS Keychain or the Android Keystore (SecureStorage in .NET MAUI). Never in UserDefaults or SharedPreferences, which are plain files readable on a rooted or jailbroken device and from device backups.'
   - q: 'Does a database need to store user passwords in a Microsoft Entra ID login flow?'
@@ -98,3 +98,5 @@ Open your login screen and look for a password field you built. If it's there, y
 - Token verification is a local check against cached signing keys, not a network call per request.
 - Check signature, issuer, audience **and** expiry — a valid signature doesn't mean the token was meant for your API.
 - Reach Azure SQL with a managed identity, so no password exists anywhere past sign-in.
+
+Earlier in this series: [Insecure vs Secure: The Same Mobile App, Two Azure Architectures](/blog/insecure-vs-secure-architecture/).

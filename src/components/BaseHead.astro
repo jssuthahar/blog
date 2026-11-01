@@ -1,4 +1,5 @@
 ---
+import { BRAND_KEYWORDS, SITE_KEYWORDS } from '../lib/keywords';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/source-serif-4';
 import '../styles/global.css';
@@ -18,6 +19,8 @@ interface Props {
   schema?: Record<string, unknown>[];
   /** Path to the raw Markdown twin of this page, for AI crawlers. */
   markdownUrl?: string;
+  /** This page's own terms; the author and site names are always added. */
+  keywords?: readonly string[];
   noindex?: boolean;
   /**
    * Load AdSense on a page that is otherwise excluded by `noindex`.
@@ -40,13 +43,21 @@ const {
   updatedAt,
   schema = [],
   markdownUrl,
+  keywords,
   noindex = false,
   ads,
 } = Astro.props;
 
 const showAds = ads ?? !noindex;
 
-const canonicalUrl = new URL(canonical ?? Astro.url.pathname, SITE.url);
+// Always the form the host serves: GitHub Pages redirects /x to /x/, and a canonical
+// that points at a redirect tells search engines the wrong page is the real one.
+const keywordList = [...new Set([...(keywords ?? []), ...(keywords ? BRAND_KEYWORDS : SITE_KEYWORDS)])].join(', ');
+const canonicalPath = canonical ?? Astro.url.pathname;
+const canonicalUrl = new URL(
+  /(\/|\.[a-z0-9]+)$/i.test(canonicalPath) ? canonicalPath : `${canonicalPath}/`,
+  SITE.url,
+);
 const imageUrl = new URL(image, SITE.url);
 // The suffix is the brand alone, not the brand plus byline. Google truncates a
 // desktop title around 600px, and " | MSDEVBUILD by Suthahar" costs 270px of
@@ -72,6 +83,7 @@ const brand = `${SITE.title} ${SITE.byline}`;
 
 <title>{fullTitle}</title>
 <meta name="description" content={description} />
+<meta name="keywords" content={keywordList} />
 <link rel="canonical" href={canonicalUrl} />
 {noindex ? (
   <meta name="robots" content="noindex, nofollow" />

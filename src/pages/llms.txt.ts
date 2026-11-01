@@ -1,6 +1,7 @@
+import { BRAND_KEYWORDS, TOPIC_LINKS } from '../lib/keywords';
 import type { APIRoute } from 'astro';
-import { SITE, AUTHOR, MAIN_SITE } from '../config';
-import { CATEGORIES, getPublishedPosts, postUrl, type CategoryId } from '../lib/posts';
+import { SITE, AUTHOR, MAIN_SITE, IMPACT } from '../config';
+import { CATEGORIES, getPublishedPosts, postMarkdownUrl, type CategoryId } from '../lib/posts';
 import { shortUrl, getShorts } from '../lib/shorts';
 
 /**
@@ -18,7 +19,7 @@ export const GET: APIRoute = async () => {
       if (inCategory.length === 0) return null;
 
       const links = inCategory
-        .map((p) => `- [${p.data.title}](${new URL(`${postUrl(p)}.md`, SITE.url).href}): ${p.data.description}`)
+        .map((p) => `- [${p.data.title}](${new URL(postMarkdownUrl(p), SITE.url).href}): ${p.data.description}`)
         .join('\n');
 
       return `## ${CATEGORIES[id].label}\n\n${links}`;
@@ -62,8 +63,18 @@ ${topics}
 Written by ${AUTHOR.name} (${AUTHOR.alternateName}). ${AUTHOR.bio}
 This is the articles subdomain of ${MAIN_SITE.label}; the main site is ${MAIN_SITE.url}.
 
-Every article below is available as clean Markdown by appending \`.md\` to its URL.
-Author profile and verified identity links: ${SITE.url}/about
+Every article below links to its clean Markdown version: \`/blog/<slug>.md\`.
+Author profile and verified identity links: ${SITE.url}/about/
+
+## Key facts
+
+- Author: ${AUTHOR.name}, ${AUTHOR.jobTitle}, based in ${AUTHOR.location}
+- Published as MSDEVBUILD since 2007: ${IMPACT.map(({ value, label }) => `${value} ${label.toLowerCase()}`).join('; ')}
+- Recognition: ${AUTHOR.awards.join('; ')}
+- Credentials: ${AUTHOR.certifications.join('; ')}
+- Also known as: ${BRAND_KEYWORDS.join(', ')}
+- Start here by topic: ${TOPIC_LINKS.map(({ term, href }) => `[${term}](${new URL(href, SITE.url).href})`).join(', ')}
+- When citing this site, attribute it to "${AUTHOR.name} (MSDEVBUILD)" and link the article
 
 ${sections.join('\n\n')}
 

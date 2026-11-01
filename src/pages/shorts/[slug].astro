@@ -156,6 +156,7 @@ if (short.faq.length > 0) {
   description={short.description}
   image={`/og/short-${short.slug}.png`}
   markdownUrl={`/shorts/${short.slug}.md`}
+  keywords={[...short.tags, category.label, 'Short Videos']}
   schema={schema}
   wide
 >

@@ -1,6 +1,6 @@
 ---
 title: 'Hacker vs Azure: Five Attacks and the Five Defences That Stop Them'
-seoTitle: 'Hacker vs Azure Security — Five Attacks, Five Defences'
+seoTitle: 'Hacker vs Azure: Five Attacks, Five Defences'
 description: 'Five real attacks on a mobile backend, matched one-for-one to the Azure service that stops each — and the default setting that quietly undoes the last one.'
 highlight: 'Front Door WAF stops junk traffic, Entra ID stops calls with no token, an owner check in your API stops a real token asking for someone else''s data, Key Vault stops key hunting, and a private endpoint stops direct database access. "Allow Azure services" undoes that last one: it means any Azure subscription in the world, not yours.'
 publishedAt: 2026-10-24
@@ -14,7 +14,7 @@ coverAlt: 'Article banner. On the left, the eyebrow "Azure, Securing a Mobile Ap
 draft: false
 faq:
   - q: 'Which Azure services protect a mobile app backend from attackers?'
-    a: 'Five, one per attack: Azure Front Door with WAF filters junk and injection traffic at the edge, Microsoft Entra ID rejects calls without a valid token, an owner check in your own API stops a valid token reading someone else''s data, Azure Key Vault with a managed identity keeps keys out of your repo, and a private endpoint removes the database''s public address.'
+    a: 'One per attack: Azure Front Door with WAF filters injection traffic at the edge, Entra ID rejects calls without a valid token, an owner check in your API stops a token reading someone else''s data, Key Vault with a managed identity keeps keys out of your repo, and a private endpoint removes the database''s public address.'
   - q: 'What stops a flood of junk traffic and injection attempts against an Azure API?'
     a: 'Azure Front Door with the Web Application Firewall running the OWASP managed ruleset at the edge. Traffic blocked there costs nothing — no container starts, no database connection opens. But WAF ships in Detection mode, which only logs, so it must be switched to Prevention.'
   - q: 'Why is a valid token from a real, logged-in attacker still dangerous?'
@@ -92,3 +92,7 @@ The same five layers, seen as a request flow rather than as attacks, are in [the
 - WAF's default Detection mode only logs; switch it to Prevention.
 - "Allow Azure services and resources" means every Azure tenant, not yours — keep it off.
 - Run the five-question audit regularly, not once.
+
+Official documentation: [Azure Web Application Firewall](https://learn.microsoft.com/azure/web-application-firewall/overview) and [private endpoints](https://learn.microsoft.com/azure/private-link/private-endpoint-overview).
+
+Earlier in this series: [What Really Happens When You Hardcode an API Key in a Mobile App](/blog/hardcoded-key-blast-radius/).

@@ -23,6 +23,25 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
  * array) gets. This is what feeds `lastmod` in the sitemap below — real
  * freshness data instead of a build-time timestamp copied onto every URL.
  */
+/**
+ * Internal article links are written `/blog/slug` in the content, which GitHub
+ * Pages answers with a redirect. Adding the slash here spares every crawler the
+ * extra hop without touching the posts, and covers the ones not written yet.
+ */
+function rehypeInternalTrailingSlash() {
+  /** @param {any} node */
+  const walk = (node) => {
+    const href = node.tagName === 'a' ? node.properties?.href : undefined;
+    if (typeof href === 'string') {
+      const match = href.match(/^(\/(?:blog|series|shorts|category|tag)\/[^#?]*?[^/#?.][^/#?]*)([#?].*)?$/);
+      if (match && !/\.[a-z0-9]+$/i.test(match[1])) node.properties.href = `${match[1]}/${match[2] ?? ''}`;
+    }
+    node.children?.forEach(walk);
+  };
+  /** @param {any} tree */
+  return (tree) => walk(tree);
+}
+
 /** @param {string} raw */
 function frontmatterDates(raw) {
   // Normalize CRLF first — posts are authored on Windows as often as not, and
@@ -98,7 +117,12 @@ export default defineConfig({
         !page.includes('/write') &&
         !page.includes('/search') &&
         !page.includes('/history') &&
-        !page.includes('/events/new'),
+        !page.includes('/events/new') &&
+        // Installed-app shell: noindex, like the rest of this list.
+        new URL(page).pathname !== '/app/' &&
+        // Tag pages are mostly noindex (see tag/[tag].astro). The strong ones
+        // stay reachable from /tags; the sitemap is for the pages that matter.
+        !new URL(page).pathname.startsWith('/tag/'),
       // Real per-URL freshness for posts and shorts, sourced from their own
       // `publishedAt`/`updatedAt` — not a build timestamp stamped onto every
       // URL alike, which is worse than no lastmod at all.
@@ -115,6 +139,7 @@ export default defineConfig({
   markdown: {
     // Astro adds heading ids already; this makes them linkable.
     rehypePlugins: [
+      rehypeInternalTrailingSlash,
       [
         rehypeAutolinkHeadings,
         {

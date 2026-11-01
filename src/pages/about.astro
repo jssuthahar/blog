@@ -7,7 +7,39 @@ import AdUnit from '../components/AdUnit.astro';
 import MicrosoftBadges from '../components/MicrosoftBadges.astro';
 import { SITE, AUTHOR, BOOKING, MAIN_SITE, IMPACT, EXPERTISE, MICROSOFT_ACHIEVEMENTS, ADSENSE_SLOT_DISPLAY } from '../config';
 
+/**
+ * Direct answers to the questions people ask an AI engine about the author. Built
+ * from config, so a new certification or a new number updates them too.
+ */
+const faq = [
+  {
+    q: `Who is ${AUTHOR.name}?`,
+    a: `${AUTHOR.name} is a ${AUTHOR.jobTitle} based in ${AUTHOR.location}, with ${AUTHOR.yearsExperience}+ years in enterprise architecture. Publishing as MSDEVBUILD since 2007, with ${IMPACT[1].value} technical articles.`,
+  },
+  {
+    q: 'What is MSDEVBUILD?',
+    a: `MSDEVBUILD stands for ${SITE.alternateName}. It is a developer learning platform by ${AUTHOR.name} covering Cloud, Azure, AI, GitHub Copilot, Flutter, .NET MAUI and Web, with real code and real trade-offs.`,
+  },
+  {
+    q: `What certifications does ${AUTHOR.name.split(' ')[0]} hold?`,
+    a: `${AUTHOR.certifications.slice(0, 5).map((c) => c.split(' — ')[0]).join(', ')} and others, listed in full on this page. Recognition includes ${AUTHOR.awards.join(', ')}.`,
+  },
+  {
+    q: `Does ${AUTHOR.name.split(' ')[0]} speak at conferences?`,
+    a: `Yes. ${IMPACT[4].value} sessions delivered to ${IMPACT[3].value} developers on Azure, applied AI and .NET, in English or Tamil, on site or online. Invitations go through the contact page.`,
+  },
+];
+
 const schema = [
+  {
+    '@type': 'FAQPage',
+    '@id': `${SITE.url}/about/#faq`,
+    mainEntity: faq.map(({ q, a }) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text: a },
+    })),
+  },
   {
     '@type': 'ProfilePage',
     '@id': `${SITE.url}/about#profile`,
@@ -233,6 +265,23 @@ const links = [
         </div>
       </section>
     </div>
+  </section>
+
+  <section class="reveal-in section !pt-0" aria-labelledby="faq-heading">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Quick answers</p>
+        <h2 id="faq-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">Frequently asked questions</h2>
+      </div>
+    </div>
+    <dl class="mt-6 grid gap-4 md:grid-cols-2">
+      {faq.map(({ q, a }) => (
+        <div class="about-card glass-premium">
+          <dt class="font-semibold tracking-tight">{q}</dt>
+          <dd class="mt-2 text-[0.9375rem] leading-relaxed text-muted text-pretty">{a}</dd>
+        </div>
+      ))}
+    </dl>
   </section>
 
   <!-- One display ad after the profile content, before the closing band. -->

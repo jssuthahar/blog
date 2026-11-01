@@ -19,8 +19,8 @@ const slides: GlassSlide[] = [
   {
     tab: 'All posts',
     kicker: 'MSDEVBUILD · The blog',
-    title: 'All posts,',
-    accent: 'newest first',
+    title: 'The engineering blog,',
+    accent: 'on Azure, AI and .NET',
     text: `${posts.length} articles on .NET, Azure, and AI engineering.`,
     tiles: [
       { value: String(posts.length), label: 'articles' },
@@ -109,8 +109,8 @@ const schema: Record<string, unknown>[] = [
 ---
 
 <BaseLayout
-  title="All posts"
-  description={`Every article on ${SITE.title} — Cloud, Azure, AI, GitHub Copilot, Mobile, and Web development guides.`}
+  title="Azure, AI & .NET Engineering Blog"
+  description={`Every article on ${SITE.title}: Azure system design, GitHub Copilot, AI agents, mobile security and .NET, each with runnable code and the trade-offs behind it.`}
   schema={schema}
 >
   <GlassCarousel slides={slides} label="The blog" />

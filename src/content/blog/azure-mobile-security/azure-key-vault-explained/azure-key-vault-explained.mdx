@@ -1,6 +1,6 @@
 ---
 title: 'Azure Key Vault Explained: The One Secret Tutorials Never Remove'
-seoTitle: 'Azure Key Vault Explained With Managed Identity (ASP.NET Core)'
+seoTitle: 'Azure Key Vault Explained: Secrets Done Right'
 description: 'Moving every secret into Key Vault leaves exactly one behind — the credential that opens the vault. A managed identity is what finally gets you to zero.'
 highlight: 'Azure Key Vault stores your secrets, keys and certificates, but a ClientId and ClientSecret in appsettings.json to open it is a relocation, not a fix. Give the App Service a managed identity, grant it Key Vault Secrets User, and use DefaultAzureCredential — the secret count in your repo reaches zero.'
 publishedAt: 2026-10-18
@@ -99,3 +99,7 @@ For Azure-to-Azure calls, skip the vault as well. Azure SQL, Storage, Service Bu
 - Grant **Key Vault Secrets User** through RBAC so the app can read secrets and nothing else.
 - Turn on purge protection and diagnostic logging before an incident, not during one.
 - `AddAzureKeyVault` caches at startup — set a `ReloadInterval` or rotation silently needs a redeploy.
+
+Official documentation: [Azure Key Vault overview](https://learn.microsoft.com/azure/key-vault/general/overview) and [managed identities](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview).
+
+Earlier in this series: [Secure a Mobile API in Five Steps: The Order Is the Whole Point](/blog/secure-mobile-api-five-steps/).

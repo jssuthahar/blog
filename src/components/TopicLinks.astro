@@ -1,0 +1,56 @@
+---
+import { TOPIC_LINKS } from '../lib/keywords';
+
+interface Props {
+  class?: string;
+}
+
+const { class: className = '' } = Astro.props;
+---
+
+<nav class:list={['topic-links', className]} aria-label="Popular topics">
+  <h2 class="topic-links-head">Popular topics</h2>
+  <ul>
+    {TOPIC_LINKS.map(({ term, href }) => <li><a href={href}>{term}</a></li>)}
+  </ul>
+</nav>
+
+<style>
+  .topic-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.6rem 1rem;
+  }
+  .topic-links-head {
+    flex: none;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gp-label);
+  }
+  ul {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    min-width: 16rem;
+  }
+  a {
+    display: inline-block;
+    border: 1px solid var(--gp-tile-line);
+    border-radius: 999px;
+    background: var(--gp-tile);
+    padding: 0.2rem 0.7rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    transition: background-color 0.15s, color 0.15s, transform 0.15s;
+  }
+  a:hover {
+    background: #005a9e;
+    color: #fff;
+    transform: translateY(-1px);
+  }
+</style>

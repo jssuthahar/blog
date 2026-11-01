@@ -1,6 +1,6 @@
 ---
 title: 'Secure a Mobile API in Five Steps: The Order Is the Whole Point'
-seoTitle: 'How to Secure a Mobile API on Azure in 5 Steps'
+seoTitle: 'Secure a Mobile API in Five Steps'
 description: 'HTTPS, authentication, authorization, secrets, then monitoring — five layers for a mobile API on Azure, and why doing them out of order defeats the point.'
 highlight: 'Secure a mobile API on Azure in this order: HTTPS only, authentication with Entra ID, authorization in your own code, secrets in Key Vault, then monitoring. You can add monitoring last. You cannot add HTTPS last — everything you build in the meantime travels in the clear.'
 publishedAt: 2026-10-20
@@ -102,3 +102,5 @@ Partition by user or IP, never globally, or one attacker rate-limits your real c
 - Authentication and authorization are separate steps — a valid token says nothing about which rows the caller may see.
 - Secrets live in Key Vault, fetched by a managed identity, never in `appsettings.json`.
 - Monitor the rate of 401/403s; it's the earliest sign of an attack in progress.
+
+Official documentation: [Azure API Management key concepts](https://learn.microsoft.com/azure/api-management/api-management-key-concepts) and [access tokens in the Microsoft identity platform](https://learn.microsoft.com/entra/identity-platform/access-tokens).

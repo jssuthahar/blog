@@ -600,7 +600,7 @@
   }
 
   .prose-reading a:not(.heading-anchor) {
-    color: var(--accent);
+    color: var(--accent-deep);
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
@@ -732,8 +732,9 @@
   .border-default {
     border-color: var(--border);
   }
+  /* The deep azure: #0078d4 misses 4.5:1 on the tinted glass, this does not. */
   .text-accent {
-    color: var(--accent);
+    color: var(--accent-deep);
   }
 
   /* Every existing card is a rounded box with the default border, so they all

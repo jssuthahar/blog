@@ -20,6 +20,57 @@ faq:
     a: 'Give each operation one file holding its request, response and handler together, then register each feature as a module through an extension method that Program.cs calls. Everything that changes for one reason lives in one place, which is what makes a vertical slice easier to move or delete than a layered folder tree.'
   - q: 'Should Minimal API handlers be static classes?'
     a: 'Static classes work well here. The handler takes its dependencies as parameters and lets the framework inject them, so there is no constructor and no per-request instance. It also keeps the request record, response record and handler visible together in one short file.'
+quiz:
+  - q: "At roughly how many endpoints does keeping everything in Program.cs stop scaling?"
+    options:
+      - "Five"
+      - "Around twenty"
+      - "Around two hundred"
+      - "It never stops scaling"
+    answer: B
+    explain: "Past about twenty, merge conflicts concentrate in one file, related code drifts apart and finding a feature becomes a scroll instead of a folder."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
+  - q: "How does a vertical slice layout organise a Minimal API?"
+    options:
+      - "By technical role: Controllers, Services, Repositories"
+      - "One file per HTTP verb"
+      - "Everything in Program.cs, split by regions"
+      - "By feature, so everything a change to 'create order' touches lives in one folder"
+    answer: D
+    explain: "Features/Orders holds the endpoints, the request and response records, the handler and the validators. A change touches one folder."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
+  - q: "What keeps Program.cs to composition only, however many features exist?"
+    options:
+      - "Partial classes for Program.cs"
+      - "Moving routes to appsettings.json"
+      - "Switching back to controllers"
+      - "An IEndpointModule per feature, discovered at startup by an assembly scan and mapped with MapAllEndpoints()"
+    answer: D
+    explain: "Each feature implements MapEndpoints. One extension method finds every module, so Program.cs only wires up authentication, authorization and MapAllEndpoints()."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
+  - q: "In the OrderEndpoints module, what carries cross-cutting concerns such as auth and tags?"
+    options:
+      - "An attribute on every handler"
+      - "A middleware per endpoint"
+      - "A route group: MapGroup(\"/orders\") with RequireAuthorization() and WithTags()"
+      - "A comment in the README"
+    answer: C
+    explain: "Applying the policy once to the group means every endpoint added to it inherits the same protection and OpenAPI tag."
+    exam: AI-200
+    skill: "Secure, monitor, troubleshoot Azure solutions"
+  - q: "Why are the handlers written as static classes using TypedResults?"
+    options:
+      - "No per-request instance is created, and TypedResults gives accurate OpenAPI output without extra attributes"
+      - "Static classes run on a separate thread"
+      - "TypedResults disables validation"
+      - "Static classes can't take dependencies"
+    answer: A
+    explain: "The handler takes its dependencies as parameters, which the framework injects, so there is no constructor. Request, response and handler sit together in one short file."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
 ---
 
 The Minimal API tutorials all put endpoints in `Program.cs`. That is fine for a demo and untenable by the twentieth endpoint.

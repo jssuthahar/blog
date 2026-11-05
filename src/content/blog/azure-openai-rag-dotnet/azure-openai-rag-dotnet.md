@@ -17,6 +17,57 @@ faq:
     a: 'Pure vector search misses exact terms like product codes, error numbers and API names, while pure keyword search misses paraphrases. Hybrid runs both and fuses the rankings. Retrieve around 20 candidates by vector, let semantic reranking order them, then keep the top 8 — the reranking step is where most of the quality gain comes from.'
   - q: 'How do you stop a RAG app answering from the model''s own memory?'
     a: 'Constrain it in the system prompt: instruct the model to answer using only the numbered context supplied, cite the sources it used, and return a fixed refusal string when the context does not contain the answer. Grounding is a prompt-design problem, not only a retrieval problem.'
+quiz:
+  - q: "Most bad RAG systems give wrong answers for which reason?"
+    options:
+      - "The model reasons poorly"
+      - "Retrieval returned the wrong chunks"
+      - "The prompt was too short"
+      - "The embedding model was too new"
+    answer: B
+    explain: "Generation is the easy part. When answers are wrong, the right chunk usually never reached the prompt, which is why the article says to tune retrieval before touching prompts."
+    exam: AI-103
+    skill: "Implement information extraction solutions"
+  - q: "What chunking setup does the article recommend as a starting point?"
+    options:
+      - "Fixed 100-character chunks with no overlap"
+      - "One chunk per document"
+      - "500 to 800 tokens on semantic boundaries such as headings, with about 15% overlap"
+      - "2,000-token chunks with 50% overlap"
+    answer: C
+    explain: "Smaller chunks lose context and larger ones dilute the embedding. The overlap matters: without it, a sentence that spans a boundary can't be retrieved from either chunk."
+    exam: AI-103
+    skill: "Implement information extraction solutions"
+  - q: "Why use hybrid search in Azure AI Search instead of pure vector search?"
+    options:
+      - "Hybrid search is cheaper per query"
+      - "Vector search can't run in .NET"
+      - "Vector search misses exact terms such as product codes and error numbers, and keyword search misses paraphrases; hybrid fuses both rankings"
+      - "Hybrid search doesn't need embeddings"
+    answer: C
+    explain: "Hybrid search merges the two rankings with Reciprocal Rank Fusion. Retrieve about 20 candidates, let semantic reranking order them and keep the top 8. Reranking is where most of the quality gain comes from."
+    exam: AI-103
+    skill: "Implement information extraction solutions"
+  - q: "How does the system prompt stop the model answering from its own memory?"
+    options:
+      - "It sets temperature to zero"
+      - "It removes the user's question"
+      - "It asks for longer answers"
+      - "It says to answer only from the numbered context, cite sources, and reply with a fixed refusal phrase when the context lacks the answer"
+    answer: D
+    explain: "Without an explicit refusal string, the model fills gaps with plausible invention, which is worse than no answer."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "Which metric tells you the right chunk never reached the prompt?"
+    options:
+      - "Retrieval recall@k"
+      - "Groundedness"
+      - "Citation accuracy"
+      - "End-to-end latency"
+    answer: A
+    explain: "Track retrieval separately from generation. Recall@k points at the retrieval half; groundedness and citation accuracy point at the generation half."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
 ---
 
 Retrieval-augmented generation is how you get an LLM to answer questions about data it was never trained on. It is also the pattern most teams reach for before they reach for agents, and if you are weighing that choice, [what Microsoft Foundry actually is](/blog/what-is-azure-ai-foundry-services-overview) is the map. The pattern is simple; the quality lives almost entirely in the retrieval half.

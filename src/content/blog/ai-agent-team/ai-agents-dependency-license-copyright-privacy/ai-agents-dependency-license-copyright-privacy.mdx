@@ -25,6 +25,57 @@ faq:
     a: 'The first time nobody can explain why a package is in the manifest. Before that, the manifest is short enough to read. After that, the cost of removing something grows every week nobody looks at it.'
   - q: 'How do you find unused packages in a Flutter project?'
     a: 'Count the files that import each package declared in pubspec.yaml. A package imported by zero files is dead weight, and one imported by a single file is the cheapest to remove. A short shell loop over the dependencies section and grep for package:name/ does it in a second.'
+quiz:
+  - q: "Should licence checking against a deny list be done by an AI agent or a script?"
+    options:
+      - "An agent, because licences need judgement"
+      - "A script in a hook, because matching SPDX identifiers is deterministic; the agent handles the judgement questions"
+      - "Neither; the store checks licences"
+      - "A monthly manual review"
+    answer: B
+    explain: "A script is faster, cheaper and can't be argued out of a finding. The agent answers what a list can't: does the licence fit how we ship, what does attribution require, and what is the replacement."
+    exam: AZ-400
+    skill: "Develop a security and compliance plan"
+  - q: "Why must the licence scan run on the resolved dependency tree, not just the packages you declared?"
+    options:
+      - "A permissive package can pull in a copyleft package two levels down, and it still ships in your binary"
+      - "Declared packages are always safe"
+      - "The resolved tree is smaller"
+      - "pubspec.yaml can't list licences"
+    answer: A
+    explain: "The licence you accepted is the direct one. What ships is everything underneath the line you added."
+    exam: AZ-400
+    skill: "Develop a security and compliance plan"
+  - q: "uuid is imported by no file in lib/, but docs/dependencies.md still gives a reason for it. What does that tell you?"
+    options:
+      - "The code is wrong and should import uuid"
+      - "The import count script is broken"
+      - "The written reason has drifted from the code, and the package is dead weight"
+      - "uuid is used at build time"
+    answer: C
+    explain: "A justification is written once; code moves every day. Counting imports per declared package finds it in a second: zero is a removal, one is a question."
+    exam: AZ-400
+    skill: "Develop a security and compliance plan"
+  - q: "The licence hook passes silently on a brand-new laptop. What dangerous reason could explain that?"
+    options:
+      - "The laptop is faster"
+      - "The repository has no dependencies"
+      - "Git hooks are disabled by default on macOS"
+      - "The hook skips quietly when its licence tool isn't installed, so it passes on every fresh clone"
+    answer: D
+    explain: "Install the tool in CI, or make the hook fail when the tool is missing. A check that skips without saying so protects nobody."
+    exam: AZ-400
+    skill: "Develop a security and compliance plan"
+  - q: "How does the app keep its Play Store data safety declaration from drifting?"
+    options:
+      - "It fills the form in once at launch"
+      - "It lets the analytics SDK fill the form"
+      - "It derives the declaration from privacy/data-inventory.md, and a hook refuses personal fields with no inventory entry"
+      - "It avoids collecting any data"
+    answer: C
+    explain: "A declaration is a promise and the app is the evidence. Most inaccuracies are drift: an SDK or event arrives after the form was filled in honestly. The privacy agent also checks the inventory against the access rules."
+    exam: SC-900
+    skill: "Describe the capabilities of Microsoft compliance solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -381,19 +432,3 @@ done
 A month later someone adds a charting package for the partner dashboard. The commit fails until `docs/dependencies.md` has a row: why it is here, and that removing it would mean drawing two bars by hand. The push runs the deny list on the resolved tree; one transitive package is flagged as unclassified and goes on the short list for a person to check. It turns out fine.
 
 Two hours, on the day it was added, with nothing left to discover eleven days before launch.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
-
-1. **The zero.** `uuid` is imported by no file but has a reason in `docs/dependencies.md`. Which is wrong, the code or the reason, and what does the agent recommend?
-2. **The quiet hook.** The licence hook passes on a new laptop. Give two reasons that could be, one of them good and one of them dangerous.
-3. **Two shipping models.** Why might the same package be fine in the web bundle and need a second look in the APK?
-4. **The restaurant names.** The seed data uses real restaurant names. What does `ATTRIBUTIONS.md` allow, and what would need permission?
-5. **The phone number.** The inventory says the phone goes to "the rider". Which file disagrees, and which agent should catch it?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

@@ -24,6 +24,57 @@ faq:
     a: 'No. Use federated credentials so GitHub Actions authenticates to Azure through OpenID Connect, and use managed identity so the running app authenticates to Foundry. The only configuration values are non-secret: endpoint, model deployment, agent name.'
 cover: './images/firebase-auth-aspnet-core-azure-deploy-managed-identity-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Zero to Production AI Agents" above the title "Firebase token in, no secret anywhere" and the line "Validate the token, then deploy with a managed identity.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Firebase ID token, issuer and audience checked", an arrow labelled "roles" to an amber box reading "Roles from custom claims, set by the Admin SDK", and an arrow labelled "deploy" to a green box reading "Managed identity to Foundry, no key exists to leak".'
+quiz:
+  - q: "Your API returns 401 for every valid Firebase ID token. What is the most likely cause?"
+    options:
+      - "The token is too long"
+      - "The audience is set to the issuer URL instead of the bare project ID"
+      - "HTTPS is disabled"
+      - "The Firebase web API key is missing from the API"
+    answer: B
+    explain: "The issuer is https://securetoken.google.com/PROJECT_ID, but the audience is just PROJECT_ID. Setting the audience to the URL looks reasonable and produces a bare 401. Log OnAuthenticationFailed to see the real mismatch."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "Where should user roles such as restaurantPartner come from?"
+    options:
+      - "A role field in the request body"
+      - "A profile row the client can edit"
+      - "Custom claims set server-side with the Firebase Admin SDK, baked into the signed ID token"
+      - "A query string parameter"
+    answer: C
+    explain: "The claim sits inside a signed token, so a client can't forge it, and it costs no database read per request. The trade-off is that a role change waits for the token to refresh, up to an hour."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "How does the deployed API authenticate to Foundry and to Azure SQL without holding any secret?"
+    options:
+      - "A system-assigned managed identity with Foundry User on the project and a contained database user in SQL"
+      - "A key stored in App Service settings"
+      - "A certificate uploaded to the app"
+      - "The Firebase service account file"
+    answer: A
+    explain: "az webapp identity assign gives the app an Entra identity. Assign it Foundry User, and run CREATE USER ... FROM EXTERNAL PROVIDER in the database. The connection string uses Authentication=Active Directory Default with no password."
+    exam: AI-200
+    skill: "Implement secure Azure solutions"
+  - q: "How does the GitHub Actions pipeline authenticate to Azure without storing a password or publish profile?"
+    options:
+      - "A personal access token"
+      - "Federated credentials with OpenID Connect, trusted for that exact repository and branch"
+      - "A service principal secret in repository secrets"
+      - "An SSH key"
+    answer: B
+    explain: "The client, tenant and subscription IDs are identifiers, not credentials. The federated trust is tied to the repository and branch, so those values can't be replayed from anywhere else."
+    exam: AZ-400
+    skill: "Develop a security and compliance plan"
+  - q: "Why set ClockSkew to 30 seconds on the JWT bearer options?"
+    options:
+      - "Firebase tokens expire after 30 seconds"
+      - "It speeds up key download"
+      - "It is required for custom claims"
+      - "The default of five minutes keeps an expired token working for five more minutes"
+    answer: D
+    explain: "ClockSkew allows for clock differences between servers. The five-minute default is generous. Thirty seconds is a better default for a mobile client."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

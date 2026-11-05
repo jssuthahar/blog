@@ -21,6 +21,57 @@ faq:
     a: 'Check Azure Monitor logs grouped by caller IP before doing anything else. A stolen key is rarely used to delete data, since deletion gets noticed — on consumption services like Azure OpenAI, misuse usually shows up first as an unexpected line on the bill.'
   - q: 'What is the safe order of operations when a key leaks?'
     a: 'Check whether it is in use, ship the version that no longer needs the key (or put an API in front of it), move traffic to the secondary key most Azure services issue, then regenerate the primary and repeat for the secondary. Regenerating the key you are actively using first is what turns an incident into an outage.'
+quiz:
+  - q: "You revoke an API key that was hardcoded in a mobile app with 40,000 installs. What happens?"
+    options:
+      - "Every installed copy fails at once, and the fix has to wait for an app store release"
+      - "Only the attacker loses access"
+      - "The app falls back to a cached key"
+      - "Azure rotates the key inside the app automatically"
+    answer: A
+    explain: "The key lives in every installed copy, so revoking it breaks every customer at the same moment. The security fix becomes an outage, and the repair waits on an app store review. Some users never update."
+    exam: AZ-305
+    skill: "Design identity, governance, and monitoring solutions"
+  - q: "In the secure design, where does the service key live?"
+    options:
+      - "In the app, but obfuscated"
+      - "In the app's Info.plist"
+      - "In Azure Key Vault, read by your API's managed identity, so the app never has it"
+      - "In a remote config file the app downloads"
+    answer: C
+    explain: "The app holds only a short-lived Entra ID user token. Your API reads the key from Key Vault at runtime. Rotation becomes one az keyvault secret set command, and customers never notice."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "How does a stolen key on a consumption service such as Azure OpenAI usually show up first?"
+    options:
+      - "As deleted data"
+      - "As a failed deployment"
+      - "As a Defender for Cloud critical alert"
+      - "As an unexpected line on the bill"
+    answer: D
+    explain: "A stolen key is rarely used to delete anything, because deletion gets noticed. It gets used quietly, and on consumption services that looks like a very large invoice. Set a budget alert and a cost anomaly alert in advance."
+    exam: AZ-305
+    skill: "Design identity, governance, and monitoring solutions"
+  - q: "A key leaks. What is the safe order for rotating it?"
+    options:
+      - "Regenerate the primary key immediately"
+      - "Delete the resource and recreate it"
+      - "Check whether it is in use, move traffic to the secondary key, then regenerate the primary"
+      - "Wait for the key to expire"
+    answer: C
+    explain: "Most Azure services issue two keys. Regenerating the key you are actively using first is what turns an incident into an outage. Swap to the secondary, regenerate the primary, then repeat for the secondary."
+    exam: SC-500
+    skill: "Manage and monitor security posture"
+  - q: "Which rule from the article decides whether something counts as a secret?"
+    options:
+      - "It is encrypted at rest"
+      - "You can replace it in one place, right now, without asking anyone for permission"
+      - "Only developers can see it"
+      - "It is longer than 32 characters"
+    answer: B
+    explain: "If fixing it needs an app store release, it was never a secret. A key behind your API in Key Vault meets the bar. A key in a shipped binary never can."
+    exam: SC-100
+    skill: "Design solutions that align with security best practices and priorities"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

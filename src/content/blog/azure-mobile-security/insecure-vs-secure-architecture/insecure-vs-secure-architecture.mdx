@@ -21,6 +21,57 @@ faq:
     a: 'Stand up an API that initially just proxies the same queries, ship an app version that uses it while leaving the old path working, add authentication and then owner checks, and only once enough users have updated, turn off public network access on the database. That last step is what actually closes the hole.'
   - q: 'What is the real cost difference between an insecure and a secure mobile architecture?'
     a: 'Not performance — a real customer request is within a few milliseconds in both. The real cost is how fast you can respond: in the insecure design every security fix needs an app store release gated by a reviewer, while in the secure design every fix is a server-side change under your control.'
+quiz:
+  - q: "A mobile app connects straight to Azure SQL with a connection string. What does someone who unzips the app get?"
+    options:
+      - "A token that expires in an hour for one user"
+      - "Nothing, because the connection string is compiled"
+      - "Only the server name"
+      - "Working database credentials, the same ones every installed copy uses"
+    answer: D
+    explain: "Direct access means the app carries credentials and the database must be reachable from the internet. To the database, the attacker's login looks completely legitimate. In the secure design the app holds only a short-lived user token."
+    exam: SC-500
+    skill: "Secure storage, databases, and networking"
+  - q: "What is the real cost difference between the two architectures?"
+    options:
+      - "The secure design is far slower for customers"
+      - "The secure design needs a premium SQL tier"
+      - "Response time to incidents: app releases in days versus server changes in minutes"
+      - "The insecure design can't scale"
+    answer: C
+    explain: "A real customer request takes 40 ms in one design and 52 ms in the other, and nobody notices. The difference is that every fix in the insecure design is an app store release gated by a reviewer, and in the secure one it's a server-side change you control."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
+  - q: "In a staged migration away from direct database access, which step actually closes the hole?"
+    options:
+      - "Standing up an API that proxies the same queries"
+      - "Turning off public network access on the database, once enough users have updated"
+      - "Shipping an app version that calls the API"
+      - "Adding owner checks"
+    answer: B
+    explain: "Proxy first, ship the new app, add authentication and owner checks. The hole stays open until public access is disabled, and that can only happen after the new app has rolled out widely. That wait is why doing it before launch is cheaper."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
+  - q: "Why is there nowhere to put an owner check in the app-to-database design?"
+    options:
+      - "There is no API between the app and the database to enforce it"
+      - "Azure SQL doesn't support WHERE clauses"
+      - "Owner checks need Cosmos DB"
+      - "Owner checks only run in Front Door"
+    answer: A
+    explain: "The owner check is a WHERE clause in your API that filters by the user ID in the token. With no API in the path, the client queries the database itself, so there is no trusted place to write that rule."
+    exam: SC-500
+    skill: "Secure compute"
+  - q: "Why does the insecure design ship so often in the first place?"
+    options:
+      - "Teams don't know about APIs"
+      - "Azure blocks APIs on the free tier"
+      - "Direct access is required for offline support"
+      - "It's honestly the fastest way to a working prototype, and nothing feels wrong while building"
+    answer: D
+    explain: "It isn't laziness. Mobile SDKs make direct database access easy and there are fewer moving parts. The cost arrives later, as an architecture change rather than a bug fix."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

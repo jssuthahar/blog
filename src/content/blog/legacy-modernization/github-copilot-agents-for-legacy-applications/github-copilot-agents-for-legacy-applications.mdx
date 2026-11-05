@@ -26,6 +26,57 @@ faq:
     a: 'Start with .github/copilot-instructions.md for repo-wide conventions, path-specific *.instructions.md for per-area rules, and an AGENTS.md for how agents should operate. Then add role agents under .github/agents/, Skills under .github/skills/, prompt files, and hooks. Write the documentation before you expect good output.'
   - q: 'How do Hooks improve AI development workflows?'
     a: 'Hooks run deterministic scripts at fixed points in an agent session, outside the AI model. They enforce rules the probabilistic model might skip: a preToolUse hook can block a destructive command, a pre-commit gate can run tests and secret scans, a post-development hook can generate docs. On legacy code, hooks are the guardrails.'
+quiz:
+  - q: "According to the guide, what is the real challenge when changing a legacy application?"
+    options:
+      - "Writing new code fast enough"
+      - "Understanding what the existing code already does before you dare to change it"
+      - "Choosing a new framework"
+      - "Getting cloud budget approved"
+    answer: B
+    explain: "It is a knowledge problem, not a coding problem. No linter tells you that a nullable SettlementDate means 'offline transaction, settle next business day'. Copilot's biggest value is as a knowledge bridge."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "Is the five-role 'AI team' (orchestrator, developer, tester, security, architecture) a feature GitHub ships?"
+    options:
+      - "No. GitHub ships custom agents as .agent.md files in .github/agents/; the team structure is a pattern you design"
+      - "Yes, it is enabled in Copilot Enterprise settings"
+      - "Yes, it comes with agent mode"
+      - "No, it only exists in Copilot CLI"
+    answer: A
+    explain: "Custom agents, AGENTS.md, copilot-instructions.md, Skills and Hooks are the real primitives. Who exists, what each owns and how they hand off is your design, shaped around your system."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
+  - q: "Which single asset does the guide call the highest-value one for a legacy app?"
+    options:
+      - "A longer copilot-instructions.md"
+      - "A new CI pipeline"
+      - "A code formatter"
+      - "An Application Knowledge Skill capturing modules, workflows and business rules nobody wrote down"
+    answer: D
+    explain: "All the role agents read from it. Take it away and the shape survives but the value doesn't: agents confidently guessing about a system nobody has described to them."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Which rule in the orchestrator definition prevents more incidents on legacy code than any clever generation?"
+    options:
+      - "Always use the largest model"
+      - "Commit after every file change"
+      - "State the current behaviour before proposing a change"
+      - "Generate tests last"
+    answer: C
+    explain: "On legacy code, describing what the system does today is what catches the business rule a change would break, such as the retry flow that already exists with a 3-attempt cap."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Where should a 'tests must pass and no secrets staged' gate live so it can't be skipped?"
+    options:
+      - "In copilot-instructions.md"
+      - "In a preToolUse hook that denies the commit, backed by required checks"
+      - "In a code comment"
+      - "In the Application Knowledge Skill"
+    answer: B
+    explain: "Instructions ask nicely; hooks enforce. Hooks run outside the model, so the never-skip rules belong there. Keep deny rules narrow, because a guard that cries wolf gets disabled."
+    exam: GH-300
+    skill: "Configure privacy, content exclusions, and safeguards"
 ---
 
 A few years ago I was pulled into a system that scared everyone who touched it. A payments-heavy application, more than ten years old, millions of lines across a .NET backend, a SQL Server database nobody fully mapped, and a Flutter mobile app bolted on later. The original developers had long left the company. The design documents were three rewrites out of date. Adding one small feature took weeks — not because writing the code was hard, but because *understanding what the existing code already did* was hard.

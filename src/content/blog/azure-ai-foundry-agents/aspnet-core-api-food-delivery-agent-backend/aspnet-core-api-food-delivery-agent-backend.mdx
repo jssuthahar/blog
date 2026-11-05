@@ -24,6 +24,57 @@ faq:
 highlight: "Build the URL before the agent, and test it in Postman before a model ever sees it. A Foundry agent is a caller: it picks the parameters you would have typed and reads the JSON you would have read. If the URL is wrong, the failure arrives dressed as an AI problem, which is the most expensive kind of bug to chase."
 cover: './images/aspnet-core-api-food-delivery-agent-backend-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Zero to Production AI Agents" above the title "Build the URL before the agent" and the line "Test it in Postman before a model sees it.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "A Minimal API over SQL Server, tested with Postman", an arrow labelled "then" to an amber box reading "A Foundry agent calls it with the parameters you would type", and an arrow labelled "answer" to a green box reading "A sentence becomes one WHERE, and the agent explains the result".'
+quiz:
+  - q: "Why does the article build and test the API in Postman before any Foundry agent calls it?"
+    options:
+      - "Foundry can only call endpoints that Postman has saved"
+      - "Postman generates the tool schema automatically"
+      - "Agents can't call HTTPS endpoints"
+      - "So that when an agent gives a wrong answer, a green Postman request and test rule out the API in seconds"
+    answer: D
+    explain: "A Foundry agent is just a caller. It picks the parameters you would have typed. If the URL is wrong, the failure looks like an AI problem, which is the most expensive kind of bug to chase. Test the exact call first."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "The agent quoted RM18.50 for a dish that cost RM14.90 at checkout. How did the fixed design stop price logic from disagreeing?"
+    options:
+      - "A stored computed EffectivePrice column in SQL Server, used by every query"
+      - "A computed C# property on the Dish entity"
+      - "Rounding prices in the Flutter app"
+      - "Telling the agent to recalculate discounts"
+    answer: A
+    explain: "One definition, stored in the database and indexable. A computed C# property can't be translated into SQL by EF Core, so filtering on it either throws or pulls the whole table into memory."
+    exam: AI-200
+    skill: "Develop AI solutions by using Azure data management services"
+  - q: "Why does the API return a trimmed DishSummary to the agent and a full DishResponse to the app?"
+    options:
+      - "The agent can't parse nested JSON"
+      - "Every extra field costs tokens on every call, and returning the full object roughly doubled the cost of the common turn with no better answers"
+      - "DishResponse contains secrets"
+      - "Foundry rejects responses over 1 KB"
+    answer: B
+    explain: "Two projections over one service call. The model needs six fields to answer, and each extra field is another value it might misquote and another set of tokens you pay for."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "Which part of the function tool definition decides whether the model calls search_menu at all?"
+    options:
+      - "The functionDescription, including the sentence about when not to use it"
+      - "The function name"
+      - "The HTTP route in your code"
+      - "The JSON schema's required array"
+    answer: A
+    explain: "The description is the only thing the model reads when deciding whether a call is relevant. The 'Do not use for questions about an existing order' sentence is what stops it searching the menu to answer 'where is my delivery'."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "Why do the service tests run against a real SQL Server scratch database instead of the EF Core in-memory provider?"
+    options:
+      - "The in-memory provider is deprecated"
+      - "Real databases are faster"
+      - "The in-memory provider never runs your SQL, so it can't see the computed column, the collation or the index"
+      - "Foundry requires SQL Server for testing"
+    answer: C
+    explain: "Those are exactly the things that break. TestDb.Create() migrates and seeds a throwaway database on the same server. It is slower and worth it."
+    exam: AI-200
+    skill: "Secure, monitor, troubleshoot Azure solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

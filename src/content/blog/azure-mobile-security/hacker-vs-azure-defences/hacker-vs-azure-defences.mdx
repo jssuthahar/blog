@@ -21,6 +21,57 @@ faq:
     a: 'Because authentication only proves who is calling, not what they may see. An attacker who signs in as themselves and then requests another user''s record has a perfectly valid token. Only an owner check inside your API stops them — this is broken object level authorization, number one on the OWASP API Security Top 10.'
   - q: 'Does the "allow Azure services and resources" firewall setting only allow my own resources?'
     a: 'No, and it is one of the most misread settings in Azure. It allows any resource in any Azure subscription worldwide, not just resources in your tenant. Leave it off and use a private endpoint or explicit firewall rules instead.'
+quiz:
+  - q: "Front Door WAF runs the OWASP managed ruleset, but injection attempts still reach the API. What is the likely cause?"
+    options:
+      - "OWASP rules don't cover injection"
+      - "The WAF policy is still in Detection mode, which only logs"
+      - "WAF only works on Premium App Service"
+      - "The API is missing CORS"
+    answer: B
+    explain: "WAF ships in Detection mode, which logs matches but blocks nothing. Switch it to Prevention. Traffic blocked at the edge costs nothing, because no container starts and no database connection opens."
+    exam: SC-500
+    skill: "Secure storage, databases, and networking"
+  - q: "A signed-in user calls GET /orders/1043, which belongs to someone else, with a valid token. What stops this?"
+    options:
+      - "Entra ID token validation"
+      - "Front Door WAF"
+      - "A private endpoint on Azure SQL"
+      - "An owner check in your API that filters by the user ID from the validated token"
+    answer: D
+    explain: "Authentication proves who is calling, not what they may see. This is broken object level authorization, number one on the OWASP API Security Top 10. Take the user ID from the validated token, never from the body, query string or a header."
+    exam: SC-500
+    skill: "Secure compute"
+  - q: "What does the Azure SQL setting 'Allow Azure services and resources to access this server' actually allow?"
+    options:
+      - "Only resources in your own subscription"
+      - "Only resources in your own tenant"
+      - "Any resource in any Azure subscription in the world"
+      - "Only App Service apps in the same region"
+    answer: C
+    explain: "It sounds like it means your resources. It means any Azure resource anywhere, including one an attacker creates in five minutes on a free trial. Leave it off and use a private endpoint or explicit firewall rules."
+    exam: SC-500
+    skill: "Secure storage, databases, and networking"
+  - q: "Beyond the signature, which token claim must the API validate so a token issued for a different app is rejected?"
+    options:
+      - "The audience (aud) claim"
+      - "The name claim"
+      - "The nonce claim"
+      - "The iat claim"
+    answer: A
+    explain: "A valid token issued for a different app is still a valid token. Validating aud makes sure it was issued for this API. The API checks signature, issuer and audience against Microsoft's published keys, locally."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "Which control removes the database's internet-facing address entirely?"
+    options:
+      - "A WAF custom rule"
+      - "Transparent data encryption"
+      - "GitHub secret scanning"
+      - "A private endpoint, with public network access set to Disabled"
+    answer: D
+    explain: "A private endpoint gives the server a private IP inside your VNet. Setting public network access to Disabled means there is no address on the internet to dial at all."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

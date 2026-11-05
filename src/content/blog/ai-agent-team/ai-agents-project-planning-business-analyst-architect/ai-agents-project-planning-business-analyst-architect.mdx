@@ -25,6 +25,57 @@ faq:
     a: 'The architect agent is. The planning agent usually is not, because with two people the sequencing conversation takes ten minutes in person. Build the architect agent first on a small team and add planning when a third or fourth person joins.'
   - q: 'Where should a business rule like order cancellation live in a Flutter app?'
     a: 'In the domain layer, on the entity or use case, not in a screen. A rule kept in one screen state, like a canCancel getter, protects only that screen. Any other caller, such as a partner dashboard, an API or an agent, goes straight past it.'
+quiz:
+  - q: "How should you judge a business analyst agent's output for 'Users can cancel an order'?"
+    options:
+      - "By its open questions; a complete answer to a six-word requirement means it invented the missing parts"
+      - "By how many acceptance criteria it writes"
+      - "By its word count"
+      - "By whether it uses Given/When/Then"
+    answer: A
+    explain: "With the seven OrderStatus values as context, the valuable output is the BLOCKING question: can a customer cancel after preparing starts, and who absorbs the cost? A person who owns the rule must answer it."
+    exam: AZ-400
+    skill: "Design and implement processes and communications"
+  - q: "canCancel in the tracking screen's state only allows placed or confirmed orders. Why doesn't that protect an order cancelled from the partner dashboard?"
+    options:
+      - "The partner dashboard is read-only"
+      - "The rule lives in one screen; the CancelOrder use case and repository accept any state, so other callers go straight past it"
+      - "canCancel is cached"
+      - "Partners can't cancel orders"
+    answer: B
+    explain: "Business rules belong on entities or use cases. The fix adds canBeCancelled to the Order entity, and cancelOrder returns a failure when it is false."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
+  - q: "What is the planning agent's real job?"
+    options:
+      - "Sequence and dependency: what blocks what, what can run in parallel, and which item hurts most if it slips"
+      - "Estimating hours precisely"
+      - "Writing the code"
+      - "Choosing the tech stack"
+    answer: A
+    explain: "In the scenario, Payments needed a payment state on the order document that Orders had been built without. Drawing the arrows between the four bullets would have predicted those four days of rework."
+    exam: AZ-400
+    skill: "Design and implement processes and communications"
+  - q: "The team agrees 'no Firestore import outside lib/data/'. Where should that decision be recorded?"
+    options:
+      - "Only in a chat message"
+      - "Only in a diagram"
+      - "In the README's introduction"
+      - "In an ADR with the rejected option, plus a hook and an AGENTS.md rule that enforce it"
+    answer: D
+    explain: "The ADR keeps the reasoning for the next person who wants to change it. The hook keeps the rule true until they do. AGENTS.md lets every later agent inherit it."
+    exam: AZ-400
+    skill: "Design and implement a source control strategy"
+  - q: "The architect agent recommends a layout suited to eight developers, but you have three. What do you change?"
+    options:
+      - "Hire five people"
+      - "Use the layout anyway"
+      - "The constraints in the prompt: team size, experience, deadline and existing stack, and ask for two options with trade-offs"
+      - "Ask for the 'best' architecture again"
+    answer: C
+    explain: "An agent asked for the best design invents ambition. An agent asked to choose under stated constraints reasons about cost."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -333,19 +384,3 @@ Each row moves from the expensive end of the project to the cheap end. None of t
 Two months later a new one-liner arrives: "Restaurants can pause orders when the kitchen is full." The analyst agent returns five states and two BLOCKING questions, one of them about orders already placed when the pause starts. A person answers both in the same meeting. The architect agent puts the rule on the `Restaurant` entity and adds a line to `AGENTS.md`.
 
 The feature reaches production with no support ticket attached.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
-
-1. **The six words.** Using the seven `OrderStatus` values, write the one BLOCKING question the analyst agent should raise about cancellation, and say who must answer it.
-2. **The partner screen.** Why does `canCancel` in the tracking screen's state not protect an order cancelled from the partner dashboard?
-3. **ADR or hook.** Your team agrees "no Firestore import outside `lib/data/`". What goes in the ADR, and what goes in the hook?
-4. **The dream team.** The architect agent recommends a layout for eight developers. You have three. What do you change in the prompt?
-5. **The stale plan.** Which hook stops `docs/delivery-plan.md` from describing a project that no longer exists, and what does it check?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

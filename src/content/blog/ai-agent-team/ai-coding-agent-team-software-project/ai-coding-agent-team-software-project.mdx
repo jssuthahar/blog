@@ -25,6 +25,57 @@ faq:
     a: 'When a script can answer it yes or no. Licence deny lists, secret detection and dependency checks are deterministic, so a hook that exits 1 is faster, cheaper and cannot be talked out of a finding. Use agents for judgement and hooks for rules, and pair them when a job needs both.'
   - q: 'Which AI agents should a team build first?'
     a: 'Solution architect, code review, testing and security, in that order. The architect decides the structure every other agent inherits, review turns repeated comments into a file, testing becomes practical once the structure is enforced, and security has real structure to reason about by then.'
+quiz:
+  - q: "The code was finished in week nine but the app shipped in week fourteen. What held the release?"
+    options:
+      - "Slow code generation"
+      - "App store review delays"
+      - "Work around the code with no owner: open Firestore rules, a denied licence, no changelog or crash reporting, analytics and accessibility gaps"
+      - "A failing test suite"
+    answer: C
+    explain: "When coding speeds up and nothing else does, everything else becomes the schedule. The fix is giving each job a role and turning every yes-or-no rule into a hook."
+    exam: AZ-400
+    skill: "Design and implement processes and communications"
+  - q: "What is the key difference between a prompt and a hook?"
+    options:
+      - "Prompts are longer"
+      - "A prompt runs when someone remembers to run it; a hook runs automatically and can block"
+      - "Hooks only run in CI"
+      - "Hooks need a model"
+    answer: B
+    explain: "The week-eleven licence problem wasn't a knowledge gap. Someone knew about licences; nobody checked on the Tuesday the package was added. Only a hook fixes that class of failure."
+    exam: GH-300
+    skill: "Configure privacy, content exclusions, and safeguards"
+  - q: "Which four agents does the article say to build first, in order?"
+    options:
+      - "Security, DevOps, analytics, SEO"
+      - "Solution architect, code review, testing, security"
+      - "Flutter, backend, database, Firebase"
+      - "Prompt engineer, skill builder, hooks generator, AGENTS.md generator"
+    answer: B
+    explain: "The architect decides the structure every other agent inherits. Review turns repeated comments into a file, testing becomes practical once structure is enforced, and security then has real structure to reason about. Use them for a month before adding a fifth."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "You save prompts in a .ai/ folder. Why doesn't Copilot use them automatically?"
+    options:
+      - "A folder is organisation, not wiring; Copilot reads specific paths such as AGENTS.md, .github/copilot-instructions.md and .github/agents/"
+      - "The folder must be named .copilot/"
+      - "Prompts need a YAML header"
+      - "Copilot reads only README files"
+    answer: A
+    explain: "Git hooks fire because core.hooksPath points at .githooks, not because they sit in a folder. Wire each prompt up on purpose and check what your tool version loads."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
+  - q: "Which kind of task should never be given to an AI agent?"
+    options:
+      - "Reviewing architecture trade-offs"
+      - "Writing release notes"
+      - "Listing open questions in a requirement"
+      - "Anything a script can answer yes or no, such as a licence deny list or secret detection"
+    answer: D
+    explain: "A hook that exits 1 is faster, cheaper and can't be talked out of a finding. Use agents for judgement and hooks for rules, and pair them when a job needs both."
+    exam: AZ-400
+    skill: "Develop a security and compliance plan"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -154,7 +205,7 @@ Most of the thirty jobs contain at least one rule a script can check. That part 
 
 The licence job shows the split well. "Is any resolved package under a denied licence?" is yes or no, so in MSDevBuild Eats it is a `pre-push` check. "What do the remaining licences oblige us to do in the store listing?" needs reading and judgement, so it is the `license-review.md` prompt. The agent advises. The hook enforces. Neither does the other's job.
 
-## Where do these files actually go?
+## Where these files actually go
 
 Here is the layout MSDevBuild Eats uses, trimmed to the parts that matter:
 
@@ -240,19 +291,3 @@ The work does not disappear. It moves to the day it is created, when it is small
 The same team starts the next version of MSDevBuild Eats with the four agents and the hooks in place. In week three someone adds a package to save an afternoon. The push fails before lunch with the licence name and a pointer to `docs/dependencies.md`, and the package is swapped for one the store build can ship while it is still used in one file.
 
 Code-complete in week nine again. This time it ships in week ten.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
-
-1. **The weekend.** A colleague defines fifteen agents in one weekend. What happens to most of them, and what would you keep?
-2. **Agent or hook.** "Every new Android permission needs a written reason." Is that an agent, a hook, or both? Use the decision in Figure 2.
-3. **The clean report.** The security agent says the rules are fine and the app is still open. Name the input that was wrong and how to scope the agent so it cannot happen.
-4. **Copyright versus licence.** Give one question only the copyright agent asks, and one only the licence agent asks.
-5. **Must not do.** Why does "only `feature` may edit `lib/`" prevent more problems than any line in the agents' instructions?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

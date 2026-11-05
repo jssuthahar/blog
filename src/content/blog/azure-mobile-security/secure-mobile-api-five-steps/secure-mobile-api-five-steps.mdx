@@ -21,6 +21,57 @@ faq:
     a: 'Authentication answers "who are you" — Microsoft Entra ID issues a token and your API validates its signature, issuer and audience. Authorization answers "what may you do", and is enforced in your own code, typically by filtering a query to rows the caller owns.'
   - q: 'Why does secrets management come after authentication and authorization?'
     a: 'HTTPS, authentication and authorization are what an attacker has to get through to reach data at all, so they close off access first. Secrets management decides how much damage a separate failure causes, and monitoring decides how quickly you find out — both matter, but neither blocks an attacker on its own.'
+quiz:
+  - q: "What is the right order for the five security layers of a new mobile API?"
+    options:
+      - "Monitoring, secrets, HTTPS, authentication, authorization"
+      - "HTTPS only, authentication, authorization, secrets, monitoring"
+      - "Authentication, monitoring, HTTPS, secrets, authorization"
+      - "Secrets, authorization, authentication, HTTPS, monitoring"
+    answer: B
+    explain: "Steps 1 to 3 are the doors an attacker walks through. Secrets decide how bad a separate failure is, and monitoring decides how fast you find out. You can add monitoring last. You can't add HTTPS last, because everything before it travels in the clear."
+    exam: AZ-305
+    skill: "Design identity, governance, and monitoring solutions"
+  - q: "Why isn't an HTTP-to-HTTPS redirect enough for a mobile API?"
+    options:
+      - "The first request still goes out in the clear, and on mobile it often carries the token"
+      - "Redirects break JSON responses"
+      - "Mobile clients can't follow redirects"
+      - "Redirects disable HSTS"
+    answer: A
+    explain: "Turn HTTPS Only on at the App Service level, set a minimum TLS of 1.2, and add HSTS. An application redirect alone still lets that first request leak."
+    exam: SC-500
+    skill: "Secure compute"
+  - q: "Entra ID has said the caller is Priya. Which step decides that Priya sees only Priya's orders?"
+    options:
+      - "Authentication"
+      - "Front Door WAF"
+      - "Authorization in your own code, filtering rows by the user ID from the token"
+      - "Monitoring"
+    answer: C
+    explain: "Authentication answers 'who are you'. Authorization answers 'what may you do', and it lives in your API, for example db.Orders.Where(o => o.UserId == me.GetObjectId()). A valid token says nothing about which rows the caller may see."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "Where does rate limiting fit among the five layers?"
+    options:
+      - "It replaces authentication"
+      - "It's step 1, before HTTPS"
+      - "It's not one of the five, because it isn't a security boundary on its own, but it turns a credential-stuffing bot into a nuisance"
+      - "It belongs only in the mobile app"
+    answer: C
+    explain: "ASP.NET Core has it built in. A fixed-window limit of 10 login attempts a minute, partitioned by user or IP, slows a bot to nothing without touching real customers."
+    exam: SC-500
+    skill: "Secure compute"
+  - q: "Which pair of services does the monitoring step use?"
+    options:
+      - "Azure Advisor and Azure Policy"
+      - "Log Analytics and Azure Backup"
+      - "GitHub Actions and Dependabot"
+      - "Application Insights for what the API sees, and Microsoft Defender for Cloud for what Azure sees"
+    answer: D
+    explain: "Application Insights watches your API's requests. Defender for Cloud watches the Azure resources. Alert on the rate of 401s and 403s, which is the earliest warning of an attack."
+    exam: SC-500
+    skill: "Manage and monitor security posture"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

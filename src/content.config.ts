@@ -71,6 +71,32 @@ const blog = defineCollection({
       faq: z
         .array(z.object({ q: z.string(), a: z.string() }))
         .default([]),
+
+      /**
+       * The "Test yourself" quiz rendered after the article: five
+       * multiple-choice questions, each tagged with the Microsoft or GitHub
+       * certification exam whose skills outline covers that skill. Answers and
+       * explanations live here, not in the body, so the prose guards never see
+       * them and a reader gets feedback without leaving the page.
+       */
+      quiz: z
+        .array(
+          z.object({
+            q: z.string(),
+            options: z.array(z.string()).length(4),
+            answer: z.enum(['A', 'B', 'C', 'D']),
+            /** Why the right answer is right, grounded in the article. */
+            explain: z.string(),
+            /** Exam code, e.g. "AZ-305" or "GH-300". */
+            exam: z.string().regex(/^[A-Z]{2}-\d{3}$/),
+            /** The skill area from that exam's study guide. */
+            skill: z.string(),
+          }),
+        )
+        .refine((q) => q.length === 0 || q.length === 5, {
+          message: 'a quiz has exactly five questions',
+        })
+        .default([]),
     })
     .refine((d) => !d.cover || d.coverAlt, {
       message: 'coverAlt is required when a cover image is set (accessibility + SEO)',

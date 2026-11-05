@@ -27,6 +27,57 @@ faq:
     a: 'Give the review Skill a strict output format (blocking issues, suggestions, then questions for the author) and tell it to report a few high-value items instead of every nitpick. Scope it to the diff, tie it to your real standards, and run it before a human opens the PR.'
   - q: 'What is the difference between Copilot code review and CI checks?'
     a: 'Copilot code review reads the diff and reasons about it; it does not run anything. CI runs deterministic checks such as analyze, the test suite and grep-based architecture rules, and can block a merge. Use CI as the required gate and Copilot review as the advisory layer on top.'
+quiz:
+  - q: "The refund pull request passed analyze, tests, the layering grep and the review Skill, yet refunded promo customers too much. What does that show?"
+    options:
+      - "The review Skill was misconfigured"
+      - "AI review checks whether code is written well, not whether it is the right code; that judgment stays human"
+      - "The tests ran on the wrong branch"
+      - "flutter analyze has a bug"
+    answer: B
+    explain: "The use case refunded order.subtotal instead of order.total. Every line was clean. Only a person who asked 'what did the customer pay?' could catch it."
+    exam: GH-300
+    skill: "Use GitHub Copilot responsibly"
+  - q: "What output format should a review Skill use so a hardcoded secret isn't buried under nitpicks?"
+    options:
+      - "Free prose, in file order"
+      - "One comment per line changed"
+      - "A single pass or fail verdict"
+      - "Blocking issues first, then at most five suggestions, then questions for the author"
+    answer: D
+    explain: "Forcing priority and capping suggestions makes the model do the real job of a review, which is to prioritise. The Skill must also never write 'Approved' or 'LGTM'."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "A license policy must always block a merge. Where does it belong?"
+    options:
+      - "In a GitHub Actions workflow set as a required status check in a branch-protection ruleset"
+      - "Only in the Copilot review Skill"
+      - "In copilot-instructions.md"
+      - "In the PR template"
+    answer: A
+    explain: "Copilot review reads the diff and reasons about it; it runs nothing and never blocks. Deterministic checks are the gate, and Copilot is the advisory layer on top."
+    exam: AZ-400
+    skill: "Develop a security and compliance plan"
+  - q: "Should an AI reviewer be allowed to approve or merge pull requests?"
+    options:
+      - "Yes, if CI passes"
+      - "Yes, for small diffs"
+      - "No. A named human stays the accountability gate on approval and merge"
+      - "Yes, if it reports zero blocking issues"
+    answer: C
+    explain: "Review is, at heart, accountability. When code fails at 2am a person is paged and owns the fix, and a tool can't be answerable for what ships."
+    exam: GH-300
+    skill: "Use GitHub Copilot responsibly"
+  - q: "Which metric tells you whether a review Skill is producing signal or noise?"
+    options:
+      - "Total comments posted"
+      - "Comments actioned divided by comments made"
+      - "Time to post the first comment"
+      - "Lines of code reviewed"
+    answer: B
+    explain: "If the reviewer posts a hundred comments and developers resolve five, that's noise. The ratio is how you tune the Skill and show it earns its cost."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -362,19 +413,3 @@ Two weeks later a developer adds partial refunds: cancel one dish from an order.
 The reviewer skips the naming and goes straight to the "questions for the author" section, which now carries a line the team added to the Skill after the refund bug: "Does this change how much money moves? If so, which field is it based on?" The author answers in the thread: the refund is the dish's share of `order.total`, after the promo. There is a test with a promo order to prove it.
 
 The reviewer approves with their own name on it. That was always the part no tool could do.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could design review for any team.
-
-1. **All green.** Every check in the table passed on the refund branch. Which single test would have failed if it existed, and which layer of review should have asked for it?
-2. **Blocking or advisory?** "lib/domain must not import Flutter" and "refunds must use order.total". Where should each rule live, and why are they different?
-3. **The noisy Skill.** Your review Skill posts forty comments per PR and developers resolve three. What do you change, and which metric tells you it worked?
-4. **The ownership check.** A new endpoint lets any logged-in user cancel any order. Will the review Skill catch it? Which limit in "what AI code review misses" is this, and who catches it?
-5. **Approve on green.** A team proposes auto-approving any PR where CI passes and the Skill reports zero blocking issues. Using the refund story, write the one-paragraph reply.
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

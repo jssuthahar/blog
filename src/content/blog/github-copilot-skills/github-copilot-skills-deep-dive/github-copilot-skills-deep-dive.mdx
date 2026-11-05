@@ -28,6 +28,57 @@ faq:
     a: 'The agent is the worker; the Skill is the playbook it reaches for. When a Copilot agent takes on a multi-step task, it checks the available Skill descriptions, loads the ones that match, and follows their steps. Agents provide autonomy; Skills provide the team''s method.'
   - q: 'What makes a good Copilot Skill?'
     a: 'Start from a recurring engineering problem, write a description that states exactly when to use it with trigger phrases, keep each Skill to one job, include real code, add a validation checklist, and keep it under about 500 lines. Then update it the same week the convention it describes changes.'
+quiz:
+  - q: "What does Copilot read from each Skill on every request?"
+    options:
+      - "The whole SKILL.md"
+      - "Nothing until you name the Skill"
+      - "Only the description, loading the full Skill when a task matches"
+      - "Only the code examples"
+    answer: C
+    explain: "That is progressive disclosure. You can keep twenty detailed Skills in a repository and pay only for the one or two that apply."
+    exam: GH-300
+    skill: "Understand GitHub Copilot data and architecture"
+  - q: "A team pastes two full methods into copilot-instructions.md. What happens to cost?"
+    options:
+      - "Nothing changes"
+      - "Every request carries the methods, about 2,940 tokens instead of about 1,115"
+      - "Cost only rises for feature requests"
+      - "Copilot stops reading the file"
+    answer: B
+    explain: "Instructions load on every request, including 'rename this variable'. As Skills, most requests carry only the short descriptions, and a request that builds a screen carries about 2,275."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Which of these should stay in the instructions file rather than become a Skill?"
+    options:
+      - "A full method for building a feature screen"
+      - "A pull request review checklist"
+      - "A Bicep baseline with examples"
+      - "A short rule that applies everywhere, such as 'Never import lib/data from lib/features'"
+    answer: D
+    explain: "Skills are for knowledge that is deep, specific and only sometimes relevant. Don't write one for an everywhere-rule, a method the team hasn't agreed, or a one-off."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "How does the article describe the relationship between agents and Skills?"
+    options:
+      - "The agent is the worker; a Skill is the playbook it reaches for on a matching task"
+      - "Skills replace agents"
+      - "Agents write Skills automatically"
+      - "Skills only work without agents"
+    answer: A
+    explain: "Instructions describe your team, Skills describe your team's methods, and agents do the work using both."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
+  - q: "Which section turns a Skill from 'kind of helps' into one that produces reviewable code?"
+    options:
+      - "The validation checklist, which lets the agent check its own output"
+      - "A long history section"
+      - "An author bio"
+      - "A list of every file in the repository"
+    answer: A
+    explain: "A strong Skill reads like a runbook: frontmatter, purpose, when to use, inputs, rules, workflow, real examples, a validation checklist and the expected output."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -441,22 +492,6 @@ The first week of the following month, a new developer on the team asks Copilot 
 The request matches `flutter-feature`'s description word for word: "Firestore", "add screen". Copilot loads the Skill, adds a `ReviewRepository` interface in `lib/domain`, an implementation in `lib/data`, a use case, a `ReviewsCubit` and a `bloc_test` with a mocked use case. Nothing in the widget touches Firebase.
 
 The tech lead reads the pull request and, for the first time that month, has nothing to explain. The instructions file is back to 3,575 characters.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could design a Skills library for any team.
-
-1. **The Skill that never fires.** A developer writes an excellent `SKILL.md` for payment flows with the description "Helper for payments". Nobody's requests ever load it. Why, and what would you change using the flutter-feature example?
-2. **Rule or Skill?** "Never log a customer's phone number" and "how to add a new payment provider". Which is a rule for the instructions file and which is a Skill? Use the efficiency table to justify it.
-3. **The pasted method.** Your instructions file has grown to 12,000 characters because three methods were pasted in. Roughly what does every request cost, and what would it cost after extracting them into Skills?
-4. **The unagreed method.** Two senior developers disagree about whether new screens use Cubit or Bloc. One writes a Skill that says Cubit. What goes wrong, and what should happen before the Skill exists?
-5. **Twenty Skills.** A platform team publishes twenty Skills with one-line descriptions. Every request now carries all twenty descriptions. When is that still cheaper than instructions, and what makes it expensive?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>
 
 ---
 

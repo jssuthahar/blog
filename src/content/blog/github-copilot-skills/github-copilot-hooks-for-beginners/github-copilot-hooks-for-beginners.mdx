@@ -27,6 +27,57 @@ faq:
     a: 'No. Your first hook can be a single line that appends a log entry when a session starts. If you can write a basic shell command and a small JSON file, you can write a useful hook today. Start with a logging hook to learn the shape, then graduate to a preToolUse guard once you are comfortable.'
   - q: 'What is the difference between a Copilot hook and a git pre-commit hook?'
     a: 'A git pre-commit hook runs when a person or an agent commits. A Copilot preToolUse hook runs earlier, before the agent executes any tool such as a bash command, so it can stop a bad command before it runs. The strongest setup has the Copilot hook call the same script as the git hook, so the rule exists once.'
+quiz:
+  - q: "What makes a GitHub Copilot hook different from an instruction?"
+    options:
+      - "A hook runs outside the model as deterministic code, so it does the same thing every time"
+      - "Hooks are written in YAML"
+      - "Hooks are only read by Copilot CLI"
+      - "Hooks cost more tokens"
+    answer: A
+    explain: "Instructions ask a probabilistic model to follow a rule. A hook enforces it. If skipping a check even once would cause real harm, the check belongs in a hook."
+    exam: GH-300
+    skill: "Configure privacy, content exclusions, and safeguards"
+  - q: "Which hook event can stop the agent from running a command?"
+    options:
+      - "sessionStart"
+      - "postToolUse"
+      - "agentStop"
+      - "preToolUse"
+    answer: D
+    explain: "preToolUse runs before the agent uses a tool and can approve or deny the call. Every other event observes or reacts. In the app, it blocks a commit that adds a Flutter import to lib/domain."
+    exam: GH-300
+    skill: "Configure privacy, content exclusions, and safeguards"
+  - q: "How should a preToolUse script deny a call so the agent can fix the cause?"
+    options:
+      - "Exit 0 and print an error to stderr"
+      - "Exit 1 with no output"
+      - "Exit 2 and print JSON with permissionDecision deny and a reason on stdout"
+      - "Delete the agent's working file"
+    answer: C
+    explain: "Exit 0 with no output allows the call. Any other non-zero exit also denies, but the agent only sees a generic 'hook errored' message and has nothing to act on."
+    exam: GH-300
+    skill: "Configure privacy, content exclusions, and safeguards"
+  - q: "A teammate makes the preToolUse hook run the full test suite before every bash command. What is wrong with that?"
+    options:
+      - "Hooks can't run tests"
+      - "Tests always fail inside hooks"
+      - "It disables the git hook"
+      - "Slow work in a hook stalls the agent on every command; keep hooks to fast local checks such as a grep"
+    answer: D
+    explain: "Hooks should be fast and deterministic. A grep for a forbidden import is fine. A full test suite belongs in CI or a pre-commit step."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "The git pre-commit hook and the Copilot hook each keep their own copy of the domain rule. How does the app avoid them drifting apart?"
+    options:
+      - "It deletes the git hook"
+      - "Both hooks call the same guard script, so the rule exists once"
+      - "It copies the rule into AGENTS.md"
+      - "It runs the hooks in CI only"
+    answer: B
+    explain: "guard-commit.sh runs the same checks as the git pre-commit hook. If two copies exist and someone updates only one, the rules disagree."
+    exam: AZ-400
+    skill: "Design and implement a source control strategy"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -373,19 +424,3 @@ A week later, an agent in the same repository is asked to "move the price format
 The agent asks to run `flutter test`. The hook runs first, the `grep` finds the import, and the reply is the same two lines as before: denied, and why. The agent moves the helper to `lib/core/utils/` instead and runs the tests again. They pass.
 
 Nobody on the team saw it happen. That is the point.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could write the guardrails for any repository.
-
-1. **Instruction or hook?** "Prefer Cubit for screens with one action" and "never import Flutter in lib/domain". Which is a hook and which is an instruction, and what single question decides it?
-2. **The slow hook.** A teammate makes the preToolUse hook run the full test suite before every bash command. What happens to the agent, and what would you change?
-3. **The silent guard.** A hook script has a typo and exits 0 on every run. How would you notice, and which do's-and-don'ts row does this break?
-4. **Two copies.** The git pre-commit hook and the Copilot hook each have their own copy of the domain rule, and someone updates only one. What goes wrong, and how does the food delivery app avoid it?
-5. **The audit log.** Your `userPromptSubmitted` hook writes prompts to a file. Someone pastes a customer's phone number into a prompt. What should happen to that file?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

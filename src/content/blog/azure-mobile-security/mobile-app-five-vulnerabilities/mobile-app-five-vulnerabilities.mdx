@@ -21,6 +21,57 @@ faq:
     a: 'SharedPreferences on Android and UserDefaults on iOS are plain files, readable on a rooted or jailbroken device and from a device backup. Android Keystore, iOS Keychain and — in .NET MAUI — the SecureStorage API store values encrypted and tied to the device. In MAUI, Preferences is one word away from SecureStorage and very different.'
   - q: 'Why does an app end up with unused permissions like contacts, camera or location?'
     a: 'Usually they were copied in from a starter template or tutorial and never removed. Unused permissions lower install rates, fail store review more often, and widen what an attacker gains if the app is compromised. Delete every permission, then add back only the ones that break something.'
+quiz:
+  - q: "A scan finds five issues. Which one should you fix first?"
+    options:
+      - "The secret in the app package"
+      - "The token in plain storage"
+      - "Unused permissions"
+      - "The backend endpoint with no authentication"
+    answer: D
+    explain: "An open endpoint is the only finding that needs no access to the phone or the network. curl and a URL reach it from anywhere, and bots already scan for it. The others need your app, your phone or your Wi-Fi."
+    exam: SC-500
+    skill: "Manage and monitor security posture"
+  - q: "In .NET MAUI, which API should store the session token?"
+    options:
+      - "Preferences"
+      - "SecureStorage"
+      - "A JSON file in AppDataDirectory"
+      - "Application.Current.Properties"
+    answer: B
+    explain: "SecureStorage uses the Android Keystore and the iOS Keychain. Preferences, like SharedPreferences and UserDefaults, writes plain files that are readable on a rooted phone or from a backup. They are one word apart and very different."
+    exam: SC-500
+    skill: "Secure compute"
+  - q: "TLS certificate checking was switched off to test against a self-signed local server, and it shipped. What is the fix?"
+    options:
+      - "Pin the self-signed certificate in production"
+      - "Switch to HTTP for testing"
+      - "Remove the override and wrap any dev-only handler in #if DEBUG"
+      - "Add a VPN"
+    answer: C
+    explain: "With the check disabled, anyone on the same coffee-shop Wi-Fi can read every request. Wrapping the dev handler in #if DEBUG means it can't end up in a release build."
+    exam: SC-500
+    skill: "Secure compute"
+  - q: "Which ASP.NET Core setting makes a forgotten /debug route fail closed instead of open?"
+    options:
+      - "A fallback authorization policy that requires an authenticated user"
+      - "UseHttpsRedirection"
+      - "AllowAnonymous on the route"
+      - "AddCors with a strict policy"
+    answer: A
+    explain: "SetFallbackPolicy with RequireAuthenticatedUser makes authorization the default, so a route has to opt out explicitly. A route nobody remembers stays protected."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "The app requests contacts, camera and location, but never uses them. What does the article recommend?"
+    options:
+      - "Keep them in case a future feature needs them"
+      - "Hide them behind a settings toggle"
+      - "Ask the user at first launch"
+      - "Delete every permission, then add back only the ones that break something"
+    answer: D
+    explain: "These usually come from a starter template. They lower install rates, fail store review more often, and widen what an attacker gets if the app is compromised."
+    exam: SC-900
+    skill: "Describe the concepts of security, compliance, and identity"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

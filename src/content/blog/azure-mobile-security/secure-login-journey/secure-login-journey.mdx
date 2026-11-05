@@ -23,6 +23,57 @@ faq:
     a: 'In the platform''s secure store: the iOS Keychain or the Android Keystore (SecureStorage in .NET MAUI). Never in UserDefaults or SharedPreferences, which are plain files readable on a rooted or jailbroken device and from device backups.'
   - q: 'Does a database need to store user passwords in a Microsoft Entra ID login flow?'
     a: 'No. The password stops at Entra ID and never reaches the application''s own API or database. The API connects to Azure SQL with a managed identity, so there is no password anywhere in the chain after sign-in — nothing to leak if the database is ever compromised.'
+quiz:
+  - q: "In a secure mobile sign-in, where does the user's password go?"
+    options:
+      - "To your API, which forwards it to Entra ID"
+      - "Only to Microsoft Entra ID, through the system browser"
+      - "To your database, hashed"
+      - "To the app, which stores it in the Keychain"
+    answer: B
+    explain: "The app opens the system browser on Microsoft's sign-in page, so the password goes to Entra ID and stops there. If your app draws the password field, your app has the password. Your API and database only ever see a signed token."
+    exam: SC-900
+    skill: "Describe the capabilities of Microsoft Entra"
+  - q: "How does the API verify a JWT without calling Entra ID on every request?"
+    options:
+      - "It sends each token to the token introspection endpoint"
+      - "It trusts any token with a valid expiry"
+      - "It downloads Microsoft's public signing keys once, caches them, and checks tokens locally"
+      - "It looks up the token in Azure SQL"
+    answer: C
+    explain: "Keys come from the OpenID configuration endpoint and are cached. Signature, issuer, audience and expiry are then checked offline in microseconds, with no network round trip."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "Which token check do teams most often forget, letting a valid token for another application work on their API?"
+    options:
+      - "Signature"
+      - "Audience (aud)"
+      - "Expiry (exp)"
+      - "Issuer (iss)"
+    answer: B
+    explain: "A valid signature only proves Microsoft issued the token. The audience check proves it was issued for this API. Without it, a perfectly valid token for some other application gets in."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "How does the API reach Azure SQL in this design, so no password exists past sign-in?"
+    options:
+      - "A SQL login stored in Key Vault"
+      - "The user's access token passed through to SQL"
+      - "A shared connection string in appsettings.json"
+      - "A managed identity, with Authentication=Active Directory Default in the connection string"
+    answer: D
+    explain: "The API connects with its managed identity, so the connection string carries no password. Nothing to leak and nothing to rotate. If the database leaks, there are no user passwords in it either."
+    exam: SC-500
+    skill: "Secure storage, databases, and networking"
+  - q: "Why doesn't a well-built app sign the user out when the access token expires after about an hour?"
+    options:
+      - "A refresh token gets a new access token in the background"
+      - "The token never really expires"
+      - "MFA extends the token"
+      - "The API ignores expiry for mobile clients"
+    answer: A
+    explain: "The access token expires on its own after 60 to 90 minutes, and a refresh token quietly gets a new one. That is also why a stolen access token is a much smaller problem than a stolen password: it stops working by itself, soon."
+    exam: SC-900
+    skill: "Describe the capabilities of Microsoft Entra"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

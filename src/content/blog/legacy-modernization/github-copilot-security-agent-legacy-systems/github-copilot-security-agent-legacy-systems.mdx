@@ -24,6 +24,57 @@ faq:
     a: 'You cannot make Copilot enforce rules by itself. Put your rules in a security Skill (SKILL.md). Then use CodeQL, Dependabot, and secret scanning with push protection as required checks. Use a hook to block secrets on the local machine.'
   - q: 'What is the difference between a Copilot security agent and scanners like CodeQL or Dependabot?'
     a: 'The agent gives advice. It can explain issues, draft fixes, and sort alerts, but it can be wrong. CodeQL, Dependabot, and secret scanning run the same way each time. They can block a merge. Use scanners as your required gate.'
+quiz:
+  - q: "An endpoint has [Authorize] but never checks who owns the order, so any logged-in user can cancel another customer's order. Why did the AI review give it a green tick?"
+    options:
+      - "The AI reviewed the wrong file"
+      - "[Authorize] always checks ownership"
+      - "The AI saw the attribute; whether a user may use this particular resource is a business-logic authorization question a pattern can't answer"
+      - "The AI was in a free tier"
+    answer: C
+    explain: "Authentication asks 'are you logged in?' Authorization asks 'can you use this resource?' That gap is where many serious legacy bugs live, and it needs a human security engineer."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "In the recommended design, which component can block a merge that adds string-built SQL?"
+    options:
+      - "CodeQL code scanning set as a required status check"
+      - "The Copilot security agent"
+      - "The security Skill"
+      - "A comment in the PR template"
+    answer: A
+    explain: "The AI advises, the scanner blocks, and a person decides. The agent can flag the pattern, but only a deterministic required check can stop the merge."
+    exam: AZ-400
+    skill: "Develop a security and compliance plan"
+  - q: "Which tools should the security-review agent get?"
+    options:
+      - "read, edit and runCommands"
+      - "Every tool"
+      - "edit only"
+      - "read and search only, so the reviewer can't change the code it reviews"
+    answer: D
+    explain: "Least privilege applies to AI agents too. The agent's honesty rules also stop it making confident claims about authorization it can't verify."
+    exam: GH-300
+    skill: "Configure privacy, content exclusions, and safeguards"
+  - q: "Which GitHub feature can stop a secret from entering the repository at push time?"
+    options:
+      - "Dependabot"
+      - "Secret scanning with push protection"
+      - "Copilot code review"
+      - "Branch naming rules"
+    answer: B
+    explain: "Push protection blocks the push before the secret lands. On a legacy repository, also scan the history, because old secrets may already be there."
+    exam: AZ-400
+    skill: "Develop a security and compliance plan"
+  - q: "What does the article mean by 'AI security tools raise the floor, but not the ceiling'?"
+    options:
+      - "They make every review perfect"
+      - "They only work on new code"
+      - "They replace pen tests"
+      - "They catch obvious flaws such as string-built SQL and hardcoded keys, but the flaws that hurt most are still human-judgment problems"
+    answer: D
+    explain: "A green AI check can create false confidence that stops the human review. The human checklist asks what AI can't: can this caller use this resource, and is every step of a flow independently authorized?"
+    exam: SC-100
+    skill: "Design solutions that align with security best practices and priorities"
 ---
 
 

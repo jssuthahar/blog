@@ -26,6 +26,57 @@ series: 'agents-md-instructions'
 seriesOrder: 2
 featured: true
 draft: false
+quiz:
+  - q: "Three developers used Copilot, Cursor and Claude Code on one feature and got three state patterns. What was the root cause?"
+    options:
+      - "The models were too old"
+      - "Cursor doesn't support BLoC"
+      - "Each agent starts from zero, and only Copilot read the one rules file that existed"
+      - "The feature was too large"
+    answer: C
+    explain: "An agent doesn't remember yesterday or see another developer's session. Per-tool rules files only reach people using that tool. AGENTS.md is the one file they all read."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "When this was written, how did you make Claude Code follow AGENTS.md?"
+    options:
+      - "It read AGENTS.md natively"
+      - "A symlink from CLAUDE.md to AGENTS.md, or an @AGENTS.md import line inside CLAUDE.md"
+      - "Rename AGENTS.md to .cursorrules"
+      - "Copy the rules into copilot-instructions.md"
+    answer: B
+    explain: "Claude Code read its own CLAUDE.md. Either workaround keeps one source of rules. The article says to check current docs, because native support may have arrived since."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
+  - q: "In a monorepo with a Flutter app in /app and an API in /api, where should AGENTS.md files go?"
+    options:
+      - "Only one, at the root"
+      - "One at the root for shared rules, plus a nested AGENTS.md in each package with its own stack"
+      - "Only inside each package"
+      - "In .github/ only"
+    answer: B
+    explain: "Agents use the file closest to the code being edited, so a nested file adds to or overrides the root one for that folder only."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
+  - q: "Riverpod must never be merged again. What actually enforces that rule?"
+    options:
+      - "A CI check that fails when riverpod appears in pubspec.yaml"
+      - "Writing it in capital letters in AGENTS.md"
+      - "Adding it to copilot-instructions.md too"
+      - "Telling the team in a meeting"
+    answer: A
+    explain: "AGENTS.md guides; it doesn't block. Important rules need a CI check or a lint so they become a failed build instead of advice."
+    exam: AZ-400
+    skill: "Design and implement build and release pipelines"
+  - q: "A team has both copilot-instructions.md and AGENTS.md. How should rules be split to avoid contradictions?"
+    options:
+      - "Duplicate every rule in both files"
+      - "Put everything in copilot-instructions.md"
+      - "Delete AGENTS.md"
+      - "Shared rules in AGENTS.md, and only Copilot-specific guidance such as PR summary style in copilot-instructions.md"
+    answer: D
+    explain: "Copilot reads AGENTS.md as well as its own file. If the shared rules live in both, they drift and contradict each other."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -283,19 +334,3 @@ Two weeks later, the same three developers pick up the next feature: order notes
 Copilot, Cursor and Claude Code each build their part. All three reach for a Cubit. All three load order data through the existing `GetOrderById` use case.
 
 The pull request gets one comment about conventions, a missing `const`. The `grep` commands return one line each, and the favourites cleanup ticket is the only place Riverpod still appears.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could set this up for any mixed-tool team.
-
-1. **The quiet Claude Code session.** A developer adds a thorough AGENTS.md, then uses Claude Code for a week and still gets `setState` screens. What is missing, and what are the two ways to fix it?
-2. **The monorepo.** Your repository has a Flutter app in `/app` and an ASP.NET Core API in `/api`. Where do the files go, and which rules belong at the root?
-3. **The grep that still answers.** A month after adding AGENTS.md, the Riverpod `grep` still returns two files. Did the file fail? What does it tell you, and what should happen next?
-4. **Two files, one rule.** The team's `copilot-instructions.md` says "use Cubit for simple screens" and AGENTS.md says "use Bloc for every screen". What happens, and how do you set the files up so it cannot happen again?
-5. **The secret.** Someone adds the Firebase project ID and a test user's password to AGENTS.md "so the agent can run the app". What is wrong, and where should that information live?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

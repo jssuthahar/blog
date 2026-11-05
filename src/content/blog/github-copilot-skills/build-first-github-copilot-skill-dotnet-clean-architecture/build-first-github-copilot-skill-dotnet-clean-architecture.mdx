@@ -27,6 +27,57 @@ faq:
     a: 'copilot-instructions.md is always loaded on every suggestion, so it must stay small and general. A Skill is loaded only when its description matches the task, so it can hold deep, specific method knowledge without taxing every request. Use instructions for who you are; use Skills for how you do a particular job.'
   - q: 'What sections go in a SKILL.md file?'
     a: 'Frontmatter with a name and a trigger-rich description, then purpose, when to use and when not to use, inputs required, non-negotiable rules, a numbered workflow, real code examples, a validation checklist, and the expected output as a file list. The description decides whether the rest is ever read.'
+quiz:
+  - q: "Which part of a SKILL.md decides whether Copilot loads the rest of it?"
+    options:
+      - "The validation checklist"
+      - "The code examples"
+      - "The description in the frontmatter"
+      - "The file name"
+    answer: C
+    explain: "Copilot reads every Skill's description on every task and loads the full body only when it matches. A summary like 'Helps with backend .NET development' matches nothing sharply. List the phrases people type, such as 'add command' and 'new endpoint'."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
+  - q: "A developer types 'fetch an order by its id' and Copilot puts logic in the controller. What should you fix first?"
+    options:
+      - "Rewrite the rules section"
+      - "Add more code examples"
+      - "Move the Skill to copilot-instructions.md"
+      - "The description's trigger words, because the Skill probably never loaded"
+    answer: D
+    explain: "Bad output on the first prompt is usually an activation problem. Add 'fetch' and 'get' to the triggers, or name the Skill once in the prompt to prove the body works."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
+  - q: "Why do these Clean Architecture rules go in a Skill instead of copilot-instructions.md?"
+    options:
+      - "The examples and checklist are about 1,750 tokens and only matter for feature work, so they shouldn't ride on every request"
+      - "copilot-instructions.md can't contain code"
+      - "Skills are encrypted"
+      - "Instructions files are read only by the GitHub coding agent"
+    answer: A
+    explain: "Instructions are always loaded, so they stay small and general. A Skill loads only when its description matches. Use instructions for who you are and Skills for how you do one job."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Your SKILL.md has grown to 700 lines and Copilot follows only the top half. What is the fix?"
+    options:
+      - "Split the rules across two descriptions"
+      - "Turn the rules into one paragraph"
+      - "Delete the examples"
+      - "Keep SKILL.md under about 500 lines as the map, and move deep detail into a reference/ file it points to"
+    answer: D
+    explain: "Progressive disclosure: Copilot pulls the reference file in only when the task needs it, such as error handling, and the main Skill stays lean."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Why does the article add the three grep commands to CI as well as writing the Skill?"
+    options:
+      - "Copilot can't read the Skill without CI"
+      - "The Skill makes the right shape likely, while the CI check makes the wrong one fail"
+      - "grep is faster than Copilot"
+      - "CI generates the Skill"
+    answer: B
+    explain: "A Skill guides; it can't block. A grep for DbContext in controllers or anonymous Ok(new { … }) responses turns the rule into a failed build, so a missed activation can't reach main."
+    exam: AZ-400
+    skill: "Design and implement build and release pipelines"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -510,19 +561,3 @@ The following Monday, the same developer asks Copilot to "add an UpdateOrderStat
 "Add" and "command" match the description. Copilot creates the command record, a handler, a FluentValidation validator, a one-line controller action and three xUnit tests, in the order the workflow lists them. The three `grep` commands return nothing.
 
 Review takes ten minutes, and every comment is about the status rules themselves. The tech lead closes the chat window without typing a single explanation.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this build-along prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could write a Skill for any stack.
-
-1. **The silent Skill.** A developer types "fetch an order by its id" and gets logic in the controller. Which part of the Skill failed, and exactly what would you add to fix it?
-2. **The 700-line Skill.** Your Skill has grown past 700 lines and Copilot follows only the first half. Using the failure modes and the efficiency section, what do you move where?
-3. **The missing validator.** Copilot builds everything except the FluentValidation class. Which two sections of the Skill should have caught that, and which `grep` could you add to CI for it?
-4. **Instructions or Skill?** "Never return raw EF entities from an endpoint" and "how to build a Command with its validator and tests". Where does each go, and why?
-5. **The migration task.** A developer asks Copilot to "add a migration for the order status column" and the Skill tries to add a MediatR handler. What went wrong, and which section stops it?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

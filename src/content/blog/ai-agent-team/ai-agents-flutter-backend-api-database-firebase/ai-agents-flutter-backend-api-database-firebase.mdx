@@ -25,6 +25,57 @@ faq:
     a: 'For one developer on a Firebase-only app, two is enough: a Flutter agent and a Firebase agent that also owns the schema. Split out the database agent when query cost starts appearing on the bill, and the API agent when a real backend exists.'
   - q: 'Is request.auth != null a secure Firestore rule?'
     a: 'No. It means anyone with an account. The same mistake hides in role checks: a rule that lets any user with the rider role read any order is signed-in-as-a-rider, not assigned-to-this-order. Every rule should compare the document to the caller, and a test should prove a different user is denied.'
+quiz:
+  - q: "Why split code generation into Flutter, backend API, database and Firebase agents instead of one coding agent?"
+    options:
+      - "Each agent is cheaper per token"
+      - "Copilot can only hold one file at a time"
+      - "Firebase requires a separate agent licence"
+      - "Four narrow diffs with four definitions of done can each be reviewed by the right person; one wide diff is reviewed only where the reviewer is expert"
+    answer: D
+    explain: "In the scenario, the Flutter reviewer read the screen carefully, while the rules edit and the query merged on trust. Scope is what makes output reviewable."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "A Firestore rule lets any signed-in user with the rider role read any order. What is wrong with it?"
+    options:
+      - "Nothing, riders need orders"
+      - "Rules can't check roles"
+      - "It checks the caller's role but never compares the document to the caller, so it isn't 'assigned to this order'"
+      - "It should use request.time"
+    answer: C
+    explain: "It is the request.auth != null mistake one level down. The fix compares resource.data.rider.id to request.auth.uid, and a test proves a second rider is denied."
+    exam: SC-500
+    skill: "Secure storage, databases, and networking"
+  - q: "The partner dashboard streams every order for the restaurant and filters 'today' in Dart. A restaurant has 20,000 orders and 40 today. Roughly what does a fresh listener cost?"
+    options:
+      - "About 20,000 reads, one per matching document; a bounded query brings it to about 40"
+      - "40 reads"
+      - "One read"
+      - "Nothing, filtering is free"
+    answer: A
+    explain: "A fresh listener is billed one read per matching document. Bounding the query with placedAt >= start of today, served by the existing composite index, or using a counter document, makes reads per view equal today's orders."
+    exam: AZ-305
+    skill: "Design data storage solutions"
+  - q: "The draft placeOrder function accepted the order total from the client. What rule does the backend API agent apply?"
+    options:
+      - "Trust the client because the app recomputes totals"
+      - "Round the total"
+      - "Log the total and accept it"
+      - "Treat every client value as hostile; money, quantities and identity are re-derived on the server"
+    answer: D
+    explain: "Recomputing in the app protects against a stale screen, not a hostile client with a proxy who posts RM9 for a RM40 order. The API agent starts from 'who may call this, and what may I believe from them?'"
+    exam: SC-500
+    skill: "Secure compute"
+  - q: "What does the .NET pre-commit hook require of every Map(Get|Post|…) route?"
+    options:
+      - "A Swagger description"
+      - "An explicit RequireAuthorization or AllowAnonymous decision"
+      - "A rate limiter"
+      - "A unit test in the same file"
+    answer: B
+    explain: "The hook has no opinion about which answer is right. It only refuses to let the question go unanswered."
+    exam: AZ-400
+    skill: "Develop a security and compliance plan"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -400,19 +451,3 @@ firebase emulators:exec --only firestore "npm run test:rules" || {
 A month later the team adds rider earnings to the rider dashboard. The database agent's table says "reads per view: the rider's deliveries this week" and names the index. The Firebase agent's tests include a second rider trying to read the first one's earnings, denied. The Flutter agent's screen reads one Cubit.
 
 Three commits, three reviewers. Nothing merges on trust.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
-
-1. **The rider rule.** Write the one emulator test that fails against `isRider()` alone and passes against the assigned-rider rule.
-2. **The dashboard card.** A restaurant has 20,000 orders and takes 40 today. Roughly how many reads does a fresh dashboard listener cost before and after the database agent's change?
-3. **The client total.** The repository already recomputes totals from the cart. Why is that not enough once `placeOrder` runs on a server?
-4. **The wide diff.** Which of Thursday's five files would a Flutter reviewer read carefully, and which would merge on trust?
-5. **Two agents or four.** You are one developer on a Firebase-only app. Which two agents do you keep, and what makes you split out the third?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

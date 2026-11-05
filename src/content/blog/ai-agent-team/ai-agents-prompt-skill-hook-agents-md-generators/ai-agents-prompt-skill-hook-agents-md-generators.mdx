@@ -25,6 +25,57 @@ faq:
     a: 'In AGENTS.md if more than one agent needs it. Once the same rule is pasted into three prompt files it will drift, and the copy that gets updated is never the one the failing agent read.'
   - q: 'Why does a new git hook miss problems that already exist?'
     a: 'Most pre-commit hooks check only the files being committed. A file added before the hook, or in the same commit, is never checked until someone edits it. When you add a hook, run its check once over the whole repository.'
+quiz:
+  - q: "Across the whole prompt library, which single kind of change improved agent output the most?"
+    options:
+      - "Longer instructions about what to produce"
+      - "Adding examples of good tone"
+      - "Refusal conditions: telling the agent what not to output, on a line of its own"
+      - "Switching to a larger model"
+    answer: C
+    explain: "The security agent improved when told not to report a finding without an exploit path. The analyst improved when forbidden to invent a business rule. Hard boundaries are followed almost exactly; generation instructions loosely."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "monitoring.md contains 'Never anything that identifies a person' mid-sentence on line 18. Why does the refusal-condition hook still fail it?"
+    options:
+      - "The hook ignores Markdown files"
+      - "The word 'Never' is misspelled"
+      - "The file is too long"
+      - "The hook looks for a line that starts with Do not, Never or If you cannot, and this refusal is buried mid-line"
+    answer: D
+    explain: "The smallest fix is one line: lift the sentence onto its own line. The meaning doesn't change, and both the hook and the next reader can now find it."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Where should the skill builder agent get the rules it puts in a SKILL.md?"
+    options:
+      - "From a generic style guide"
+      - "From review comments the team has repeated three or more times, with right and wrong pairs from real files"
+      - "From what the team believes its standards are"
+      - "From the model's training data"
+    answer: B
+    explain: "A skill written from intentions describes a codebase you don't have. Every rule worth keeping is something someone already said more than twice in a pull request, and noting the cause stops the rule being argued about."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "A pre-commit hook takes nine seconds. What happens within a fortnight?"
+    options:
+      - "People start passing --no-verify by habit, which quietly disables every other hook too"
+      - "Nothing; developers wait"
+      - "Git disables it automatically"
+      - "It moves itself to CI"
+    answer: A
+    explain: "A pre-commit hook has about two seconds and must never be flaky. Slow checks such as flutter analyze go in pre-push or CI. A bypassed hook is worse than none because it looks like protection."
+    exam: AZ-400
+    skill: "Design and implement a source control strategy"
+  - q: "The same Firebase rule appears in five prompts in five wordings. What should happen?"
+    options:
+      - "Keep all five so each agent has it"
+      - "Move the rule to AGENTS.md, which every agent reads, so there is one copy to update"
+      - "Delete it from every prompt"
+      - "Turn each copy into a separate skill"
+    answer: B
+    explain: "When a rule changes, one copy gets updated and four go on teaching the old version. Once two agents need a rule, AGENTS.md is the deduplication layer."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -334,19 +385,3 @@ fi
 A month later someone adds a sixteenth prompt for a pricing agent. The commit fails: no refusal condition. They add `Never change a price the server will recompute.` on its own line, and the commit passes. The duplication check notices that line is nearly identical to one in the backend API prompt, and the rule moves to `AGENTS.md` before a third copy appears.
 
 The library grows by one prompt and no drift.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
-
-1. **Line 18.** `monitoring.md` does contain "Never anything that identifies a person". Why does the hook still fail it, and what is the one-line fix?
-2. **Same commit.** Why did the hook never catch `monitoring.md`, and what should you run the day you add a hook?
-3. **Handle errors properly.** Rewrite this rule so the hooks generator can turn it into a script.
-4. **Nine seconds.** A pre-commit hook takes nine seconds. What happens to the other hooks within two weeks, and where does the slow check go?
-5. **Five wordings.** The same Firebase rule appears in five prompts. Which file should hold it, and what happens to the five copies?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

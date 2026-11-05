@@ -25,6 +25,57 @@ faq:
     a: 'Not at first. On a small team the DevOps agent can own versioning and the changelog. Split release management out when you have staged rollouts, more than one store, or anyone outside the team asking what changed.'
   - q: 'How do you know which backend a Flutter build talks to?'
     a: 'Make it a build input instead of a code default. Pass it with --dart-define, fail the build if it is missing for a release, and show it on an About screen. Then anyone holding the APK can answer the question without reading the code.'
+quiz:
+  - q: "Nobody can tell from an APK which backend it talks to. What does the DevOps agent recommend?"
+    options:
+      - "Add a comment in the code"
+      - "Use a different app icon per backend"
+      - "Read BACKEND with String.fromEnvironment, pass it with --dart-define, fail a release build without it, and show it on the About screen"
+      - "Ask testers to check network logs"
+    answer: C
+    explain: "The backend was a constructor default, invisible in the installed app. Making it a build input lets anyone holding the APK answer the question without reading the code."
+    exam: AZ-400
+    skill: "Design and implement build and release pipelines"
+  - q: "Tester release notes read 'fix: null check in order repository'. How does the release agent fix that?"
+    options:
+      - "It uses longer commit messages"
+      - "It writes notes from the merged PRs plus the requirements files, describing what a user can now do"
+      - "It removes release notes"
+      - "It copies the diff into the notes"
+    answer: B
+    explain: "Notes generated from commit messages read like a diff. Give the generator the intent as well as the change, and always include the rollback step."
+    exam: AZ-400
+    skill: "Design and implement build and release pipelines"
+  - q: "What is the real deliverable of the monitoring agent?"
+    options:
+      - "A dashboard with every metric"
+      - "A crash reporting SDK"
+      - "A weekly uptime email"
+      - "The list of questions you'll want answered at 2am, written before the incident"
+    answer: D
+    explain: "Dashboards and alerts follow from the questions. Instrumentation decided during an outage is instrumentation for the last outage. The first question, 'which build, which backend?', depends on the DevOps fix."
+    exam: AZ-400
+    skill: "Implement an instrumentation strategy"
+  - q: "Why does the analytics agent write analytics/events.yaml before the first event ships?"
+    options:
+      - "The SDK requires a YAML file"
+      - "Event names drift within weeks, bad data can't be fixed after collection, and a hook can refuse events the spec doesn't name"
+      - "To reduce app size"
+      - "To make events load faster"
+    answer: B
+    explain: "Without a spec, order_placed, OrderComplete and purchase all end up in the same product. The app defines 14 events before any SDK is wired in."
+    exam: AZ-400
+    skill: "Implement an instrumentation strategy"
+  - q: "What does the DevOps pre-commit hook block from entering the repository?"
+    options:
+      - "google-services.json, GoogleService-Info.plist, keystores and service account JSON files"
+      - "Any file over 1 MB"
+      - "All YAML files"
+      - "Changes to pubspec.yaml"
+    answer: A
+    explain: "Credentials and platform config belong in repository secrets, not git history. The Android workflow decodes the keystore from ANDROID_KEYSTORE_BASE64 and other repository secrets."
+    exam: AZ-400
+    skill: "Develop a security and compliance plan"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -345,19 +396,3 @@ Every one is the same mistake: doing the thinking after the shipping instead of 
 The next build of MSDevBuild Eats goes to testers with `BACKEND=firebase` printed on its About screen and notes that say what a user can now do. The release agent flags one change to the persisted cart shape and writes the rollback step for it. The monitoring agent's list still has two questions marked "cannot answer today", and both are written down.
 
 Nobody has to reconstruct anything at eleven at night.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
-
-1. **The backend.** A tester reports a bug. Using only the installed APK, how do they tell you which backend they were on, after the DevOps agent's change?
-2. **The notes.** The Android workflow's notes read "fix: null check". Which two inputs would the release agent need to replace them?
-3. **The rollback.** Why can a release that changes the `cart_state` shape not be undone by installing the previous APK?
-4. **The 2am list.** Write three questions for "orders are placed but restaurants never see them", and the signal for each.
-5. **The fourth name.** A developer logs `order_complete`. What stops it, and what should they do instead?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

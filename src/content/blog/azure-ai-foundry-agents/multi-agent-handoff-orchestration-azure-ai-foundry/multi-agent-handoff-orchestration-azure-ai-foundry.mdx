@@ -26,6 +26,57 @@ faq:
     a: 'They do not share a session instance. Participants broadcast their responses and the user input to the others so everyone has the latest context. Tool calls, including the handoff calls themselves, are not broadcast.'
 cover: './images/multi-agent-handoff-orchestration-azure-ai-foundry-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Zero to Production AI Agents" above the title "Split the agent at nine tools" and the line "Route by role in code, before any model runs.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "One agent, nine tools, routing accuracy falls", an arrow labelled "split" to an amber box reading "Three specialist agents: customer, partner, rider", and an arrow labelled "route" to a green box reading "Router from the JWT role, writes wait for approval".'
+quiz:
+  - q: "What was the signal to split the single agent into specialists?"
+    options:
+      - "Response time passed one second"
+      - "Routing accuracy fell at around nine tools, and it picked plausible but wrong tools"
+      - "The model was deprecated"
+      - "The prompt passed 1,000 tokens"
+    answer: B
+    explain: "A partner asked how many orders were waiting and it called track_delivery. Other signs were self-contradicting instructions, defensive descriptions and different questions wanting different models."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "What is the difference between handoff and agent-as-tools?"
+    options:
+      - "They are the same pattern"
+      - "Handoff runs agents in parallel"
+      - "Agent-as-tools needs no model"
+      - "In handoff, control transfers fully to the receiving agent with the conversation; in agent-as-tools, the primary agent delegates a subtask and keeps ownership"
+    answer: D
+    explain: "A food delivery chat changes subject mid-conversation, so the receiving agent needs the whole conversation, not a summary of a subtask. That's why handoff fits."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "Tutorials mention connected agents in Foundry. Where does orchestration live now?"
+    options:
+      - "In Foundry classic only"
+      - "In Azure Logic Apps"
+      - "In Microsoft Agent Framework, with group chat as the closest replacement"
+      - "In Semantic Kernel planners"
+    answer: C
+    explain: "Foundry (new) has no connected agents. Agent Framework offers sequential, concurrent, handoff, group chat and magentic topologies."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "How does the design make sure a delivery rider is never handed to the partner agent?"
+    options:
+      - "The triage agent decides from the question"
+      - "Code selects the workflow from the JWT role before any model sees the message"
+      - "A handoff instruction in the prompt"
+      - "Content filters"
+    answer: B
+    explain: "A switch on caller.Role picks the customer, partner or rider workflow. A handoff can then move a customer only between customer-facing agents, and tool-level role checks still run."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "How do you make the workflow pause for a human before CreateOrder runs?"
+    options:
+      - "Wrap the function with ApprovalRequiredAIFunction and answer the RequestInfoEvent"
+      - "Set the agent to autonomous mode"
+      - "Add 'ask first' to the instructions"
+      - "Give CreateOrder a long timeout"
+    answer: A
+    explain: "The workflow emits a RequestInfoEvent carrying ToolApprovalRequestContent. You answer it with SendResponseAsync once a person decides. The Flutter confirm card stays as a second layer."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

@@ -25,6 +25,57 @@ faq:
     a: 'Attack tests that stay in CI, not a report. A report describes one afternoon. A suite that signs in as one user, asks for another user''s data and fails the build when it succeeds keeps working every time someone edits the rules.'
   - q: 'Is a Firebase API key in a mobile app a security problem?'
     a: 'No. The Firebase web API key identifies the project and is public by design; the security rules are the boundary. A cybersecurity agent should say so and move on, and spend its attention on credentials with real blast radius, such as a CI service account or a signing key.'
+quiz:
+  - q: "What must every finding from the security agent include?"
+    options:
+      - "An OWASP category name"
+      - "An exploit path: who signs in, what request they send, and what comes back that shouldn't"
+      - "A CVSS score"
+      - "A link to a blog post"
+    answer: B
+    explain: "Without a path you get 'consider validating user input', which is true of every app. With one you get the rider finding, which gets fixed the same day."
+    exam: SC-500
+    skill: "Manage and monitor security posture"
+  - q: "A test with an anonymous user passes against the isRider() rule. Which test fails?"
+    options:
+      - "A test as the restaurant owner"
+      - "A test as the customer who placed the order"
+      - "A second signed-in rider reading an order assigned to the first rider"
+      - "A test with an expired token"
+    answer: C
+    explain: "signedIn() denies anonymous users, so that test passes. A permissive rule and a correctly behaving app look identical from inside the app; only a second identity of the same role shows the difference."
+    exam: SC-500
+    skill: "Secure storage, databases, and networking"
+  - q: "A colleague files an incident because the Firebase web API key is in the APK. What does the cybersecurity agent say?"
+    options:
+      - "Rotate the key immediately"
+      - "The key identifies the project and is public by design; the rules are the boundary. It ranks the CI service account first instead"
+      - "Remove Firebase from the app"
+      - "Obfuscate the APK"
+    answer: B
+    explain: "Teams fear the credential they can see and miss the one that can do damage. Rank credentials by blast radius, not visibility. FIREBASE_SERVICE_ACCOUNT in CI can actually act on the project."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "Which GitHub Actions pattern can hand repository secrets to anyone who opens a pull request from a fork?"
+    options:
+      - "A pull_request_target workflow that checks out the pull request's own head code"
+      - "A workflow triggered on push"
+      - "A workflow_dispatch trigger"
+      - "A scheduled workflow"
+    answer: A
+    explain: "The app's PR workflow uses pull_request, so forks can't reach its secrets. The hook blocks pull_request_target combined with a checkout of github.event.pull_request.head."
+    exam: AZ-400
+    skill: "Develop a security and compliance plan"
+  - q: "What should the penetration testing agent deliver?"
+    options:
+      - "A PDF report"
+      - "A list of OWASP categories"
+      - "A one-off scan of production"
+      - "Attack tests that run against the emulator on every push and fail the build when an attack succeeds"
+    answer: D
+    explain: "A report describes one afternoon; a suite keeps working after the next rules edit. It runs on your own emulator or staging, with two accounts per role, never production. Hire a person before payments at scale."
+    exam: SC-500
+    skill: "Manage and monitor security posture"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -320,19 +371,3 @@ firebase emulators:exec --only firestore,auth "npm run test:attacks" || {
 A month later someone adds a `reviews` update rule so restaurants can reply to reviews. The pen test agent's suite already has partnerA and partnerB. The new test, partner B replying to a review of partner A's restaurant, fails on the first push. The rule gains an `ownsRestaurant` check before it merges.
 
 Nobody had to remember to review it.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
-
-1. **The exploit path.** Write the rider finding as the security agent must: who signs in, what request, what comes back.
-2. **The anonymous test.** Why does a test with an anonymous user pass against `isRider()`, and which test fails?
-3. **The scary key.** A colleague files an incident for the Firebase API key in the APK. What does the cybersecurity agent say, and what does it rank first instead?
-4. **Two per role.** Why does the pen test prompt ask for two accounts per role rather than two accounts in total?
-5. **Stale rules.** Production runs rules from four commits ago. Which agent's input was wrong, and how do you make sure it never is again?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

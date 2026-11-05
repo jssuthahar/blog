@@ -24,6 +24,57 @@ faq:
     a: 'Send the request with http.Client().send() to get a StreamedResponse, then transform the byte stream through utf8.decoder and LineSplitter and handle each data: line. No extra package is required.'
 cover: './images/streaming-ai-agent-responses-aspnet-core-flutter-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Zero to Production AI Agents" above the title "Six seconds to under one" and the line "Streaming does not make it faster. It makes the wait legible.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Blocking response, six seconds of nothing", an arrow labelled "SSE" to an amber box reading "Server-sent events, a status line during tool calls", and an arrow labelled "first token" to a green box reading "First token in under a second, same agent, same loop".'
+quiz:
+  - q: "What does streaming change about an agent turn that takes six seconds?"
+    options:
+      - "Total time drops to under a second"
+      - "It removes the tool call"
+      - "Time to first token drops to under a second, while total time stays the same"
+      - "It halves token cost"
+    answer: C
+    explain: "Streaming makes the wait legible, not shorter. Be honest about that when someone asks to make the agent faster. Actually faster starts with measuring which tool call eats the time."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "When should the streaming loop run a function tool?"
+    options:
+      - "On each StreamingResponseFunctionCallArgumentsDeltaUpdate"
+      - "After the whole conversation ends"
+      - "On StreamingResponseOutputItemDoneUpdate, which carries the completed function call"
+      - "Before the first text delta"
+    answer: C
+    explain: "Argument deltas stream as they are generated, but you can't run a function on half its arguments. Wait for the finished item, run the tool, then start a new stream with the output and previous response ID."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "Why does the article use server-sent events instead of WebSockets?"
+    options:
+      - "WebSockets don't work on Android"
+      - "SSE is binary and smaller"
+      - "App Service blocks WebSockets"
+      - "Traffic flows one way, SSE is plain HTTP that passes proxies with no extra setup, and clients reconnect on their own"
+    answer: D
+    explain: "WebSockets only earn their complexity if the client also streams data up. The SSE wire format is just data: lines separated by a blank line."
+    exam: AI-200
+    skill: "Connect to and consume Azure services"
+  - q: "Local testing streams fine, but in production the reply arrives in one lump. What should you check first?"
+    options:
+      - "The model deployment"
+      - "That you flush after every write and set the X-Accel-Buffering: no header"
+      - "The Flutter http package version"
+      - "CORS settings"
+    answer: B
+    explain: "Without FlushAsync the response buffers, which is a blocking endpoint in disguise. The header stops a proxy from buffering for the same reason."
+    exam: AI-200
+    skill: "Secure, monitor, troubleshoot Azure solutions"
+  - q: "Why does the Dart client pass the byte stream through LineSplitter instead of splitting on newlines itself?"
+    options:
+      - "A network chunk boundary can land mid-line, and hand-splitting produces half-parsed JSON on slow connections"
+      - "LineSplitter is faster"
+      - "Dart strings can't contain newlines"
+      - "SSE uses carriage returns only"
+    answer: A
+    explain: "It happens roughly once every twenty messages on a slow connection, and never on the simulator. Real networks, like a train tunnel, are the test case."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

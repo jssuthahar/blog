@@ -10,6 +10,7 @@ import LiveReaders from '../../components/LiveReaders.astro';
 import EngagementRail from '../../components/EngagementRail.astro';
 import FeedbackDialog from '../../components/FeedbackDialog.astro';
 import ArticleChat from '../../components/ArticleChat.astro';
+import ArticleQuiz from '../../components/ArticleQuiz.astro';
 import CodeCopyButton from '../../components/CodeCopyButton.astro';
 import PostCard from '../../components/PostCard.astro';
 import NextRead from '../../components/NextRead.astro';
@@ -358,6 +359,8 @@ const shareImage = data.cover
         <article class="prose-reading" data-reader-root>
           <Content />
         </article>
+
+        {data.quiz.length > 0 && <ArticleQuiz quiz={data.quiz} />}
 
         <div class="mx-auto mt-12 max-w-[68ch] border-t border-default pt-8" data-engagement-end>
           <div class="flex flex-wrap items-end justify-between gap-6">

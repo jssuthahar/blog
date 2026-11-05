@@ -26,6 +26,57 @@ faq:
     a: 'A curated set of tools defined once, versioned, and exposed on a single MCP-compatible endpoint. Any MCP-capable agent or client can consume it, and promoting a new version is how a tool change takes effect.'
 cover: './images/mcp-model-context-protocol-azure-ai-foundry-agents-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Zero to Production AI Agents" above the title "Function tool or MCP server?" and the line "Switch when a second consumer appears.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "A function tool belongs to one agent", an arrow labelled "a second consumer" to an amber box reading "An MCP server, any client can call it", and an arrow labelled "the control" to a green box reading "Approval always on for servers you did not write".'
+quiz:
+  - q: "When is it worth moving from function tools to an MCP server?"
+    options:
+      - "When the agent passes ten tools"
+      - "On day one, for every agent"
+      - "Only for write tools"
+      - "When a second consumer, such as a support console, needs the same tools"
+    answer: D
+    explain: "A function tool belongs to one agent definition. An MCP server describes tools once for any client. Until there is a second consumer, MCP just adds a server to run and a version to promote."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "What require_approval setting should you use for an MCP server you didn't write?"
+    options:
+      - "never"
+      - "always"
+      - "{\"never\": [all tools]}"
+      - "No setting is needed"
+    answer: B
+    explain: "always is the default, and it means your code approves each call before it runs. A good split for servers you trust is read tools on never and write tools on always."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "Why can't you drop your nine client-side function tools into a Foundry Toolbox?"
+    options:
+      - "Toolboxes only hold OpenAI tools"
+      - "A toolbox only holds server-executable tools, and a function tool runs in your process, which a remote consumer can't invoke"
+      - "Toolboxes are limited to five tools"
+      - "Function tools need strict mode off"
+    answer: B
+    explain: "To publish your own operations you host an MCP server, for example on the Azure Functions MCP webhook endpoint, then register it, optionally inside a versioned toolbox."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "A third-party MCP tool has a userId parameter. What keeps your identity rule intact?"
+    options:
+      - "Let the model pass the user ID"
+      - "Rename the parameter"
+      - "Wrap it in your own function tool that supplies the identity from claims"
+      - "Disable approval for that tool"
+    answer: C
+    explain: "The other safe options are not using that tool, or OAuth on-behalf-of so the server gets the caller's identity properly. Never let a model-chosen string decide whose data is read."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "Why does the approval loop deny anything that isn't a label and tool you explicitly expected?"
+    options:
+      - "A remote server can add tools without telling you, so an allow-list is safer than a deny-list"
+      - "Denying is faster"
+      - "Foundry requires a deny-list"
+      - "Approvals cost tokens"
+    answer: A
+    explain: "A third-party MCP server is untrusted code in your reasoning loop, and everything it returns is an injection surface. Narrow the allowed tools and log every approval decision."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

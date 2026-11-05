@@ -25,6 +25,57 @@ faq:
     a: 'Through a CDN. Linking to Blob Storage directly takes your API out of the path, but every download still comes from one region and is billed as storage egress. Azure Front Door in front of the container serves repeat downloads from an edge near the user and asks Blob Storage only on a cache miss.'
   - q: 'What is the difference between a CDN and Redis?'
     a: 'A CDN stores files and responses at edge locations close to your users and protects your servers and bandwidth from repeated downloads. Redis stores data your API computes, inside your Azure region, and protects your database from repeated reads. Most real systems need both, because they fix different halves of the same slow page.'
+quiz:
+  - q: "On Azure today, which service do you use for CDN caching of photos, scripts and styles in a new design?"
+    options:
+      - "Classic Azure CDN from Microsoft"
+      - "Azure Front Door Standard or Premium"
+      - "Azure Managed Redis"
+      - "Azure Traffic Manager"
+    answer: B
+    explain: "CDN caching is now part of Azure Front Door Standard and Premium. Classic Azure CDN from Microsoft stopped taking new profiles in August 2025 and retires on 30 September 2027. Redis caches data your API computed, inside your region, not files at the edge."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
+  - q: "A partner replaces a dish photo but keeps the same file name, which has a seven-day cache. What fixes stale images for good, on both the CDN and the phones?"
+    options:
+      - "Purge the Front Door endpoint after every upload"
+      - "Lower max-age to one hour"
+      - "Save each new photo under a new URL that contains its content hash"
+      - "Serve the photos straight from Blob Storage"
+    answer: C
+    explain: "A hashed URL is one neither the CDN nor the phone has seen, so both download the new file, and it can safely be cached for a year with immutable. A purge only reaches the CDN. CachedNetworkImage on the phones keeps caching by URL, and you can't purge 400,000 phones."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
+  - q: "Flutter web keeps the same file names for main.dart.js and flutter_bootstrap.js on every build. Which Cache-Control header should those files and index.html get?"
+    options:
+      - "public, max-age=31536000, immutable"
+      - "no-store, and keep them off the CDN"
+      - "no-cache"
+      - "public, max-age=604800"
+    answer: C
+    explain: "no-cache still lets the CDN keep a copy, but it has to check for a newer one first. If nothing changed, it gets a small 304 Not Modified. A one-year cache on a file whose name never changes hides your next release until the cache expires."
+    exam: AI-200
+    skill: "Secure, monitor, troubleshoot Azure solutions"
+  - q: "Which of these responses should never be cached on a CDN route?"
+    options:
+      - "A versioned promo banner"
+      - "Fingerprinted CSS bundles"
+      - "Font files and icons"
+      - "A logged-in user's cart from /api/cart"
+    answer: D
+    explain: "A CDN gives the same response to everyone who asks for the same URL, so a cached cart would be shown to the next person. Personal data, authenticated responses, live prices, stock counts and anything that writes stay off caching routes. Versioned static files are exactly what a CDN is for."
+    exam: SC-500
+    skill: "Secure storage, databases, and networking"
+  - q: "With photos behind Front Door, the next sale brings twice as many visitors. Roughly what happens to the photo requests that reach Blob Storage?"
+    options:
+      - "They stay about the same, because origin load is files × edge locations"
+      - "They double, because every visitor downloads each photo"
+      - "They grow by four times, because each page has four photos"
+      - "They drop to zero"
+    answer: A
+    explain: "The article's rule is that origin load becomes files × edge locations, roughly once per cache lifetime. The extra visitors are served from copies already at the edge, so Blob Storage does almost the same work. It never drops to zero, because each edge still misses once per file."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -307,19 +358,3 @@ At 12:00 the partner opens the dish page and sends a screenshot. The new photo, 
 At 12:11 another one arrives. **SOLD OUT**.
 
 The servers never see most of those photo requests, and that is the whole point. The bytes everybody wants come from an edge a few kilometres from each phone, not from the API.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could put a CDN in front of any app with confidence.
-
-1. **Half the users see the old app.** You ship a new Flutter web release, and for the next hour some users get the new version and some the old one. Which files are cached wrong, and which header fixes it?
-2. **"Make the cart faster."** A colleague puts `/api/cart` on the same Front Door route as `/images/*`. What is the worst thing that can happen, and which of the three questions in Figure 3 would have stopped it?
-3. **The hit ratio collapses.** Right after marketing adds `?utm_source=push` to every image link in the notification, the image hit ratio drops from 97% to 40%. Why, and what do you change?
-4. **Same name, one-year cache.** A partner uploads a new photo as `biryani-99.jpg`, over a file served with `max-age=31536000, immutable`. Who sees the new photo, and when? What does a purge fix, and what does it not?
-5. **Twice the traffic.** The next sale brings 800,000 people instead of 400,000. Roughly what happens to the number of photo requests reaching Blob Storage, and why?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

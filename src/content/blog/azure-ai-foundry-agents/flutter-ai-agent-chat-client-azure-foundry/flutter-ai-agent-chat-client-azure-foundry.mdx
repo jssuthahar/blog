@@ -24,6 +24,57 @@ faq:
     a: 'It should degrade to the app you already have. Show an error with a link to normal search, and make sure the ordering flow never depends on the assistant being up.'
 cover: './images/flutter-ai-agent-chat-client-azure-foundry-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Zero to Production AI Agents" above the title "Four to nine seconds" and the line "Name the step. Confirm before anything writes.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "A chat screen over a repository, the widget tree never sees the model", an arrow labelled "the wait" to an amber box reading "Searching the menu, not a spinner", and an arrow labelled "the write" to a green box reading "A real Confirm button, the model never places an order".'
+quiz:
+  - q: "Why does the Flutter client use a 45-second timeout for the assistant call?"
+    options:
+      - "A turn with two tool calls takes four to nine seconds and has a long tail, so the timeout is set from measured latency"
+      - "Foundry requires it"
+      - "Mobile networks never return faster"
+      - "It matches the token lifetime"
+    answer: A
+    explain: "A slow tool adds a full model round trip behind it. Set the timeout from what you measured, not from the three seconds you use for ordinary REST calls."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "What state does the client have to keep between turns of a conversation?"
+    options:
+      - "The whole transcript"
+      - "Only the conversation ID returned by the API"
+      - "Every tool result"
+      - "The model name"
+    answer: B
+    explain: "Turn history lives server-side in Foundry. The Cubit sends the conversation ID with the next message. A 'new chat' button resets it, which also controls token cost."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "The agent proposes an order. How does the app make sure a person confirms anything that costs money?"
+    options:
+      - "The model asks 'are you sure?' in text"
+      - "Orders over RM50 are blocked"
+      - "The app waits ten seconds, then places it"
+      - "It renders the proposal as a card with a real Confirm button, and create_order runs from that button press"
+    answer: D
+    explain: "The model asks, the person confirms, the API acts. That is a safety property, and it's also the difference between an assistant people trust with money and one they use twice."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "How are the Flutter assistant features tested without a model, a network or an API key?"
+    options:
+      - "With golden screenshots"
+      - "Against a staging Foundry project"
+      - "The Cubit is tested against a fake AssistantRepository with bloc_test and mocktail"
+      - "With integration tests on a real device"
+    answer: C
+    explain: "The agent lives behind a repository interface, so the widget tree never knows a model exists. Tests use the same bloc_test and mocktail setup as the rest of the app."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "What should the app do when Foundry is unavailable?"
+    options:
+      - "Block ordering until it recovers"
+      - "Retry forever"
+      - "Switch to a cached reply"
+      - "Show an error with a link to normal search, so ordering never depends on the agent"
+    answer: D
+    explain: "Degrade to the app you already have. The ordering flow must never depend on the assistant being up."
+    exam: AZ-305
+    skill: "Design business continuity solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

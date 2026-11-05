@@ -27,6 +27,57 @@ faq:
     a: 'Both, in that order. Let the AI draft the summary of changes so you are not staring at a blank box. Then the author owns the intent: the why, the risk, the rollback, the ticket link, and the one line telling the reviewer where to focus. The author is still accountable for what the description claims.'
   - q: 'What should a pull request description include?'
     a: 'A one-line summary, why the change exists with a link to the issue, the key changes grouped by layer, the risk and how to roll back, how it was tested, and where the reviewer should focus. The diff already shows what changed, so the description earns its place with the why, the risk and the focus.'
+quiz:
+  - q: "What is the default failure mode of a Copilot PR summary?"
+    options:
+      - "It's too short"
+      - "It skips the file list"
+      - "It writes in the passive voice"
+      - "It restates the diff, which the reviewer can already read"
+    answer: D
+    explain: "Copilot only sees the diff, so its default is a fluent restatement of what changed. The description earns its place with what the diff can't say: why, risk, testing and where to look."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
+  - q: "What is the most dangerous thing a Copilot PR summary can do if you let it?"
+    options:
+      - "Use too many bullet points"
+      - "Forget the ticket number"
+      - "Invent a confident, plausible, wrong reason for the change"
+      - "Mention test files"
+    answer: C
+    explain: "The AI can't know your intent. A reviewer who trusts an invented 'why' reviews against the wrong goal. The instruction block says 'Never invent a reason'."
+    exam: GH-300
+    skill: "Use GitHub Copilot responsibly"
+  - q: "How do you make Copilot draft into the shape your team wants?"
+    options:
+      - "Write a longer commit message"
+      - "Commit .github/pull_request_template.md and add PR summary guidance to the repository custom instructions"
+      - "Turn off the Summary feature"
+      - "Paste the template into every chat"
+    answer: B
+    explain: "The template shapes the human, with Why, Risk & rollback and Reviewer focus sections. The instructions shape the AI so it fills those sections and flags risky changes on their own line."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Who owns the 'why' and the risk statement in a pull request description?"
+    options:
+      - "The author, who stays accountable for what the description claims"
+      - "Copilot"
+      - "The reviewer"
+      - "The release manager"
+    answer: A
+    explain: "Let the AI draft the changes. The author writes the reason, the risk, the rollback and the reviewer focus. Two minutes of the author's context saves the reviewer's first half hour."
+    exam: GH-300
+    skill: "Use GitHub Copilot responsibly"
+  - q: "When should you press Copilot's Summary button for the best result?"
+    options:
+      - "After filling in the template by hand"
+      - "After the PR is merged"
+      - "Only on draft PRs"
+      - "On a blank description field, before you type anything"
+    answer: D
+    explain: "Historically Summary ignores or overrides text already typed, so half-filling a template first can wipe your work. Draft first, then edit. It isn't in the Copilot Free tier."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -368,22 +419,6 @@ A month later, the same developer changes how the cart stores applied promos. Co
 "Why: promos need an expiry so stale codes stop applying. Risk: the `cart_state` JSON gains a field; old builds ignore it, and a migration fills it for existing carts. Reviewer focus: `cart_repository_impl.dart`, the migration."
 
 The reviewer opens that file first, reads the migration, asks one question about a null expiry, and approves in twelve minutes. Nobody's cart disappears.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could set this up for any team.
-
-1. **The confident why.** Copilot's draft says the refactor was "to improve performance". The author never said that. Which failure is this, and what does the custom instruction block say to prevent it?
-2. **The empty risk section.** A pull request's Risk section says "None". The risk `grep` returns four lines touching `cart_state`. What do you do before approving?
-3. **Your app's risks.** The food delivery app names `shared_preferences`, security rules and `OrderStatus`. Name the three equivalents in a codebase you know, and write the Risk prompt for it.
-4. **The template nobody fills in.** Every description still contains `[author: fill this in]`. Which rollout step was skipped, and what small check would catch it?
-5. **Two halves.** Using the review article's split, explain in two sentences how a good description changes what the human reviewer spends time on.
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>
 
 *(These Copilot features change quickly. The exact buttons, tiers and behaviour above were current when written; check the GitHub Copilot documentation for what is live when you read this.)*
 

@@ -26,6 +26,57 @@ faq:
     a: 'Runs expire ten minutes after creation, so tool outputs must be submitted before then. Anything slower than that should return a status immediately and be polled separately rather than blocking the run.'
 cover: './images/azure-ai-foundry-function-tools-aspnet-core-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Zero to Production AI Agents" above the title "Tool descriptions are routing" and the line "Say when a tool does not apply.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Nine function tools in C#, thin wrappers over tested methods", an arrow labelled "the model asks" to an amber box reading "The run loop: executor, validation, errors as data", and an arrow labelled "the limit" to a green box reading "A round cap, so it cannot loop forever".'
+quiz:
+  - q: "The agent kept calling search_menu for 'where is my delivery'. What fixed it?"
+    options:
+      - "Adding a sentence to the description saying when the tool does not apply"
+      - "A larger model"
+      - "Removing search_menu"
+      - "Raising MaxToolRounds"
+    answer: A
+    explain: "A three-word description told the model nothing about when not to use the tool. One sentence starting 'Do not use for' cut that failure to near zero. Descriptions are routing rules."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "The model sometimes sent maxPriceMyr as the string \"20\" instead of the number 20. What fixed that class of bug?"
+    options:
+      - "Parsing every argument as a string"
+      - "Turning on strict mode on the function tool"
+      - "Adding an example to the instructions"
+      - "Lowering the temperature"
+    answer: B
+    explain: "With strictModeEnabled on, conforming to the schema becomes the service's job instead of your parsing code's. One flag removed the whole class of bug."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "Why does the run loop have MaxToolRounds = 5?"
+    options:
+      - "A badly worded description once looped seven times on one question, and every round is a paid model call"
+      - "Foundry rejects more than five tools"
+      - "To limit the response length"
+      - "So each tool runs once"
+    answer: A
+    explain: "An unbounded loop is a paid loop. Cap it, log when you hit the cap, and treat hitting it as a bug in a tool description rather than in the model."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "A tool handler throws a null reference exception. What should the executor do?"
+    options:
+      - "Rethrow so the run fails fast"
+      - "Retry the tool forever"
+      - "Return an empty string"
+      - "Catch it and return a structured error string as the tool output"
+    answer: D
+    explain: "A thrown exception kills the run and the user watches a spinner forever. A JSON error is something the model can talk about, like 'I could not check that order', and it stays in the conversation."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "Why should every tool wrap an existing business endpoint instead of querying the database directly?"
+    options:
+      - "Direct queries are slower"
+      - "Foundry can't reach databases"
+      - "The tool inherits the authorization, validation and logging you already reviewed"
+      - "It avoids writing a JSON schema"
+    answer: C
+    explain: "A tool that reaches past your API into the database is a second data path with none of those rules, and it's the one nobody remembers to audit."
+    exam: AI-200
+    skill: "Implement secure Azure solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

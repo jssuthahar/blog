@@ -24,6 +24,57 @@ faq:
     a: 'Agent versions are snapshotted, so publishing a new version is the deployment. Keeping the instructions in a Markdown file loaded at startup means a prompt change ships through the same pipeline and review as a code change.'
 cover: './images/azure-ai-foundry-project-setup-first-agent-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Zero to Production AI Agents" above the title "Your first agent, in code" and the line "The portal cannot edit function tools.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Resource, project, model and the Foundry User role", an arrow labelled "then" to an amber box reading "Agent defined in C#, instructions in source control", and an arrow labelled "verify" to a green box reading "Tested in the playground, it refuses to invent a price".'
+quiz:
+  - q: "Why does the article define the agent in C# rather than in the Foundry portal?"
+    options:
+      - "The portal is slower"
+      - "Portal agents can't use gpt-4.1-mini"
+      - "The portal can't add, remove or update function tool definitions, and code puts instructions under version control"
+      - "Portal agents expire after a day"
+    answer: C
+    explain: "An agent defined in the portal can never be the real one once it needs function tools. Defining it in code means a change to production behaviour gets reviewed like any other change."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "Which least-privilege role do you and the API's managed identity need to build and call agents?"
+    options:
+      - "Foundry User, previously named Azure AI User"
+      - "Owner"
+      - "Contributor"
+      - "Cognitive Services Contributor"
+    answer: A
+    explain: "Foundry User is the least-privilege role for development. The names changed in 2026, so you may see Azure AI User in some blades. Prove access with az account get-access-token before writing code."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "Where do you find the project endpoint that every SDK call hangs off?"
+    options:
+      - "On the subscription's Properties page"
+      - "On the project's Overview page in the Foundry portal"
+      - "In the model deployment's Keys tab"
+      - "In Microsoft Entra ID app registrations"
+    answer: B
+    explain: "It is shaped like https://your-resource.services.ai.azure.com/api/projects/your-project. It's one of three config strings, with the model deployment name and the agent name."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "Why start with a small model such as gpt-4.1-mini?"
+    options:
+      - "Large models can't use tools"
+      - "Small models have longer context windows"
+      - "Choosing which tool a sentence belongs to is closer to classification than reasoning, and the cost gap grows with every turn"
+      - "Foundry only allows one large model per project"
+    answer: C
+    explain: "Picking the largest model first is the most common way to be surprised by an Azure bill. Upgrade only the paths that need deeper reasoning, as this app did for partner analytics."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "Which kind of instruction line improved the agent's behaviour the most?"
+    options:
+      - "General goals, such as 'Be helpful and friendly'"
+      - "Long product descriptions"
+      - "A list of every dish on the menu"
+      - "Refusals, such as 'Never invent a dish, restaurant, price or delivery time'"
+    answer: D
+    explain: "Refusals beat capabilities, and naming the failure mode beats naming a goal. 'Never state an order status you did not get from track_delivery' can be checked. 'Be accurate' can't."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

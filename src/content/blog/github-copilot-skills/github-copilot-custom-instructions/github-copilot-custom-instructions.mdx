@@ -26,6 +26,57 @@ faq:
     a: 'Usually because the chat was opened before the file was saved, so start a new chat after editing it. Other causes are vague rules such as "write clean code", a file in the wrong path, or rules that contradict each other. Rules that must never be broken belong in a linter as well.'
   - q: 'Is there a real project I can practise custom instructions on?'
     a: 'Yes. Clone the MSDevBuild Eats Flutter food delivery app at github.com/jssuthahar/food-delivery-app. It ships a real .github/copilot-instructions.md, runs offline with no API keys, and has a live web build and an Android build so you can compare the code against a working app.'
+quiz:
+  - q: "Where does GitHub Copilot's repository-wide custom instructions file live?"
+    options:
+      - ".vscode/copilot.json"
+      - ".github/copilot-instructions.md"
+      - "COPILOT.md at the root"
+      - "docs/copilot/rules.md"
+    answer: B
+    explain: "Copilot adds .github/copilot-instructions.md to every chat request in that repository automatically. Rules for part of the code go in .github/instructions/*.instructions.md files with an applyTo glob."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
+  - q: "You add a rule to copilot-instructions.md halfway through a chat, and Copilot ignores it. Why?"
+    options:
+      - "The chat was opened before the edit; start a new chat so the updated file is loaded"
+      - "Rules only apply after a commit"
+      - "Copilot reads the file once a day"
+      - "The file must be under 10 lines"
+    answer: A
+    explain: "Open a new chat after every edit and ask Copilot to repeat the rules back. Other causes are vague rules, the wrong path, or rules that contradict each other."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
+  - q: "In a Flutter repo, which instruction line did the most work, according to the article?"
+    options:
+      - "'Follow good practice and write clean code'"
+      - "'Use Flutter'"
+      - "'BLoC / Cubit. Not Riverpod, not Provider, not setState'"
+      - "'Write tests'"
+    answer: C
+    explain: "Flutter has four popular ways to hold state and Copilot has seen all of them. Naming what you don't use stops it falling back to the most common pattern."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "The file forbids importing lib/data from lib/features, yet three old screens still do it. What should you add?"
+    options:
+      - "A second instructions file with the same rule"
+      - "A longer explanation in the file"
+      - "Nothing; the file will fix them over time"
+      - "A lint or architecture test that fails the build"
+    answer: D
+    explain: "Instructions guide; they don't enforce. A rule that must never break needs a lint or test as well, so a build fails instead of a review comment being written."
+    exam: AZ-400
+    skill: "Design and implement build and release pipelines"
+  - q: "A teammate wants to paste the whole architecture wiki into copilot-instructions.md. What is the problem?"
+    options:
+      - "Every line is sent with every request, so it taxes each question, and the important rules get lost among the rest"
+      - "Copilot can't read Markdown tables"
+      - "The file has a 1 KB limit"
+      - "Wikis contain links Copilot can't follow"
+    answer: A
+    explain: "Keep it to a page of rules. The app's 75-line file costs about 900 tokens per request. Padding pays that cost again on every question and saves nothing extra."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -406,19 +457,3 @@ The following Monday, the new developer picks up the next ticket: show a "reorde
 Copilot's first suggestion adds a `ReorderRequested` event to the orders bloc and a use case that returns `Result<Order>`. Nothing in `lib/features/` imports from `lib/data/`. The pull request goes up on Tuesday morning with three review comments, all about the button's wording.
 
 It is merged before lunch. The tech lead's only note on the review thread: "Nothing to teach this time."
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could set this up for any team.
-
-1. **The edited file.** You add "never use setState" to the file halfway through a chat, then ask for a new screen in the same chat. Copilot uses `setState`. Why, and what do you do?
-2. **The three old imports.** The food delivery app's file forbids importing `lib/data/` from `lib/features/`, yet three screens do. Did the file fail? What would you add so a fourth one can never be merged?
-3. **The ten-page file.** A teammate pastes the whole architecture wiki into `copilot-instructions.md` "so Copilot knows everything". Using the efficiency section, what does that cost on every request, and what happens to the rules that matter?
-4. **Two stacks, one repo.** A repository holds a Flutter app in `/app` and an ASP.NET Core API in `/api`. How would you structure the instructions so each half gets the right rules?
-5. **Copilot plus Claude.** Half the team uses Copilot and half uses Claude Code in the same repository. Which file or files do you set up, and why does that keep one set of rules instead of two?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

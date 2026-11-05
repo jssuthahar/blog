@@ -25,6 +25,57 @@ faq:
     a: 'The original result, with no new work done: the same order ID and the same body. If the first request is still running, return 409 Conflict so the client retries shortly. If the same key arrives with a different request body, return 422, because the client has a bug.'
   - q: 'How long should I keep idempotency keys?'
     a: 'If the key is stored on the order row, keep it as long as the order, which costs nothing extra. If you use a separate idempotency table for many endpoints, 24 hours is common: long enough to cover every realistic retry, short enough to keep the table small.'
+quiz:
+  - q: "Two requests with the same idempotency key reach two different App Service instances at the same millisecond. What guarantees only one order row is created?"
+    options:
+      - "A unique index on (UserId, IdempotencyKey) in Azure SQL"
+      - "A lock statement in the C# order service"
+      - "A two-second debounce on the Place order button"
+      - "A Redis lock on the user ID"
+    answer: A
+    explain: "SQL Server serialises the two inserts on the unique index. The second fails with error 2601 and the API returns the order that already exists. A C# lock holds on one instance only, a debounce only stops quick taps on one screen, and a Redis lock that expires isn't in the same transaction as the insert."
+    exam: DP-300
+    skill: "Plan and implement data platform resources"
+  - q: "Where in the Flutter app should the idempotency key be created?"
+    options:
+      - "Inside the API client's post method, so every request is unique"
+      - "On the server, when the order request arrives"
+      - "In a new UUID for each retry after a timeout"
+      - "Once, when checkout starts, and reused on every attempt for that order"
+    answer: D
+    explain: "The key is created in _onStarted and kept in CheckoutState, so a double tap and every retry send the same key. A key made inside the send function gives each retry a fresh key and brings the duplicates back. The server can't make it, because the server is the side that can't tell two requests apart."
+    exam: AI-200
+    skill: "Connect to and consume Azure services"
+  - q: "A retry arrives with a known key while the first order is still in PendingPayment, under 30 seconds old. What should the API return?"
+    options:
+      - "201 Created with a second order"
+      - "422 Unprocessable Content"
+      - "500 Internal Server Error"
+      - "409 Conflict, so the app waits and asks again with the same key"
+    answer: D
+    explain: "409 tells the app the first attempt is still running. It waits two seconds and asks again with the same key. 201 would create a duplicate. 422 is for the same key sent with a different cart, which means the client has a bug."
+    exam: AI-200
+    skill: "Connect to and consume Azure services"
+  - q: "Why is the unique index on IdempotencyKey created with WHERE IdempotencyKey IS NOT NULL?"
+    options:
+      - "Filtered indexes are required for ONLINE = ON"
+      - "It makes the index scoped to each user"
+      - "Orders placed before the fix have no key and must not collide on NULL"
+      - "It lets the same key be reused after 24 hours"
+    answer: C
+    explain: "Millions of older orders have no key. The filter keeps them out of the index so they don't collide on NULL. Scoping to the user comes from the UserId column in the key, not from the filter."
+    exam: DP-300
+    skill: "Monitor, configure, and optimize database resources"
+  - q: "Why does the payment gateway call sit outside the insert transaction?"
+    options:
+      - "The gateway does not support distributed transactions"
+      - "Holding a database lock while waiting for a slow gateway would make every retry queue behind it"
+      - "Azure SQL cannot call external HTTP endpoints"
+      - "So the order can be deleted if the payment fails"
+    answer: B
+    explain: "On Friday the gateway took up to 11 seconds. The row is committed as PendingPayment first, so the key is claimed in milliseconds, and then the charge runs. The same key is passed to the gateway, so a charge resent after a crash returns the first charge."
+    exam: AZ-305
+    skill: "Design data storage solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -480,19 +531,3 @@ A week later the payment gateway has a slow evening again. Its p95 touches nine 
 They tap "Place order" again, as they did last week. Application Insights shows the `replayed` count climbing: 311 by 21:00. Each of those is a retry that got the original order back.
 
 Duplicate orders that night: zero. The support inbox gets one ticket about a late rider, and nobody from the finance team asks about refunds.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could design this checkout on your own.
-
-1. **The retry after the timeout.** The first request commits the order at 10.4 seconds, but the app gave up at 10. The customer taps again at 13 seconds. Walk that second request through Figure 3. What status comes back, and what does the customer see?
-2. **The helpful refactor.** A teammate moves `const Uuid().v4()` from `_onStarted` into the API client's `post` method, "so every request is unique". Which Friday group of duplicates comes back, and why does the unique index not stop it?
-3. **Two phones, one account.** A customer opens checkout on a phone and on a tablet and taps "Place order" on both within a second. How many orders are created, and is that the right answer? Which part of this article decides it?
-4. **The crash.** The API charges the card, then the instance restarts before `MarkPlacedAsync` runs. Two minutes later the app retries with the same key. What stops a second charge, and what would happen if the gateway call had used a new key?
-5. **A cheaper check.** Someone proposes dropping the unique index and running `SELECT` for the key before the `INSERT`, "to avoid catching exceptions". What goes wrong with two instances, and what would you have to add to make it safe?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

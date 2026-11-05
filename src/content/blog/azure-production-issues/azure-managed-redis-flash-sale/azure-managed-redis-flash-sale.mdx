@@ -25,6 +25,57 @@ faq:
     a: 'Usually because one cheap query runs thousands of times a second. A 12 ms query is fine once; at 2,200 runs a second it needs about 26 vCores of CPU. Find it with sys.dm_exec_query_stats ordered by execution_count, then cache its result so the database answers it once instead of scaling up to pay for the repeats.'
   - q: 'Azure Managed Redis or Azure Cache for Redis: which should I use?'
     a: 'Azure Managed Redis for anything new. Azure Cache for Redis retires: Basic, Standard and Premium on 30 September 2028, Enterprise on 31 March 2027. AMR runs the Redis Enterprise stack on port 10000 with Microsoft Entra ID by default, and StackExchange.Redis code carries over with a new host name.'
+quiz:
+  - q: "Azure SQL hit 100% CPU during the flash sale. Which DMV query found the cause in one row?"
+    options:
+      - "sys.dm_exec_requests filtered on blocking_session_id"
+      - "sys.dm_db_index_usage_stats ordered by user_seeks"
+      - "sys.dm_exec_query_stats ordered by execution_count"
+      - "sys.dm_os_wait_stats ordered by wait_time_ms"
+    answer: C
+    explain: "Ordering sys.dm_exec_query_stats by execution_count showed the dish page query running about 130,000 times a minute at 12 ms of CPU each. Nothing was blocked and no index was missing. The same cheap query was simply running far too often."
+    exam: DP-300
+    skill: "Monitor, configure, and optimize database resources"
+  - q: "A partner changes the price of a dish during the sale. What should the API do with the cache?"
+    options:
+      - "Write the new price to Redis first, then to the database"
+      - "Write the database first, then delete the cache key"
+      - "Update the cached value in place so readers see the new price at once"
+      - "Leave the cache alone and wait for the TTL to expire"
+    answer: B
+    explain: "Write the source of truth first, then drop the copy. Delete, never update: if two updates race, an update can leave the older price in Redis, while a delete only ever leaves no value and the next read fetches the truth. Checkout never reads the cached price at all."
+    exam: AI-200
+    skill: "Develop AI solutions by using Azure data management services"
+  - q: "Why does the fix use HybridCache instead of plain IDistributedCache in front of Azure Managed Redis?"
+    options:
+      - "Only one request per instance rebuilds a missing key, which prevents a cache stampede"
+      - "HybridCache stores data in Azure SQL as a fallback"
+      - "IDistributedCache cannot connect to Azure Managed Redis on port 10000"
+      - "HybridCache encrypts every cached value with Microsoft Entra ID"
+    answer: A
+    explain: "HybridCache lets one caller per key, per instance, build a missing entry while the others wait for that result. Without that, a key expiring at the peak sends every waiting request to the database at once, which is a cache stampede. It also adds an in-process layer in front of Redis."
+    exam: AI-200
+    skill: "Develop AI solutions by using Azure data management services"
+  - q: "Which of these values should never be read from the Redis cache?"
+    options:
+      - "The dish description and photo URLs"
+      - "The price a customer is charged at checkout"
+      - "The ratings summary and review count"
+      - "The home page category list"
+    answer: B
+    explain: "The price shown on a page can be a few seconds old. The price charged cannot. Checkout runs its own query against the database and puts that number on the order. Shared, read-heavy data such as descriptions, ratings and category lists is exactly what belongs in Redis."
+    exam: AZ-305
+    skill: "Design data storage solutions"
+  - q: "Compared with Azure Cache for Redis, what does Azure Managed Redis use by default?"
+    options:
+      - "Port 6380 and access keys"
+      - "Port 6379 without TLS"
+      - "A Cosmos DB connection string"
+      - "Port 10000 and Microsoft Entra ID sign-in"
+    answer: D
+    explain: "Azure Managed Redis runs the Redis Enterprise stack on port 10000, with Microsoft Entra ID as the default sign-in. Azure Cache for Redis used port 6380 over TLS with access keys, and it retires in 2027 and 2028. StackExchange.Redis code carries over with a new host and port."
+    exam: AI-200
+    skill: "Develop AI solutions by using Azure data management services"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -512,19 +563,3 @@ At 12:11 the restaurant partner sends another screenshot. It says **SOLD OUT**.
 The dish page stays under 200 ms the whole time, and the Azure SQL CPU graph barely moves. Nobody bought a bigger database. The API just stopped asking it the same question 2,200 times a second.
 
 The grey boxes where the photos should have been are the other half of that afternoon, and they are next in this series.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could run this incident on your own.
-
-1. **The price changes mid-sale.** The partner moves the biryani from ₹99 to ₹129 at 12:05:00. A customer opened the dish page at 12:04:58 and taps Buy at 12:05:03. Which price do they see on the page, which price are they charged, and why are those two allowed to differ?
-2. **A "harmless" tuning change.** A teammate raises `LocalCacheExpiration` from 10 seconds to 5 minutes "to take load off Redis". What breaks, and who notices first?
-3. **Fifty deals instead of one.** The next sale puts 50 dishes on offer, with the same eight App Service instances and the same cache settings. Using the rule in this article, roughly how many dish page queries a minute reach Azure SQL at worst?
-4. **Redis restarts at 12:00:30.** Walk one dish page request through the next ten seconds, then the next sixty. At which point does a customer first feel it, and what stops Azure SQL from going back to 100% CPU?
-5. **The race.** Two partner edits to the same dish land a few milliseconds apart. Why does "delete the key" survive this, when "update the key" can leave the wrong price cached?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

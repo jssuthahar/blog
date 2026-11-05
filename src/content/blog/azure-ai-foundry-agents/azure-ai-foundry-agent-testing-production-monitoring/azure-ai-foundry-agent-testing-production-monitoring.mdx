@@ -24,6 +24,57 @@ faq:
     a: 'Rate limit per user, cap the input length, and cap the number of tool rounds per turn. Twenty turns per user per hour was well above real usage here and puts a ceiling on what an abusive script can spend.'
 cover: './images/azure-ai-foundry-agent-testing-production-monitoring-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Zero to Production AI Agents" above the title "Assert the tool, not the prose" and the line "Tests, tracing and cost for an agent in production.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Model output varies, prose assertions flake", an arrow labelled "the fix" to an amber box reading "A recording executor checks the tool and its arguments", and an arrow labelled "in production" to a green box reading "Traces and token cost, per turn, per tool".'
+quiz:
+  - q: "How do you write agent integration tests that aren't flaky?"
+    options:
+      - "Assert on the exact wording of the reply"
+      - "Use a recording executor and assert on which tool was called with which arguments"
+      - "Set temperature to zero and compare snapshots"
+      - "Run each test three times and take the majority"
+    answer: B
+    explain: "Model wording varies between runs. Tool selection is stable enough to test. Keep about a dozen of these on a schedule, and run the model-free executor tests on every commit."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "What turns 'the agent said something odd' into something you can actually investigate?"
+    options:
+      - "Logging every full message to a text file"
+      - "The Foundry playground"
+      - "Azure Advisor"
+      - "Foundry tracing connected to Application Insights"
+    answer: D
+    explain: "Tracing shows every model call, every tool invocation, the arguments and the timings. Log your own side too, but log the shape: tool, role, user ID, duration and rounds. Message text is customer data."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "What drove most of the token cost per agent turn in this app?"
+    options:
+      - "The customer's message"
+      - "The system prompt"
+      - "Tool output, such as a search result with eight full dish objects"
+      - "The conversation ID"
+    answer: C
+    explain: "A customer types about 30 tokens. A search_menu result with eight full objects is around 1,800. Trimming it to six fields per dish cut the most common turn's cost roughly in half."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "Only the partner analytics path needs deeper reasoning. What is the cost-aware choice?"
+    options:
+      - "Route by path: keep the small model for routing and use a larger one only for analytics"
+      - "Upgrade the whole agent to the largest model"
+      - "Remove the analytics feature"
+      - "Cache every answer for a day"
+    answer: A
+    explain: "gpt-4.1-mini routes nine tools well. Splitting by path rather than upgrading everything kept the bill flat. Upgrading the whole agent to fix one path is how agent bills get out of hand."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "Which metric creeping upward tells you tool descriptions are getting muddier?"
+    options:
+      - "Tool calls per turn"
+      - "P95 turn latency"
+      - "Tokens per user message"
+      - "Number of signed-in users"
+    answer: A
+    explain: "More calls per turn means the model is hesitating between tools. Every turn that hits MaxToolRounds is a bug in a description. Latency and tokens per tool are the other numbers worth a dashboard."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

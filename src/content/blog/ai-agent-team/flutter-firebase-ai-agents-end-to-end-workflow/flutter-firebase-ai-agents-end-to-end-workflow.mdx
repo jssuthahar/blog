@@ -25,6 +25,57 @@ faq:
     a: 'Yes. The roles, the handoffs and the hook triggers are stack-independent; only the checks change. On .NET the same architecture hook looks for a repository violation instead of a Firestore import, and row-level security replaces Firestore rules.'
   - q: 'Where should a business rule be enforced in a Flutter and Firebase app?'
     a: 'In every layer a request can arrive through: the domain entity that the UI and use cases read, and the Firestore rules that guard direct writes. A rule only in the screen protects that screen, and a rule only in the domain can be bypassed by writing to Firestore directly.'
+quiz:
+  - q: "In the end-to-end walkthrough, how many of the thirty agents touched the small cancel-order feature?"
+    options:
+      - "All thirty"
+      - "Four"
+      - "One"
+      - "About fourteen; the rest have their own triggers"
+    answer: D
+    explain: "Dependencies, licences, DevOps, monitoring, documentation, SEO and the meta agents didn't fire. An agent that runs on everything is one whose output nobody reads."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "The cancel rule now lives on the Order entity. Why wasn't the hole fully closed?"
+    options:
+      - "The entity wasn't tested"
+      - "The screen still had its own condition"
+      - "The use case wasn't deployed"
+      - "Firestore rules are a separate entry point, and the customer update rule allowed any status value on their own order"
+    answer: D
+    explain: "A client can write to Firestore directly without going through your use cases. A business rule must hold in every layer a request can arrive through: screen, domain and database rules."
+    exam: SC-500
+    skill: "Secure storage, databases, and networking"
+  - q: "The rule's comment says 'a customer may only cancel their own order or mark it rated'. What did the code actually allow?"
+    options:
+      - "Only cancelling placed orders"
+      - "Nothing at all"
+      - "Changing status, timeline and isRated to any value, from any state"
+      - "Only rating delivered orders"
+    answer: C
+    explain: "hasOnly(['status', 'timeline', 'isRated']) limits which fields change, never what they change to. The fix states the transition: cancelled only from placed or confirmed."
+    exam: SC-500
+    skill: "Secure storage, databases, and networking"
+  - q: "What turned the security finding into a lasting guarantee?"
+    options:
+      - "A comment in the rules file"
+      - "Two attack tests on the emulator, run on every push, that fail if a customer can cancel a preparing order or mark one delivered"
+      - "A Slack message to the team"
+      - "A manual review next quarter"
+    answer: B
+    explain: "That is the difference between a finding and a guarantee. The tests fail against the old rules and pass against the fix, and they stay in CI."
+    exam: AZ-400
+    skill: "Design and implement build and release pipelines"
+  - q: "The product team wants an optional free-text cancellation reason. What does the privacy agent do?"
+    options:
+      - "Adds the field to privacy/data-inventory.md with a purpose and retention period before it ships"
+      - "Rejects the feature"
+      - "Encrypts the app"
+      - "Moves it to analytics"
+    answer: A
+    explain: "Free text from customers is unpredictable personal data, because people type anything. Recording it before it ships keeps the store declaration honest."
+    exam: SC-900
+    skill: "Describe the capabilities of Microsoft compliance solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -243,19 +294,3 @@ A month later the restaurant pause feature arrives as one sentence. The analyst 
 It fails. It is fixed before release.
 
 None of this is Flutter-specific. Swap Firestore rules for row-level security and `pubspec.yaml` for a `.csproj`, and the roles, handoffs and triggers stay where they are. The stack decides what the hooks look for. It does not change who is on the team.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
-
-1. **Three layers.** Name the three places the cancel rule must hold in MSDevBuild Eats, and the test that proves each one.
-2. **The comment.** The rule's comment says "a customer may only cancel their own order or mark it rated". What does the code actually allow, and why is the comment not enough?
-3. **The handoff.** Which agent's output was the testing agent's input, and why did that matter for AC-3?
-4. **The silent agents.** Name three agents that did not run on this feature and the trigger that would wake each one.
-5. **The fifth agent.** Your last incident was a dependency that took four days to remove. Which agent do you add fifth, and what hook comes with it?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

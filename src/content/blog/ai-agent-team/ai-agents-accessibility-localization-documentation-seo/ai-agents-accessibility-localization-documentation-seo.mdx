@@ -25,6 +25,57 @@ faq:
     a: 'Because search results truncate by width, not by count. A title full of capitals and wide letters is cut off well before a title of the same length in narrow letters. Character limits are a rough proxy that fails on exactly the titles people care about.'
   - q: 'How do you find Flutter buttons with no accessible name?'
     a: 'Search for interactive widgets such as IconButton, InkWell and GestureDetector that have no semanticLabel, tooltip or Semantics wrapper nearby. A simple script finds candidates; an agent then confirms each one, because a Tooltip a few lines above or a Text child already gives the control a name.'
+quiz:
+  - q: "A heart-shaped favourite button announces itself to TalkBack as just 'button'. What fixes it?"
+    options:
+      - "A bigger icon"
+      - "A red colour for the heart"
+      - "Wrapping the InkWell in Semantics with a label that changes with state, such as 'Add to favourites' or 'Remove from favourites'"
+      - "A tooltip that appears on long press only on web"
+    answer: C
+    explain: "A control must announce what it does. The manual test script then tells a person what to listen for: swipe to the heart, hear 'Add to favourites, button', double-tap, hear the label change."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "A script finds 15 interactive widgets with no semanticLabel nearby. Why does an agent have to confirm each one?"
+    options:
+      - "The script misses IconButtons"
+      - "Scripts can't read Dart"
+      - "A Tooltip a few lines above, a Text child or a tooltip parameter may already give the control a name"
+      - "Agents are faster than scripts"
+    answer: C
+    explain: "Checking the first five by hand found four already named and one real bug, _FavouriteButton. A hook with false positives and no exceptions file gets switched off within a week."
+    exam: GH-300
+    skill: "Use GitHub Copilot responsibly"
+  - q: "Why can't 'Order ${order.id} → ${order.status.label}' be translated properly?"
+    options:
+      - "Arrows aren't allowed in ARB files"
+      - "It is an English sentence assembled from fragments in fixed English word order, so a translator can't reorder it"
+      - "Order IDs can't be localised"
+      - "It's too long"
+    answer: B
+    explain: "Localization removes assumptions your code makes about language: word order, width, plurals and formats. Rewrite it as one parameterised ICU message with a description for the translator."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "Which documentation should a documentation agent generate, and which should it leave to people?"
+    options:
+      - "Generate what goes stale, such as setup and config, from real sources; leave the 'why' to people and accept a TODO over an invented reason"
+      - "Generate everything, including architecture reasoning"
+      - "Generate nothing; agents can't read config"
+      - "Generate only the README title"
+    answer: A
+    explain: "Setup steps, configuration and API contracts can be regenerated from workflows and config. An agent asked to explain a decision will write convincing reasoning nobody ever had."
+    exam: GH-300
+    skill: "Use GitHub Copilot responsibly"
+  - q: "Why should page titles be measured in pixels rather than characters?"
+    options:
+      - "Search engines count bytes"
+      - "Pixels are easier to count"
+      - "Characters are ignored by AI overviews"
+      - "Search results truncate by rendered width, so wide letters and capitals get cut off sooner"
+    answer: D
+    explain: "A title in wide capitals is cut off well before one of the same length in narrow letters, and the site suffix uses part of the budget. AEO is a separate job: short, self-contained answers under question headings."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -362,19 +413,3 @@ Point 5 tends to matter most. Pages that answer only the enthusiastic question a
 A new rider earnings screen goes up for review. The hook flags two icon-only controls; the agent confirms one is already in a `Tooltip` and adds a `Semantics` label to the other. The localization agent turns `'${count} deliveries this week'` into an ICU plural before it ever ships. The manual script takes eight minutes.
 
 Nothing on that screen says "button" on its own.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
-
-1. **The heart.** Write the `Semantics` label for `_FavouriteButton` so the announcement changes when a restaurant is already a favourite.
-2. **False positive.** The hook flags `restaurant_hero.dart:215`. Why is it named anyway, and how do you stop the hook flagging it again?
-3. **The arrow.** Rewrite `'Order ${order.id} → ${order.status.label}'` as one ICU message, and write the translator description.
-4. **96 strings.** Why does the localization hook exit early when `lib/l10n` does not exist, instead of failing all 96?
-5. **The quotable answer.** Take any FAQ answer from this article. What makes it usable by an answer engine with no surrounding page?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

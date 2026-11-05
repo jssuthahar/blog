@@ -25,6 +25,57 @@ faq:
     a: 'A job that compares your orders with the payment gateway''s records and fixes any difference. For orders still waiting for payment, it asks the gateway for the payment status by your order reference. A captured payment with no placed order is processed as if the webhook had arrived. Running it every five minutes bounds every wait.'
   - q: 'Should I use Azure Functions or App Service for payment webhooks?'
     a: 'Either can receive the webhook. Azure Functions fits well because the same app can host the HTTP webhook, a Service Bus trigger that processes events with automatic retries and a dead-letter queue, and a timer trigger for reconciliation. What matters more is the design: save first, process from a queue, reconcile on a timer.'
+quiz:
+  - q: "What should the payment webhook endpoint do before it returns 200?"
+    options:
+      - "Mark the order placed, notify the restaurant, send the push, then return 200"
+      - "Return 200 at once and verify the signature later"
+      - "Call the gateway to confirm the payment, then return 200"
+      - "Verify the signature, save the event in Azure SQL, enqueue it on Service Bus, then return 200"
+    answer: D
+    explain: "A webhook is a message you must not lose, not a request you must finish. Verify, save, enqueue, answer, in about 120 ms. The old handler did everything inline and took 14 seconds, while the gateway gave up after 5 and retried hours later."
+    exam: AI-200
+    skill: "Connect to and consume Azure services"
+  - q: "Which SQL statement makes processing the same payment.captured event twice harmless?"
+    options:
+      - "UPDATE dbo.Orders SET Status = 'Placed' WHERE Reference = @orderRef"
+      - "DELETE FROM dbo.PaymentEvents WHERE GatewayEventId = @id"
+      - "MERGE dbo.Orders without a WHERE clause"
+      - "UPDATE dbo.Orders SET Status = 'Placed' WHERE Reference = @orderRef AND Status = 'PendingPayment'"
+    answer: D
+    explain: "The conditional update changes one row only while the order is still pending. A redelivered event, a duplicate message or a reconciliation run that raced the webhook changes zero rows and ends up as AlreadyPaid. Duplicate detection saves work. The conditional update is the guarantee."
+    exam: DP-300
+    skill: "Monitor, configure, and optimize database resources"
+  - q: "A webhook never arrives because a deploy pointed the URL at a slot that was still warming up. What still places those orders?"
+    options:
+      - "The customer's app reporting success"
+      - "A timer-triggered Azure Function that asks the gateway about every pending order every five minutes"
+      - "A longer expiry job of 30 minutes"
+      - "Polly retries inside the webhook handler"
+    answer: B
+    explain: "Reconciliation bounds the longest wait to one interval. It puts a synthetic event on the same queue, so one processor turns money into orders. The app is the least reliable party, because Android kills it in the background. Retries inside a request the gateway already abandoned only make that request longer."
+    exam: AI-200
+    skill: "Develop and implement Azure Functions"
+  - q: "A payment.captured event fails 10 times in the processor. Where does it go, and what should alert you?"
+    options:
+      - "It moves to the dead-letter queue, and a metric alert on DeadletteredMessages greater than zero fires"
+      - "It is dropped, and the gateway alerts you"
+      - "It stays in the queue forever"
+      - "It is written back to the webhook endpoint"
+    answer: A
+    explain: "The queue has a max delivery count of 10. After that, Service Bus moves the message to the dead-letter queue. A dead-lettered payment event is money nobody has decided about yet, so an Azure Monitor alert pages on any of them. Nothing is ever silently dropped."
+    exam: AI-200
+    skill: "Secure, monitor, troubleshoot Azure solutions"
+  - q: "In the fixed design, when is an order marked PaymentFailed?"
+    options:
+      - "After 10 minutes in PendingPayment"
+      - "When the webhook takes more than 5 seconds"
+      - "Only when the gateway says the payment failed or can no longer complete"
+      - "When the customer closes the app"
+    answer: C
+    explain: "The old expiry job marked orders failed by the clock, and then ignored the late webhook. The fix removes it. Time alone never decides. Only the gateway can say a payment failed, and the app shows 'Confirming your payment' until it does."
+    exam: AZ-305
+    skill: "Design business continuity solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -508,19 +559,3 @@ The webhook doesn't notice. It answers in 120 milliseconds all afternoon. The `o
 At 13:40 an App Service deployment points the webhook URL at a slot that's still warming up, and 22 webhooks fail. Nobody notices that either. The reconciliation timer finds 22 captured payments at 13:45 and places them. The worst wait, for one customer, is four minutes and fifty seconds.
 
 The settlement query on Monday morning returns no rows.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could design this payment flow on your own.
-
-1. **The race.** The reconciliation timer and a late webhook both send a `payment.captured` for ord-1042 within the same second, with different `MessageId`s. Walk both messages through the processor. How many times is the restaurant notified, and why?
-2. **The customer who paid twice.** A customer approves the UPI request, sees nothing happen, goes back and pays again with a card. Both payments carry the reference ord-1042. What does each event do to the order, and what does the customer see?
-3. **The wrong secret.** A deploy rotates the webhook secret in Key Vault but not at the gateway. Every webhook now gets 401 for an hour. How many orders are lost, how long does each customer wait, and which alert fires first?
-4. **The pending UPI request.** A customer leaves the UPI approval screen open for 20 minutes, then approves. Which reconciliation branch handled the order at minute 15, and what stopped the money from being taken at minute 20?
-5. **The dead letter.** A schema deploy renames `dbo.Outbox`, so every `MarkPaidAsync` throws. One `payment.captured` event fails 10 times. Where does the event end up, what state is the order in, which alert fires, and what does the reconciliation timer do with that order on its next run?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

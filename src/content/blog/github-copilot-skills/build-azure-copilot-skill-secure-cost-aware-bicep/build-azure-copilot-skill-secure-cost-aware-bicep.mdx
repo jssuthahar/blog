@@ -27,6 +27,57 @@ faq:
     a: 'The description is almost always the problem. Copilot matches your task against each Skill description, so a vague line like "helps with Azure" never fires. Name the real trigger words ("deploy", "bicep", "provision", "app service", "storage account") and exclude application-code tasks so it does not fire on the wrong work.'
   - q: 'How do I find expensive or public Azure resources that are already deployed?'
     a: 'Query Azure Resource Graph. One query lists App Service plans on Premium SKUs in non-production resource groups; another lists storage accounts whose publicNetworkAccess is not Disabled. Run them with az graph query or in the portal, weekly, to catch what slipped past the Skill, the linter and Azure Policy.'
+quiz:
+  - q: "Where does an Azure Copilot Skill sit among the three gates against a bad resource?"
+    options:
+      - "It replaces Azure Policy at deploy time"
+      - "It runs after deployment, like Resource Graph"
+      - "It is the leftmost gate, catching the insecure default as the Bicep is typed, before the linter and Azure Policy"
+      - "It replaces the Bicep linter in CI"
+    answer: C
+    explain: "The Skill is a preventive control at authoring time and has no enforcement power. The Bicep linter or PSRule checks in CI, and Azure Policy is the guarantee at deploy and run time. Left-shift, not replacement."
+    exam: AZ-400
+    skill: "Develop a security and compliance plan"
+  - q: "A Copilot-written storage account has publicNetworkAccess unset. What does that mean?"
+    options:
+      - "Public access is enabled"
+      - "Public access is disabled"
+      - "Only Azure services can reach it"
+      - "The deployment fails"
+    answer: A
+    explain: "Unset means enabled. The Skill requires publicNetworkAccess: 'Disabled' and allowBlobPublicAccess: false, plus a private endpoint so the account stays reachable from inside the VNet."
+    exam: AZ-305
+    skill: "Design data storage solutions"
+  - q: "How should an App Service read a third-party API key in the Skill's Bicep?"
+    options:
+      - "As a literal value in appSettings"
+      - "As a Bicep parameter with a default value"
+      - "As a Key Vault reference resolved at runtime by the app's managed identity"
+      - "From an environment variable in the pipeline"
+    answer: C
+    explain: "The secret never lands in the Bicep, the params or the portal. Without the Skill, Copilot often writes value: 'sk-live-…' directly, which is deployable and a leak the moment it hits Git history."
+    exam: AZ-305
+    skill: "Design identity, governance, and monitoring solutions"
+  - q: "How does the Skill handle Premium SKUs in non-production?"
+    options:
+      - "It bans them completely"
+      - "It defaults to B1 and requires a written sign-off note in the PR before any Premium tier"
+      - "It picks Premium when load is expected"
+      - "It leaves SKU choice to Azure Advisor"
+    answer: B
+    explain: "Premium isn't banned, because a load test may need it. It just can't be the silent default any more. Defaults are policy, so make the cheap choice the path of least resistance."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
+  - q: "Which tool finds Premium App Service plans already running in non-prod resource groups across every subscription?"
+    options:
+      - "Azure Advisor score"
+      - "The Bicep linter"
+      - "Copilot Chat"
+      - "An Azure Resource Graph query, run with az graph query"
+    answer: D
+    explain: "Resource Graph asks every subscription at once what is deployed. The queries are the last gate, finding problems after they cost money. Their weekly count is the Skill's scorecard, and they rely on the env tag being present."
+    exam: AZ-104
+    skill: "Monitor and maintain Azure resources"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -514,19 +565,3 @@ A month after the Skill is merged, a developer asks Copilot to "provision a stor
 The Skill loads. Copilot asks which environment, then writes `publicNetworkAccess: 'Disabled'`, `allowBlobPublicAccess: false`, a private endpoint, diagnostics to the central workspace, the three tags and `Standard_LRS`. It runs its checklist back as the last lines of the answer.
 
 That Friday, the first Resource Graph query returns nothing. The second returns two storage accounts, both from before the Skill existed, and both are on a cleanup ticket.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this build-along prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could write the baseline for any Azure estate.
-
-1. **Set up blob storage.** A developer types "set up blob storage for invoices" and gets the insecure default with no checklist. Which part of the Skill failed, and what do you change?
-2. **The untagged plan.** A P1v3 plan with no `env` tag is running somewhere. Why does the first Resource Graph query miss it, and which Skill rule would have prevented that?
-3. **Policy says no.** Azure Policy denies a deployment that the Skill should have shaped correctly. Which two gates failed, and what does that tell you?
-4. **The CI runner.** After the Skill disables public network access, the pipeline can no longer reach the storage account. Is the Skill wrong? What should it say about private DNS and runners?
-5. **The four-month plan.** Using the efficiency table, explain in one paragraph why the same rule costs a few hundred tokens at gate 1 and four months of a premium plan at gate 4.
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

@@ -1,0 +1,230 @@
+---
+/**
+ * The "Test yourself" quiz at the end of an article.
+ *
+ * Five multiple-choice questions from the post's `quiz` frontmatter. The reader
+ * picks an option and checks it; the answer and the explanation are revealed in
+ * place, and a running score shows once every question is answered. Each
+ * question carries the certification exam whose skills outline covers it, so a
+ * reader preparing for AZ-305 or GH-300 knows which questions are on topic.
+ *
+ * Everything is rendered server side; the script only toggles state, so the
+ * questions are still readable (and indexable) without JavaScript.
+ */
+interface Question {
+  q: string;
+  options: string[];
+  answer: 'A' | 'B' | 'C' | 'D';
+  explain: string;
+  exam: string;
+  skill: string;
+}
+
+interface Props {
+  quiz: Question[];
+}
+
+const { quiz } = Astro.props;
+const LETTERS = ['A', 'B', 'C', 'D'] as const;
+const exams = [...new Set(quiz.map((q) => q.exam))];
+---
+
+<section class="quiz mx-auto mt-14 max-w-[68ch]" aria-labelledby="quiz-heading" data-quiz>
+  <p class="quiz-eyebrow">Test yourself · {quiz.length} questions</p>
+  <h2 id="quiz-heading" class="text-2xl font-semibold tracking-tight">Check what you learned</h2>
+  <p class="mt-2 text-sm text-muted">
+    Pick an answer and press Check. Each question is tagged with the certification exam that covers the skill:
+    {exams.join(', ')}.
+  </p>
+
+  <ol class="mt-6 space-y-5">
+    {quiz.map((item, i) => (
+      <li class="quiz-card" data-question data-answer={item.answer}>
+        <p class="quiz-exam">
+          <span class="quiz-code">{item.exam}</span>
+          <span>{item.skill}</span>
+        </p>
+        <fieldset>
+          <legend class="font-semibold leading-snug">
+            <span class="text-muted">{i + 1}.</span> {item.q}
+          </legend>
+          <div class="mt-3 space-y-2">
+            {item.options.map((option, j) => (
+              <label class="quiz-option" data-option={LETTERS[j]}>
+                <input type="radio" name={`quiz-${i}`} value={LETTERS[j]} />
+                <span class="quiz-letter">{LETTERS[j]}</span>
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <button type="button" class="btn btn-outline btn-sm mt-3" data-check disabled>Check answer</button>
+        <div class="quiz-feedback" data-feedback hidden aria-live="polite">
+          <p class="font-semibold" data-verdict></p>
+          <p class="mt-1">{item.explain}</p>
+        </div>
+      </li>
+    ))}
+  </ol>
+
+  <p class="quiz-score" data-score hidden aria-live="polite"></p>
+  <p class="mt-3 text-xs text-muted">
+    These are practice questions written from this article, not questions taken from a real exam. Exam tags follow
+    the skills listed in each exam's official study guide on Microsoft Learn.
+  </p>
+</section>
+
+<style>
+  .quiz-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+  }
+
+  .quiz-card {
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    border: 1px solid var(--glass-line);
+    border-left: 3px solid var(--accent);
+    background: var(--glass);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .quiz-exam {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .quiz-code {
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+  }
+
+  .quiz-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--glass-line);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    line-height: 1.45;
+    transition: background-color 0.15s;
+  }
+
+  .quiz-option:hover {
+    background: var(--accent-soft);
+  }
+
+  .quiz-option input {
+    margin-top: 0.2rem;
+    accent-color: var(--accent);
+  }
+
+  .quiz-letter {
+    font-weight: 700;
+    min-width: 1ch;
+  }
+
+  .quiz-option[data-state='correct'] {
+    border-color: oklch(0.6 0.15 150);
+    background: oklch(0.6 0.15 150 / 0.12);
+  }
+
+  .quiz-option[data-state='wrong'] {
+    border-color: oklch(0.6 0.18 25);
+    background: oklch(0.6 0.18 25 / 0.1);
+  }
+
+  .quiz-feedback {
+    margin-top: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.5rem;
+    background: var(--accent-soft);
+    line-height: 1.6;
+  }
+
+  .quiz-feedback[data-result='correct'] [data-verdict] {
+    color: oklch(0.5 0.15 150);
+  }
+
+  .quiz-feedback[data-result='wrong'] [data-verdict] {
+    color: oklch(0.52 0.18 25);
+  }
+
+  .quiz-score {
+    margin-top: 1.25rem;
+    font-weight: 600;
+  }
+
+  :global([data-theme='dark']) .quiz-feedback[data-result='correct'] [data-verdict] {
+    color: oklch(0.78 0.14 150);
+  }
+
+  :global([data-theme='dark']) .quiz-feedback[data-result='wrong'] [data-verdict] {
+    color: oklch(0.78 0.14 25);
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    function run() {
+      const root = document.querySelector('[data-quiz]');
+      if (!root || root.dataset.ready === '') return;
+      root.dataset.ready = '';
+
+      const cards = [...root.querySelectorAll('[data-question]')];
+      const scoreEl = root.querySelector('[data-score]');
+      let answered = 0;
+      let correct = 0;
+
+      cards.forEach((card) => {
+        const button = card.querySelector('[data-check]');
+        const radios = [...card.querySelectorAll('input[type="radio"]')];
+        radios.forEach((r) => r.addEventListener('change', () => (button.disabled = false)));
+
+        button.addEventListener('click', () => {
+          const picked = radios.find((r) => r.checked);
+          if (!picked) return;
+          const answer = card.dataset.answer;
+          const right = picked.value === answer;
+          const answerText = card.querySelector(`[data-option="${answer}"] span:last-child`).textContent;
+
+          card.querySelector(`[data-option="${answer}"]`).dataset.state = 'correct';
+          if (!right) card.querySelector(`[data-option="${picked.value}"]`).dataset.state = 'wrong';
+          radios.forEach((r) => (r.disabled = true));
+          button.hidden = true;
+
+          const feedback = card.querySelector('[data-feedback]');
+          feedback.dataset.result = right ? 'correct' : 'wrong';
+          feedback.querySelector('[data-verdict]').textContent = right
+            ? `Correct: ${answer}. ${answerText}`
+            : `Not quite. You picked ${picked.value}; the correct answer is ${answer}. ${answerText}`;
+          feedback.hidden = false;
+
+          answered += 1;
+          if (right) correct += 1;
+          if (answered === cards.length) {
+            scoreEl.textContent = `You scored ${correct} out of ${cards.length}.`;
+            scoreEl.hidden = false;
+          }
+        });
+      });
+    }
+
+    run();
+    document.addEventListener('astro:page-load', run);
+  })();
+</script>

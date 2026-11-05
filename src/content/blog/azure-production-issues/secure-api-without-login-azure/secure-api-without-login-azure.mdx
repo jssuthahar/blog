@@ -25,6 +25,57 @@ faq:
     a: 'No. App Check raises the cost of calling your API from outside your app and it is the strongest client signal available, but someone with a real device and a real build can still obtain a valid token. Treat it as one layer beside a scoped token, rate limits and edge caching, never as the only gate.'
   - q: 'What is the difference between anonymous and unauthenticated?'
     a: 'Anonymous means you do not know who the user is. Unauthenticated means you do not know who the caller is at all. A guest token gives you the second without the first: no personal data, but a subject you can count requests against, expire in fifteen minutes, and trace through your logs.'
+quiz:
+  - q: "The catalogue API trusted requests whose Origin header contained the site's domain. Why didn't that protect anything?"
+    options:
+      - "Origin is encrypted, so the server can't read it"
+      - "Origin only works over HTTP/2"
+      - "Browsers strip Origin from mobile requests"
+      - "Origin is an ordinary header that any curl command can set to whatever the server expects"
+    answer: D
+    explain: "Every header arrives from a machine you don't control. Origin, Referer, User-Agent and custom headers like X-Client-App all take seconds to fake. CORS is enforced by browsers to protect users. It has no opinion about curl or a Python script."
+    exam: SC-500
+    skill: "Secure compute"
+  - q: "How can a mobile app call the API without a login and still carry an identity the API can rate-limit and revoke?"
+    options:
+      - "The app asks the API for a short-lived guest JWT scoped to read-only catalogue access"
+      - "Ship an API Management subscription key inside the app"
+      - "Allow anonymous access and block bad IP addresses"
+      - "Check the User-Agent header"
+    answer: A
+    explain: "Anonymous isn't the same as unauthenticated. A 15-minute guest token gives you a subject to count, scope and expire, with no personal data. A key shipped inside a client is public and shared by every caller. IP blocks failed when nine addresses became forty within an hour."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "Which ASP.NET Core setting makes every endpoint closed unless a policy explicitly opens it?"
+    options:
+      - "AllowAnonymous on each public endpoint"
+      - "A CORS allow-list"
+      - "A fallback authorization policy that requires an authenticated user"
+      - "UseHttpsRedirection"
+    answer: C
+    explain: "SetFallbackPolicy with RequireAuthenticatedUser denies by default, so an endpoint someone adds next year is closed, not open. The old setup opened endpoints one at a time with AllowAnonymous, so anything new inherited whatever the default happened to be."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "App Service access restrictions allow the AzureFrontDoor.Backend service tag. What else is needed so only your Front Door can reach the origin?"
+    options:
+      - "Nothing, the service tag is enough"
+      - "A rule on the X-Azure-FDID header that matches your Front Door profile ID"
+      - "A Network Security Group on the App Service"
+      - "A CORS rule naming your Front Door host"
+    answer: B
+    explain: "The service tag alone allows every Front Door instance in Azure, including one an attacker creates in five minutes. Matching the x-azure-fdid header to your own Front Door ID is the part people skip."
+    exam: SC-500
+    skill: "Secure storage, databases, and networking"
+  - q: "The unreleased dish's launch date leaked to a price comparison site. What actually fixed the leak?"
+    options:
+      - "A separate CatalogPublicDto with only public fields, and filtering unreleased items in the query"
+      - "Requiring a login for search"
+      - "Raising Cosmos DB throughput"
+      - "Obfuscating the mobile app"
+    answer: A
+    explain: "The anonymous endpoint returned the same entity the staff dashboard used, including costPrice, stockOnHand and launchDate. A five-property public DTO closed the leak. Filtering inside the query means unreleased items are never fetched on a public path."
+    exam: SC-500
+    skill: "Secure storage, databases, and networking"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

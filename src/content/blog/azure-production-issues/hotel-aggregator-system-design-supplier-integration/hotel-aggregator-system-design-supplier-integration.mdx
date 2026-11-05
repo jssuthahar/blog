@@ -25,6 +25,57 @@ faq:
     a: 'Only after converting them to one basis: the total for the whole stay, all taxes included, in major units and one currency, with fees paid at the hotel added on top. Suppliers mix per-night and per-stay prices, minor and major units, and tax-inclusive and tax-exclusive totals, so raw numbers are never comparable.'
   - q: 'What happens when a supplier changes its JSON response?'
     a: 'With a tolerant reader, new fields are ignored and unknown codes map to an Unknown value and a counter instead of crashing the search. Archive every raw response, replay the recorded payloads through each adapter in automated tests, and alert when the share of offers an adapter rejects rises above normal.'
+quiz:
+  - q: "Supplier B sends ₹13,400 as 1340000. Which part of the design makes sure that never reaches search results as a raw number?"
+    options:
+      - "A per-supplier adapter that converts every offer into the canonical model, in major units with an ISO currency"
+      - "A JSON path setting in one universal mapper"
+      - "A sort on the raw supplier price"
+      - "The search controller dividing by 100 for Supplier B"
+    answer: A
+    explain: "Each supplier gets its own adapter, an anti-corruption layer, and every adapter returns the canonical model: stay total with taxes, major units, ISO 4217 currency. Fixing units in the controller is how the bug started. A config-driven universal mapper turns into a programming language nobody can debug."
+    exam: AZ-305
+    skill: "Design infrastructure solutions"
+  - q: "How does the platform know that 'Sea Breeze Resort & Spa' and 'Seabreeze Resort and Spa, Candolim' are the same hotel?"
+    options:
+      - "Exact string matching on the hotel name during search"
+      - "Each supplier's hotel ID is globally unique"
+      - "An offline mapping job: distance within about 150 metres, then a name and address similarity score, with a review queue"
+      - "The traveller picks the right listing"
+    answer: C
+    explain: "A nightly job matches new supplier hotels against a master list: geography distance first, then a normalised name and address score. High scores map automatically, middle scores go to a person, and low scores become new hotels. Search only does an in-memory dictionary lookup."
+    exam: AZ-305
+    skill: "Design data storage solutions"
+  - q: "Search took 9 seconds because suppliers were called one after another. What does the fixed orchestrator do?"
+    options:
+      - "Raises every supplier timeout to 30 seconds"
+      - "Calls every adapter in parallel under a 2.5-second budget and returns partial results with a status"
+      - "Waits for all suppliers, then answers"
+      - "Calls the fastest supplier only"
+    answer: B
+    explain: "Search latency becomes the smaller of the budget and the slowest supplier. A supplier that times out becomes an empty result with a status, and the app shows 'more prices loading'. A longer timeout only makes the slow search slower."
+    exam: AI-200
+    skill: "Connect to and consume Azure services"
+  - q: "What price should offers from different suppliers be ranked on?"
+    options:
+      - "The per-night price, before taxes"
+      - "The supplier's raw total field"
+      - "The all-in total for the stay, taxes included, plus pay-at-hotel fees, in one currency snapshot"
+      - "The cheapest price seen in the last 24 hours"
+    answer: C
+    explain: "Only one basis is comparable: the whole stay, all taxes, major units, one FX snapshot per search, with fees paid at the hotel added. Sorting on the total alone rewards suppliers that move money into resort fees."
+    exam: AZ-305
+    skill: "Design data storage solutions"
+  - q: "Merged search results are cached in Azure Managed Redis for two minutes. What happens at booking time?"
+    options:
+      - "The cached price is charged, because it is under two minutes old"
+      - "The booking reads the price from Azure SQL"
+      - "The cache TTL is raised to one hour for bookings"
+      - "The rate key goes back to the same adapter for a fresh price check with the supplier"
+    answer: D
+    explain: "Search prices can be minutes old. The price a traveller pays is always rechecked with the supplier, and price checks and bookings are never cached. If the all-in price changed, the traveller sees it and confirms again."
+    exam: AI-200
+    skill: "Develop AI solutions by using Azure data management services"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -612,19 +663,3 @@ Two months later, a fourth supplier signs. Its API is XML, not JSON, and it pric
 Nobody touches search. One engineer writes the adapter in four days, runs it against a week of recorded payloads, and ships it behind a feature flag. The nightly mapping job matches 91% of its hotels automatically, and the review queue takes the next 6% in an afternoon.
 
 The median query from the top of this article runs once more before the flag is switched on. Four suppliers, one Goa, four medians within 12% of each other. The Sea Breeze Resort now has four offers on one card, and its top price is the same in the app, on the web and at checkout.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could design this platform on your own.
-
-1. **The cheap resort.** Supplier C quotes the Sea Breeze at USD 170 for the stay with a USD 60 resort fee; Supplier A quotes ₹17,200 all-in. At ₹84 to the dollar, which offer ranks first, and which field in the canonical model makes that decision possible?
-2. **A new meal code.** Supplier B starts sending `"meal": "BRUNCH_INCLUDED"` overnight. Walk one offer through the adapter. What does the traveller see, and which guardrail tells you by morning?
-3. **The twin towers.** Two hotels, "Sea Breeze Resort" and "Sea Breeze Residency", sit 90 metres apart and score 0.84 on names. What does Figure 3 do with a new supplier hotel matching both, and why is merging them automatically the worse mistake?
-4. **Two minutes of cache.** Supplier C timed out on a busy search, and the partial result went into Redis. What do the next travellers asking the same question see, and why is the cache lifetime for that result shorter?
-5. **The ₹212 that got through.** Suppose the sanity check had not existed. Which step would still have stopped anyone paying ₹212, and why is relying on it alone not good enough?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

@@ -21,6 +21,57 @@ faq:
     a: 'A low per-caller limit, such as ten attempts per minute, partitioned by user or IP rather than applied globally. At thousands of attempts a minute a password list is exhausted in hours; at ten a minute it takes years. A real user retrying a login is never affected.'
   - q: 'Should a login endpoint return different responses for "wrong password" and "no such user"?'
     a: 'No, and that includes response timing, not just the message. Different responses let a script work out which accounts exist, and a confirmed list of real accounts is worth more to an attacker than the password guesses themselves.'
+quiz:
+  - q: "A script tries 8,000 passwords a minute against your mobile login API. Which control changes the economics of the attack the most?"
+    options:
+      - "A CAPTCHA on the login screen"
+      - "A longer password policy"
+      - "A rate limit on the login endpoint, partitioned per user or IP"
+      - "Hiding the login URL in the app"
+    answer: C
+    explain: "At 8,000 tries a minute a password list runs out in hours. At 10 a minute it takes years. The limit has to be partitioned per user or IP, because a global limit lets one attacker lock out every real customer."
+    exam: SC-500
+    skill: "Secure compute"
+  - q: "Why does a CAPTCHA do nothing against this bot?"
+    options:
+      - "Modern bots solve every CAPTCHA"
+      - "CAPTCHAs only work on iOS"
+      - "The bot calls your API directly and never renders your UI"
+      - "CAPTCHAs are blocked by Front Door WAF"
+    answer: C
+    explain: "A CAPTCHA protects a web form. The bot calls the same API your app calls, straight from a server, and never draws a single pixel of your UI. Anything meant to stop automation has to live at the API layer."
+    exam: SC-500
+    skill: "Secure compute"
+  - q: "The bot finally guesses a correct password for one user. What makes that guess useless?"
+    options:
+      - "Microsoft Entra ID smart lockout plus MFA through Conditional Access"
+      - "Returning a 404 instead of a 401"
+      - "Logging the IP address"
+      - "A shorter token lifetime"
+    answer: A
+    explain: "Smart lockout is on by default and tells familiar locations from unfamiliar ones, so it can lock out the bot without locking out the real user. MFA means a right password alone is no longer enough, which makes password reuse survivable."
+    exam: SC-900
+    skill: "Describe the capabilities of Microsoft Entra"
+  - q: "What should the login endpoint return for 'no such user' compared with 'wrong password'?"
+    options:
+      - "Different messages, so users know which one to fix"
+      - "A 404 for unknown users and a 401 for wrong passwords"
+      - "Only a delay for unknown users"
+      - "The same response and the same timing for both"
+    answer: D
+    explain: "If the message or the timing differs, a script can work out which accounts exist. A confirmed list of real accounts is worth more to an attacker than the guesses themselves."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "What is the earliest monitoring signal that a credential-stuffing attack is under way?"
+    options:
+      - "CPU on the App Service plan"
+      - "A sudden rise in the rate of 401 and 403 responses"
+      - "The number of new sign-ups"
+      - "Database storage growth"
+    answer: B
+    explain: "Alert on the rate of 401s and 403s, not on single errors. A spike in 401s is someone trying credentials. Send the alert to a phone, because an inbox at 3am is no alert at all."
+    exam: SC-500
+    skill: "Manage and monitor security posture"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

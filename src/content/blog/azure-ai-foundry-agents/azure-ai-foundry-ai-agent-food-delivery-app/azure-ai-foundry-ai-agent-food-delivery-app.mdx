@@ -22,6 +22,57 @@ faq:
     a: 'No. That ships a credential which can reach your agent to every device on the internet, and it assembles tool results on a machine you do not control. Put an API between them. Token validation, role checks and logging all belong on the server.'
   - q: 'Do I need an AI agent, or would better filters do?'
     a: 'Filters win when the query space is small and stable. An agent wins when users ask in sentences that combine constraints your UI has no room for, or when the data to answer already exists and only the path from language to that data is missing.'
+quiz:
+  - q: "What does the article mean when it calls an agent 'a model given a set of functions it is allowed to ask you to run'?"
+    options:
+      - "The model emits a structured request; your server runs the method and returns the result"
+      - "The model runs your C# code inside Foundry"
+      - "The model connects to your database directly"
+      - "The model writes new functions at runtime"
+    answer: A
+    explain: "The model doesn't run your code and can't reach your database. It asks for a call, such as search_menu with spicy true and maxPriceMyr 20. Your API runs it and hands back the result."
+    exam: AI-103
+    skill: "Implement generative AI and agentic solutions"
+  - q: "One user turn needs one tool call. At minimum, how many model invocations does that cost?"
+    options:
+      - "One"
+      - "Three"
+      - "It depends on the tool"
+      - "Two"
+    answer: D
+    explain: "The model decides to call the tool, then it is called again with the result to write the answer. A turn needing two tools costs three. Plan latency and budget around that."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "Why shouldn't the Flutter app call Foundry directly?"
+    options:
+      - "Foundry has no mobile SDK"
+      - "It would ship a credential that reaches your agent to every device, and tool results would be assembled on a machine you don't control"
+      - "Flutter can't use HTTPS"
+      - "Foundry blocks requests from phones"
+    answer: B
+    explain: "The ASP.NET Core layer validates tokens, decides which tools each role sees, injects identity into tool calls and produces the logs. All of that belongs on a server you control."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "Which of these is one of the five parts of an agent named in the article?"
+    options:
+      - "The vector index"
+      - "The load balancer"
+      - "The prompt cache"
+      - "The instructions, where business rules such as 'never invent a dish' live"
+    answer: D
+    explain: "The five parts are the model, the instructions, the tools, the memory (the conversation) and the action (your code). They fail separately, so it helps to name them separately."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "Why does data minimisation at the tool boundary count as real security?"
+    options:
+      - "It makes responses compress better"
+      - "Foundry encrypts small payloads only"
+      - "The model can only see what your tool returns, so it can't leak a field you never sent"
+      - "It disables prompt injection"
+    answer: C
+    explain: "If the tool returns a dish without its cost price, the model can't reveal the cost price. And the arguments the model chooses came from user text, so validate them like a query string."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

@@ -27,6 +27,57 @@ faq:
     a: 'No. The context window is the maximum tokens allowed in a single request, while a budget or quota is the total you may spend over a month. They interact badly: filling a 200,000 token window once consumes half of a 400,000 token monthly allowance in a single call, so a large window is permission to spend, not free capacity.'
   - q: 'Why does a long Copilot chat use so many tokens?'
     a: 'Because every turn resends the whole conversation so far, plus the system prompt, tool definitions, instructions and any attached files. Turn 20 carries nineteen earlier questions and answers. The total across a thread grows roughly with the square of its length, so one long chat can cost more than many short ones.'
+quiz:
+  - q: "What is an AI token?"
+    options:
+      - "A fragment of text from the model's fixed vocabulary, such as a common word, part of a word or a punctuation mark"
+      - "Exactly one word"
+      - "Exactly one character"
+      - "One line of code"
+    answer: A
+    explain: "Text becomes token IDs before it reaches the model. Common text is cheap, and rare names split into pieces: 'Jegatheesan' is three tokens with o200k_base."
+    exam: GH-300
+    skill: "Understand GitHub Copilot data and architecture"
+  - q: "Why do output tokens usually cost more than input tokens?"
+    options:
+      - "Output is stored longer"
+      - "Output is generated one token at a time, each needing another pass, while input is processed in one parallel pass"
+      - "Providers charge more for English"
+      - "Input is cached for free"
+    answer: B
+    explain: "That sequential work costs more per token, which is why asking for a diff instead of a rewritten file is the cheapest change available to you."
+    exam: GH-300
+    skill: "Understand GitHub Copilot data and architecture"
+  - q: "What is the difference between a context window and a token budget?"
+    options:
+      - "The window is the most tokens in one request; the budget is what you may spend over a period"
+      - "They are the same thing"
+      - "The window is a monthly total"
+      - "The budget is per request"
+    answer: A
+    explain: "A big window is permission to spend, not spare capacity. With a 200,000-token window and a 400,000-token month, two maximal requests end the month."
+    exam: GH-300
+    skill: "Understand GitHub Copilot data and architecture"
+  - q: "In one Copilot request, which part is usually the smallest?"
+    options:
+      - "The attached files"
+      - "The conversation history"
+      - "Your actual question"
+      - "The tool definitions"
+    answer: C
+    explain: "Your question is 20 to 200 tokens. The system prompt, tools, instructions file, attachments and history travel with it every time, which is why 'write shorter prompts' is poor advice."
+    exam: GH-300
+    skill: "Understand GitHub Copilot data and architecture"
+  - q: "A team writes prompts in Tamil, and the same sentence measured twice the tokens of English. What is the cheapest habit that fixes most of it?"
+    options:
+      - "Switch to a bigger model"
+      - "Use shorter words"
+      - "Stop attaching files"
+      - "Write prompts in English and ask for explanations in the language you want to read"
+    answer: D
+    explain: "Tokenizer vocabularies were built mostly from English text, so other scripts fall back to smaller fragments. It's a tax on the budget, not a sign of careless use."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -275,19 +326,3 @@ Short threads stop history compounding. Attaching the part you mean stops paying
 The following week, the same developer starts the next refactor differently. One chat per question-sized piece of work. Instead of three whole files, they select the method they are asking about. When the answer turns into a new topic, they start a new chat.
 
 By Friday they have asked as many questions as the week before. The dashboard reads about a third of the month.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could plan any team's AI budget.
-
-1. **The 300-line file.** Using the measured rate for this codebase, roughly what does attaching a 300-line Dart file cost on each turn, and on turn 20 of a thread where it has been attached since turn 1?
-2. **The big window.** Your model accepts a million tokens per request. Your allowance is 400,000 a month. What does "just attach the whole repo" cost, and what does it do to answer quality?
-3. **The diff.** A reply that rewrites a 499-line file versus one that returns a 20-line diff. Using the output pricing section, why does this matter more than shortening the question?
-4. **Two languages.** A team writes prompts in Tamil. Using the measured numbers, what happens to their month, and what is the cheapest habit that fixes most of it?
-5. **Five short threads.** Explain, using the efficiency table, why five four-turn threads cost less than one twenty-turn thread with the same files, even though the number of questions is identical.
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

@@ -25,6 +25,57 @@ faq:
     a: 'Require every finding to cite the rule it violates, from AGENTS.md or an ADR, and drop anything it cannot cite. Uncited findings are style opinions, and a review full of style opinions gets skimmed along with the real findings.'
   - q: 'Is test coverage a good measure of AI-written tests?'
     a: 'No. Coverage says which lines ran, not which promises were checked. A better measure is whether every acceptance criterion has a test that names it, which a short pre-push hook can enforce.'
+quiz:
+  - q: "93 tests are green, yet none checks that a preparing order can't be cancelled. Why?"
+    options:
+      - "The tests don't run in CI"
+      - "Coverage was too low"
+      - "The tests were written from the implementation, so they assert what the code already does"
+      - "The test framework was misconfigured"
+    answer: C
+    explain: "Both cancel tests start from placed. A test written from the implementation can't disagree with it. The testing agent reads the requirements first and doesn't read the code until every criterion has a test name."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "What does the pre-push hook check instead of coverage?"
+    options:
+      - "That every acceptance criterion ID in docs/requirements has a test naming it"
+      - "That coverage is above 80%"
+      - "That no test is skipped"
+      - "That tests run under one minute"
+    answer: A
+    explain: "Coverage says which lines ran. This says which promises are checked. Only the second catches a cooking order being cancelled."
+    exam: AZ-400
+    skill: "Design and implement build and release pipelines"
+  - q: "How does the code review agent avoid producing noise?"
+    options:
+      - "It reviews only small diffs"
+      - "It runs twice"
+      - "It reviews only test files"
+      - "Every finding must cite the rule it breaks in AGENTS.md or an ADR, and uncited findings are dropped"
+    answer: D
+    explain: "Uncited findings are style opinions, and a review full of them gets skimmed past the real findings. In CI, cited findings block and uncited ones only comment."
+    exam: GH-300
+    skill: "Use GitHub Copilot responsibly"
+  - q: "Asked 'why does the order list stutter?' with no numbers, the performance agent recites general advice. What fixes that?"
+    options:
+      - "A longer question"
+      - "A bigger model"
+      - "Run it in agent mode"
+      - "Give it a measurement such as DevTools frame timings or rebuild counts, and ask for findings ranked by measured cost"
+    answer: D
+    explain: "No numbers in, no numbers out. With rebuild counts it can rank, for example, a list where one status update rebuilds every visible row, and say what to re-measure."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "The rider dashboard shows 'No jobs right now' when a load fails. Which agent catches this, and how?"
+    options:
+      - "The performance agent, by timing the load"
+      - "The UI review agent, by filling a state matrix (loading, empty, error, offline) for the screen"
+      - "The testing agent, by counting tests"
+      - "The security agent, by checking rules"
+    answer: B
+    explain: "Mockups show the happy path, so error and offline states get invented on the day. RiderState has a failure status the screen never renders, so a broken connection looks like a quiet afternoon."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -351,19 +402,3 @@ Size is not the only thing worth gating, but it regresses quietly and is trivial
 The restaurant pause feature arrives with five acceptance criteria. The testing agent names five tests before it opens a Dart file, and one of them fails: placing an order while the restaurant is paused still succeeds. It reports the gap. The UI agent's state matrix for the partner screen flags the paused state as unhandled. Both are fixed before review.
 
 The suite is green again, and this time it means something.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer.
-
-1. **The missing test.** Write the name and the three lines of a test that would have failed against `cancelOrder` today.
-2. **The quiet day.** In the rider dashboard, what does a rider see after a failed load, and which state view fixes it?
-3. **The uncited finding.** A review agent reports "this method is too long". Is it reported, dropped, or downgraded under the citation rule? Why?
-4. **Coverage.** Your coverage rises from 60% to 85% and the cancel bug still ships. Explain how both are true.
-5. **Eleven builders.** 11 of 14 `BlocBuilder`s have no `buildWhen`. What do you give the performance agent before you change any of them?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

@@ -27,6 +27,57 @@ faq:
     a: 'It depends entirely on how your company meters access. Seat-based GitHub Copilot plans count premium requests rather than raw tokens, while a company gateway in front of Azure OpenAI or the Anthropic API usually counts every token including completions. Ask your admin which model you are on before you optimise anything.'
   - q: 'When should I use Copilot agent mode instead of chat?'
     a: 'For planned, multi-file work that is worth a budget: a feature across layers, a migration touching many call sites, or a test backfill. Agent runs read and resend large parts of the repository, so ration them to two or three a month on a metered plan, and use chat on a selection for everything that fits inside one file.'
+quiz:
+  - q: "Why did one 14-turn agent thread use about 56% of a 400,000-token month?"
+    options:
+      - "Agent mode bills double"
+      - "The files were binary"
+      - "The model was the most expensive one"
+      - "Every turn resends the whole conversation and every attached file, so cost grows with the square of the turn count"
+    answer: D
+    explain: "Turn 5 sends questions 1 to 5, all five answers and every file again. Starting a fresh chat per task, and re-asking instead of arguing, is the biggest saving available."
+    exam: GH-300
+    skill: "Understand GitHub Copilot data and architecture"
+  - q: "Which task belongs in Tier 0, needing no model at all?"
+    options:
+      - "Explaining a compiler error"
+      - "Renaming a symbol across a solution"
+      - "Writing a unit test for one class"
+      - "Building a feature across layers"
+    answer: B
+    explain: "Rename, extract, scaffold and find-all-callers are IDE or CLI tools. If a deterministic tool gives the exact answer, a probabilistic one is the wrong instrument: slower and sometimes wrong."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "The budget is tight. Can you paste company source code into a free consumer chat tool to save tokens?"
+    options:
+      - "Yes, if the snippet is short"
+      - "No. Route by data sensitivity first and cost second; rewrite the question against a generic example instead"
+      - "Yes, if you delete the chat afterwards"
+      - "Yes, for generic questions"
+    answer: B
+    explain: "Tier 1 is for questions with no proprietary code, customer data or internal architecture. Anything touching the repository stays inside the tool your company approved."
+    exam: GH-300
+    skill: "Use GitHub Copilot responsibly"
+  - q: "What is the habit the article calls 'select, do not attach'?"
+    options:
+      - "Attach the whole folder once"
+      - "Use voice input"
+      - "Highlight the 40 lines the question is about instead of attaching the 600-line file"
+      - "Only ask yes or no questions"
+    answer: C
+    explain: "Same answer for a tenth of the tokens. You choose the context deliberately, so each turn stays cheap."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Before optimising anything, what should you ask your admin first?"
+    options:
+      - "How you are metered: premium requests on a seat plan, or every token through a company gateway"
+      - "Which model is the fastest"
+      - "Whether agent mode is enabled"
+      - "How many seats are left"
+    answer: A
+    explain: "A seat-based Copilot plan counts premium requests, and completions are usually outside that count. A gateway in front of Azure OpenAI counts every token. The two need opposite habits."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -257,19 +308,3 @@ The rule underneath: **the cost of a task is set by the tier you pick, not by ho
 Three weeks later, another registration bug, this time in the notification service. The developer reads the failing test, selects the one method, and asks chat a single specific question. The first answer misses a constraint, so they close the thread and ask again with it included. The second answer is right. Done.
 
 Two threads, three turns in total, about 18,000 tokens. The dashboard is at 58% with a week to go, and the reserve is untouched.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could plan any developer's AI month.
-
-1. **The rename.** A developer asks agent mode to rename `OrderService` to `OrderCoordinator` across the solution. Which tier should this have been, and what did it cost them?
-2. **The regex.** A question about a regular expression involves a sample of real customer email addresses. Which tier does it belong to, and what do you change before asking?
-3. **The argument.** Turn 3 is wrong. Using the thread cost function, explain why explaining the fix on turn 4 costs more than starting a new thread.
-4. **Two metering models.** Your company counts premium requests, not tokens. Which habits in this article still matter, and which matter less?
-5. **The reserve.** Why keep 40,000 tokens untouched until the last week, and what kind of task is it for?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

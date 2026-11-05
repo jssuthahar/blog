@@ -27,6 +27,57 @@ faq:
     a: 'Yes. The MSDevBuild Eats food delivery app at github.com/jssuthahar/food-delivery-app uses exactly this layering: pure-Dart domain, BLoC and Cubit state, Firebase behind a repository interface. It runs offline with no API keys, and has a live web build and an Android build you can install.'
   - q: 'Why is calling Firestore inside build() a problem in Flutter?'
     a: 'build() can run many times a second, so a Firestore query or snapshots() call inside it can read the same data over and over, cost money per read, and cause jank. It also ties the widget to Firestore, so the screen cannot be tested without an emulator. Load data in a Cubit through a repository instead.'
+quiz:
+  - q: "Why is calling FirebaseFirestore inside a widget's build() method a problem?"
+    options:
+      - "Firestore doesn't work in Flutter web"
+      - "build() can't be async"
+      - "It breaks hot reload"
+      - "build() can run many times a second, so it can repeat paid reads and cause jank, and the screen can't be tested without an emulator"
+    answer: D
+    explain: "The Skill's rule is that the UI never calls Firestore directly. Data loads once in a Cubit through a use case and a repository, and the Firestore code lives only in lib/data."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "Copilot registers OrdersCubit in get_it as a singleton. What does that cost?"
+    options:
+      - "Nothing, it's the recommended pattern"
+      - "The bloc is never closed, so it keeps stream subscriptions alive for screens nobody is viewing"
+      - "Slower startup only"
+      - "It breaks bloc_test"
+    answer: B
+    explain: "A bloc created by BlocProvider is closed when the route pops. Only use cases go in get_it. That rule is one Copilot could never infer, because get_it is right there in the dependency list."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Why can the Cubit's tests run in milliseconds in CI with no emulator?"
+    options:
+      - "Firestore has an in-memory mode"
+      - "bloc_test starts an emulator automatically"
+      - "The Cubit depends on a use case that returns Result<T>, so a test mocks the use case"
+      - "The tests skip the failure path"
+    answer: C
+    explain: "Because Firestore lives only behind a repository interface, the failure case in a test is a one-line Result.failure(...). No network and no fake exception plumbing."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "A new search screen fires a Firestore query on every keystroke. Which rule was missing from the Skill?"
+    options:
+      - "Use setState for search"
+      - "Cache every query forever"
+      - "Search events use restartable() with a debounce"
+      - "Search only after the user presses Enter"
+    answer: C
+    explain: "The app's search uses bloc_concurrency's restartable() with a 320 ms debounce, so only the newest query is ever in flight. Encode it as a rule or pay for it in Firestore reads."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Your rule says 'not setState', and grep finds nine files that use it for a checkbox, a page index and a quantity stepper. What should you do?"
+    options:
+      - "Reword the rule to 'not setState for feature or business data'; local UI state is fine"
+      - "Rewrite all nine files as Cubits"
+      - "Delete the rule"
+      - "Allow setState everywhere"
+    answer: A
+    explain: "The favourites heart holding feature data in setState was the real violation. Saying the rule precisely stops the Skill flagging correct local UI state."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -606,21 +657,5 @@ The following Monday, the same developer asks Copilot to "add a page listing a r
 "Add", "page" and "Firestore" match the description. Copilot writes a `DeliveryRepository` contract in `lib/domain`, the Firestore implementation in `lib/data`, a `GetDeliveryHistory` use case, a `DeliveriesCubit`, a screen with `BlocBuilder`, and a `blocTest` that covers loading, data and empty with a mocked use case.
 
 The first `grep` still returns zero. The third one returns three. Review is about the empty-state wording.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this build-along prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. If you get all five, you could write a Skill for any Flutter app.
-
-1. **The orders list page.** A developer types "orders list page" and gets `snapshots()` in `build()`. Which section failed, and what exactly do you change?
-2. **The singleton bloc.** Copilot registers `OrdersCubit` in `get_it` as a singleton. Which Flutter gotcha is that, and what does it cost on a phone after a hundred visits to the screen?
-3. **setState, again.** Your rules say "not setState" and the first `grep` of your codebase shows nine files using it. Are they all violations? How would you reword the rule?
-4. **Search as you type.** A new search screen fires a Firestore query on every keystroke. Which rule was missing from the Skill, and what does it save?
-5. **Two test files.** The third `grep` returns two files for thirteen blocs. Using the efficiency section and the checklist, what changes for the next screen, and what do you do about the other eleven?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>
 
 For the `Cubit` versus `Bloc` split, the [BLoC documentation](https://bloclibrary.dev/) is worth a read.

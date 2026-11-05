@@ -23,6 +23,57 @@ faq:
     a: 'Azure RBAC. Access policies are the older, coarser model. RBAC lets you grant a narrow role like Key Vault Secrets User — read-only, secrets-only — so the application identity cannot write, delete or list keys even if it is compromised.'
   - q: 'Does a rotated Key Vault secret update a running ASP.NET Core app?'
     a: 'Not by default. AddAzureKeyVault reads secrets at startup and caches them, so the running app keeps the old value until it restarts. Pass a ReloadInterval in the options so rotation takes effect without a redeploy.'
+quiz:
+  - q: "Every secret has moved to Key Vault, but appsettings.json still holds a ClientId and ClientSecret to open the vault. What removes that last secret?"
+    options:
+      - "Encrypting appsettings.json"
+      - "Moving the ClientSecret to an environment variable"
+      - "A managed identity on the App Service, with DefaultAzureCredential"
+      - "A second Key Vault that stores the first vault's secret"
+    answer: C
+    explain: "A managed identity gives the resource itself an identity, with no password or certificate on disk, and Azure rotates its tokens. DefaultAzureCredential uses az login on your laptop and the managed identity in Azure, so one line works in both places."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "Which Azure RBAC role should the application identity get on the vault?"
+    options:
+      - "Key Vault Secrets User"
+      - "Key Vault Administrator"
+      - "Owner"
+      - "Key Vault Crypto Officer"
+    answer: A
+    explain: "Key Vault Secrets User is read-only and secrets-only. The app has no business writing, deleting or listing keys, so it shouldn't be able to, even if it is compromised. RBAC replaces the older, coarser access policy model."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "You rotate a secret in Key Vault, but the running ASP.NET Core app keeps using the old value. Why?"
+    options:
+      - "Key Vault keeps the old version active for 24 hours"
+      - "The managed identity token has expired"
+      - "AddAzureKeyVault reads secrets at startup and caches them unless ReloadInterval is set"
+      - "Soft delete restored the old version"
+    answer: C
+    explain: "The configuration provider reads once at startup and caches. Without a ReloadInterval, the app keeps the old value until it restarts, so your 'no redeploy' rotation quietly needs one."
+    exam: AI-200
+    skill: "Implement secure Azure solutions"
+  - q: "Which Key Vault setting stops a compromised identity from destroying your secrets permanently?"
+    options:
+      - "Soft delete"
+      - "Purge protection"
+      - "Secret expiry dates"
+      - "Diagnostic logging"
+    answer: B
+    explain: "Soft delete is on by default, but a deleted secret can still be purged. Purge protection blocks that permanent delete. Logging tells you who read what, and expiry dates warn you before a secret lapses."
+    exam: SC-500
+    skill: "Secure storage, databases, and networking"
+  - q: "Your API calls Azure SQL, Storage and Azure OpenAI. What is better than storing their keys in Key Vault?"
+    options:
+      - "Store the keys in the mobile app"
+      - "Rotate the keys every week"
+      - "Put the keys in GitHub Actions secrets"
+      - "Authenticate to those services with the managed identity directly, so no key exists"
+    answer: D
+    explain: "Azure SQL, Storage, Service Bus, Cosmos DB and Azure OpenAI all accept managed identity directly. A secret you never created can't leak, expire or be rotated wrong."
+    exam: AZ-305
+    skill: "Design identity, governance, and monitoring solutions"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

@@ -24,6 +24,57 @@ faq:
     a: 'Draft with it, never ship it unverified. AI will invent a plausible rationale for code it cannot explain, mislabel dead code as important, and state guesses as facts. Check every extracted rule against tests, real behaviour, and the people who know the system. A confidently wrong knowledge file is worse than no file at all.'
   - q: 'How do I keep the legacy knowledge current?'
     a: 'Treat the Application Knowledge Skill as code. Update it in the same pull request that changes a documented module, assign an owner per module, and add a hook that flags when a documented file changes without its knowledge file being touched. An out-of-date knowledge file rots into a confidently wrong one.'
+quiz:
+  - q: "Why can't you just point Copilot at a ten-year-old repository and trust its explanations?"
+    options:
+      - "Copilot can't read old .NET code"
+      - "Legacy repos are too large to open"
+      - "Copilot refuses old frameworks"
+      - "The code shows what happens, but the why lives in people, tickets and commit history outside the code"
+    answer: D
+    explain: "On a new project the code is the documentation. On a legacy project the code is the symptom. A rounding rule may exist only because a gateway from 2016 rejected extra precision."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Which instruction does the article call the most useful one in legacy discovery prompts?"
+    options:
+      - "'Where you are guessing, say so'"
+      - "'Be concise'"
+      - "'Use bullet points'"
+      - "'Explain like I'm five'"
+    answer: A
+    explain: "It turns a confident wall of text into something with visible seams you can inspect. Every pass then ends at a human verification gate before a finding becomes a fact."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Which discovery pass recovers the 'why' that code can't hold?"
+    options:
+      - "Pass 1, the structural map"
+      - "Pass 4, knowledge from git log and git blame"
+      - "Pass 3, risk and dependency mapping"
+      - "Pass 2, business-rule extraction"
+    answer: B
+    explain: "A commit message like 'fix rounding for VAT edge case, do not remove' is the rationale the code could never express. The history and the people are the source of truth, not the model."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "Where should deep business rules and workflows for the Orders module live?"
+    options:
+      - "In copilot-instructions.md, loaded on every request"
+      - "In a README nobody opens"
+      - "In an Application Knowledge Skill under .github/skills/, loaded only when a task touches that module"
+      - "In code comments only"
+    answer: C
+    explain: "The always-on instructions file stays small for stack, conventions and hard safety rules. Path-specific instruction files hold folder-local rules, and the Skill holds the deep, on-demand knowledge."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Why is an out-of-date Application Knowledge Skill dangerous?"
+    options:
+      - "It rots into a confidently wrong file that steers every future AI change in the wrong direction"
+      - "It slows Copilot down"
+      - "It breaks the build"
+      - "It uses too many tokens"
+    answer: A
+    explain: "Update it in the same pull request that changes the module, give each module a named owner, and add a hook that flags a documented file changing without its knowledge file."
+    exam: GH-300
+    skill: "Use GitHub Copilot responsibly"
 ---
 
 

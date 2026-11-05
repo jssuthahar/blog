@@ -27,6 +27,57 @@ faq:
     a: 'One. Pick the role that removes the most friction, which on a legacy system is usually a read-only discovery agent. Prove it earns its keep, then add a second role only when there is a clear need and a named person who will own it.'
   - q: 'How do you stop AI agents from contradicting each other?'
     a: 'Give them one shared source of truth, such as AGENTS.md and your repository instructions, keep each role narrow so responsibilities do not overlap, and let tests and CI settle facts. When two agents still disagree on a judgement call, the orchestrator shows you both positions and you decide.'
+quiz:
+  - q: "A custom agent file in .github/agents/ has no tools line. What can that agent use?"
+    options:
+      - "Only read and search"
+      - "Every tool, which is GitHub's documented default"
+      - "Nothing until you add tools"
+      - "Only the tools the orchestrator grants"
+    answer: B
+    explain: "That default is what produced the scenario: five agents that could all edit anything. Write an explicit tools list for every agent, starting with read and search."
+    exam: GH-300
+    skill: "Configure privacy, content exclusions, and safeguards"
+  - q: "The architecture agent warned 'leave OrderStatus alone', but the developer subagent changed it anyway. Why?"
+    options:
+      - "The model ignored the warning on purpose"
+      - "OrderStatus is generated code"
+      - "A subagent works in its own separate context, so a warning returned to the orchestrator never reached it"
+      - "Subagents can't read enums"
+    answer: C
+    explain: "A handoff switches the active agent and keeps the conversation history, so the warning stays in view. Use subagents for read-only research and handoffs between phases that change code."
+    exam: GH-300
+    skill: "Understand GitHub Copilot data and architecture"
+  - q: "The tester agent needs edit to write tests, so nothing in its tools list stops it editing lib/. What enforces the folder rule?"
+    options:
+      - "CODEOWNERS on the protected paths with 'Require review from Code Owners' in branch protection, or an agent-scoped hook"
+      - "A sentence in the tester's charter"
+      - "Removing the edit tool"
+      - "send: true on the handoff"
+    answer: A
+    explain: "The tools list works per tool, not per folder. A charter sentence is only a request. CODEOWNERS makes GitHub ask a named person to review changes to /firebase/ or /lib/domain/."
+    exam: AZ-400
+    skill: "Design and implement a source control strategy"
+  - q: "With five agents that can edit files, how many pairs can overwrite each other, and with two?"
+    options:
+      - "10 and 1"
+      - "5 and 2"
+      - "25 and 4"
+      - "20 and 2"
+    answer: A
+    explain: "Writers × (writers − 1) ÷ 2 is the collision count. Adding a read-only agent adds nothing to it, which is why reviewers are cheap to add and writers are not."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "Your team moves this design from VS Code to the cloud agent on GitHub.com. What happens to the handoff gates?"
+    options:
+      - "They work the same way"
+      - "They become subagents automatically"
+      - "They are converted into hooks"
+      - "The cloud agent ignores handoffs, so required checks, CODEOWNERS and pull request review become the gates"
+    answer: D
+    explain: "Handoffs work in IDE custom agents such as VS Code. On the cloud agent there are no handoff buttons, but the role boundaries and tool lists still apply."
+    exam: GH-300
+    skill: "Use GitHub Copilot features"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -430,21 +481,5 @@ The architecture agent names three files and says to leave `OrderStatus` alone. 
 The security agent reports something the first run also noticed. The customer rule in `firestore.rules` limits which fields can change, not what `status` can become, so a signed-in customer could mark their own order `delivered`. This time it changes nothing. It gives you the exploit path, a proposed diff and a failing test, and you open a separate ticket with your name on it.
 
 The pull request is small enough to read in four minutes. You read it, and you sign it.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above, because each one needs two sections put together. Reply in the comments with the question number and your answer.
-
-1. **The lost warning.** Your architecture agent warned about a shared enum, and the developer agent changed it anyway. The team blames the model. What in the setup more likely caused it, and which feature would have kept the warning in view?
-2. **The tidy tester.** A teammate says your tester is safe because its charter forbids editing `lib/`. What can still go wrong, and what would you add so the rule holds?
-3. **The cloud move.** Your team moves this design from VS Code to the cloud agent on GitHub.com. Which gates stop working, and what replaces them?
-4. **The slow guard.** A `preToolUse` hook runs a four-minute scan, and agents start getting past it. Why, and where should that scan live instead?
-5. **The sixth agent.** Someone proposes a sixth agent with edit rights to "clean up" after the others. Work out the collision count before and after, and say what you would propose instead.
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>
 
 Sources, checked October 2026: [Custom agents configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration) and [hooks reference](https://docs.github.com/en/copilot/reference/hooks-reference) on GitHub Docs, and [custom agents](https://code.visualstudio.com/docs/copilot/customization/custom-agents), [subagents](https://code.visualstudio.com/docs/copilot/agents/subagents) and [hooks](https://code.visualstudio.com/docs/copilot/customization/hooks) in the VS Code docs. These features change often, so confirm the details before you rely on them.

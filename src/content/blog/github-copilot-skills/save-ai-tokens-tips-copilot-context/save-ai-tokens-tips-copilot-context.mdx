@@ -27,6 +27,57 @@ faq:
     a: 'Paste it into a public tokenizer such as the OpenAI tokenizer page, or count locally with the tiktoken library. Do this once for a typical file in your own codebase. Measured with o200k_base, Dart came in near 6.5 tokens per line and Markdown near 10; budget up to 10 per line for dense C# or TypeScript.'
   - q: 'Why does a long Copilot chat cost so much more than a short one?'
     a: 'The model is stateless, so the client resends the whole conversation and every attached file on each turn. The total grows with the square of the number of turns. Ten turns over two 300-line files cost about 94,000 tokens; the same ten questions batched into two turns cost about 23,000.'
+quiz:
+  - q: "Turn 3 of a Copilot chat comes back wrong. What is the cheapest next move?"
+    options:
+      - "Explain the mistake in turn 4"
+      - "Attach more files and ask again in the same thread"
+      - "Switch to agent mode"
+      - "Close the chat and rewrite the first prompt with the missing fact"
+    answer: D
+    explain: "A correction turn buys the whole thread again, and the wrong answer stays in context steering everything after it. Restarting costs a fraction as much and gives a cleaner answer."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "The fee bug's cause was on line 43 of a file nobody attached. Which two habits together would have put it in context on turn 1?"
+    options:
+      - "Batch questions and cap explanations"
+      - "Use a bigger model and a longer prompt"
+      - "Search for the symbol first, then select and name it in the question"
+      - "Attach every file in lib/"
+    answer: C
+    explain: "One grep for smallOrderFee found the merge in order_repository_impl.dart. Selecting createOrder and the two fee getters cost 381 tokens instead of 7,591, and the selection held the answer."
+    exam: GH-300
+    skill: "Apply prompt engineering and context crafting"
+  - q: "Why ask Copilot for a unified diff instead of the full fixed files?"
+    options:
+      - "Output tokens cost more, and the diff was 916 tokens against 7,279; it is also easier to review and can't hide quiet edits"
+      - "Diffs are free"
+      - "Copilot can't return full files"
+      - "Diffs skip tests"
+    answer: A
+    explain: "Fifteen changed lines across four files came back as four whole files at 7,279 output tokens, or as one diff at 916."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
+  - q: "Which Copilot Business and Enterprise feature keeps lock files and *.g.dart files out of every request without anyone remembering?"
+    options:
+      - "Content exclusion at the repository or organisation level"
+      - "Prompt caching"
+      - "Agent mode"
+      - "Code referencing filter"
+    answer: A
+    explain: "Generated and vendored files are token weight with almost no signal, and agent mode reads files on its own. Exclusion applies to every request."
+    exam: GH-300
+    skill: "Configure privacy, content exclusions, and safeguards"
+  - q: "An agent opens the wrong folder and starts editing a file you never mentioned. What should you do?"
+    options:
+      - "Let it finish; it may recover"
+      - "Stop it at once, fix the prompt and start again"
+      - "Give it more turns"
+      - "Increase the model size"
+    answer: B
+    explain: "A misunderstanding agent compounds rather than self-corrects. Every step reads more files and carries them into the next. Letting a wrong run finish is the most expensive habit on the list."
+    exam: GH-300
+    skill: "Improve developer productivity with GitHub Copilot"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';
@@ -290,19 +341,3 @@ Same bug, same fix, same developer. Sizes measured on the reference app; the 4,0
 A week later the same tester files another one: the delivery fee on a reopened order shows "Free" when it should not. The developer searches for `deliveryFee`, selects the two places it is read, and asks one question that names both. The answer is a two-line diff.
 
 One thread, two turns, about 12,000 tokens. The 212,000-token Monday has not happened again.
-
-## Test yourself: answer in the comments
-
-<Callout type="quiz" title="Test yourself · five questions">
-
-Five situations this article prepares you for. None of the answers is a sentence you can copy from above; each one needs two sections put together. Reply in the comments with the question number and your answer. Get all five and you could audit anyone's Copilot month.
-
-1. **The missing file.** The fee thread argued for twelve turns. Which two habits together would have put line 43 into the context on turn 1?
-2. **The batch.** You have six questions about one 300-line file. Using the turn table, roughly what do six turns cost against one batched turn?
-3. **The instruction file.** A team's `copilot-instructions.md` is 450 lines. What does it cost per turn at the measured rate for Markdown, and what would you move out of it?
-4. **The rewrite.** A reviewer asks why you requested a diff when Copilot could "just give the fixed file". Give two reasons, one about cost and one about review.
-5. **The request-based plan.** Your company counts premium requests, not tokens. Which three habits still matter most, and which matter less?
-
-<a href="#comments-heading" class="btn btn-outline btn-sm">Answer in the comments →</a>
-
-</Callout>

@@ -25,6 +25,57 @@ faq:
     a: 'The previous portal and the 1.x SDKs, kept alive under separate documentation. Anything using PersistentAgentsClient with threads and runs is classic. New work should use the 2.x packages and the Responses API.'
   - q: 'Which SDK should a .NET developer use with Foundry?'
     a: 'Azure.AI.Projects with Azure.AI.Projects.Agents and Azure.AI.Extensions.OpenAI for agents and Foundry features. Add Microsoft Agent Framework when you need multi-agent orchestration or want to run your own agent code. Use the plain OpenAI SDK when you only want models and lowest latency.'
+quiz:
+  - q: "You only need chat completions and embeddings for a summariser. What should you use?"
+    options:
+      - "A Foundry hosted agent"
+      - "Microsoft Agent Framework with handoff"
+      - "A Foundry Toolbox"
+      - "An Azure OpenAI resource directly"
+    answer: D
+    explain: "Azure OpenAI is an endpoint; Foundry is the platform around models. If a model answering a prompt is all you need, the endpoint is simpler, has fewer concepts and lower latency."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "What is a prompt agent in Foundry?"
+    options:
+      - "Your own code packaged in a container"
+      - "A chatbot without tools"
+      - "An agent defined by configuration (model, instructions, tools) that Foundry runs with no compute of yours"
+      - "An agent that only answers in the playground"
+    answer: C
+    explain: "A hosted agent is your container that Foundry runs. A prompt agent has no runtime code or compute to manage, which is why the article recommends starting with one."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "A sample uses PersistentAgentsClient with threads and runs. What does that tell you?"
+    options:
+      - "It's the newest 2.x API"
+      - "It needs Agent Framework"
+      - "It's Foundry classic and won't compile against the current 2.x packages"
+      - "It's for hosted agents only"
+    answer: C
+    explain: "The current path is Azure.AI.Projects 2.x with agent versions, conversations and the Responses API. Classic samples look almost right, so check the class names before copying."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "What single URL does every Foundry SDK call hang off?"
+    options:
+      - "The project endpoint, https://<resource>.services.ai.azure.com/api/projects/<project>"
+      - "The subscription ID"
+      - "The model deployment's REST URL"
+      - "https://ai.azure.com"
+    answer: A
+    explain: "You create a resource, then projects inside it. The project endpoint reaches models, agents, conversations, tools and traces, with Microsoft Entra ID deciding who may do what."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "What usually dominates token cost in an agent?"
+    options:
+      - "What the user typed"
+      - "What your tools return"
+      - "The agent's name"
+      - "The number of projects"
+    answer: B
+    explain: "An agent turn is two or three model calls, and each one carries the tool results. In this app, trimming one tool response halved the cost of the most common turn with no worse answers."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

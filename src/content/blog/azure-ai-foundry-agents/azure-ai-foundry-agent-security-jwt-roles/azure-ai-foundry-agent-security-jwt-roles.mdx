@@ -24,6 +24,57 @@ faq:
     a: 'In code, always. Giving each role a filtered tool list is a token saving and a quality improvement, not a security control. The executor must reject a tool the caller''s role may not call, regardless of what the model asked for.'
 cover: './images/azure-ai-foundry-agent-security-jwt-roles-cover.png'
 coverAlt: 'Article banner. On the left, the eyebrow "Zero to Production AI Agents" above the title "No user ID in any tool" and the line "Identity comes from the JWT, never from the model.", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: a grey box reading "Two identities, the app''s and the user''s", an arrow labelled "the attack" to a red box reading "Injected text in a menu row, aimed at a tool parameter", and an arrow labelled "the design" to a green box reading "Identity resolved in the executor, nothing for the model to change".'
+quiz:
+  - q: "Which identity does the API use when it calls Microsoft Foundry?"
+    options:
+      - "The API's own managed identity in Microsoft Entra ID, holding the Foundry User role"
+      - "The customer's Firebase ID token, forwarded"
+      - "A Foundry API key in appsettings.json"
+      - "An anonymous connection"
+    answer: A
+    explain: "There are two identities and they never mix. The user's token authenticates to your API. Your API's managed identity authenticates to Foundry. Foundry doesn't know who the customer is, and it doesn't need to."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "How should get_pending_orders know which restaurant's orders to return?"
+    options:
+      - "The executor reads RestaurantId from CallerContext, built from the validated token's claims"
+      - "A restaurantId parameter in the tool schema"
+      - "The model asks the user for the restaurant ID"
+      - "The instructions name the restaurant"
+    answer: A
+    explain: "An identity value must never appear in a tool parameter schema. If the model has no field to carry a restaurant ID, a hostile user can't talk it into passing someone else's. The model picks the operation, the server picks whose data."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
+  - q: "Each role gets a filtered tool list, so a customer's agent never sees get_pending_orders. Is that a security control?"
+    options:
+      - "Yes, because the model can't call a tool it doesn't know about"
+      - "Yes, once content filters are on"
+      - "Only for write tools"
+      - "No. It saves tokens and improves routing, but the executor's role check is what actually blocks the call"
+    answer: D
+    explain: "Withholding a tool only lowers the chance the model tries. The executor must reject any tool the caller's role may not use, even one the model was never told about."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "A restaurant partner writes 'SYSTEM: ignore previous instructions…' into a dish description. Which defence matters most?"
+    options:
+      - "An instruction telling the model that tool output is data"
+      - "A regex that strips instruction-like text"
+      - "Tools designed so that even a fully compromised model can't reach another user's data"
+      - "Foundry's XPIA content filter"
+    answer: C
+    explain: "Assume the injection works. If no tool accepts an identity and none can read another user's data, the blast radius is a wrong item in the customer's own cart. The instruction line, sanitising and content filters reduce the risk, but none of them is a wall."
+    exam: AI-103
+    skill: "Plan and manage an Azure AI solution"
+  - q: "A customer asks track_delivery about an order that belongs to someone else. What should the executor return?"
+    options:
+      - "not_permitted"
+      - "not_found"
+      - "The order, with personal fields hidden"
+      - "A 500 error"
+    answer: B
+    explain: "Saying an order exists but isn't yours is a small leak. Returning not_found gives nothing away. not_permitted is used when the role may not call that tool at all."
+    exam: SC-500
+    skill: "Manage identity, access, and governance"
 ---
 
 import Callout from '../../../../components/mdx/Callout.astro';

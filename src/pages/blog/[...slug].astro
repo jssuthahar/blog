@@ -49,6 +49,7 @@ import { getImage } from 'astro:assets';
 import { relatedShortsForPost } from '../../lib/app-feed';
 import { getShorts, shortUrl } from '../../lib/shorts';
 import ShortHighlight from '../../components/ShortHighlight.astro';
+import TokenCalculatorLink from '../../components/TokenCalculatorLink.astro';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -361,6 +362,10 @@ const shareImage = data.cover
         </article>
 
         {data.quiz.length > 0 && <ArticleQuiz quiz={data.quiz} />}
+
+        <!-- The way back to the calculator, only on articles one of its steps
+             recommends (the same list drives both directions). -->
+        <TokenCalculatorLink postId={post.id} class="mx-auto mt-10 max-w-[68ch]" />
 
         <div class="mx-auto mt-12 max-w-[68ch] border-t border-default pt-8" data-engagement-end>
           <div class="flex flex-wrap items-end justify-between gap-6">

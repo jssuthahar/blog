@@ -1,0 +1,142 @@
+---
+/**
+ * The way back from an article to the AI Token Calculator. It reads the same
+ * `read` lists that put the article on the calculator, so the two links always
+ * agree: a post appears here only for the steps that recommend it, and most
+ * posts render nothing.
+ */
+import { STEP_QA } from '../lib/token-academy/questions';
+
+interface Props {
+  postId: string;
+  class?: string;
+}
+
+const { postId, class: className } = Astro.props;
+const steps = Object.entries(STEP_QA)
+  .map(([id, s], i) => ({ id, n: i + 1, q: s.q, cites: s.read?.includes(postId) }))
+  .filter((s) => s.cites);
+---
+
+{steps.length > 0 && (
+  <aside class:list={['tcl', className]} aria-labelledby="tcl-title">
+    <div class="tcl-mark" aria-hidden="true">
+      {['to', 'ken', 's'].map((t, i) => <span style={`--i:${i}`}>{t}</span>)}
+    </div>
+    <div class="tcl-body">
+      <p class="tcl-kicker">Try it yourself</p>
+      <p id="tcl-title" class="tcl-title">See this in the AI Token Calculator</p>
+      <p class="tcl-text">Count your own text, watch tokens turn into AI Credits, and check what you learned in each step.</p>
+      <ul class="tcl-steps">
+        {steps.map((s) => (
+          <li>
+            <a href={`/open-source/ai-token-calculator/#${s.id}`}>
+              <b>Step {s.n}</b>
+              {s.q}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </aside>
+)}
+
+<style>
+  .tcl {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 1rem;
+    border: 1px solid var(--gp-tile-line);
+    border-left: 4px solid #0078d4;
+    border-radius: 1.1rem;
+    background: var(--gp-fill);
+    box-shadow: 0 14px 32px -18px rgb(0 72 130 / 0.32);
+    padding: 1rem 1.15rem;
+  }
+  .tcl-mark {
+    display: flex;
+    gap: 2px;
+    align-self: start;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #0068b8, #003e70);
+    padding: 0.55rem 0.6rem;
+    font: 700 0.8rem var(--font-mono);
+    color: #fff;
+  }
+  .tcl-mark span {
+    border-radius: 0.3rem;
+    background: rgb(255 255 255 / 0.2);
+    padding: 0.1rem 0.25rem;
+  }
+  .tcl-kicker {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+  }
+  .tcl-title {
+    margin-top: 0.15rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+  .tcl-text {
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+  .tcl-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.7rem;
+  }
+  .tcl-steps a {
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+    border-radius: 0.6rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+    transition: background 0.2s;
+  }
+  .tcl-steps a:hover {
+    background: var(--accent-soft);
+  }
+  .tcl-steps b {
+    flex: none;
+    border-radius: 999px;
+    background: #0078d4;
+    padding: 0.05rem 0.55rem;
+    font-size: 0.72rem;
+    color: #fff;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .tcl-mark span {
+      animation: tcl-split 4s cubic-bezier(0.3, 1.4, 0.6, 1) calc(var(--i) * 0.2s) infinite both;
+    }
+  }
+  @keyframes tcl-split {
+    0%,
+    10% {
+      opacity: 0.3;
+      transform: translateY(-4px);
+    }
+    25%,
+    90% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @media (max-width: 520px) {
+    .tcl {
+      grid-template-columns: 1fr;
+    }
+    .tcl-mark {
+      justify-self: start;
+    }
+  }
+</style>

@@ -36,6 +36,7 @@ export const TOPIC_LINKS: { term: string; href: string }[] = [
   { term: 'Azure System Design', href: '/series/azure-production-issues/' },
   { term: 'Mobile App Security', href: '/series/azure-mobile-security/' },
   { term: 'Open Source', href: '/open-source/' },
+  { term: 'AI Token Calculator', href: '/open-source/ai-token-calculator/' },
   { term: 'Short Videos', href: '/shorts/' },
 ];
 

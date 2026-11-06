@@ -1,7 +1,7 @@
 /**
  * Client behaviour for /open-source/ai-token-calculator/: every interactive part
  * of the Copilot Token Academy. Ported from the original single-file tool; the
- * thirteen views became thirteen steps on one page.
+ * thirteen views became fourteen steps on one page.
  *
  * Plain JavaScript on purpose: the tool's code is dense and DOM-driven, and is
  * kept close to the original so the two stay easy to compare.
@@ -746,10 +746,11 @@ if("IntersectionObserver" in window){const bo=new IntersectionObserver(es=>es.fo
 
 /* ---------- a guided course: one step on screen at a time ---------- */
 // Every step stays in the HTML (search engines and no-JS readers get the whole
-// page); with JavaScript, the reader sees one step, a map of all thirteen, and
+// page); with JavaScript, the reader sees one step, a map of all fourteen, and
 // a clear way on. Progress is a per-reader convenience, so it lives in
 // localStorage and the page works the same when that is unavailable.
 const onFirstView = {
+  continue: () => cvRun(),
   customize: () => hRun(true),
   patterns: () => pRun(true),
   picture: () => w3(false),
@@ -855,6 +856,67 @@ function confetti(host, n = 26) {
   }
 }
 
+// ---- prompt makeover: how people ask, and the best way ----
+const mkBox = document.getElementById("makeover");
+function mkCount(panel) {
+  if (!panel) return;
+  const ask = panel.querySelector(".ta-mk-bubble").textContent;
+  const best = [...panel.querySelectorAll(".ta-mk-part span")].map(x => x.textContent).join(" ");
+  panel.querySelector('[data-tok="ask"]').textContent = `${fmt(tokO(ask))} tokens · usually means guessing and retries`;
+  panel.querySelector('[data-tok="best"]').textContent = `${fmt(tokO(best))} tokens · right first time`;
+}
+function mkShow(id) {
+  mkBox.querySelectorAll(".ta-mk-picks button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mk === id));
+  mkBox.querySelectorAll(".ta-mk-panel").forEach(x => x.classList.toggle("is-on", x.dataset.mk === id));
+  mkCount(mkBox.querySelector(`.ta-mk-panel[data-mk="${id}"]`));
+}
+if (mkBox) {
+  mkBox.querySelectorAll(".ta-mk-panel").forEach(mkCount);
+  loadTokenizers().then(() => { if (alive()) mkBox.querySelectorAll(".ta-mk-panel").forEach(mkCount); });
+}
+
+// ---- continue the chat, or start fresh? ----
+// Next five messages, priced both ways on the default model. Continuing
+// re-sends the history: from cache if it is warm, at full price on the first
+// message if it has expired. A new chat starts from a 1,000-token summary.
+const CV = { time: "warm", topic: "same" };
+function cvRun() {
+  if (!document.getElementById("cv-turns")) return;
+  const T = +$("cv-turns").value, g = +$("cv-grow").value, base = +$("cv-base").value;
+  $("cv-turns-v").textContent = fmt(T); $("cv-grow-v").textContent = fmt(g); $("cv-base-v").textContent = fmt(base);
+  const m = MODELS[SON], O = 800, S = 1000;
+  let a = 0, b = 0, aNext, bNext;
+  for (let k = 1; k <= 5; k++) {
+    const inA = base + (T + k) * g;
+    const caA = k === 1 && CV.time === "cold" ? 0 : base + (T + k - 1) * g;
+    a += crOf(m, inA - caA, caA, O);
+    const inB = base + S + k * g;
+    const caB = k === 1 ? 0 : base + S + (k - 1) * g;
+    b += crOf(m, inB - caB, caB, O);
+    if (k === 1) { aNext = [inA, caA]; bNext = [inB, caB]; }
+  }
+  $("cv-a-next").textContent = `Next message: ${fmt(aNext[0])} input tokens, ${fmt(aNext[1])} from cache`;
+  $("cv-b-next").textContent = `Next message: ${fmt(bNext[0])} input tokens, ${fmt(bNext[1])} from cache`;
+  tween($("cv-a-cr"), a, { dec: 1 }); tween($("cv-b-cr"), b, { dec: 1 });
+  const max = Math.max(a, b);
+  $("cv-a-bar").style.width = (a / max) * 100 + "%"; $("cv-b-bar").style.width = (b / max) * 100 + "%";
+  const fresh = CV.topic === "new" || b < a;
+  $("cv-a").classList.toggle("is-best", !fresh); $("cv-b").classList.toggle("is-best", fresh);
+  const d = fmt(Math.abs(a - b), 1);
+  let v;
+  if (CV.topic === "new")
+    v = `<b>↻ Start a new chat.</b> The old history has nothing to do with the new question. It would ride along on every message${a > b ? `, costing about ${d} more credits over the next five,` : ""} and it can pull the answers off course.`;
+  else if (a <= b)
+    v = `<b>✓ Continue this chat.</b> ${CV.time === "warm" ? "The cache serves the history at about 10% of the price" : "The history is short enough that even full price on the first message is fine"}, and Copilot already knows the task. About ${d} credits cheaper over the next five messages.`;
+  else if (CV.time === "cold")
+    v = `<b>↻ Summarize, then start fresh.</b> The cache has expired, so the next message would send all ${fmt(aNext[0])} tokens at full price. A new chat with a short summary is about ${d} credits cheaper over the next five.`;
+  else
+    v = `<b>↻ Compact, or start fresh.</b> The history is so long that even at the cached price it costs more than a fresh start: about ${d} credits over the next five. In Copilot CLI, /compact does this for you.`;
+  $("cv-verdict").innerHTML = v;
+}
+["cv-turns", "cv-grow", "cv-base"].forEach(id => document.getElementById(id)?.addEventListener("input", cvRun, { signal }));
+cvRun();
+
 function paint() {
   const done = new Set(state.done);
   path.querySelectorAll("a[data-step]").forEach(a => {
@@ -955,6 +1017,15 @@ document.addEventListener("click", e => {
         markDone(step.id);
       } else save();
     }
+  }
+  const mkb = e.target.closest(".ta-mk-picks button");
+  if (mkb) mkShow(mkb.dataset.mk);
+  const cvb = e.target.closest("[data-cv-time], [data-cv-topic]");
+  if (cvb) {
+    const key = cvb.dataset.cvTime ? "time" : "topic";
+    CV[key] = cvb.dataset.cvTime || cvb.dataset.cvTopic;
+    cvb.parentElement.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === cvb));
+    cvRun();
   }
   const dot = e.target.closest(".ta-story-dots button");
   if (dot) { clearInterval(storyTimer); frame(dot.closest(".ta-story"), +dot.dataset.f); }

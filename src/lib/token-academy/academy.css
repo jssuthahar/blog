@@ -434,7 +434,7 @@
   a:not(.btn) { color: var(--deep); }
   .btn:disabled { cursor: default; opacity: 0.4; }
 
-  /* The learning path: thirteen numbered steps, always in reach. */
+  /* The learning path: fourteen numbered steps, always in reach. */
   .ta-path {
     position: sticky;
     top: 4.6rem;
@@ -687,6 +687,136 @@
   .ta-v-emoji b { font-size: 1.35rem; letter-spacing: -0.02em; color: var(--deep); }
   .ta-frame.is-on .ta-v-emoji span { animation: ta-bounce 0.8s cubic-bezier(0.3, 1.6, 0.5, 1) 0.1s both; }
   .ta-frame.is-on .ta-v-emoji b { animation: ta-rise 0.5s ease 0.3s both; }
+
+  /* ---------- prompt makeover ---------- */
+  .ta-mk-picks { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .ta-mk-picks button {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: var(--card);
+    padding: 0.35rem 0.85rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ink);
+    transition: border-color 0.2s, background 0.2s, transform 0.2s;
+  }
+  .ta-mk-picks button:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .ta-mk-picks button[aria-pressed="true"] { border-color: #0078d4; background: #0078d4; color: #fff; }
+  &.is-course .ta-mk-panel:not(.is-on) { display: none; }
+  .ta-mk-panel { display: flex; flex-direction: column; gap: 0.9rem; }
+  .ta-mk-row {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) auto minmax(0, 1.3fr);
+    align-items: center;
+    gap: 1rem;
+  }
+  .ta-mk-ask, .ta-mk-best { display: flex; flex-direction: column; gap: 0.45rem; min-width: 0; }
+  .ta-mk-bubble {
+    position: relative;
+    margin: 0;
+    border-radius: 1rem 1rem 1rem 0.25rem;
+    background: var(--bg);
+    border: 1px dashed var(--line);
+    padding: 0.7rem 0.9rem;
+    font-family: var(--f-mono);
+    font-size: 0.9rem;
+    color: var(--ink);
+  }
+  .ta-mk-arrow {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0078d4, #003e70);
+    font-size: 1.2rem;
+    color: #fff;
+  }
+  .ta-mk-parts { display: flex; flex-direction: column; gap: 0.35rem; }
+  .ta-mk-part {
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+    margin: 0;
+    border-left: 4px solid var(--c);
+    border-radius: 0.5rem;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    padding: 0.45rem 0.75rem;
+    font-size: 0.92rem;
+  }
+  .ta-mk-part em {
+    flex: none;
+    width: 5.6rem;
+    font-size: 0.7rem;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--c);
+  }
+  .p-task { --c: #0078d4; }
+  .p-context { --c: var(--cacheC); }
+  .p-constraint { --c: var(--outC); }
+  .p-done { --c: var(--think); }
+  .ta-mk-tok { font-size: 0.8rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ta-mk-why { display: flex; flex-direction: column; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
+  .ta-mk-why li { display: flex; gap: 0.5rem; font-size: 0.92rem; }
+  .ta-mk-why li::before { content: "✓"; flex: none; font-weight: 700; color: #0078d4; }
+  .ta-mk-panel.is-on .ta-mk-bubble { animation: ta-wobble 0.6s ease 0.05s both; }
+  .ta-mk-panel.is-on .ta-mk-arrow { animation: ta-pop 0.4s cubic-bezier(0.3, 1.5, 0.6, 1) 0.25s both; }
+  .ta-mk-panel.is-on .ta-mk-part { animation: ta-slide-in 0.45s cubic-bezier(0.22, 0.8, 0.3, 1) calc(0.45s + var(--i) * 0.18s) both; }
+  .ta-mk-panel.is-on .ta-mk-why li { animation: ta-rise 0.4s ease 1.3s both; }
+
+  /* ---------- continue or start fresh ---------- */
+  .ta-cv-pick { display: flex; flex-wrap: wrap; gap: 1rem 2rem; }
+  .ta-cv-pick > div { display: flex; flex-direction: column; gap: 0.35rem; }
+  .ta-cv { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+  .ta-cv-col {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    border: 2px solid var(--line);
+    border-radius: 1.1rem;
+    background: var(--bg);
+    padding: 0.9rem 1rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .ta-cv-col.is-best { border-color: #0078d4; box-shadow: 0 14px 28px -18px rgb(0 90 158 / 0.8); }
+  .ta-cv-col.is-best::after {
+    content: "Cheaper";
+    position: absolute;
+    top: -0.7rem;
+    right: 0.9rem;
+    border-radius: 999px;
+    background: #0078d4;
+    padding: 0.1rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #fff;
+    animation: ta-pop 0.35s cubic-bezier(0.3, 1.5, 0.6, 1) both;
+  }
+  .ta-cv-name { font-size: 1rem; }
+  .ta-cv-next { font-size: 0.85rem; color: var(--muted); }
+  .ta-cv-bar { height: 0.85rem; overflow: hidden; border-radius: 999px; background: var(--card); }
+  .ta-cv-bar i { display: block; width: 0; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #005a9e, #0078d4 60%, #63b1ee); transition: width 0.7s cubic-bezier(0.22, 0.8, 0.3, 1); }
+  .ta-cv-cr { font-size: 0.85rem; color: var(--muted); }
+  .ta-cv-cr b { font-size: 1.6rem; color: var(--deep); font-variant-numeric: tabular-nums; }
+  .ta-verdict {
+    border-radius: 0.9rem;
+    background: var(--accent-soft);
+    padding: 0.8rem 1rem;
+    font-size: 0.98rem;
+  }
+  @media (max-width: 760px) {
+    .ta-mk-row { grid-template-columns: 1fr; }
+    .ta-mk-arrow { rotate: 90deg; justify-self: center; }
+    .ta-cv { grid-template-columns: 1fr; }
+  }
 
   /* ---------- draw.io figures ---------- */
   .ta-fig {
@@ -1232,3 +1362,5 @@
 @keyframes ta-confetti{0%{opacity:1;transform:translate(0,0) rotate(0)}30%{opacity:1;transform:translate(calc(var(--dx)*.55),-90px) rotate(calc(var(--r)*.4))}100%{opacity:0;transform:translate(var(--dx),230px) rotate(var(--r))}}
 @keyframes ta-bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(-6deg)}}
 @keyframes ta-tale-in{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:none}}
+@keyframes ta-wobble{0%{transform:none}25%{transform:rotate(-1.5deg)}50%{transform:rotate(1.5deg)}75%{transform:rotate(-.8deg)}100%{transform:none}}
+@keyframes ta-slide-in{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}

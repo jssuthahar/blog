@@ -1,5 +1,5 @@
 /**
- * The words around the Token Academy's thirteen steps: the question each step
+ * The words around the Token Academy's fourteen steps: the question each step
  * answers, a plain-language answer, and one check-yourself question.
  *
  * Answers lead with the direct answer and stand on their own (40–340
@@ -150,6 +150,27 @@ export const STEP_QA: Record<string, StepQA> = {
       options: ['A clear output format and a stopping point', 'Extra context files', 'Nothing useful'],
       correct: 0,
       why: 'It tells the model what to return and when it is done, which keeps the answer short.',
+    }],
+  },
+  continue: {
+    read: ['save-ai-tokens-tips-copilot-context', 'ai-token-budget-daily-copilot-workflow'],
+    q: 'Does continuing a Copilot chat cost more than starting a new one?',
+    a: 'It depends on the cache and the topic. Each message re-sends the whole chat, but within about an hour most of it is read from cache at about 10% of the price. A quick follow-up on the same task is usually cheapest in the same chat; after a break, or for a new topic, a new chat with a short summary costs less.',
+    checks: [{
+      q: 'Five minutes later, you ask a quick follow-up on the same task. What is usually cheapest?',
+      options: ['Continue the same chat', 'Start a new chat and paste everything again', 'Switch to a bigger model'],
+      correct: 0,
+      why: 'The cache is still warm, so the history is read at about 10% of the price, and the model already has the context.',
+    }, {
+      q: 'You come back after lunch to a 40-message chat, with a new topic. Best move?',
+      options: ['Keep going in that chat', 'Start a new chat with a short summary', 'Paste the whole old chat into a new one'],
+      correct: 1,
+      why: 'The cache has likely expired and the old history is off-topic, so it would cost full price on every message.',
+    }, {
+      q: 'What throws the cache away in the middle of a chat?',
+      options: ['Asking a short question', 'Switching to another model', 'Using Ask mode'],
+      correct: 1,
+      why: 'A new model cannot reuse another model’s cache, so the whole history is billed at full price again.',
     }],
   },
   billing: {

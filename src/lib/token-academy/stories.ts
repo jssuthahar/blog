@@ -52,6 +52,11 @@ export const STORIES: Record<string, Frame[]> = {
     { caption: 'Guessing means retries, each bigger than the last', show: [{ bars: [['Try 1', 45, 'warn'], ['Try 2', 70, 'warn'], ['Try 3', 100, 'warn']] }] },
     { caption: 'A focused prompt gets it first time', show: [{ chips: ['Task', 'Context', 'Constraints', 'Done when'], kind: 'cache' }] },
   ],
+  continue: [
+    { caption: 'Same task, minutes later: the history comes from cache', show: [{ eq: ['cache:history at ~10%', '+', 'in:new question', '=', 'total:cheap'] }] },
+    { caption: 'After an hour, the cache has expired', show: [{ eq: ['warn:history at 100%', '+', 'in:new question', '=', 'warn:expensive'] }] },
+    { caption: 'New topic? New chat, with a short summary', show: [{ chips: ['📝 summary', '+ new question'], kind: 'cache' }] },
+  ],
   billing: [
     { caption: 'Old: every prompt was 1 request × a multiplier', show: [{ eq: ['in:1 prompt', '×', 'in:9', '=', 'warn:9 requests'] }] },
     { caption: 'New: you pay for the tokens each request uses', show: [{ eq: ['in:tokens', '×', 'in:price', '=', 'total:AI Credits'] }] },
@@ -133,6 +138,11 @@ export const TALES: Record<string, Tale> = {
     emoji: '🍛',
     title: 'Two ways to order',
     text: 'A customer who orders “something nice” gets three wrong deliveries before the right one. A customer who orders “one masala dosa, extra chutney, no onion” gets it first time. Meera’s first prompt was “fix checkout”. Her second: “In checkout_bloc.dart, reject expired promo codes. Show only the diff.” One reply, no retries.',
+  },
+  continue: {
+    emoji: '🍽️',
+    title: 'Same table, or a new table?',
+    text: 'At lunch, Meera keeps chatting with the same waiter: they remember her order, so adding a dessert takes one sentence. After a long break, the table has been cleared and the waiter has forgotten everything, so re-explaining the whole meal costs more than sitting at a new table with a short note. Copilot chats work the same way: the cache is the waiter’s short memory.',
   },
   billing: {
     emoji: '🚕',

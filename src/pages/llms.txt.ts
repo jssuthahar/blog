@@ -81,7 +81,7 @@ ${sections.join('\n\n')}
 ${shortSection ? `${shortSection}\n` : ''}
 ## Tools
 
-- [AI Token Calculator](${SITE.url}/open-source/ai-token-calculator/): a thirteen-step guide to GitHub Copilot tokens, from what a token is to AI Credit billing, agent costs, caching and token-saving habits. Each step answers one question in plain words; a live tokenizer counts your own text in the browser.
+- [AI Token Calculator](${SITE.url}/open-source/ai-token-calculator/): a fourteen-step guide to GitHub Copilot tokens, from what a token is to AI Credit billing, agent costs, caching and token-saving habits. Each step answers one question in plain words; a live tokenizer counts your own text in the browser.
 
 ## Optional
 

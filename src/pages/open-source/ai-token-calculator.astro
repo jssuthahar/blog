@@ -9,6 +9,7 @@ import '../../lib/token-academy/academy.css';
 import { STEP_QA, FAQ } from '../../lib/token-academy/questions';
 import { getPublishedPosts, postUrl } from '../../lib/posts';
 import { STORIES, TALES, type Visual } from '../../lib/token-academy/stories';
+import { MAKEOVERS, PART_LABEL } from '../../lib/token-academy/prompts';
 import { getImage } from 'astro:assets';
 import journeyFlow from '../../lib/token-academy/images/token-journey-flow.png';
 import requestSequence from '../../lib/token-academy/images/token-request-sequence.png';
@@ -106,9 +107,36 @@ const tale = (id: string) => {
     <p class="ta-tale-text">${esc(t.text)}</p></aside>`;
 };
 
+// "Prompt makeover": the ways people commonly ask, each rebuilt in four
+// parts. Every panel is in the HTML; the script shows one at a time and
+// counts the tokens of both versions.
+const makeoverHtml = `<section class="card ta-mk" id="makeover">
+  <h3 class="h2">Prompt makeover: how people ask, and the best way to ask</h3>
+  <p>Pick a way you might ask Copilot. See it rebuilt in four parts, and why each part saves tokens.</p>
+  <div class="ta-mk-picks" role="group" aria-label="Common ways to ask">${MAKEOVERS.map(
+    (m, i) => `<button type="button" data-mk="${m.id}" aria-pressed="${i === 0}"><span aria-hidden="true">${m.emoji}</span>${esc(m.label)}</button>`,
+  ).join('')}</div>
+  ${MAKEOVERS.map(
+    (m, i) => `<div class="ta-mk-panel${i === 0 ? ' is-on' : ''}" data-mk="${m.id}">
+    <div class="ta-mk-row">
+      <div class="ta-mk-ask"><span class="ta-kicker">How people often ask</span>
+        <p class="ta-mk-bubble">${esc(m.ask)}</p><span class="ta-mk-tok" data-tok="ask"></span></div>
+      <div class="ta-mk-arrow" aria-hidden="true">→</div>
+      <div class="ta-mk-best"><span class="ta-kicker">The best way to ask</span>
+        <div class="ta-mk-parts">${m.best
+          .map(([part, text], k) => `<p class="ta-mk-part p-${part}" style="--i:${k}"><em>${PART_LABEL[part]}</em><span>${esc(text)}</span></p>`)
+          .join('')}</div><span class="ta-mk-tok" data-tok="best"></span></div>
+    </div>
+    <ul class="ta-mk-why">${m.why.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>
+  </div>`,
+  ).join('')}
+  <p class="small">The better prompt is often longer. It still costs less, because it gets the right answer first time: no exploring, no retries, and no long answer to skim.</p>
+</section>`;
+
 // Each step opens with the question it answers in plain words, and closes with
 // one question the reader can check themselves against.
 const academy = markup
+  .replace('<!--makeover-->', makeoverHtml)
   .replace(/<!--fig:([\w-]+)-->/g, (_, id: string) => figureHtml[id] ?? '')
   .replace(/<!--qa:([\w-]+)-->/g, (_, id: string) => {
     const s = STEP_QA[id];
@@ -150,7 +178,7 @@ const schema = [
     operatingSystem: 'Any (web browser)',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     description:
-      'A thirteen-step guide to GitHub Copilot tokens: an animated lesson, a live tokenizer, AI Credit billing, calculation patterns, scenarios, and how instructions, skills and hooks change token use.',
+      'A fourteen-step guide to GitHub Copilot tokens: an animated lesson, a live tokenizer, AI Credit billing, calculation patterns, scenarios, and how instructions, skills and hooks change token use.',
     author: { '@id': `${SITE.url}/#person` },
   },
   {
@@ -226,20 +254,20 @@ const schema = [
           <span class="ta-way-e" aria-hidden="true">🎓</span>
           <b>Learn from zero</b>
           <span>What a token is and how Copilot bills it, with an animated lesson and quick checks.</span>
-          <em>Steps 1–6 · beginner</em>
+          <em>Steps 1–7 · beginner</em>
         </a>
         <a href="#billing" class="ta-way">
           <span class="ta-way-e" aria-hidden="true">📊</span>
           <b>Estimate my team’s bill</b>
           <span>How AI Credits work, what agents cost, and a monthly estimate for your team.</span>
-          <em>Step 7 · for leads</em>
+          <em>Step 8 · for leads</em>
         </a>
       </div>
     </section>
 
     <header class="ta-course" id="course">
       <p class="eyebrow">The course</p>
-      <h2 class="display">From first token to expert, in 13 short steps</h2>
+      <h2 class="display">From first token to expert, in 14 short steps</h2>
       <p>One step at a time. Each answers one question in plain words, then ends with three quick questions so you know you’re ready for the next. Your progress is saved on this device.</p>
       <div class="ta-meet">
         <span class="ta-tale-av" aria-hidden="true">M</span>

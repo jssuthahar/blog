@@ -434,7 +434,7 @@
   a:not(.btn) { color: var(--deep); }
   .btn:disabled { cursor: default; opacity: 0.4; }
 
-  /* The learning path: fourteen numbered steps, always in reach. */
+  /* The lesson bar: twelve numbered lessons, the calculator and costs, always in reach. */
   .ta-path {
     position: sticky;
     top: 4.6rem;
@@ -539,73 +539,6 @@
     color: var(--ink);
   }
 
-  /* ---------- Meera's story: a moment before the explanation ---------- */
-  .ta-meet {
-    display: flex;
-    gap: 0.8rem;
-    align-items: flex-start;
-    margin-top: 0.9rem;
-    max-width: 80ch;
-    border: 1px solid var(--gp-tile-line);
-    border-radius: 1rem;
-    background: var(--gp-fill);
-    padding: 0.8rem 1rem;
-    font-size: 0.92rem;
-    color: var(--muted);
-  }
-  .ta-meet b { color: var(--ink); }
-  .ta-tale-av {
-    display: grid;
-    flex: none;
-    place-items: center;
-    width: 2.6rem;
-    height: 2.6rem;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #63b1ee, #0078d4 55%, #003e70);
-    box-shadow: 0 6px 14px -6px rgb(0 90 158 / 0.8);
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #fff;
-  }
-  .ta-tale {
-    position: relative;
-    border: 1px solid var(--gp-tile-line);
-    border-radius: 1.25rem;
-    background:
-      repeating-linear-gradient(180deg, transparent 0 1.9rem, rgb(0 120 212 / 0.06) 1.9rem calc(1.9rem + 1px)),
-      var(--card);
-    box-shadow: var(--shadow);
-    padding: 1rem 1.2rem 1.1rem;
-  }
-  .ta-tale::before {
-    content: '';
-    position: absolute;
-    left: 1.6rem;
-    top: -0.45rem;
-    width: 0.9rem;
-    height: 0.9rem;
-    border-left: 1px solid var(--gp-tile-line);
-    border-top: 1px solid var(--gp-tile-line);
-    background: var(--card);
-    transform: rotate(45deg);
-  }
-  .ta-tale-who { display: flex; align-items: center; gap: 0.7rem; }
-  .ta-tale-who b { display: block; font-size: 0.95rem; }
-  .ta-tale-who small { font-size: 0.75rem; color: var(--muted); }
-  .ta-tale-e { margin-left: auto; font-size: 2rem; line-height: 1; animation: ta-bob 3s ease-in-out infinite; }
-  .ta-tale-title {
-    margin-top: 0.7rem;
-    font-size: 1.1rem;
-    font-weight: 700;
-    letter-spacing: -0.015em;
-  }
-  .ta-tale-text {
-    margin-top: 0.3rem;
-    max-width: 78ch;
-    font-size: 1rem;
-    line-height: 1.9rem;
-  }
-  .ta-step.is-entering .ta-tale { animation: ta-tale-in 0.55s cubic-bezier(0.22, 0.8, 0.3, 1) both; }
 
   /* The plain answer sits beside its storyboard. */
   .ta-answer {
@@ -1058,22 +991,6 @@
     mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
     pointer-events: none;
   }
-  .ta-hero-blobs {
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-  }
-  .ta-hero-blobs span {
-    position: absolute;
-    width: 26rem;
-    aspect-ratio: 1;
-    border-radius: 999px;
-    animation: ta-drift 18s ease-in-out infinite alternate;
-  }
-  .ta-hero-blobs span:nth-child(1) { top: -9rem; left: -6rem; background: radial-gradient(closest-side, var(--gp-blob-a), transparent); }
-  .ta-hero-blobs span:nth-child(2) { bottom: -10rem; left: 30%; background: radial-gradient(closest-side, var(--gp-blob-b), transparent); animation-duration: 23s; }
-  .ta-hero-blobs span:nth-child(3) { top: -6rem; right: -8rem; background: radial-gradient(closest-side, var(--gp-blob-c), transparent); animation-duration: 27s; }
   .ta-hero h1 {
     margin-top: 0.75rem;
     font-size: clamp(2rem, 4.6vw, 3.1rem);
@@ -1097,129 +1014,18 @@
     gap: 0.4rem;
     margin-top: 1.1rem;
   }
+  .ta-byline {
+    margin-top: 0.9rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .ta-byline a { font-weight: 600; }
   .ta-trust li {
     border: 1px solid var(--border);
     border-radius: 999px;
     background: var(--bg);
     padding: 0.3rem 0.75rem;
     font-size: 0.8rem;
-    font-weight: 650;
-    color: var(--deep);
-  }
-
-  .ta-quick {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    border-radius: 1.35rem;
-    background:
-      radial-gradient(rgb(255 255 255 / 0.18) 1px, transparent 1.4px) 0 0 / 14px 14px,
-      radial-gradient(90% 120% at 100% 0%, rgb(255 255 255 / 0.2), transparent 70%),
-      linear-gradient(135deg, #0068b8, #003e70);
-    box-shadow: 0 24px 48px -24px rgb(0 62 112 / 0.8);
-    padding: 1.25rem;
-    color: #fff;
-  }
-  .ta-quick label {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #fff;
-  }
-  .ta-quick textarea,
-  .ta-quick select {
-    border: 1px solid rgb(255 255 255 / 0.5);
-    background: rgb(255 255 255 / 0.96);
-    color: #0b1020;
-  }
-  .ta-quick textarea {
-    min-height: 5.5rem;
-    font-size: 0.875rem;
-  }
-  .ta-quick textarea:focus { outline: 3px solid rgb(143 203 247 / 0.9); outline-offset: 1px; }
-  .ta-quick-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-    min-height: 1.6rem;
-    max-height: 4.4rem;
-    overflow: hidden;
-    mask-image: linear-gradient(#000 62%, transparent);
-    font: 0.78rem/1.5 var(--f-mono);
-  }
-  .ta-quick-chips span {
-    border-radius: 0.3rem;
-    background: rgb(255 255 255 / 0.2);
-    padding: 0 4px;
-    white-space: pre;
-    animation: ta-pop 0.35s cubic-bezier(0.3, 1.4, 0.6, 1) var(--d, 0ms) both;
-  }
-  .ta-quick-chips span:nth-child(2n) { background: rgb(143 203 247 / 0.35); }
-  .ta-quick-out {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.6rem;
-  }
-  .ta-quick-out > div {
-    border-radius: 0.9rem;
-    background: rgb(255 255 255 / 0.12);
-    padding: 0.6rem 0.8rem;
-  }
-  .ta-quick-out b {
-    display: block;
-    font-size: 2rem;
-    line-height: 1.1;
-    font-variant-numeric: tabular-nums;
-  }
-  .ta-quick-out span { font-size: 0.75rem; opacity: 0.85; }
-  .ta-quick-model {
-    flex-direction: row !important;
-    align-items: center;
-    gap: 0.6rem !important;
-  }
-  .ta-quick-model select { flex: 1; padding: 0.4rem 0.6rem; font-size: 0.85rem; }
-  .ta-quick-note { font-size: 0.72rem; opacity: 0.8; }
-
-  /* Three plain ways in. */
-  .ta-ways { margin-top: 1.75rem; }
-  .ta-ways-title {
-    font-size: 1.15rem;
-    font-weight: 700;
-    letter-spacing: -0.015em;
-  }
-  .ta-ways-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
-    margin-top: 0.75rem;
-  }
-  a.ta-way {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    border: 1px solid var(--gp-tile-line);
-    border-radius: 1.25rem;
-    background: var(--gp-fill);
-    box-shadow: var(--shadow);
-    padding: 1.1rem 1.2rem;
-    color: var(--ink);
-    transition: transform 0.25s cubic-bezier(0.22, 0.8, 0.3, 1), border-color 0.25s, box-shadow 0.25s;
-  }
-  a.ta-way:hover {
-    border-color: var(--accent);
-    transform: translateY(-4px);
-    box-shadow: 0 26px 48px -20px rgb(0 72 130 / 0.5);
-  }
-  .ta-way-e { font-size: 1.6rem; }
-  .ta-way b { font-size: 1.1rem; letter-spacing: -0.015em; }
-  .ta-way span:not(.ta-way-e) { font-size: 0.9rem; color: var(--muted); }
-  .ta-way em {
-    align-self: flex-start;
-    margin-top: auto;
-    border-radius: 999px;
-    background: var(--accent-soft);
-    padding: 0.15rem 0.6rem;
-    font-size: 0.75rem;
-    font-style: normal;
     font-weight: 650;
     color: var(--deep);
   }
@@ -1239,7 +1045,6 @@
 
   @media (max-width: 900px) {
     .ta-hero { grid-template-columns: 1fr; padding: 1.4rem; }
-    .ta-ways-grid { grid-template-columns: 1fr; }
   }
 
   /* ---------- guided course: one step at a time ---------- */
@@ -1313,6 +1118,174 @@
   }
   .ta-sources span { display: block; }
 
+  /* ---------- compact page header ---------- */
+  .ta-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+  }
+  .ta-top h1 { margin-top: 0.4rem; font-size: clamp(1.75rem, 4vw, 2.6rem); }
+  .ta-top h1 span {
+    background: var(--gp-text);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .ta-top .ta-hero-lede { margin-top: 0.5rem; font-size: 1.05rem; max-width: 62ch; }
+  .ta-top .ta-byline { margin-top: 0.5rem; }
+  .ta-jump { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .ta-jump a {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg);
+    padding: 0.35rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 650;
+    text-decoration: none;
+  }
+  .ta-jump a:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+  /* ---------- Section A: the calculator ---------- */
+  .tc { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.25rem; scroll-margin-top: 6rem; }
+  .tc-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    grid-template-areas: 'text out' 'opts out';
+    gap: 1rem;
+    align-items: start;
+  }
+  .tc-input { grid-area: text; }
+  .tc-settings { grid-area: opts; }
+  .tc-out { grid-area: out; }
+  .tc .card { gap: 0.8rem; padding: 1.1rem 1.2rem; border-radius: 1.25rem; }
+  .tc-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+  .tc-label { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
+  #c-text { min-height: 11rem; font-size: 14px; line-height: 1.5; }
+  .tc-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .tc-tools .small { margin-left: auto; }
+  .tc-msg:empty, .tc-err:empty { display: none; }
+  .tc-msg { font-size: 0.875rem; color: var(--deep); }
+  .tc-err { font-size: 0.875rem; color: var(--warn); font-weight: 600; }
+  .tc-privacy {
+    display: flex;
+    gap: 0.5rem;
+    border-radius: 0.8rem;
+    background: var(--cacheS);
+    padding: 0.55rem 0.75rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--ink);
+  }
+  .tc-opts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem 0.75rem;
+    margin: 0;
+    border: 0;
+    padding: 0;
+  }
+  .tc-opts legend { margin-bottom: 0.4rem; font-weight: 700; font-size: 0.95rem; }
+  .tc-opts label { font-size: 13px; }
+  .tc-opts input, .tc-opts select, .tc-inline select { padding: 7px 9px; font-size: 15px; border-radius: 10px; }
+  .tc-wide { grid-column: span 3; }
+  .tc-opts label[for='c-model'], .tc-opts label[for='c-mode'] { grid-column: span 3; }
+  .tc-opts .chk { align-self: end; grid-column: span 3; }
+  [aria-invalid] { border-color: var(--warn) !important; }
+  .tc-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
+  .tc-presets button {
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: var(--bg);
+    padding: 0.2rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .tc-presets button:hover { border-color: var(--accent); }
+  .tc details > summary, .ta-check-wrap > summary {
+    cursor: pointer;
+    font-weight: 650;
+    color: var(--deep);
+    list-style-position: inside;
+  }
+  .tc-ctx { border-top: 1px solid var(--line); padding-top: 0.6rem; }
+  .tc-ctx[hidden] { display: none; }
+  .tc-ctx .rb { margin-top: 0.5rem; }
+  .tc-out { position: sticky; top: 5.5rem; }
+  .tc-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin: 0; }
+  .tc-kpis > div { min-width: 0; border-radius: 0.9rem; background: var(--bg); padding: 0.65rem 0.8rem; }
+  .tc-kpis > div.hot { background: #0078d4; color: #fff; }
+  .tc-kpis > div.hot .small { color: rgb(255 255 255 / 0.85); }
+  .tc-kpis dt { font-size: 0.75rem; font-weight: 650; }
+  .tc-kpis dd { margin: 0; font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .tc-kpis .small { font-size: 0.75rem; }
+  .tc-kpis .badge { display: inline-block; margin-left: 0.3rem; border-radius: 5px; padding: 0 5px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; vertical-align: 1px; }
+  .tc-warn { border-left: 4px solid var(--warn); background: var(--bg); padding: 0.45rem 0.7rem; font-size: 0.85rem; }
+  .tc-receipt { padding: 0.8rem 0.9rem 1.5rem; font-size: 13px; box-shadow: none; border: 1px solid var(--line); }
+  .tc-receipt .ln { animation: none; }
+  .tc-assume ul { margin: 0.4rem 0 0; padding-left: 1.1rem; font-size: 0.82rem; color: var(--muted); display: grid; gap: 0.25rem; }
+  .tc-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .tc-more { padding: 0.85rem 1.2rem !important; }
+  .tc-more[open] { padding-bottom: 1.2rem !important; }
+  .tc-more > summary + * { margin-top: 0.75rem; }
+  .tc-inline { flex-direction: row; align-items: center; gap: 0.5rem; font-size: 13px; }
+  .tc-inline select { width: auto; }
+  table.t tbody th, .ta-prices tbody th {
+    font: 600 14px var(--f-body);
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink);
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  table.t tbody th small { display: block; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+  table.t tr.sel th { background: var(--sky); }
+  #c-table th button {
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: var(--deep);
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  #c-table { min-width: 34rem; }
+  .ta-prices { min-width: 40rem; }
+  .ta-prices tr.grp th { padding-top: 1rem; font: 700 12px var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--deep); border-bottom: 2px solid var(--line); }
+  @media (max-width: 960px) {
+    .tc-grid { grid-template-columns: 1fr; grid-template-areas: 'text' 'out' 'opts'; }
+    .tc-out { position: static; }
+  }
+  @media (max-width: 520px) {
+    .tc-opts { grid-template-columns: 1fr 1fr; }
+    .tc-wide, .tc-opts label[for='c-model'], .tc-opts label[for='c-mode'], .tc-opts .chk { grid-column: span 2; }
+    .tc-opts label[for='c-req'] { grid-column: span 2; }
+    .tc-kpis dd { font-size: 1.3rem; }
+    .tc-tools .small { margin-left: 0; width: 100%; }
+  }
+
+  /* ---------- the lesson bar's way back to the tool ---------- */
+  .ta-path a.ta-path-tool { padding: 0.3rem 0.8rem; background: var(--bg); border: 1px solid var(--border); }
+
+  /* ---------- optional checks ---------- */
+  .ta-check-wrap { border: 1px dashed var(--accent); border-radius: 1.25rem; background: var(--gp-fill); padding: 0.75rem 1.1rem; }
+  .ta-check-wrap > summary em { margin-left: 0.4rem; border-radius: 999px; background: var(--accent-soft); padding: 0.05rem 0.5rem; font-size: 0.72rem; font-style: normal; }
+  .ta-check-wrap .ta-check { border: 0; background: none; padding: 0.75rem 0 0; }
+
+  /* ---------- Section C: costs ---------- */
+  .ta-costs { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 4rem; scroll-margin-top: 6rem; }
+  .ta-costs .ta-course { margin: 0; }
+  .ta-drivers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+  .ta-billing { display: flex; flex-direction: column; gap: 1.5rem; scroll-margin-top: 9rem; }
+  #prices { scroll-margin-top: 6rem; }
+  @media (max-width: 860px) { .ta-drivers { grid-template-columns: 1fr; } }
+
   @media (max-width: 640px) {
     .ta-num { width: 2.4rem; height: 2.4rem; font-size: 1rem; }
     .card, .way, .rcpt { padding: 1rem; }
@@ -1354,13 +1327,10 @@
 @keyframes lsend{0%{transform:none}40%{transform:translateX(12px);filter:brightness(1.3)}100%{transform:none}}
 @keyframes ta-in{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
 @keyframes ta-pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
-@keyframes ta-drift{from{translate:-2rem -1.5rem}to{translate:2rem 1.5rem}}
 @keyframes ta-glow{0%,100%{box-shadow:0 0 0 0 rgb(0 120 212/.55)}50%{box-shadow:0 0 0 10px rgb(0 120 212/0)}}
 @keyframes ta-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes ta-grow{from{width:0}}
 @keyframes ta-bounce{0%{opacity:0;transform:scale(.3) rotate(-12deg)}60%{opacity:1;transform:scale(1.15) rotate(6deg)}100%{transform:none}}
 @keyframes ta-confetti{0%{opacity:1;transform:translate(0,0) rotate(0)}30%{opacity:1;transform:translate(calc(var(--dx)*.55),-90px) rotate(calc(var(--r)*.4))}100%{opacity:0;transform:translate(var(--dx),230px) rotate(var(--r))}}
-@keyframes ta-bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(-6deg)}}
-@keyframes ta-tale-in{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:none}}
 @keyframes ta-wobble{0%{transform:none}25%{transform:rotate(-1.5deg)}50%{transform:rotate(1.5deg)}75%{transform:rotate(-.8deg)}100%{transform:none}}
 @keyframes ta-slide-in{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}

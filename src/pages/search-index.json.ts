@@ -47,6 +47,7 @@ export const GET: APIRoute = async () => {
       { title: 'Short videos', url: '/shorts/', text: 'short short video watch video short visual learn step by step' },
       { title: 'Speaking', url: '/speaking/', text: 'speaking talks sessions conference book' },
       { title: 'Open source', url: '/open-source/', text: 'open source github repositories code' },
+      { title: 'AI Token Calculator', url: '/open-source/ai-token-calculator/', text: 'ai token calculator counter github copilot tokens ai credits cost pricing billing prompt tips cache chat agent llm' },
       { title: 'Articles', url: '/articles/', text: 'all articles archive library' },
       { title: 'Topics & technologies', url: '/topics/', text: 'topics technologies dotnet azure ai mobile architecture devops career tags' },
       { title: 'Testimonials', url: '/testimonials/', text: 'testimonials reviews feedback readers' },

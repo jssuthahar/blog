@@ -1,5 +1,5 @@
 /**
- * The words around the Token Academy's fourteen steps: the question each step
+ * The words around the Token Academy's lessons: the question each lesson
  * answers, a plain-language answer, and one check-yourself question.
  *
  * Answers lead with the direct answer and stand on their own (40–340
@@ -26,7 +26,7 @@ export const STEP_QA: Record<string, StepQA> = {
   start: {
     read: ['what-is-ai-token-cost-calculated'],
     q: 'How does GitHub Copilot count and bill tokens?',
-    a: 'Copilot adds up three kinds of tokens per request: input (everything sent), cached input (repeated parts, about 10% of the price) and output (everything written back, about 5× the input price). Each is multiplied by the model’s price, and the total is billed in AI Credits.',
+    a: 'Copilot adds up three kinds of tokens per request: input (everything sent), cached input (repeated parts, usually 10% of the input price or less) and output (everything written back, about 5× the input price). Each is multiplied by the model’s price, and the total is billed in AI Credits.',
     checks: [{
       q: 'Since June 1, 2026, what does Copilot bill you for?',
       options: ['The number of prompts you send', 'The tokens each request uses, in AI Credits', 'Only a flat fee per seat'],
@@ -39,9 +39,9 @@ export const STEP_QA: Record<string, StepQA> = {
       why: 'Output is about 5× the input price on most models, because each output token needs its own pass.',
     }, {
       q: 'Cached input tokens cost about…',
-      options: ['10% of the input price', 'The same as input', '5× the input price'],
+      options: ['A fraction of the input price, often 10% or less', 'The same as input', '5× the input price'],
       correct: 0,
-      why: 'A repeated prefix read from cache is billed at about a tenth of the normal input price.',
+      why: 'A repeated prefix read from cache is billed at a fraction of the input price: 10% on many models, 5% on Claude Sonnet 5.5.',
     }],
   },
   learn: {
@@ -110,7 +110,7 @@ export const STEP_QA: Record<string, StepQA> = {
   calculator: {
     read: ['what-is-ai-token-cost-calculated'],
     q: 'How do I count the tokens in my text?',
-    a: 'Paste it into a tokenizer for the model family you use. OpenAI publishes its tokenizers, so the counts here are exact for GPT models. Claude and Gemini use their own, so they are shown as an estimated range; for exact figures, use the provider’s token-counting API.',
+    a: 'Paste it into a tokenizer for the model family you use. OpenAI publishes its tokenizers, so the o200k_base count here is exact for that encoding and a close estimate for GPT models. Anthropic, Google and the other providers don’t publish browser tokenizers, so their counts are estimated ranges; for exact figures, use the provider’s token-counting API or your Copilot usage report.',
     checks: [{
       q: 'Which usually needs more tokens for the same number of characters?',
       options: ['Plain English', 'C# code or JSON', 'They are always the same'],
@@ -155,12 +155,12 @@ export const STEP_QA: Record<string, StepQA> = {
   continue: {
     read: ['save-ai-tokens-tips-copilot-context', 'ai-token-budget-daily-copilot-workflow'],
     q: 'Does continuing a Copilot chat cost more than starting a new one?',
-    a: 'It depends on the cache and the topic. Each message re-sends the whole chat, but within about an hour most of it is read from cache at about 10% of the price. A quick follow-up on the same task is usually cheapest in the same chat; after a break, or for a new topic, a new chat with a short summary costs less.',
+    a: 'It depends on the cache and the topic. Each message re-sends the whole chat, but soon after the last message most of it is read from cache, usually at 10% of the input price or less. A quick follow-up on the same task is usually cheapest in the same chat; after a break, or for a new topic, a new chat with a short summary costs less.',
     checks: [{
       q: 'Five minutes later, you ask a quick follow-up on the same task. What is usually cheapest?',
       options: ['Continue the same chat', 'Start a new chat and paste everything again', 'Switch to a bigger model'],
       correct: 0,
-      why: 'The cache is still warm, so the history is read at about 10% of the price, and the model already has the context.',
+      why: 'The cache is still warm, so the history is read at a fraction of the input price, and the model already has the context.',
     }, {
       q: 'You come back after lunch to a 40-message chat, with a new topic. Best move?',
       options: ['Keep going in that chat', 'Start a new chat with a short summary', 'Paste the whole old chat into a new one'],
@@ -310,7 +310,7 @@ export const STEP_QA: Record<string, StepQA> = {
 export const FAQ: { q: string; a: string }[] = [
   {
     q: 'Is this AI Token Calculator free, and is my text sent anywhere?',
-    a: 'It is free and runs entirely in your browser. Token counting uses the open-source gpt-tokenizer library loaded into the page, so the text you paste is never sent to a server.',
+    a: 'It is free, and your text stays in your browser. Tokens are counted by the open-source gpt-tokenizer library running on the page, so nothing you paste is sent to a server or an AI provider. The site uses Google Analytics to count page views; it is not sent your text.',
   },
   {
     q: 'How many tokens is 1,000 words?',
@@ -330,7 +330,7 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'What is cached input, and how much does it save?',
-    a: 'Cached input is the repeated start of a request, such as instructions and earlier messages, reused from a recent call. It is billed at about 10% of the normal input price, but the cache is lost if you switch models or wait too long.',
+    a: 'Cached input is the repeated start of a request, such as instructions and earlier messages, reused from a recent call. It is billed at a fraction of the normal input price, usually 10% or less (5% on Claude Sonnet 5.5), but the cache is lost if you switch models or wait too long.',
   },
   {
     q: 'Why is Copilot agent mode more expensive than a chat question?',
@@ -338,7 +338,7 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Are thinking tokens from reasoning models billed?',
-    a: 'Yes. On most models the hidden reasoning written before the answer is billed as output tokens, the most expensive kind. Higher reasoning effort means more thinking tokens, so raise it only for hard problems.',
+    a: 'Yes. Model providers bill the hidden reasoning written before the answer as output tokens, the most expensive kind; GitHub prices Copilot requests by input, cached and output tokens. Higher reasoning effort means more thinking tokens, so raise it only for hard problems.',
   },
   {
     q: 'Where can I see my real GitHub Copilot token usage?',
@@ -346,6 +346,6 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Are the model prices on this page current?',
-    a: 'They are GitHub’s published per-million-token rates, read on 6 November 2026. Prices change, so check GitHub’s Copilot models and pricing page before you plan a budget.',
+    a: 'They are GitHub’s published per-million-token rates, checked on 6 November 2026, including the higher long-context rates some models charge above a size threshold. Prices change, so check GitHub’s Copilot models and pricing page before you plan a budget.',
   },
 ];

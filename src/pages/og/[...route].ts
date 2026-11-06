@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import { SITE } from '../../config';
 import { CATEGORIES, readingTime } from '../../lib/posts';
 import { getShorts } from '../../lib/shorts';
+import { MODELS as TOKEN_MODELS } from '../../lib/token-academy/pricing';
 import { renderOGCard, type OGCardOptions, type OGOutput } from '../../lib/og-card';
 
 /**
@@ -85,9 +86,9 @@ const cards: Record<string, OGCardOptions> = {
   'ai-token-calculator': {
     title: 'AI Token Calculator for GitHub Copilot',
     description:
-      'Count tokens live, see what each request costs in AI Credits, and learn how Copilot bills, from first token to expert.',
+      'Count tokens in a prompt, code or log, see what each request costs in AI Credits, and learn how Copilot bills.',
     eyebrow: 'Free tool',
-    meta: '14 steps · runs in your browser',
+    meta: `${TOKEN_MODELS.length} Copilot models · runs in your browser`,
   },
 };
 

@@ -3,15 +3,15 @@ import { SITE, AUTHOR } from '../../config';
 import { getPublishedPosts, postUrl } from '../../lib/posts';
 import { STEPS, UPDATED } from '../../lib/token-academy/steps';
 import { STEP_QA, FAQ } from '../../lib/token-academy/questions';
-import { TALES } from '../../lib/token-academy/stories';
 import { MAKEOVERS, PART_LABEL } from '../../lib/token-academy/prompts';
+import { MODELS, PRICES_CHECKED, SOURCES, fmtDate } from '../../lib/token-academy/pricing';
 
 /**
  * Markdown twin of the AI Token Calculator, for AI crawlers.
  *
  * The page is interactive and shows one step at a time; an assistant reading
  * it needs the substance in order instead: every step's question and plain
- * answer, the story that frames it, the check questions with their answers,
+ * answer, the check questions with their answers, the price list,
  * the prompt makeovers and the FAQ. Built from the same data as the page, so
  * the two never disagree.
  */
@@ -21,21 +21,19 @@ export const GET: APIRoute = async () => {
   const lines: string[] = [
     '# AI Token Calculator for GitHub Copilot',
     '',
-    '> Count tokens live, see what a request costs in AI Credits, and learn how GitHub Copilot bills tokens, in fourteen short steps from beginner to expert.',
+    `> Count tokens in a prompt, code, JSON or log, see what a request costs in AI Credits on ${MODELS.length} GitHub Copilot models, and learn how Copilot bills tokens in ${STEPS.length} short lessons.`,
     '',
     `- **Author:** ${AUTHOR.name} (${AUTHOR.alternateName})`,
     `- **Updated:** ${UPDATED.toISOString().slice(0, 10)}`,
     `- **Interactive version:** ${pageUrl}`,
-    '- **Prices:** GitHub’s published per-1M-token rates, read 6 Nov 2026. 1 AI Credit = $0.01.',
-    '- **Stories:** a scenario on MSDevBuild Eats, the open-source Flutter food delivery app (https://github.com/jssuthahar/food-delivery-app). The app and its files are real; the numbers are illustrative.',
+    `- **Prices:** GitHub’s published per-1M-token rates (${SOURCES.prices}), checked ${fmtDate(PRICES_CHECKED)}. 1 AI Credit = $0.01.`,
+    '- **Privacy:** the calculator counts tokens in the browser with gpt-tokenizer; text is never sent to a server.',
     '',
   ];
 
   for (const step of STEPS) {
     const qa = STEP_QA[step.id];
-    const tale = TALES[step.id];
-    lines.push(`## Step ${step.n}: ${step.title}`, '', step.intro, '');
-    if (tale) lines.push(`**Meera’s story: ${tale.title}.** ${tale.text}`, '');
+    lines.push(`## Lesson ${step.n}: ${step.title}`, '', step.intro, '');
     if (qa) {
       lines.push(`### ${qa.q}`, '', qa.a, '');
       const reads = (qa.read ?? []).map((s) => posts.get(s)).filter((p) => p !== undefined);
@@ -56,6 +54,16 @@ export const GET: APIRoute = async () => {
       lines.push('');
     }
   }
+
+  // The calculator and the cost section sit outside the course but answer questions too.
+  for (const id of ['calculator', 'billing']) {
+    const qa = STEP_QA[id];
+    lines.push(`## ${qa.q}`, '', qa.a, '');
+  }
+  lines.push('## GitHub Copilot model prices (USD per 1M tokens)', '', '| Model | Provider | Input | Cached | Cache write | Output | Long context |', '| --- | --- | ---: | ---: | ---: | ---: | --- |');
+  for (const m of MODELS)
+    lines.push(`| ${m.name} | ${m.provider} | $${m.in} | $${m.cached} | ${m.write ? `$${m.write}` : '—'} | $${m.out} | ${m.long ? `above ${m.long.over / 1000}K input: $${m.long.in} / $${m.long.out}` : '—'} |`);
+  lines.push('');
 
   lines.push('## Frequently asked questions', '');
   for (const { q, a } of FAQ) lines.push(`### ${q}`, '', a, '');

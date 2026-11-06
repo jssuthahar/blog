@@ -1,15 +1,19 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Newsletter from '../../components/Newsletter.astro';
-import { SITE } from '../../config';
-// The academy's markup is kept as plain HTML so it stays identical to the tool
-// it was ported from; its styles are scoped under #ta.
+import { SITE, AUTHOR } from '../../config';
+// The course markup is kept as plain HTML so it stays close to the tool it was
+// ported from; its styles are scoped under #ta.
 import markup from '../../lib/token-academy/markup.html?raw';
+import costsMarkup from '../../lib/token-academy/costs.html?raw';
 import '../../lib/token-academy/academy.css';
 import { STEP_QA, FAQ } from '../../lib/token-academy/questions';
 import { getPublishedPosts, postUrl } from '../../lib/posts';
-import { STORIES, TALES, type Visual } from '../../lib/token-academy/stories';
+import { STORIES, type Visual } from '../../lib/token-academy/stories';
 import { MAKEOVERS, PART_LABEL } from '../../lib/token-academy/prompts';
+import { STEPS, UPDATED } from '../../lib/token-academy/steps';
+import { MODELS, PRICES_CHECKED, SOURCES, PLAN, DEFAULT_MODEL, fmtDate } from '../../lib/token-academy/pricing';
+import { SAMPLES } from '../../lib/token-academy/samples.js';
 import { getImage } from 'astro:assets';
 import journeyFlow from '../../lib/token-academy/images/token-journey-flow.png';
 import requestSequence from '../../lib/token-academy/images/token-request-sequence.png';
@@ -26,12 +30,18 @@ const readNote = (slugs: string[] = []) => {
   return `<p class="ta-read"><span aria-hidden="true">📖</span><span><b>Read the full article${links.length > 1 ? 's' : ''}:</b> ${links.join(' · ')}</span></p>`;
 };
 
-const MODEL_COUNT = 19;
-const pageUrl = `${SITE.url}/open-source/ai-token-calculator`;
+const MODEL_COUNT = MODELS.length;
+const LESSONS = STEPS.length;
+const checked = fmtDate(PRICES_CHECKED);
+const pageUrl = `${SITE.url}/open-source/ai-token-calculator/`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);
+const usd = (n: number) => `$${n < 0.1 ? n.toFixed(3).replace(/0$/, '') : n.toFixed(2)}`;
+
+// What the two scripts read: the price list and the plan facts, in one place.
+const data = JSON.stringify({ models: MODELS, defaultModel: DEFAULT_MODEL, plan: PLAN, checked, source: SOURCES.prices });
 
 // "The idea in 3 frames": the first frame is on by default, so a reader
-// without JavaScript still sees one frame; the script cycles the rest.
+// without JavaScript still sees one frame; the dots step through the rest.
 const OPS = new Set(['+', '×', '=', '→']);
 const visual = (v: Visual) => {
   if ('chips' in v)
@@ -94,19 +104,6 @@ for (const [id, f] of Object.entries(FIGURES)) {
   </figure>`;
 }
 
-// Meera's story opens each step: a moment on MSDevBuild Eats, told with a
-// picture from the food delivery world, before the plain answer.
-const tale = (id: string) => {
-  const t = TALES[id];
-  if (!t) return '';
-  return `<aside class="ta-tale" aria-label="Story: ${esc(t.title)}">
-    <div class="ta-tale-who"><span class="ta-tale-av" aria-hidden="true">M</span>
-      <div><b>Meera’s story</b><small>MSDevBuild Eats · a scenario</small></div>
-      <span class="ta-tale-e" aria-hidden="true">${t.emoji}</span></div>
-    <p class="ta-tale-title">${esc(t.title)}</p>
-    <p class="ta-tale-text">${esc(t.text)}</p></aside>`;
-};
-
 // "Prompt makeover": the ways people commonly ask, each rebuilt in four
 // parts. Every panel is in the HTML; the script shows one at a time and
 // counts the tokens of both versions.
@@ -133,15 +130,17 @@ const makeoverHtml = `<section class="card ta-mk" id="makeover">
   <p class="small">The better prompt is often longer. It still costs less, because it gets the right answer first time: no exploring, no retries, and no long answer to skim.</p>
 </section>`;
 
-// Each step opens with the question it answers in plain words, and closes with
-// one question the reader can check themselves against.
+// Each lesson opens with the question it answers in plain words, and closes
+// with optional questions the reader can check themselves against.
+const answer = (id: string) => {
+  const s = STEP_QA[id];
+  if (!s) return '';
+  return `<div class="ta-answer"><div class="ta-answer-text"><span class="ta-kicker">In plain words</span><h3>${esc(s.q)}</h3><p>${esc(s.a)}</p>${readNote(s.read)}</div>${story(id)}</div>`;
+};
 const academy = markup
   .replace('<!--makeover-->', makeoverHtml)
   .replace(/<!--fig:([\w-]+)-->/g, (_, id: string) => figureHtml[id] ?? '')
-  .replace(/<!--qa:([\w-]+)-->/g, (_, id: string) => {
-    const s = STEP_QA[id];
-    return `${tale(id)}<div class="ta-answer"><div class="ta-answer-text"><span class="ta-kicker">In plain words</span><h3>${esc(s.q)}</h3><p>${esc(s.a)}</p>${readNote(s.read)}</div>${story(id)}</div>`;
-  })
+  .replace(/<!--qa:([\w-]+)-->/g, (_, id: string) => answer(id))
   .replace(/<!--check:([\w-]+)-->/g, (_, id: string) => {
     const checks = STEP_QA[id].checks;
     if (!checks?.length) return '';
@@ -160,31 +159,83 @@ const academy = markup
           <p class="ta-check-fb" aria-live="polite"></p></li>`;
       })
       .join('');
-    return `<div class="ta-check" data-total="${checks.length}">
-      <div class="ta-check-head"><span class="ta-kicker">Check yourself · ${checks.length} questions</span>
+    return `<details class="ta-check-wrap"><summary><span class="ta-kicker">Check yourself</span> ${checks.length} quick questions <em>optional</em></summary>
+      <div class="ta-check" data-total="${checks.length}">
+      <div class="ta-check-head"><span class="ta-check-intro">Each answer explains why. Skip ahead whenever you like.</span>
       <span class="ta-check-score" aria-live="polite"><b>0</b> / ${checks.length} answered</span></div>
-      <p class="ta-check-intro">Answer these before you move on. Each answer explains why.</p>
       <ol class="ta-qs">${items}</ol>
-      <p class="ta-ready" aria-live="polite"></p></div>`;
+      <p class="ta-ready" aria-live="polite"></p></div></details>`;
   });
+const costs = costsMarkup.replace(/<!--fig:([\w-]+)-->/g, (_, id: string) => figureHtml[id] ?? '');
 
+// The price table is rendered here, so it is in the HTML for every reader and
+// crawler, and always matches what the calculator uses.
+const PROVIDERS = [...new Set(MODELS.map((m) => m.provider))];
 
+const modified = UPDATED.toISOString().slice(0, 10);
+const shownQA = [...STEPS.map((s) => s.id), 'calculator', 'billing'].map((id) => STEP_QA[id]).filter(Boolean);
 const schema = [
   {
     '@type': 'WebApplication',
-    '@id': `${SITE.url}/open-source/ai-token-calculator#app`,
+    '@id': `${pageUrl}#app`,
     name: 'AI Token Calculator',
+    url: pageUrl,
     applicationCategory: 'DeveloperApplication',
     operatingSystem: 'Any (web browser)',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-    description:
-      'A fourteen-step guide to GitHub Copilot tokens: an animated lesson, a live tokenizer, AI Credit billing, calculation patterns, scenarios, and how instructions, skills and hooks change token use.',
+    description: `Counts tokens with OpenAI's o200k_base tokenizer in the browser and estimates the cost of a request in USD and GitHub Copilot AI Credits on ${MODEL_COUNT} Copilot models.`,
+    featureList: [
+      'Token count with the o200k_base and cl100k_base tokenizers, in the browser',
+      `Cost per request and per month on ${MODEL_COUNT} GitHub Copilot models, including long-context rates`,
+      'Copilot Chat context, cached input and Auto model discount settings',
+      'Model cost comparison, prompt comparison and CSV export',
+      'Prompt makeover: common prompts rebuilt the best way',
+    ],
+    dateModified: modified,
     author: { '@id': `${SITE.url}/#person` },
   },
   {
+    '@type': 'Course',
+    '@id': `${pageUrl}#course`,
+    name: 'Understanding AI tokens in GitHub Copilot',
+    description: `A free, ${LESSONS}-lesson course on how GitHub Copilot counts and bills tokens: what a token is, input and output, caching, agent costs, prompts that use fewer tokens, and instructions, skills and hooks.`,
+    url: pageUrl,
+    inLanguage: 'en',
+    isAccessibleForFree: true,
+    educationalLevel: 'Beginner to advanced',
+    teaches: STEPS.map((s) => STEP_QA[s.id]?.q).filter(Boolean),
+    provider: { '@id': `${SITE.url}/#person` },
+    author: { '@id': `${SITE.url}/#person` },
+    dateModified: modified,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', category: 'Free' },
+    hasCourseInstance: { '@type': 'CourseInstance', courseMode: 'Online', courseWorkload: 'PT1H' },
+    hasPart: STEPS.map((s) => ({
+      '@type': 'LearningResource',
+      position: s.n,
+      name: `Lesson ${s.n}: ${s.title}`,
+      description: s.intro,
+      url: `${pageUrl}#${s.id}`,
+    })),
+  },
+  // The four-part prompt from the makeover, as steps.
+  {
+    '@type': 'HowTo',
+    '@id': `${pageUrl}#prompt`,
+    name: 'How to write a GitHub Copilot prompt that uses fewer tokens',
+    description: 'Give every prompt four parts, so Copilot gets it right first time without exploring, retries or a long answer.',
+    step: [
+      { name: 'Task', text: 'Say exactly what to do, and to what: for example, fix the crash when the cart is empty on the checkout screen.' },
+      { name: 'Context', text: 'Point to the exact file, error or selection with #file or a selection, instead of pasting whole files.' },
+      { name: 'Constraints', text: 'Name the rules to follow and what must not change, such as the library to use or the events to keep.' },
+      { name: 'Done when', text: 'Say when to stop and what to return, such as only the changed method or the diff.' },
+    ].map((s, i) => ({ '@type': 'HowToStep', position: i + 1, ...s })),
+  },
+  // Every visible question and answer: the FAQ, and each section's plain answer.
+  {
     '@type': 'FAQPage',
     '@id': `${pageUrl}#faq`,
-    mainEntity: FAQ.map(({ q, a }) => ({
+    dateModified: modified,
+    mainEntity: [...FAQ, ...shownQA.map((qa) => ({ q: qa.q, a: qa.a }))].map(({ q, a }) => ({
       '@type': 'Question',
       name: q,
       acceptedAnswer: { '@type': 'Answer', text: a },
@@ -203,83 +254,180 @@ const schema = [
 
 <BaseLayout
   title="AI Token Calculator for GitHub Copilot"
-  description="Learn GitHub Copilot tokens from beginner to expert: an animated lesson, a live token calculator, AI Credit billing, agent costs and real scenarios."
+  description={`Count tokens in a prompt, code, JSON or log and see the cost in GitHub Copilot AI Credits on ${MODEL_COUNT} models. Runs in your browser.`}
   schema={schema}
+  image="/og/ai-token-calculator.png"
+  updatedAt={UPDATED}
+  markdownUrl="/open-source/ai-token-calculator.md"
+  keywords={['AI Token Calculator', 'GitHub Copilot tokens', 'GitHub Copilot AI Credits', 'Copilot token cost', 'token counter', 'Copilot prompt tips']}
 >
   <div id="ta">
-    <!-- What a visitor from search came for, first: what this is, a working
-         calculator, and three plain ways in. The course follows below. -->
-    <section class="ta-hero" aria-labelledby="ta-hero-h">
-      <div class="ta-hero-blobs" aria-hidden="true"><span></span><span></span><span></span></div>
-      <div class="ta-hero-copy">
+    <script is:inline type="application/json" id="ta-data" set:html={data} />
+
+    <header class="ta-top">
+      <div>
         <p class="eyebrow">Free tool · GitHub Copilot</p>
-        <h1 id="ta-hero-h" class="display">AI Token Calculator <span>for GitHub Copilot</span></h1>
-        <p class="ta-hero-lede">
-          Paste any prompt, code or log to see how many tokens it is and what it costs in AI Credits. Then learn why,
-          in short steps from beginner to expert.
-        </p>
-        <ul class="ta-trust">
-          <li>✓ Free, no sign-up</li>
-          <li>✓ Runs in your browser</li>
-          <li>✓ {MODEL_COUNT} Copilot models priced</li>
-          <li>✓ Prices from 6 Nov 2026</li>
-        </ul>
+        <h1 class="display">AI Token Calculator <span>for GitHub Copilot</span></h1>
+        <p class="ta-hero-lede">Paste a prompt, source code, JSON or a log. See its tokens and what a request costs in AI Credits, on any of {MODEL_COUNT} Copilot models.</p>
+        <p class="ta-byline">By <a href="/about/">{AUTHOR.name}</a> · Prices checked <time datetime={PRICES_CHECKED.toISOString().slice(0, 10)}>{checked}</time> · <a href="/open-source/ai-token-calculator.md">Plain-text version</a></p>
       </div>
+      <nav class="ta-jump" aria-label="On this page">
+        <a href="#calculator">🧮 Calculator</a><a href="#course">🎓 Understand tokens</a><a href="#costs">💳 Costs &amp; optimisation</a><a href="#faq">❓ FAQ</a>
+      </nav>
+    </header>
 
-      <div class="ta-quick" aria-label="Quick token count">
-        <label for="h-in">Paste your text</label>
-        <textarea id="h-in" rows="4" spellcheck="false"></textarea>
-        <div class="ta-quick-chips" id="h-chips" aria-hidden="true"></div>
-        <div class="ta-quick-out">
-          <div><b id="h-n">0</b><span>tokens in your text</span></div>
-          <div><b id="h-cr">0</b><span>AI Credits for a typical Copilot request with it</span></div>
+    <!-- Section A: the calculator. Works on its own; the course below is optional. -->
+    <section class="tc" id="calculator" aria-labelledby="calc-h">
+      <h2 id="calc-h" class="sr-only">Token and cost calculator</h2>
+      <div class="tc-grid">
+        <div class="tc-input card">
+          <div class="tc-bar">
+            <label for="c-text" class="tc-label">Your text</label>
+            <div class="seg2" role="group" aria-label="Load a sample">
+              {Object.entries(SAMPLES).map(([k, v]) => <button type="button" data-sample={k}>{v.label}</button>)}
+            </div>
+          </div>
+          <textarea id="c-text" rows="9" spellcheck="false" autocomplete="off" aria-describedby="c-meta c-privacy" placeholder="Paste a prompt, source code, JSON or a log…"></textarea>
+          <div class="tc-tools">
+            <button type="button" class="btn btn-outline btn-sm" id="c-paste">Paste</button>
+            <button type="button" class="btn btn-outline btn-sm" id="c-clear">Clear</button>
+            <span id="c-meta" class="small">0 characters</span>
+          </div>
+          <p class="tc-msg" id="c-msg" role="status"></p>
+          <p class="tc-privacy" id="c-privacy"><span aria-hidden="true">🔒</span> <span><b>Your text stays in this browser.</b> Tokens are counted by the open-source gpt-tokenizer library running on this page; nothing you type or paste is sent to a server or an AI provider, and it isn’t saved. The site’s Google Analytics records page views only.</span></p>
         </div>
-        <label for="h-model" class="ta-quick-model">Model
-          <select id="h-model"></select>
-        </label>
-        <p class="ta-quick-note" id="h-note">Counting with the OpenAI o200k_base tokenizer…</p>
+
+        <div class="tc-settings card">
+          <fieldset class="tc-opts">
+            <legend>Request settings</legend>
+            <label for="c-model" class="tc-wide">Model<select id="c-model"></select></label>
+            <label for="c-mode" class="tc-wide">What is sent
+              <select id="c-mode">
+                <option value="chat">Your text inside a Copilot Chat request</option>
+                <option value="api">Only your text (a bare API call)</option>
+              </select>
+            </label>
+            <label for="c-out">Output tokens (estimate)<input id="c-out" type="number" inputmode="numeric" min="0" max="200000" step="100" value="800" /></label>
+            <label for="c-cache">Input from cache (%)<input id="c-cache" type="number" inputmode="numeric" min="0" max="100" step="5" value="0" /></label>
+            <label for="c-req">Requests per month<input id="c-req" type="number" inputmode="numeric" min="1" max="10000000" step="10" value="400" /></label>
+            <label class="chk" for="c-auto"><input id="c-auto" type="checkbox" /> Auto model selection (−10%)</label>
+            <div class="tc-presets tc-wide" role="group" aria-label="Typical output sizes">
+              <span class="small">Typical answers:</span>
+              <button type="button" data-out="300">Short reply · 300</button>
+              <button type="button" data-out="800">A diff · 800</button>
+              <button type="button" data-out="4000">Whole file · 4,000</button>
+            </div>
+            <p class="tc-err tc-wide" id="c-err" role="alert"></p>
+          </fieldset>
+          <details class="tc-ctx" id="c-ctx-box">
+            <summary>Copilot context sent with your text</summary>
+            <p class="small">Copilot wraps every prompt in more input. These are typical sizes, not published figures: change them to match your setup.</p>
+            <div class="rb" id="c-ctx"></div>
+          </details>
+        </div>
+
+        <div class="tc-out card" aria-labelledby="c-res-h">
+          <div class="tc-bar"><h3 id="c-res-h" class="tc-label">Estimate</h3><span class="small" id="c-status"></span></div>
+          <dl class="tc-kpis">
+            <div><dt>Input tokens</dt><dd id="c-in">0</dd><p id="c-in-note" class="small"></p></div>
+            <div><dt>Output tokens</dt><dd id="c-o">0</dd><p class="small">your estimate <span class="badge es">estimate</span></p></div>
+            <div class="hot"><dt>AI Credits per request</dt><dd id="c-cr">0</dd><p id="c-usd" class="small"></p></div>
+            <div><dt>AI Credits per month</dt><dd id="c-mcr">0</dd><p id="c-musd" class="small"></p></div>
+          </dl>
+          <p class="tc-warn" id="c-warn" hidden></p>
+          <div class="paper tc-receipt" id="c-receipt"></div>
+          <details class="tc-assume">
+            <summary>How this is calculated</summary>
+            <ul id="c-assume"></ul>
+          </details>
+          <div class="tc-actions">
+            <button type="button" class="btn btn-accent btn-sm" id="c-copy">Copy result</button>
+            <button type="button" class="btn btn-outline btn-sm" id="c-csv">Download CSV</button>
+          </div>
+          <p class="sr-only" aria-live="polite" id="c-live"></p>
+        </div>
       </div>
+
+      <details class="card tc-more" id="c-split">
+        <summary>See how your text splits into tokens</summary>
+        <div class="tz" id="c-tz"></div>
+        <div class="tchips" id="c-chips" aria-label="Token split"></div>
+      </details>
+      <details class="card tc-more" id="c-compare">
+        <summary>Compare with another version of your prompt</summary>
+        <label for="c-text2" class="small">Second version (B)</label>
+        <textarea id="c-text2" rows="4" spellcheck="false" placeholder="Paste a shorter or rewritten version…"></textarea>
+        <div id="c-cmp" aria-live="polite"></div>
+      </details>
+
+      <section class="card tc-table" aria-labelledby="c-table-h">
+        <div class="tc-bar">
+          <h3 id="c-table-h" class="tc-label">The same request on every model</h3>
+          <label for="c-sort" class="tc-inline">Sort<select id="c-sort"><option value="cost">Cheapest first</option><option value="list">By provider</option></select></label>
+        </div>
+        <div class="tbl"><table class="t" id="c-table"></table></div>
+        <p class="small">Uses your text and settings above. Pick a model name to select it. “~” marks an estimated token count.</p>
+      </section>
+      <Fragment set:html={answer('calculator')} />
     </section>
 
-    <section class="ta-ways" aria-labelledby="ta-ways-h">
-      <h2 id="ta-ways-h" class="ta-ways-title">What do you want to do?</h2>
-      <div class="ta-ways-grid">
-        <a href="#calculator" class="ta-way">
-          <span class="ta-way-e" aria-hidden="true">🧮</span>
-          <b>Count my tokens</b>
-          <span>Full calculator: exact split, cost on every model, and the context Copilot adds.</span>
-          <em>Step 5 · 2 minutes</em>
-        </a>
-        <a href="#start" class="ta-way">
-          <span class="ta-way-e" aria-hidden="true">🎓</span>
-          <b>Learn from zero</b>
-          <span>What a token is and how Copilot bills it, with an animated lesson and quick checks.</span>
-          <em>Steps 1–7 · beginner</em>
-        </a>
-        <a href="#billing" class="ta-way">
-          <span class="ta-way-e" aria-hidden="true">📊</span>
-          <b>Estimate my team’s bill</b>
-          <span>How AI Credits work, what agents cost, and a monthly estimate for your team.</span>
-          <em>Step 8 · for leads</em>
-        </a>
-      </div>
-    </section>
-
+    <!-- Section B: the course. Optional, any lesson in any order. -->
     <header class="ta-course" id="course">
-      <p class="eyebrow">The course</p>
-      <h2 class="display">From first token to expert, in 14 short steps</h2>
-      <p>One step at a time. Each answers one question in plain words, then ends with three quick questions so you know you’re ready for the next. Your progress is saved on this device.</p>
-      <div class="ta-meet">
-        <span class="ta-tale-av" aria-hidden="true">M</span>
-        <p><b>Meet Meera.</b> Each step opens with a moment from her week as a developer on
-          <a href="https://github.com/jssuthahar/food-delivery-app" rel="noopener" target="_blank">MSDevBuild Eats</a>, the
-          open-source Flutter food delivery app used across this site
-          (<a href="https://jssuthahar.github.io/food-delivery-app/" rel="noopener" target="_blank">Live web</a>). It is a
-          scenario: the app, its files and its Copilot setup are real; the numbers are illustrative.</p>
-      </div>
+      <p class="eyebrow">Understand AI tokens</p>
+      <h2 class="display">How Copilot counts and bills tokens, in {LESSONS} short lessons</h2>
+      <p>Start anywhere: pick a lesson from the bar below, or go in order. Each answers one question in plain words. The check questions are optional, and your place is saved on this device.</p>
     </header>
 
     <Fragment set:html={academy} />
+
+    <!-- Section C: costs, for planning a budget. Always visible, not part of the course. -->
+    <section class="ta-costs" id="costs" aria-labelledby="costs-h">
+      <header class="ta-course">
+        <p class="eyebrow">AI usage and cost optimisation</p>
+        <h2 id="costs-h" class="display">What a Copilot request costs, and how to spend less</h2>
+        <p>How GitHub prices each token, what makes a request expensive, and the full price list the calculator uses.</p>
+      </header>
+      <Fragment set:html={answer('billing')} />
+
+      <div class="ta-drivers">
+        <div class="mini"><b>📦 Context is most of the input</b><span>Instructions, tool definitions, history and files ride along with every prompt. Reference files instead of pasting them, and keep instructions short.</span></div>
+        <div class="mini"><b>♻️ Cache makes repeats cheap</b><span>A repeated start of a request is billed at a fraction of the input price (5% on Claude Sonnet 5.5). Stay on one model during a task so the cache holds.</span></div>
+        <div class="mini"><b>✍️ Output costs the most</b><span>Output is priced 3–8× input. Ask for a diff or the changed method, not the whole file.</span></div>
+        <div class="mini"><b>🧠 Reasoning is output too</b><span>Thinking tokens are billed as output by the model providers. Raise reasoning effort only for hard problems.</span></div>
+        <div class="mini"><b>🤖 Agents multiply calls</b><span>Every model call in an agent loop is billed and re-sends the growing context. Give agents a map and only the tools they need.</span></div>
+        <div class="mini"><b>📏 Mind long-context tiers</b><span>Some models charge more for the whole request above a size threshold, for example 272K input tokens on the GPT-6 family.</span></div>
+      </div>
+
+      <section class="card" id="prices" aria-labelledby="prices-h">
+        <h3 class="h2" id="prices-h">GitHub Copilot model prices</h3>
+        <p class="small">USD per 1 million tokens, from GitHub’s <a href={SOURCES.prices} rel="noopener">Models and pricing</a> page, checked {checked}. 1 AI Credit = $0.01. Business seats include {PLAN.businessCredits.toLocaleString('en-US')} credits a month and Enterprise {PLAN.enterpriseCredits.toLocaleString('en-US')}, pooled across the organization; they reset on the 1st (00:00 UTC) and don’t roll over (<a href={SOURCES.billing} rel="noopener">billing docs</a>).</p>
+        <div class="tbl">
+          <table class="t ta-prices">
+            <thead><tr><th scope="col">Model</th><th scope="col" class="r">Input</th><th scope="col" class="r">Cached</th><th scope="col" class="r">Cache write</th><th scope="col" class="r">Output</th><th scope="col">Long context</th></tr></thead>
+            {PROVIDERS.map((p) => (
+              <tbody>
+                <tr class="grp"><th scope="rowgroup" colspan="6">{p}</th></tr>
+                {MODELS.filter((m) => m.provider === p).map((m) => (
+                  <tr>
+                    <th scope="row">{m.name}<small>{m.tier}{m.note ? ` · ${m.note}` : ''}</small></th>
+                    <td class="r">{usd(m.in)}</td>
+                    <td class="r">{usd(m.cached)}</td>
+                    <td class="r">{m.write ? usd(m.write) : '—'}</td>
+                    <td class="r">{usd(m.out)}</td>
+                    <td>{m.long ? `Above ${(m.long.over / 1000).toFixed(0)}K input: ${usd(m.long.in)} / ${usd(m.long.out)}` : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            ))}
+          </table>
+        </div>
+        <p class="small">Long context shows the input and output price once a request passes the threshold; cached and cache-write prices rise too. GitHub doesn’t publish per-model context-window sizes on its pricing page. Code completions and next edit suggestions aren’t billed in AI Credits.</p>
+      </section>
+
+      <div id="billing" class="ta-billing">
+        <Fragment set:html={costs} />
+      </div>
+    </section>
 
     <section class="ta-step" id="faq" aria-labelledby="faq-h">
       <header class="ta-head">
@@ -332,6 +480,21 @@ const schema = [
 </BaseLayout>
 
 <script>
-  import { initTokenAcademy } from '../../lib/token-academy/academy.js';
-  document.addEventListener('astro:page-load', initTokenAcademy);
+  import { initCalculator } from '../../lib/token-academy/calculator.js';
+  document.addEventListener('astro:page-load', initCalculator);
+  // The course is large and below the fold, so it starts once the browser is idle.
+  // Until then only the lesson it will open is shown, so nothing jumps.
+  document.addEventListener('astro:page-load', () => {
+    const steps = [...document.querySelectorAll<HTMLElement>('#ta .ta-step:not(#faq)')];
+    if (!steps.length) return;
+    let open = location.hash.slice(1);
+    if (!steps.some((s) => s.id === open || s.querySelector(`[id="${CSS.escape(open)}"]`))) {
+      try { open = JSON.parse(localStorage.getItem('ta-course-v2') || '{}').last || steps[0].id; } catch { open = steps[0].id; }
+    }
+    steps.forEach((s) => (s.hidden = s.id !== open && !s.querySelector(`[id="${CSS.escape(open)}"]`)));
+    if (steps.every((s) => s.hidden)) steps[0].hidden = false;
+    const start = () => import('../../lib/token-academy/academy.js').then((m) => m.initTokenAcademy());
+    if ('requestIdleCallback' in window) requestIdleCallback(start, { timeout: 1500 });
+    else setTimeout(start, 200);
+  });
 </script>

@@ -81,7 +81,7 @@ ${sections.join('\n\n')}
 ${shortSection ? `${shortSection}\n` : ''}
 ## Tools
 
-- [AI Token Calculator](${SITE.url}/open-source/ai-token-calculator/): a fourteen-step guide to GitHub Copilot tokens, from what a token is to AI Credit billing, agent costs, caching and token-saving habits. Each step answers one question in plain words; a live tokenizer counts your own text in the browser.
+- [AI Token Calculator](${SITE.url}/open-source/ai-token-calculator/): counts the tokens in a prompt, code, JSON or log in the browser and estimates the cost per request and per month in GitHub Copilot AI Credits on every Copilot model, with the full price list and a twelve-lesson guide to how Copilot counts and bills tokens. Markdown version: ${SITE.url}/open-source/ai-token-calculator.md
 
 ## Optional
 

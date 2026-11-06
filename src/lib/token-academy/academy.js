@@ -1,25 +1,15 @@
 /**
  * Client behaviour for /open-source/ai-token-calculator/: every interactive part
- * of the Copilot Token Academy. Ported from the original single-file tool; the
- * thirteen views became fourteen steps on one page.
+ * of the Copilot Token Academy course. Ported from the original single-file tool;
+ * the calculator itself lives in calculator.js and works without this file.
  *
  * Plain JavaScript on purpose: the tool's code is dense and DOM-driven, and is
  * kept close to the original so the two stay easy to compare.
  */
-let controller = null;
+import { loadTokenizers } from './tokenizer.js';
+import { SAMPLES as SAMPLE_TEXT } from './samples.js';
 
-/** gpt-tokenizer is large, so it is fetched only once the page is open. */
-function loadTokenizers() {
-  return Promise.all([
-    import('gpt-tokenizer/encoding/o200k_base'),
-    import('gpt-tokenizer/encoding/cl100k_base'),
-  ])
-    .then(([a, b]) => {
-      window.GPTTokenizer_o200k_base = a;
-      window.GPTTokenizer_cl100k_base = b;
-    })
-    .catch(() => {});
-}
+let controller = null;
 
 export function initTokenAcademy() {
   if (!document.getElementById('ta')) return;
@@ -39,10 +29,12 @@ function tween(el,to,{dec=0,suf="",ms=600}={}){const from=parseFloat(el.dataset.
   const f=t=>{const p=Math.min(1,(t-t0)/ms),e=1-Math.pow(1-p,3);el.textContent=fmt(from+(to-from)*e,dec)+suf;if(p<1)requestAnimationFrame(f)};requestAnimationFrame(f)}
 const setv=(el,v,dec=0,suf="")=>{el.dataset.v=v;el.textContent=fmt(v,dec)+suf};
 
-const MODELS=[["GPT-6 Luna",0.10,0.01,0.50],["Claude Haiku 5.5",0.10,0.01,0.50],["GPT-5.4 nano",0.20,0.02,1.25],["Gemini 3.8 Flash",0.75,0.075,3.75],
- ["Claude Haiku 4.5",1.00,0.10,5.00],["GPT-5.3-Codex",1.75,0.175,14.00],["Claude Sonnet 5.5",2.00,0.10,10.00],["GPT-6 Sol",2.00,0.20,10.00],
- ["Claude Sonnet 4.6",3.00,0.30,15.00],["Claude Opus 5.5",4.00,0.20,20.00],["GPT-5.6 Sol",4.00,0.40,20.00],["GPT-6 Astra",10.00,1.00,50.00]];
-const SON=6;
+// Prices come from pricing.ts through the page (#ta-data), so every widget and
+// the calculator agree. Each row is [name, input, cached, output, long tier].
+const DATA=JSON.parse($("ta-data").textContent);
+const MODELS=DATA.models.map(m=>[m.name,m.in,m.cached,m.out,m.long]);
+const MI=n=>MODELS.findIndex(m=>m[0]===n);
+const SON=MI(DATA.defaultModel);
 
 /* 1 bricks */
 const COLORS=["#0078D4","#005A9E","#003E70","#2B88D8","#0A7F9E","#0B2A4A","#3B8FD9"];
@@ -94,10 +86,10 @@ async function w5(anim){const ok=guard(5);let size=0,tot=0;const ball=$("s-ball"
     anim?tween($("s-tot"),tot,{suf:"K",ms:300}):setv($("s-tot"),tot,0,"K");if(anim)await sleep(450)}}
 
 /* 6 couriers */
-const K=[[0,"Economy","🛵","var(--good)"],[3,"Economy+","🚐","var(--lite)"],[6,"Standard","🚚","#0078D4"],[9,"Premium","🚛","var(--think)"],[11,"Express","✈️","var(--warn)"]];
+const K=[["GPT-6 Luna","Economy","🛵","var(--good)"],["Gemini 3.8 Flash","Economy+","🚐","var(--lite)"],["Claude Sonnet 5.5","Standard","🚚","#0078D4"],["Claude Opus 5.5","Premium","🚛","var(--think)"],["GPT-6 Astra","Express","✈️","var(--warn)"]].map(k=>[MI(k[0]),...k.slice(1)]);
 const req=m=>(12000*m[1]+800*m[3])/1e6*100;
 $("k-list").innerHTML=K.map(k=>`<div class="cour"><div class="nm"><b>${k[1]}</b><small>${MODELS[k[0]][0]}</small></div><div class="track"><div class="van" id="k-${k[0]}" style="background:${k[3]}">${k[2]}</div></div><div class="pr num" id="k-p${k[0]}">0</div></div>`).join("");
-async function w6(anim){const ok=guard(6),max=req(MODELS[11]);
+async function w6(anim){const ok=guard(6),max=req(MODELS[K[K.length-1][0]]);
   K.forEach(k=>{$("k-"+k[0]).style.width="0";setv($("k-p"+k[0]),0,2," cr")});if(anim)await sleep(80);
   for(const k of K){if(!ok())return;const c=req(MODELS[k[0]]);$("k-"+k[0]).style.width=Math.max(14,c/max*100)+"%";
     anim?tween($("k-p"+k[0]),c,{dec:2,suf:" cr",ms:900}):setv($("k-p"+k[0]),c,2," cr");if(anim)await sleep(300)}}
@@ -142,7 +134,7 @@ const TIPS=[["🗺️","Give a map, not a manual","copilot-instructions.md is se
  ["📝","Plan to a file, then start fresh","Plan with a strong model, save it, then implement in a new chat that carries one page instead of the whole history.","Implement step 1 of #file:PLAN.md"],
  ["🤖","Cheap helpers","Sub-agents don’t inherit the main chat history, so a light model is often enough for them.","Light model for sub-agents"],
  ["🔌","Unplug unused tools","Every enabled MCP tool adds its description to every request.","Enable only the toolsets you need"],
- ["⏱️","Mind the cache clock","Caches expire after about an hour on most models (24 hours on OpenAI). Back after a break? Summarize first.","/compact in Copilot CLI"],
+ ["⏱️","Mind the cache clock","Caches expire after a period of inactivity that each provider sets. Back after a long break? Summarize first.","/compact in Copilot CLI"],
  ["📏","Stay under the long-context line","Some models charge double per token above a size limit, for example GPT-5.6 Sol above 272K input tokens.","/context in Copilot CLI"],
  ["🎚️","Reasoning is a dial","Higher reasoning effort writes more tokens. Use normal effort and raise it only for hard problems.","Set it before the chat starts"],
  ["🛑","Set a session limit","An AI credit session limit stops a long agent task cleanly and asks before it spends more.","Copilot CLI / SDK session limit"],
@@ -164,7 +156,6 @@ $("q-box").onclick=e=>{const b=e.target.closest(".opts button");if(!b)return;con
 
 
 /* ================= academy ================= */
-MODELS.push(["GPT-6.1 Sol",2.00,0.10,10.00],["GPT-5.6 Terra",2.00,0.20,12.00],["Claude Opus 4.8",5.00,0.50,25.00],["Claude Opus 5",5.00,0.50,25.00],["Claude Sonnet 5",2.00,0.20,10.00],["Gemini 4 Argon",2.00,0.10,10.00],["Claude Fable 5.1",10.00,0.25,50.00]);
 const enc=()=>window.GPTTokenizer_o200k_base, enc2=()=>window.GPTTokenizer_cl100k_base;
 const hasTok=()=>!!enc();
 const tokO=s=>hasTok()?enc().encode(s).length:Math.ceil(s.length/4);
@@ -172,7 +163,8 @@ const tokC=s=>enc2()?enc2().encode(s).length:Math.ceil(s.length/4);
 const FAM=n=>/^GPT/.test(n)?"openai":/^Claude/.test(n)?"claude":/^Gemini/.test(n)?"gemini":"other";
 const RANGE={openai:[1,1],claude:[1.05,1.3],gemini:[0.9,1.1],other:[0.95,1.15]};
 const estFor=(name,o)=>{const r=RANGE[FAM(name)];return Math.round(o*(r[0]+r[1])/2)};
-const crOf=(m,fi,ca,o)=>(fi*m[1]+ca*m[2]+o*m[3])/1e6*100;
+// Above a model's long-context threshold the whole request moves to the higher rates.
+const crOf=(m,fi,ca,o)=>{const r=m[4]&&fi+ca>m[4].over?[0,m[4].in,m[4].cached,m[4].out]:m;return (fi*r[1]+ca*r[2]+o*r[3])/1e6*100};
 const opts=(sel,def)=>{sel.innerHTML=MODELS.map((m,i)=>`<option value="${i}">${m[0]} · $${m[1]} in / $${m[3]} out</option>`).join("");sel.value=def};
 const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -203,40 +195,8 @@ async function gplay(){if(gauto){gauto=false;$("g-play").textContent="▶ Play";
   while(gauto&&gi<GS.length){await gstep();await sleep(300*gspeed())}}
 $("g-play").onclick=gplay;$("g-step").onclick=()=>{gauto=false;$("g-play").textContent="▶ Play";gstep()};$("g-reset").onclick=greset;greset();
 
-/* ---------- calculator ---------- */
-const SAMPLES={prompt:"Add input validation to CreateOrder in OrderController.cs. Use FluentValidation and return 400 with ProblemDetails. Show only the diff.",
-code:`public class OrderService\n{\n    private readonly IOrderRepository _repo;\n    public OrderService(IOrderRepository repo) => _repo = repo;\n\n    public async Task<Order?> GetAsync(int id)\n    {\n        if (id <= 0) throw new ArgumentOutOfRangeException(nameof(id));\n        return await _repo.FindAsync(id);\n    }\n}`,
-json:`{\n  "orderId": 10482,\n  "customer": { "id": "C-2291", "tier": "gold" },\n  "items": [\n    { "sku": "KB-104", "qty": 2, "price": 49.90 },\n    { "sku": "MS-220", "qty": 1, "price": 29.00 }\n  ],\n  "discountCode": "WELCOME10",\n  "status": "pending"\n}`,
-log:`  Passed OrderTests.CreateOrder_Valid [12 ms]\n  Passed OrderTests.CreateOrder_ZeroQty_Returns400 [3 ms]\n  Failed OrderTests.ApplyDiscount_Over100Percent [8 ms]\n  Error Message:\n   Assert.Equal() Failure: Expected: 0  Actual: -10\n  Stack Trace:\n     at OrderTests.ApplyDiscount_Over100Percent() in /src/tests/OrderTests.cs:line 87\n\nTotal tests: 48. Passed: 47. Failed: 1. Skipped: 0.`};
-let kAs="in";
-$("k-text").value=SAMPLES.prompt;
-document.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-s]").forEach(x=>x.setAttribute("aria-pressed",x===b));$("k-text").value=SAMPLES[b.dataset.s];calcAll()});
-document.querySelectorAll("[data-as]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-as]").forEach(x=>x.setAttribute("aria-pressed",x===b));kAs=b.dataset.as;calcTable()});
-const RB=[["sys","Copilot’s own system instructions",2000,true,"#0B1020"],["inst","Custom instructions file",600,true,"#005A9E"],["tools","Tool definitions (built-in + MCP)",1900,true,"#1F6FB2"],["hist","Earlier messages in this chat",3200,false,"#3B8FD9"],["files","Referenced code files",4000,true,"#8DB9E2"]];
-$("k-rb").innerHTML=RB.map(r=>`<div class="rbrow"><label for="rb-${r[0]}c"><input type="checkbox" id="rb-${r[0]}c" ${r[3]?"checked":""}> ${r[1]}</label><input type="number" id="rb-${r[0]}" min="0" step="100" value="${r[2]}" aria-label="${r[1]} tokens"></div>`).join("");
-opts($("k-model"),SON);
-let kO=0;
-function calcAll(){const s=$("k-text").value;kO=tokO(s);const c=tokC(s),words=(s.trim().match(/\S+/g)||[]).length;
-  $("k-status").textContent=hasTok()?"Exact OpenAI tokenizers loaded.":"Tokenizer still loading or blocked; showing a 4-characters-per-token estimate.";
-  const rng=(f)=>{const r=RANGE[f];return `${fmt(Math.round(kO*r[0]))}–${fmt(Math.round(kO*r[1]))}`};
-  $("k-tz").innerHTML=`<div class="tzc"><span class="badge ${hasTok()?"ex":"es"}">${hasTok()?"exact":"estimate"}</span><b>${fmt(kO)}</b><span>OpenAI o200k_base (GPT‑4o and later OpenAI models)</span></div>
-   <div class="tzc"><span class="badge ${enc2()?"ex":"es"}">${enc2()?"exact":"estimate"}</span><b>${fmt(c)}</b><span>OpenAI cl100k_base (GPT‑4, GPT‑3.5)</span></div>
-   <div class="tzc"><span class="badge es">range</span><b>${rng("claude")}</b><span>Claude models (estimate)</span></div>
-   <div class="tzc"><span class="badge es">range</span><b>${rng("gemini")}</b><span>Gemini models (estimate)</span></div>
-   <div class="tzc"><span class="badge es">rule of thumb</span><b>${fmt(Math.ceil(s.length/4))}</b><span>${fmt(s.length)} characters ÷ 4 · ${fmt(words)} words · ${kO?fmt(s.length/kO,1):0} chars per token</span></div>`;
-  const ch=$("k-chips");ch.innerHTML="";
-  if(hasTok()){const ids=enc().encode(s).slice(0,1500);const frag=document.createDocumentFragment();ids.forEach(id=>{const sp=document.createElement("span");sp.textContent=enc().decode([id]).replace(/\n/g,"↵\n");sp.title="Token ID "+id;frag.append(sp)});ch.append(frag);if(kO>1500){const m=document.createElement("em");m.textContent=` … ${fmt(kO-1500)} more`;ch.append(m)}}
-  else ch.textContent="The token split appears once the tokenizer has loaded.";
-  calcTable();calcReq()}
-function calcTable(){const sel=+$("k-model").value;
-  $("k-table").innerHTML=`<tr><th>Model</th><th class="r">Tokens</th><th class="r">Price per 1M (${kAs==="in"?"input":"output"})</th><th class="r">Credits per 1,000 requests</th><th class="r">$ per 1,000</th></tr>`+
-  MODELS.map((m,i)=>{const t=FAM(m[0])==="openai"?kO:estFor(m[0],kO);const rate=kAs==="in"?m[1]:m[3];const cr=t*rate/1e6*100*1000;
-    return `<tr class="${i===sel?"sel":""}"><td>${m[0]}</td><td class="r">${FAM(m[0])==="openai"?"":"~"}${fmt(t)}</td><td class="r">$${rate.toFixed(2)}</td><td class="r">${fmt(cr,cr<10?2:1)}</td><td class="r">$${fmt(cr/100,2)}</td></tr>`}).join("")}
-function calcReq(){const parts=RB.filter(r=>$("rb-"+r[0]+"c").checked).map(r=>[r[1],Math.max(0,+$("rb-"+r[0]).value||0),r[4]]);parts.push(["Your text",kO,"var(--warn)"]);
-  const tot=parts.reduce((a,p)=>a+p[1],0)||1;$("k-stack").innerHTML=parts.map(p=>`<span style="width:${p[1]/tot*100}%;background:${p[2]}"></span>`).join("");
-  $("k-leg").innerHTML=parts.map(p=>`<span><i style="background:${p[2]}"></i>${p[0]} · ${fmt(p[1])}</span>`).join("");
-  setv($("k-full"),tot);$("k-share").textContent=fmt(kO/tot*100,kO/tot<.01?2:1)+"%";$("k-fcr").textContent=fmt(crOf(MODELS[+$("k-model").value],tot,0,0),3)}
-$("k-text").addEventListener("input",calcAll);$("k-rb").addEventListener("input",calcReq);$("k-model").addEventListener("change",()=>{calcTable();calcReq()});
+/* ---------- samples (the lesson counts them live) ---------- */
+const SAMPLES=Object.fromEntries(Object.entries(SAMPLE_TEXT).map(([k,v])=>[k,v.text]));
 
 /* ---------- ask ---------- */
 const FILLER=/\b(hi|hello|hey)( copilot)?[,!.]?\s*|\b(could|can|would) you (please )?|\bplease,?\s*|\bkindly\s*|\bthanks( a lot| in advance)?[!.]?|\bthank you[!.]?|\bi (think|guess|was wondering if)( that)?\s*|\bif possible,?\s*|\bjust\s+/gi;
@@ -278,7 +238,7 @@ const PAT=[
   f:"input(turn k) = first + (k − 1) × growth\ntotal input  = n × first + growth × n(n − 1) ÷ 2",
   ps:[["n","Messages",1,40,1,12],["B","First request (tokens)",1000,30000,500,6000],["g","Growth per turn",500,10000,500,3500],["O","Output per turn",100,3000,100,800]],
   gen:p=>Array.from({length:p.n},(_,k)=>({fi:p.B+k*p.g,ca:0,o:p.O,th:0})),lesson:"Total input rises with the square of the number of turns. Starting a new chat for a new topic resets it."},
- {id:"cache",name:"Chat with cache",desc:"Same long chat, but the part that was already sent recently is reused from cache at about 10% of the input price.",
+ {id:"cache",name:"Chat with cache",desc:"Same long chat, but the part that was already sent recently is reused from cache, usually at 10% of the input price or less.",
   f:"cached(turn k) = hit % × input(turn k − 1)\nfresh(turn k)  = input(turn k) − cached(turn k)",
   ps:[["n","Messages",1,40,1,12],["B","First request (tokens)",1000,30000,500,6000],["g","Growth per turn",500,10000,500,3500],["h","Cache hit rate %",0,95,5,85],["O","Output per turn",100,3000,100,800]],
   gen:p=>Array.from({length:p.n},(_,k)=>{const inp=p.B+k*p.g,ca=k?Math.round(p.h/100*(p.B+(k-1)*p.g)):0;return{fi:inp-ca,ca,o:p.O,th:0}}),lesson:"Cache keeps long sessions affordable, but it breaks if you switch models, change settings or come back after it expires."},
@@ -298,7 +258,7 @@ const PAT=[
  {id:"long",name:"Long-context tier",desc:"Some models charge a higher rate once a request passes a size threshold. Example from GitHub’s price list: GPT‑5.6 Sol is $4 per 1M input up to 272K input tokens and $8 above; output goes from $20 to $30.",
   f:"if input > 272,000:  input × $8 + output × $30\nelse:                input × $4 + output × $20     (GPT-5.6 Sol, per 1M)",
   ps:[["I","Input tokens in the request",20000,600000,10000,300000],["O","Output tokens",500,10000,500,2000]],
-  gen:p=>[100,150,200,250,300,350,400,450,500,550,600].map(k=>({fi:k*1000,ca:0,o:p.O,th:0,long:k*1000>272000})),fixed:10,
+  gen:p=>[100,150,200,250,300,350,400,450,500,550,600].map(k=>({fi:k*1000,ca:0,o:p.O,th:0,long:k*1000>272000})),fixed:MI("GPT-5.6 Sol"),
   lesson:"Crossing the threshold doubles the input price for the whole request. Keep long sessions compact so requests stay under the line."}];
 let pcur=PAT[0];const pv={};
 $("p-btns").innerHTML=PAT.map(p=>`<button type="button" data-p="${p.id}" aria-pressed="false">${p.name}</button>`).join("");
@@ -307,9 +267,9 @@ $("p-btns").onclick=e=>{const b=e.target.closest("button");if(b)pSel(b.dataset.p
 function pSel(id){pcur=PAT.find(p=>p.id===id);document.querySelectorAll("#p-btns button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===id));
   $("p-title").textContent=pcur.name;$("p-desc").textContent=pcur.desc;$("p-formula").textContent=pcur.f;$("p-lesson").textContent=pcur.lesson;
   $("p-params").innerHTML=pcur.ps.map(q=>`<label for="pp-${q[0]}">${q[1]}: <b id="pv-${q[0]}">${fmt(q[5])}</b><input type="range" id="pp-${q[0]}" min="${q[2]}" max="${q[3]}" step="${q[4]}" value="${q[5]}"></label>`).join("");
-  $("p-model").disabled=!!pcur.fixed;if(pcur.fixed!=null)$("p-model").value=pcur.fixed;else if($("p-model").value==10)$("p-model").value=SON;pRun(true)}
+  $("p-model").disabled=pcur.fixed!=null;if(pcur.fixed!=null)$("p-model").value=pcur.fixed;else if(+$("p-model").value===MI("GPT-5.6 Sol"))$("p-model").value=SON;pRun(true)}
 function pRun(anim){const p={};pcur.ps.forEach(q=>{p[q[0]]=+$("pp-"+q[0]).value;$("pv-"+q[0]).textContent=fmt(p[q[0]])});
-  const m=MODELS[+$("p-model").value],light=MODELS[0];let calls=pcur.gen(p);
+  const m=MODELS[+$("p-model").value],light=MODELS[MI("GPT-6 Luna")];let calls=pcur.gen(p);
   if(pcur.id==="long"){const one={fi:p.I,ca:0,o:p.O,th:0,long:p.I>272000};const cost=c=>c.long?(c.fi*8+c.o*30)/1e6*100:(c.fi*4+c.o*20)/1e6*100;
     pChart(calls,true);setv($("p-calls"),1);setv($("p-in"),one.fi);setv($("p-out"),one.o);$("p-cr").textContent=fmt(cost(one),2)+(one.long?" (long rate)":"");return}
   pChart(calls,false);let ti=0,to=0,cr=0;calls.forEach(c=>{const mm=c.sub&&p.L?light:m;ti+=c.fi+c.ca;to+=c.o+c.th;cr+=crOf(mm,c.fi,c.ca,c.o+c.th)});
@@ -368,7 +328,7 @@ const STAGES=[
   tools:1500,instr:600,skd:120,tool:1500,red:1.05,mix:true,
   calls:[["w","Planner: read 2 files","plan"],["w","Planner: write plan","plan"],["s","Load api-endpoint skill","impl"],["h","Blocked: read obj/ files","impl"],["w","Implementer: endpoint + validator","impl"],["s","Load unit-tests skill","test"],["w","Test-writer: tests","test"],["h","Run tests: log trimmed to failures","test"]],
   retry:"Smaller tool outputs keep context small and the agent on track. Redo factor ×1.05."}];
-const ROLE={plan:9,impl:6,test:1}; // MODELS index: Claude Opus 5.5, Claude Sonnet 5.5, Claude Haiku 5.5
+const ROLE={plan:MI("Claude Opus 5.5"),impl:MI("Claude Sonnet 5.5"),test:MI("Claude Haiku 5.5")};
 opts($("j-model"),SON);
 function stageCalc(st){const single=MODELS[+$("j-model").value];let inTot=0,outTot=0,cr=0,ctx=2000+st.tools+st.instr+st.skd+150+3000,loaded=0;
   st.calls.forEach((c,k)=>{if(c[0]==="s")loaded+=1200;const tout=c[0]==="h"?300:st.tool,o=700;
@@ -505,8 +465,7 @@ function gShow(i){document.querySelectorAll("#gtabs button").forEach(b=>b.setAtt
 gShow(0);jShow(false);
 
 /* ================= billing & scenarios ================= */
-const MI=n=>MODELS.findIndex(m=>m[0]===n);
-const WRITE={"Claude Opus 5.5":5,"Claude Opus 4.8":6.25,"Claude Sonnet 5.5":2.5,"Claude Sonnet 4.6":3.75,"GPT-6.1 Sol":2.5,"GPT-5.6 Sol":5,"GPT-6 Sol":2.5,"GPT-6 Astra":12.5};
+const WRITE=Object.fromEntries(DATA.models.filter(m=>m.write).map(m=>[m.name,m.write]));
 
 /* 1 PRU */
 const LEG=[["Claude Haiku 4.5",.33],["GPT-4o",.33],["GPT-5.1-Codex-Mini",.33],["MAI-Code-1.1-Flash",.25],["GPT-5.1",3],["GPT-5.1-Codex",3],["GPT-5.3-Codex",6],["Gemini 3 Pro",6],["Claude Sonnet 4.6",9],["Claude Opus 4.8",27]];
@@ -578,7 +537,7 @@ const SCN=[
  {id:"workflow-modes",name:"Workflow modes",desc:"Agent mode for a simple question explores the repo and loops. Ask mode answers in one call.",
   bl:"Agent mode: 6 calls",al:"Ask mode with the code selected: 1 call",
   b:()=>turns(6,14000,3000,600),a:()=>turns(1,3000,0,400),fix:"Use Ask for questions, Plan for design, Agent for multi-file changes. Pick the mode before you type."},
- {id:"instruction-caching",name:"Instruction caching",desc:"A stable prefix (instructions, tools, files) can be served from cache at ~10% of the price. Changing the model or settings mid-session throws the cache away.",
+ {id:"instruction-caching",name:"Instruction caching",desc:"A stable prefix (instructions, tools, files) can be served from cache at 10% of the input price or less. Changing the model or settings mid-session throws the cache away.",
   bl:"Model switched mid-session: no cache",al:"Same model and settings throughout: ~85% cached",
   b:()=>turns(15,12000,2000,700,0),a:()=>turns(15,12000,2000,700,.85),fix:"Choose the model, reasoning level and tools before you start, and keep them for the session."},
  {id:"agents-md-hygiene",name:"AGENTS.md hygiene",desc:"Instructions ride on every request. A 6,000-token file of copied docs costs 10× a 600-token map, on every call.",
@@ -621,19 +580,7 @@ $("strat").innerHTML=SCN.map(s=>`<button type="button" data-go="${s.id}"><b>${s.
 $("strat").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;location.hash="scenarios";setTimeout(()=>scSel(b.dataset.go,true),400)};
 prRun();whyRun(false);mpRun(false);ag2Run(false);tcRun();scSel("context-bloat",false);
 
-/* ---------- tokenizer ready ---------- */
-/* ---------- hero: the quick count a search visitor came for ---------- */
-const hIn=$("h-in");hIn.value=SAMPLES.prompt;opts($("h-model"),SON);let hIds=[];
-function heroRun(){const s=hIn.value,n=tokO(s),m=MODELS[+$("h-model").value];
-  tween($("h-n"),n,{ms:400});tween($("h-cr"),crOf(m,n+12000,0,800),{dec:2,ms:400});
-  $("h-note").textContent=hasTok()?`Exact count with the OpenAI o200k_base tokenizer. The credits assume Copilot adds about 12,000 tokens of context and writes 800 back, on ${m[0]}.`:"Estimating at 4 characters per token while the tokenizer loads…";
-  const box=$("h-chips"),ids=hasTok()?enc().encode(s).slice(0,48):[];let same=0;
-  while(same<ids.length&&same<hIds.length&&ids[same]===hIds[same])same++;
-  [...box.children].slice(same).forEach(c=>c.remove());
-  ids.slice(same).forEach((id,k)=>{const sp=document.createElement("span");sp.style.setProperty("--d",Math.min(k,24)*22+"ms");sp.textContent=enc().decode([id]).replace(/\n/g,"↵");box.append(sp)});
-  hIds=ids}
-hIn.addEventListener("input",heroRun);$("h-model").addEventListener("change",heroRun);
-function onTok(){heroRun();calcAll();askRun();tplRun();pairsRun();const gb=document.querySelector("#gtabs [aria-pressed=true]");if(gb)gShow(+gb.dataset.g);if(!gauto&&!gbusy&&gi===0)greset()}
+function onTok(){askRun();tplRun();pairsRun();const gb=document.querySelector("#gtabs [aria-pressed=true]");if(gb)gShow(+gb.dataset.g);if(!gauto&&!gbusy&&gi===0)greset()}
 onTok();
 loadTokenizers().then(()=>{if(alive())onTok()});
 pSel("single");oRun();hRun(false);
@@ -668,7 +615,7 @@ const LS=[
    for(const n of [100,1000]){if(!ok())return;tween($("l3a"),n,{ms:700});tween($("l3b"),n*.75,{ms:700});tween($("l3c"),n*4,{ms:700});await sleep(1700)}}},
  {name:"Code costs more",tag:"Scene 4 · Not all text is equal",title:"Same length, different token counts",
   text:"Code, JSON and logs split into more tokens per character than plain English, because brackets, quotes, dots and indentation are tokens too. These four samples are counted live with the o200k_base tokenizer.",
-  run:async(el,ok)=>{const rows=[["English prompt",SAMPLES.prompt],["C# code",SAMPLES.code],["JSON",SAMPLES.json],["Test log",SAMPLES.log]].map(r=>[r[0],r[1].length,tokO(r[1])]);
+  run:async(el,ok)=>{const rows=[["English prompt",SAMPLES.prompt],["Dart code",SAMPLES.code],["JSON",SAMPLES.json],["Test log",SAMPLES.log]].map(r=>[r[0],r[1].length,tokO(r[1])]);
    const per=rows.map(r=>r[2]/r[1]*100),max=Math.max(...per);
    el.innerHTML=`<div class="mb">${rows.map((r,i)=>`<div class="mr"><span><b>${r[0]}</b><br><span class="small">${fmt(r[1])} chars · <span id="l4r${i}">…</span></span></span><div class="tr"><div class="fl" id="l4f${i}"></div></div><span class="v num" id="l4v${i}">0</span></div>`).join("")}</div><span class="small">Bar and number = tokens per 100 characters.</span>`;
    await sleep(300);for(let i=0;i<rows.length;i++){if(!ok())return;$("l4f"+i).style.width=per[i]/max*100+"%";tween($("l4v"+i),per[i],{ms:700});$("l4r"+i).textContent=fmt(rows[i][2])+" tokens";await sleep(650)}}},
@@ -696,7 +643,7 @@ const LS=[
    for(let k=1;k<T.length;k+=2){if(!ok())return;add(T[k]);typed+=1;setv($("l7t"),typed,0,"K");w.classList.remove("send");void w.offsetWidth;w.classList.add("send");
      sent+=now;tween($("l7s"),sent,{suf:"K",ms:500});await sleep(850);if(!ok())return;add(T[k+1]);await sleep(450)}}},
  {name:"Cache",tag:"Scene 8 · Cached tokens",title:"Repeated parts are reused at a discount",
-  text:"Send a follow-up soon after, and most of the request is identical. That repeated start is read from cache at about 10% of the input price. Switching models or coming back after it expires throws the cache away.",
+  text:"Send a follow-up soon after, and most of the request is identical. That repeated start is read from cache, usually at 10% of the input price or less (5% on Claude Sonnet 5.5). Switching models or coming back after it expires throws the cache away.",
   run:async(el,ok)=>{el.innerHTML=`<div class="trips"><div class="trip"><h3>Request 1</h3><div id="lc1"></div><div class="sum"><span>Cost</span><span class="num" id="lc1s"></span></div></div><div class="trip"><h3>Request 2, a minute later</h3><div id="lc2"></div><div class="sum"><span>Cost</span><span class="num" id="lc2s"></span></div></div></div><span class="small">Input only, Claude Sonnet 5.5: $2 fresh, $0.10 cached per 1M tokens. Teal = read from cache.</span>`;
    trip($("lc1"),false);trip($("lc2"),false);setv($("lc1s"),cost(false),2," cr");setv($("lc2s"),cost(false),2," cr");await sleep(1000);
    for(let i=0;i<5;i++){if(!ok())return;$("lc2-"+i).classList.add("c");await sleep(400)}if(ok())tween($("lc2s"),cost(true),{dec:2,suf:" cr"})}},
@@ -746,7 +693,7 @@ if("IntersectionObserver" in window){const bo=new IntersectionObserver(es=>es.fo
 
 /* ---------- a guided course: one step on screen at a time ---------- */
 // Every step stays in the HTML (search engines and no-JS readers get the whole
-// page); with JavaScript, the reader sees one step, a map of all fourteen, and
+// page); with JavaScript, the reader sees one lesson, a map of all twelve, and
 // a clear way on. Progress is a per-reader convenience, so it lives in
 // localStorage and the page works the same when that is unavailable.
 const onFirstView = {
@@ -767,7 +714,6 @@ const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; }
 const state = Object.assign({ done: [], ans: {}, last: null }, load());
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
 let cur = null;
-let started = false;
 
 document.getElementById("ta").classList.add("is-course");
 
@@ -833,13 +779,8 @@ function playStory(id) {
   clearInterval(storyTimer);
   const fig = document.querySelector(`#${id} .ta-story`);
   if (!fig) return;
+  // Readers step through the frames themselves; nothing moves on its own.
   frame(fig, 0);
-  if (RM) return;
-  storyTimer = setInterval(() => {
-    const r = fig.getBoundingClientRect();
-    if (document.hidden || r.bottom < 0 || r.top > innerHeight) return;
-    frame(fig, (+fig.dataset.f + 1) % fig.querySelectorAll(".ta-frame").length);
-  }, 3400);
 }
 
 // ---- a little celebration for a full score ----
@@ -907,7 +848,7 @@ function cvRun() {
   if (CV.topic === "new")
     v = `<b>↻ Start a new chat.</b> The old history has nothing to do with the new question. It would ride along on every message${a > b ? `, costing about ${d} more credits over the next five,` : ""} and it can pull the answers off course.`;
   else if (a <= b)
-    v = `<b>✓ Continue this chat.</b> ${CV.time === "warm" ? "The cache serves the history at about 10% of the price" : "The history is short enough that even full price on the first message is fine"}, and Copilot already knows the task. About ${d} credits cheaper over the next five messages.`;
+    v = `<b>✓ Continue this chat.</b> ${CV.time === "warm" ? "The cache serves the history at a fraction of the input price" : "The history is short enough that even full price on the first message is fine"}, and Copilot already knows the task. About ${d} credits cheaper over the next five messages.`;
   else if (CV.time === "cold")
     v = `<b>↻ Summarize, then start fresh.</b> The cache has expired, so the next message would send all ${fmt(aNext[0])} tokens at full price. A new chat with a short summary is about ${d} credits cheaper over the next five.`;
   else
@@ -1041,12 +982,11 @@ steps.forEach(stepScore);
 const firstStep = state.last && ids.includes(state.last) ? state.last : ids[0];
 if (!route({ scroll: true })) show(firstStep, { scroll: false });
 
-// The lesson plays by itself the first time it is properly on screen, and
-// pauses when scrolled away so it never runs unseen.
+// The lesson plays only when the reader presses Play, and pauses when
+// scrolled away so it never runs unseen.
 const lessonIO = new IntersectionObserver(([en]) => {
   lvis = en.isIntersecting;
-  if (lvis && !started) { started = true; lauto = true; $("l-play").textContent = "❚❚ Pause"; lShow(0); }
-  else if (!lvis && lauto) lStop();
+  if (!lvis && lauto) lStop();
 }, { threshold: 0.4 });
 lessonIO.observe(document.querySelector("#ta .lesson"));
 lShow(0);

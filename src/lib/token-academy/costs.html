@@ -1,0 +1,142 @@
+<nav class="subnav" aria-label="Billing topics">
+      <a href="#b1">PRU multipliers</a><a href="#b2">Why AI Credits</a><a href="#b3">Token types</a><a href="#b4">Real costs</a><a href="#b5">GPT vs Opus vs Sonnet</a><a href="#b6">Agent mode</a><a href="#b7">Your own costs</a><a href="#b8">Reduce tokens</a><a href="#b9">Save your budget</a>
+    </nav>
+
+    <section class="card anchor" id="b1">
+      <span class="tag">1 · The old model</span>
+      <h3 class="h2">How PRU multipliers worked</h3>
+      <p>Under request-based billing, each prompt you sent in Copilot Chat (ask, edit, agent or plan mode) used <b>one premium request</b>, multiplied by the model’s <b>multiplier</b>. A cheap model might count as 0.33 of a request; a frontier model as 27. The prompt’s length didn’t matter. Agent tool calls didn’t count, only your prompts. Copilot code review used 13 per review.</p>
+      <div class="grid2 tight">
+        <div class="fields2">
+          <label for="pr-model">Model (legacy annual-plan multipliers)<select id="pr-model"></select></label>
+          <label for="pr-plan">Plan<select id="pr-plan"><option value="300">Copilot Pro · 300 requests/month</option><option value="1500">Copilot Pro+ · 1,500 requests/month</option></select></label>
+          <label for="pr-n">Prompts this month: <b id="pr-nv">120</b><input id="pr-n" type="range" min="0" max="600" step="10" value="120"></label>
+          <label for="pr-cr">Code reviews this month: <b id="pr-crv">10</b><input id="pr-cr" type="range" min="0" max="60" step="1" value="10"></label>
+        </div>
+        <div class="fields2">
+          <div class="bucket"><div class="bfill" id="pr-fill"></div><div class="bline"></div><span class="blab" id="pr-lab"></span></div>
+          <div class="counters">
+            <div class="ct"><div class="v" id="pr-used">0</div><div class="l">premium requests used</div></div>
+            <div class="ct hot"><div class="v" id="pr-over">$0</div><div class="l">extra requests at $0.04</div></div>
+          </div>
+        </div>
+      </div>
+      <p class="small">Multipliers shown are those GitHub lists today for Pro and Pro+ subscribers still on an annual plan; they were raised on June 1, 2026. All other plans moved to AI Credits.</p>
+    </section>
+
+    <section class="card anchor" id="b2">
+      <span class="tag">2 · The change</span>
+      <h3 class="h2">Why GitHub moved to AI Credits</h3>
+      <p>Copilot now runs long, multi-step agent sessions across whole repositories. Under PRU billing, a quick question and a multi-hour agent session could cost the same, while the real compute differed by thousands of times. GitHub said that model was no longer sustainable, and moved to billing by actual tokens at each model’s published rates.</p>
+      <div class="ctl"><span class="small">Same model (Claude Sonnet 4.6), two very different jobs</span><button class="btn btn-outline btn-sm" id="why-play">▶ Compare</button></div>
+      <div class="why">
+        <div class="whyrow"><b>Quick question</b><span class="small">2K input · 300 output</span><div class="wtr"><div class="wf a" id="why-a1"></div></div><span class="wv" id="why-a1v">9 PRU</span><div class="wtr"><div class="wf b" id="why-a2"></div></div><span class="wv" id="why-a2v">0.1 cr</span></div>
+        <div class="whyrow"><b>2-hour agent session</b><span class="small">60 calls · 4.5M input (85% cached) · 90K output</span><div class="wtr"><div class="wf a" id="why-b1"></div></div><span class="wv" id="why-b1v">9 PRU</span><div class="wtr"><div class="wf b" id="why-b2"></div></div><span class="wv" id="why-b2v">452 cr</span></div>
+        <div class="whyhead"><span></span><span></span><span class="small">Old: premium requests</span><span></span><span class="small">New: AI Credits</span><span></span></div>
+      </div>
+      <div class="grid3">
+        <div class="mini"><b>Fair</b><span>You pay for what each request actually uses.</span></div>
+        <div class="mini"><b>Pooled</b><span>Business and Enterprise credits are shared across the organization, so light users offset heavy ones.</span></div>
+        <div class="mini"><b>Controllable</b><span>Budgets at enterprise, cost-center and user level. No more silent fallback to a cheaper model.</span></div>
+      </div>
+      <p class="small">Plan prices didn’t change: Business includes $19 of credits per user (1,900 credits), Enterprise $39 (3,900). Completions and next edit suggestions stay free.</p>
+    </section>
+
+    <section class="card anchor" id="b3">
+      <span class="tag">3 · The units</span>
+      <h3 class="h2">Input, output and cached tokens</h3>
+      <div class="grid4">
+        <div class="tt in"><b>Input</b><span>Everything sent: your prompt, instructions, tool definitions, history, files, tool results.</span><em>Full input price</em></div>
+        <div class="tt out"><b>Output</b><span>Everything the model writes, including hidden reasoning on most models.</span><em>About 5× input</em></div>
+        <div class="tt ca"><b>Cached input</b><span>A repeated prefix reused from a recent request.</span><em>Usually 10% of input or less</em></div>
+        <div class="tt wr"><b>Cache write</b><span>Storing a prefix for reuse. Charged on Anthropic models and the GPT‑5.6, GPT‑6 and GPT‑6.1 families.</span><em>About 1.25× input</em></div>
+      </div>
+      <div class="formula2">credits = (fresh input × input rate + cached × cached rate + cache writes × write rate + output × output rate) ÷ 1,000,000 × 100</div>
+      <p class="small">Try your own text in the <a href="#calculator">Token calculator</a>, or watch tokens being generated in <a href="#generate">Watch it generate</a>.</p>
+    </section>
+
+    <section class="card anchor" id="b4">
+      <span class="tag">4 · Examples</span>
+      <h3 class="h2">Real cost comparison examples</h3>
+      <p>Five everyday tasks priced on six Copilot models at published rates. No caching assumed, so long sessions here are the worst case.</p>
+      <div class="tbl"><table class="t" id="rc-table"></table></div>
+      <p class="small">AI Credits per task (1 credit = $0.01). Token sizes are typical examples.</p>
+    </section>
+
+    <section class="card anchor" id="b5">
+      <span class="tag">5 · Model prices</span>
+      <h3 class="h2">GPT vs Claude Opus vs Sonnet</h3>
+      <div class="note2">GPT‑5.5 was retired from Copilot on October 19, 2026. GitHub’s suggested replacement is <b>GPT‑6.1 Sol</b>, so it is compared here.</div>
+      <div class="tbl"><table class="t" id="mp-table"></table></div>
+      <div class="ctl"><span class="small">One standard request: 12,000 input · 800 output</span><button class="btn btn-outline btn-sm" id="mp-play">▶ Price it</button></div>
+      <div class="mb" id="mp-bars"></div>
+      <p class="small">USD per 1M tokens from GitHub’s Models and pricing page (read 6 Nov 2026). Legacy multipliers apply only to annual Pro and Pro+ plans.</p>
+    </section>
+
+    <section class="card anchor" id="b6">
+      <span class="tag">6 · Agents</span>
+      <h3 class="h2">Why agent mode can become expensive</h3>
+      <p>Under PRU billing, one prompt to an agent was one request, no matter how many steps it took. Under AI Credits, <b>every model call in the loop is billed</b>, and each call re-sends the growing conversation plus the latest tool output.</p>
+      <div class="ctl"><span class="small">You send one prompt: “Add discount codes and make the tests pass”</span><button class="btn btn-outline btn-sm" id="ag2-play">▶ Run the agent</button></div>
+      <div class="aggrid">
+        <div class="agcalls" id="ag2-calls"></div>
+        <div class="counters col1">
+          <div class="ct"><div class="v" id="ag2-pru">1</div><div class="l">premium request (old, × multiplier)</div></div>
+          <div class="ct"><div class="v" id="ag2-n">0</div><div class="l">model calls billed (new)</div></div>
+          <div class="ct in"><div class="v" id="ag2-in">0</div><div class="l">input tokens</div></div>
+          <div class="ct hot"><div class="v" id="ag2-cr">0</div><div class="l">AI Credits (Sonnet 5.5, no cache)</div></div>
+        </div>
+      </div>
+      <div class="grid3">
+        <div class="mini"><b>Context grows</b><span>Call 20 carries everything from calls 1–19.</span></div>
+        <div class="mini"><b>Tool output piles up</b><span>Logs, file reads and search results are re-sent on every later call.</span></div>
+        <div class="mini"><b>Retries multiply</b><span>A wrong guess means more calls, each bigger than the last.</span></div>
+      </div>
+    </section>
+
+    <section class="card anchor" id="b7">
+      <span class="tag">7 · Your numbers</span>
+      <h3 class="h2">Calculate your team’s monthly Copilot cost</h3>
+      <div class="steps4">
+        <div class="s4"><b>1</b><strong>Count the work</strong><span>How many questions, chats and agent tasks per developer per day.</span></div>
+        <div class="s4"><b>2</b><strong>Size each one</strong><span>Typical input and output tokens (see Real costs above).</span></div>
+        <div class="s4"><b>3</b><strong>Price by model</strong><span>Tokens × the model’s rates, less the cached share.</span></div>
+        <div class="s4"><b>4</b><strong>Compare to the pool</strong><span>Seats × included credits, then check the AI usage report.</span></div>
+      </div>
+      <div class="params" id="tc-params"></div>
+      <div class="grid2 tight">
+        <label for="tc-model">Main model<select id="tc-model"></select></label>
+        <label for="tc-plan">Plan<select id="tc-plan"><option value="1900">Copilot Business · 1,900 credits per seat</option><option value="3900">Copilot Enterprise · 3,900 credits per seat</option></select></label>
+      </div>
+      <div class="counters">
+        <div class="ct"><div class="v" id="tc-dev">0</div><div class="l">credits per developer per month</div></div>
+        <div class="ct"><div class="v" id="tc-team">0</div><div class="l">credits for the team</div></div>
+        <div class="ct"><div class="v" id="tc-pool">0</div><div class="l">included in your pool</div></div>
+        <div class="ct hot"><div class="v" id="tc-over">$0</div><div class="l">estimated extra spend</div></div>
+      </div>
+      <div class="poolbar"><div id="tc-fill"></div><span id="tc-pct"></span></div>
+      <p class="small">Estimate only, 21 working days. Check your real figures at github.com/settings/billing → AI usage, or download the usage CSV for per-request model and tokens.</p>
+    </section>
+
+    <section class="card anchor" id="b8">
+      <span class="tag">8 · Strategies</span>
+      <h3 class="h2">Best strategies to reduce token usage</h3>
+      <div class="strat" id="strat"></div>
+      <p class="small">Each links to an interactive scenario with before and after numbers.</p>
+    </section>
+
+    <section class="card anchor" id="b9">
+      <span class="tag">9 · Budget</span>
+      <h3 class="h2">Tips to save your monthly AI Credits budget</h3>
+      <div class="grid3">
+        <div class="mini"><b>Use the free part</b><span>Code completions and next edit suggestions don’t use AI Credits. Let them do boilerplate.</span></div>
+        <div class="mini"><b>Default to Auto</b><span>On paid plans, Auto model selection in Copilot Chat and the cloud agent takes 10% off model costs.</span></div>
+        <div class="mini"><b>Check weekly</b><span>The AI usage page shows credits by feature and model. Catch a runaway agent early.</span></div>
+        <div class="mini"><b>Cap sessions</b><span>Set an AI credit session limit in Copilot CLI so long agent tasks stop and ask.</span></div>
+        <div class="mini"><b>Mind code review</b><span>Each Copilot review uses AI Credits plus GitHub Actions minutes. Request it where it adds value.</span></div>
+        <div class="mini"><b>Plan budgets with admins</b><span>User-level budgets cap one person; additional usage is on by default for organizations.</span></div>
+        <div class="mini"><b>Front-load the month</b><span>Credits reset on the 1st (00:00 UTC) and don’t roll over; pace big agent jobs across the month.</span></div>
+        <div class="mini"><b>Share what works</b><span>Commit good prompt files, skills and lean instructions so everyone benefits.</span></div>
+        <div class="mini"><b>Keep tools updated</b><span>Older IDE and CLI versions can show wrong usage. Update VS Code, JetBrains and Copilot CLI.</span></div>
+      </div>
+    </section>

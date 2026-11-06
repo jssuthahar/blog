@@ -80,6 +80,15 @@ const cards: Record<string, OGCardOptions> = {
       ];
     }),
   ),
+
+  // The AI Token Calculator: a tool, so its card says what you can do with it.
+  'ai-token-calculator': {
+    title: 'AI Token Calculator for GitHub Copilot',
+    description:
+      'Count tokens live, see what each request costs in AI Credits, and learn how Copilot bills, from first token to expert.',
+    eyebrow: 'Free tool',
+    meta: '14 steps · runs in your browser',
+  },
 };
 
 export function getStaticPaths() {

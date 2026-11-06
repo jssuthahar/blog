@@ -539,6 +539,74 @@
     color: var(--ink);
   }
 
+  /* ---------- Meera's story: a moment before the explanation ---------- */
+  .ta-meet {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+    margin-top: 0.9rem;
+    max-width: 80ch;
+    border: 1px solid var(--gp-tile-line);
+    border-radius: 1rem;
+    background: var(--gp-fill);
+    padding: 0.8rem 1rem;
+    font-size: 0.92rem;
+    color: var(--muted);
+  }
+  .ta-meet b { color: var(--ink); }
+  .ta-tale-av {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #63b1ee, #0078d4 55%, #003e70);
+    box-shadow: 0 6px 14px -6px rgb(0 90 158 / 0.8);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .ta-tale {
+    position: relative;
+    border: 1px solid var(--gp-tile-line);
+    border-radius: 1.25rem;
+    background:
+      repeating-linear-gradient(180deg, transparent 0 1.9rem, rgb(0 120 212 / 0.06) 1.9rem calc(1.9rem + 1px)),
+      var(--card);
+    box-shadow: var(--shadow);
+    padding: 1rem 1.2rem 1.1rem;
+  }
+  .ta-tale::before {
+    content: '';
+    position: absolute;
+    left: 1.6rem;
+    top: -0.45rem;
+    width: 0.9rem;
+    height: 0.9rem;
+    border-left: 1px solid var(--gp-tile-line);
+    border-top: 1px solid var(--gp-tile-line);
+    background: var(--card);
+    transform: rotate(45deg);
+  }
+  .ta-tale-who { display: flex; align-items: center; gap: 0.7rem; }
+  .ta-tale-who b { display: block; font-size: 0.95rem; }
+  .ta-tale-who small { font-size: 0.75rem; color: var(--muted); }
+  .ta-tale-e { margin-left: auto; font-size: 2rem; line-height: 1; animation: ta-bob 3s ease-in-out infinite; }
+  .ta-tale-title {
+    margin-top: 0.7rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+  .ta-tale-text {
+    margin-top: 0.3rem;
+    max-width: 78ch;
+    font-size: 1rem;
+    line-height: 1.9rem;
+  }
+  .ta-step.is-entering .ta-tale { animation: ta-tale-in 0.55s cubic-bezier(0.22, 0.8, 0.3, 1) both; }
+
   /* The plain answer sits beside its storyboard. */
   .ta-answer {
     display: grid;
@@ -1033,7 +1101,7 @@
     margin-top: 0.4rem;
     font-size: clamp(1.4rem, 2.8vw, 1.75rem);
   }
-  .ta-course p:last-child {
+  .ta-course > p:not(.eyebrow) {
     margin-top: 0.35rem;
     max-width: 70ch;
     color: var(--muted);
@@ -1162,3 +1230,5 @@
 @keyframes ta-grow{from{width:0}}
 @keyframes ta-bounce{0%{opacity:0;transform:scale(.3) rotate(-12deg)}60%{opacity:1;transform:scale(1.15) rotate(6deg)}100%{transform:none}}
 @keyframes ta-confetti{0%{opacity:1;transform:translate(0,0) rotate(0)}30%{opacity:1;transform:translate(calc(var(--dx)*.55),-90px) rotate(calc(var(--r)*.4))}100%{opacity:0;transform:translate(var(--dx),230px) rotate(var(--r))}}
+@keyframes ta-bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(-6deg)}}
+@keyframes ta-tale-in{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:none}}

@@ -88,3 +88,85 @@ export const STORIES: Record<string, Frame[]> = {
     { caption: 'New topic? Start a new chat', show: [{ emoji: '🧊', label: 'Melt the snowball' }] },
   ],
 };
+
+/**
+ * One short story per step, following Meera, a developer working on
+ * MSDevBuild Eats (the open-source Flutter food delivery app this site uses
+ * as its reference project). A scenario, not a real incident: the app, its
+ * files and its Copilot setup are real; the numbers are illustrative. Each
+ * story borrows a picture from the food delivery world, so the idea lands
+ * before the explanation does.
+ */
+export interface Tale {
+  emoji: string;
+  title: string;
+  text: string;
+}
+
+export const TALES: Record<string, Tale> = {
+  start: {
+    emoji: '🧾',
+    title: 'Meera’s mystery bill',
+    text: 'Meera adds a promo-code field to the MSDevBuild Eats checkout with Copilot Chat. She types one line. At the end of the month, the team’s AI usage page shows thousands of tokens for that one afternoon, far more than the words she typed. Where did they all come from? That is what this course answers.',
+  },
+  learn: {
+    emoji: '🔪',
+    title: 'The chopping board',
+    text: 'In a kitchen, nothing is cooked whole: the order is chopped first. Meera’s prompt “Add a promo code to checkout” goes onto the chopping board and comes off in pieces: Add · a · promo · code · to · checkout. Each piece gets a number on a ticket, and the model only ever sees the tickets.',
+  },
+  picture: {
+    emoji: '🛵',
+    title: 'The delivery bag',
+    text: 'Meera’s question is a single samosa. But the rider’s bag goes out full: Copilot packs the repo’s copilot-instructions.md, the list of tools, the earlier chat, and the checkout_bloc.dart file she had open. The fee is charged on the size of the bag, not the samosa.',
+  },
+  generate: {
+    emoji: '🖨️',
+    title: 'The receipt printer',
+    text: 'Meera watches Copilot’s answer appear piece by piece, like the receipt printer at the restaurant counter: one line at a time, until it prints “Thank you”. Every line costs paper. A short receipt is quick and cheap; asking it to reprint the whole menu is not.',
+  },
+  calculator: {
+    emoji: '⚖️',
+    title: 'Weighing the parcel',
+    text: 'Before pasting a 300-line test log into chat, Meera weighs it in the calculator. The log is far heavier than an English paragraph of the same length: every bracket, timestamp and indent is a token. She sends only the failing test, and the reply comes back just as useful.',
+  },
+  ask: {
+    emoji: '🍛',
+    title: 'Two ways to order',
+    text: 'A customer who orders “something nice” gets three wrong deliveries before the right one. A customer who orders “one masala dosa, extra chutney, no onion” gets it first time. Meera’s first prompt was “fix checkout”. Her second: “In checkout_bloc.dart, reject expired promo codes. Show only the diff.” One reply, no retries.',
+  },
+  billing: {
+    emoji: '🚕',
+    title: 'From stamps to a taxi meter',
+    text: 'Under the old plan, every question Meera asked was one stamp on a card, whether it was a one-liner or a two-hour agent session. Now Copilot runs like a taxi meter: a quick question is a short ride, and an agent rebuilding the cart screen is a long one. The team’s monthly pool of AI Credits is the fuel tank.',
+  },
+  patterns: {
+    emoji: '⛄',
+    title: 'The snowball chat',
+    text: 'Meera keeps one chat open all morning: promo codes, then rider tracking, then a partner dashboard bug. By lunch, every new question drags the whole morning along with it. When she starts a fresh chat for the partner bug, the snowball melts and each reply is cheap again.',
+  },
+  scenarios: {
+    emoji: '📦',
+    title: 'The moving-day attachment',
+    text: 'On Friday, Meera attached the whole lib folder “just in case”, and every turn of that chat carried it. On Monday she attached only the two checkout files that mattered. Same answer, a fraction of the credits. Each scenario in this step is one of those Friday-versus-Monday moments.',
+  },
+  customize: {
+    emoji: '👩‍🍳',
+    title: 'The kitchen’s house rules',
+    text: 'The MSDevBuild Eats repo has a short copilot-instructions.md: the house rules every cook reads at the start of every shift. Its flutter-feature skill is a recipe card, pulled out only when a new screen is being cooked. And its guard-commit hook is the manager at the door, checking shell commands before they run, without spending a single model token.',
+  },
+  project: {
+    emoji: '🏗️',
+    title: 'One feature, five kitchens',
+    text: 'Meera builds the same feature five times. First with an agent that knows nothing about the repo, then adding the instructions, the specialist agents the repo ships (architecture, feature, tester, security), the flutter-feature skill, and the hook. Each time, the agent explores less, redoes less, and the bill gets smaller.',
+  },
+  guide: {
+    emoji: '🗂️',
+    title: 'Where does this rule live?',
+    text: 'The team wants every new screen to follow Clean Architecture. A rule every request needs? Instructions. Detailed steps only for new screens? The flutter-feature skill. Something that must never be skipped, even if the model forgets? A hook. Putting each rule in the right home is what this step is about.',
+  },
+  'tips-quiz': {
+    emoji: '📝',
+    title: 'Meera’s sticky note',
+    text: 'By Friday, a sticky note sits on Meera’s monitor: pack light, ask for the diff, one model per task, new topic means new chat, light model for routine work. Same Copilot, same answers, and the team’s credit pool lasts the whole month.',
+  },
+};

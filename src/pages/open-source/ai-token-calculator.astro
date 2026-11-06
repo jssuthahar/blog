@@ -8,7 +8,7 @@ import markup from '../../lib/token-academy/markup.html?raw';
 import '../../lib/token-academy/academy.css';
 import { STEP_QA, FAQ } from '../../lib/token-academy/questions';
 import { getPublishedPosts, postUrl } from '../../lib/posts';
-import { STORIES, type Visual } from '../../lib/token-academy/stories';
+import { STORIES, TALES, type Visual } from '../../lib/token-academy/stories';
 import { getImage } from 'astro:assets';
 import journeyFlow from '../../lib/token-academy/images/token-journey-flow.png';
 import requestSequence from '../../lib/token-academy/images/token-request-sequence.png';
@@ -93,13 +93,26 @@ for (const [id, f] of Object.entries(FIGURES)) {
   </figure>`;
 }
 
+// Meera's story opens each step: a moment on MSDevBuild Eats, told with a
+// picture from the food delivery world, before the plain answer.
+const tale = (id: string) => {
+  const t = TALES[id];
+  if (!t) return '';
+  return `<aside class="ta-tale" aria-label="Story: ${esc(t.title)}">
+    <div class="ta-tale-who"><span class="ta-tale-av" aria-hidden="true">M</span>
+      <div><b>Meera’s story</b><small>MSDevBuild Eats · a scenario</small></div>
+      <span class="ta-tale-e" aria-hidden="true">${t.emoji}</span></div>
+    <p class="ta-tale-title">${esc(t.title)}</p>
+    <p class="ta-tale-text">${esc(t.text)}</p></aside>`;
+};
+
 // Each step opens with the question it answers in plain words, and closes with
 // one question the reader can check themselves against.
 const academy = markup
   .replace(/<!--fig:([\w-]+)-->/g, (_, id: string) => figureHtml[id] ?? '')
   .replace(/<!--qa:([\w-]+)-->/g, (_, id: string) => {
     const s = STEP_QA[id];
-    return `<div class="ta-answer"><div class="ta-answer-text"><span class="ta-kicker">In plain words</span><h3>${esc(s.q)}</h3><p>${esc(s.a)}</p>${readNote(s.read)}</div>${story(id)}</div>`;
+    return `${tale(id)}<div class="ta-answer"><div class="ta-answer-text"><span class="ta-kicker">In plain words</span><h3>${esc(s.q)}</h3><p>${esc(s.a)}</p>${readNote(s.read)}</div>${story(id)}</div>`;
   })
   .replace(/<!--check:([\w-]+)-->/g, (_, id: string) => {
     const checks = STEP_QA[id].checks;
@@ -228,6 +241,14 @@ const schema = [
       <p class="eyebrow">The course</p>
       <h2 class="display">From first token to expert, in 13 short steps</h2>
       <p>One step at a time. Each answers one question in plain words, then ends with three quick questions so you know you’re ready for the next. Your progress is saved on this device.</p>
+      <div class="ta-meet">
+        <span class="ta-tale-av" aria-hidden="true">M</span>
+        <p><b>Meet Meera.</b> Each step opens with a moment from her week as a developer on
+          <a href="https://github.com/jssuthahar/food-delivery-app" rel="noopener" target="_blank">MSDevBuild Eats</a>, the
+          open-source Flutter food delivery app used across this site
+          (<a href="https://jssuthahar.github.io/food-delivery-app/" rel="noopener" target="_blank">Live web</a>). It is a
+          scenario: the app, its files and its Copilot setup are real; the numbers are illustrative.</p>
+      </div>
     </header>
 
     <Fragment set:html={academy} />

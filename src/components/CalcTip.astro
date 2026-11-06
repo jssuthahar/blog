@@ -1,0 +1,13 @@
+---
+/**
+ * The (i) button beside an AI Token Calculator setting. It shows and hides the
+ * hint paragraph with id `tip-<id>`; calculator.js wires the toggle.
+ */
+interface Props {
+  id: string;
+  label: string;
+}
+const { id, label } = Astro.props;
+---
+
+<button type="button" class="tc-tip" aria-expanded="false" aria-controls={`tip-${id}`} aria-label={`About ${label.toLowerCase()}`}>i</button>

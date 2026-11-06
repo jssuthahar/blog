@@ -2,18 +2,15 @@
 <a href="#calculator" class="ta-path-tool"><span aria-hidden="true">🧮</span>Calculator</a>
 <a href="#start" data-step="start"><b>1</b><span aria-hidden="true">🏠</span>Start here</a>
 <a href="#learn" data-step="learn"><b>2</b><span aria-hidden="true">🎓</span>Learn tokens</a>
-<a href="#picture" data-step="picture"><b>3</b><span aria-hidden="true">🧱</span>Picture it</a>
-<a href="#generate" data-step="generate"><b>4</b><span aria-hidden="true">🎬</span>Watch it generate</a>
-<a href="#ask" data-step="ask"><b>5</b><span aria-hidden="true">💬</span>Best way to ask</a><a href="#continue" data-step="continue"><b>6</b><span aria-hidden="true">🔁</span>Continue or start fresh?</a>
-<a href="#patterns" data-step="patterns"><b>7</b><span aria-hidden="true">📈</span>Calculation patterns</a>
-<a href="#scenarios" data-step="scenarios"><b>8</b><span aria-hidden="true">🧪</span>Token scenarios</a>
-<a href="#customize" data-step="customize"><b>9</b><span aria-hidden="true">🧩</span>Instructions, skills &amp; hooks</a>
-<a href="#project" data-step="project"><b>10</b><span aria-hidden="true">🏗️</span>One project, step by step</a>
-<a href="#guide" data-step="guide"><b>11</b><span aria-hidden="true">✍️</span>How to write them</a>
-<a href="#tips-quiz" data-step="tips-quiz"><b>12</b><span aria-hidden="true">🎯</span>Tips &amp; quiz</a><a href="#costs" class="ta-path-tool"><span aria-hidden="true">💳</span>Costs</a><a href="#faq" class="ta-path-tool">FAQ</a>
+<a href="#generate" data-step="generate"><b>3</b><span aria-hidden="true">🎬</span>Watch it generate</a>
+<a href="#ask" data-step="ask"><b>4</b><span aria-hidden="true">💬</span>Best way to ask</a><a href="#continue" data-step="continue"><b>5</b><span aria-hidden="true">🔁</span>Continue or start fresh?</a>
+<a href="#patterns" data-step="patterns"><b>6</b><span aria-hidden="true">📈</span>Calculation patterns</a>
+<a href="#customize" data-step="customize"><b>7</b><span aria-hidden="true">🧩</span>Instructions, skills &amp; hooks</a>
+<a href="#guide" data-step="guide"><b>8</b><span aria-hidden="true">✍️</span>How to write them</a>
+<a href="#tips-quiz" data-step="tips-quiz"><b>9</b><span aria-hidden="true">🎯</span>Final check</a><a href="#costs" class="ta-path-tool"><span aria-hidden="true">💳</span>Costs</a><a href="#faq" class="ta-path-tool">FAQ</a>
 </nav>
 <section class="ta-step" id="start" aria-labelledby="start-h">
-  <header class="ta-head"><span class="ta-num">1</span><div><p class="eyebrow">Lesson 1 of 12</p><h2 id="start-h" class="display">How Copilot counts tokens</h2><p class="ta-sub">Everything you send to Copilot and everything it writes back is counted in tokens. Since June 1, 2026, those tokens are what your organization pays for, in GitHub AI Credits. Start with the one-line idea below, then follow the numbered steps.</p></div></header><!--qa:start-->
+  <header class="ta-head"><span class="ta-num">1</span><div><p class="eyebrow">Lesson 1 of 9</p><h2 id="start-h" class="display">How Copilot counts tokens</h2><p class="ta-sub">Everything you send to Copilot and everything it writes back is counted in tokens. Since June 1, 2026, those tokens are what your organization pays for, in GitHub AI Credits. Start with the one-line idea below, then follow the numbered steps.</p></div></header><!--qa:start-->
     
     <section class="formula" aria-label="The whole idea in one line">
       <div class="frow">
@@ -34,10 +31,9 @@
       </div>
     </section>
 <!--fig:token-journey-flow-->
-<!--check:start-->
 </section>
 <section class="ta-step" id="learn" aria-labelledby="learn-h">
-  <header class="ta-head"><span class="ta-num">2</span><div><p class="eyebrow">Lesson 2 of 12</p><h2 id="learn-h" class="display">Learn tokens, scene by scene</h2><p class="ta-sub">A short animated lesson in ten scenes, from “what is a token?” to what a request costs. Press <b>Play lesson</b> and watch, or pick a scene and go at your own pace. The arrow keys move between scenes.</p></div></header><!--qa:learn-->
+  <header class="ta-head"><span class="ta-num">2</span><div><p class="eyebrow">Lesson 2 of 9</p><h2 id="learn-h" class="display">Learn tokens, scene by scene</h2><p class="ta-sub">A short animated lesson in ten scenes, from “what is a token?” to what a request costs. Press <b>Play lesson</b> and watch, or pick a scene and go at your own pace. The arrow keys move between scenes.</p></div></header><!--qa:learn-->
     
     <section class="card lesson">
       <div class="lsteps" id="l-steps" role="group" aria-label="Lesson scenes"></div>
@@ -55,10 +51,8 @@
       <a href="#generate"><span class="e">🎬</span><b>Watch it generate</b><span>Step through next-token predictions with probabilities.</span></a>
       <a href="#scenarios"><span class="e">🧪</span><b>See it in real cases</b><span>Eleven before-and-after scenarios with the cost of each.</span></a>
     </section>
-<!--check:learn-->
-</section>
-<section class="ta-step" id="picture" aria-labelledby="picture-h">
-  <header class="ta-head"><span class="ta-num">3</span><div><p class="eyebrow">Lesson 3 of 12</p><h2 id="picture-h" class="display">Picture it: six everyday comparisons</h2><p class="ta-sub">Six everyday comparisons for how tokens add up, and a receipt you can print in your head.</p></div></header><!--qa:picture-->
+<details class="ta-more" id="picture"><summary>Six everyday comparisons <em>optional</em></summary>
+<p class="ta-sub">The same ideas as the lesson above, each as a picture you can replay: bricks, a parcel, a taxi meter, a packed box, a snowball and couriers.</p>
     
       <!-- 1 BRICKS -->
   <section class="way" id="w1">
@@ -165,7 +159,7 @@
       <span class="tag">Way 6 · Choosing a model</span>
       <h3 class="h2">The model is your courier</h3>
       <p>The same parcel costs very different amounts depending on the courier. Light models are <strong>economy</strong>: cheap and fine for simple jobs. Big reasoning models are <strong>express</strong>: great for hard problems, but up to <strong>100×</strong> the price.</p>
-      <p>Not sure? <strong>Auto</strong> picks a courier for you and takes 10% off.</p>
+      <p>Not sure? <strong>Auto</strong> picks a courier for you, and on paid plans takes 10% off in Copilot Chat and the cloud agent.</p>
       <div class="means"><span>What it means for you</span>Use express only when the job needs it.</div>
     </div>
     <div class="pic">
@@ -174,33 +168,10 @@
       <span class="small">AI Credits per request at GitHub’s published rates (read 6 Nov 2026).</span>
     </div>
   </section>
-
-  <!-- RECEIPT -->
-  <section class="rcpt" id="receipt">
-    <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
-      <span class="tag">Put it together</span>
-      <h3 class="h2" style="font:700 clamp(26px,3.6vw,36px)/1.1 var(--f-fun);margin:0">Print your own receipt</h3>
-      <p style="margin:0;color:var(--muted)">Pick a task or type your own numbers. The receipt shows every line of the calculation. A Copilot Business seat includes <b>1,900 credits a month</b> (Enterprise 3,900), shared across your organization.</p>
-      <div class="presets" id="r-pre"></div>
-      <div class="form">
-        <label for="r-model">AI model<select id="r-model"></select></label>
-        <label for="r-req">How many requests<input id="r-req" type="number" min="1" value="1"></label>
-        <label for="r-in">Input tokens per request<input id="r-in" type="number" min="0" step="500" value="12000"></label>
-        <label for="r-out">Output tokens per request<input id="r-out" type="number" min="0" step="100" value="800"></label>
-        <label for="r-cache">Input reused from cache (%)<input id="r-cache" type="number" min="0" max="100" step="5" value="0"></label>
-        <label class="chk" for="r-auto"><input id="r-auto" type="checkbox"> Auto model (−10%)</label>
-      </div>
-      <span class="small">Estimates only. Your real usage is at github.com/settings/billing → AI usage.</span>
-    </div>
-    <div class="paper" id="r-paper" aria-live="polite"></div>
-  </section>
-
-
-
-<!--check:picture-->
+</details>
 </section>
 <section class="ta-step" id="generate" aria-labelledby="generate-h">
-  <header class="ta-head"><span class="ta-num">4</span><div><p class="eyebrow">Lesson 4 of 12</p><h2 id="generate-h" class="display">Watch the model generate</h2><p class="ta-sub">A language model writes by repeatedly predicting the most likely next token. Press <b>Play</b> to watch, or <b>Step</b> to go one token at a time.</p></div></header><!--qa:generate-->
+  <header class="ta-head"><span class="ta-num">3</span><div><p class="eyebrow">Lesson 3 of 9</p><h2 id="generate-h" class="display">Watch the model generate</h2><p class="ta-sub">A language model writes by repeatedly predicting the most likely next token. Press <b>Play</b> to watch, or <b>Step</b> to go one token at a time.</p></div></header><!--qa:generate-->
     
     <section class="card gen">
       <div class="gctl">
@@ -222,15 +193,14 @@
     </section>
 <!--fig:token-request-sequence-->
     <section class="grid2">
-      <div class="card"><h3>Why output is pricier</h3><p>Input tokens are read together in one pass. Output tokens are produced one at a time, each needing its own pass through the model. That extra work is why output is priced about 5× higher on most models.</p></div>
+      <div class="card"><h3>Why output is pricier</h3><p>Input tokens are read together in one pass. Output tokens are produced one at a time, each needing its own pass through the model. Every model on GitHub’s list prices output higher than input: 3–8× (5× on most).</p></div>
       <div class="card"><h3>When does it stop?</h3><p>The model keeps going until it predicts a special end token or hits a length limit. Asking for “only the changed lines” makes the end token come much sooner.</p></div>
-      <div class="card"><h3>Reasoning models think first</h3><p>Models with reasoning write hidden “thinking” tokens before the answer. On most models those are billed as output too, so higher reasoning effort means more output tokens.</p></div>
+      <div class="card"><h3>Reasoning models think first</h3><p>Models with reasoning write hidden “thinking” tokens before the answer. OpenAI and Anthropic bill them as output, and you pay for all of them even though you don’t see them; on OpenAI they also take up room in the context window. Higher reasoning effort means more of them.</p></div>
       <div class="card"><h3>Billed once, read many times</h3><p>The model looks back at the whole sequence for every new token, but you are billed for each input token once per request and each output token once.</p></div>
     </section>
-<!--check:generate-->
 </section>
 <section class="ta-step" id="ask" aria-labelledby="ask-h">
-  <header class="ta-head"><span class="ta-num">5</span><div><p class="eyebrow">Lesson 5 of 12</p><h2 id="ask-h" class="display">The best way to ask</h2><p class="ta-sub">The cheapest prompt is the one that gets the right answer first time. A focused prompt is often a little longer, but it avoids retries, exploring and long answers, which is where most tokens go.</p></div></header><!--qa:ask-->
+  <header class="ta-head"><span class="ta-num">4</span><div><p class="eyebrow">Lesson 4 of 9</p><h2 id="ask-h" class="display">The best way to ask</h2><p class="ta-sub">The cheapest prompt is the one that gets the right answer first time. A focused prompt is often a little longer, but it avoids retries, exploring and long answers, which is where most tokens go.</p></div></header><!--qa:ask-->
 <!--makeover-->
     
     <section class="card">
@@ -244,8 +214,7 @@
       <div class="checks" id="a-checks"></div>
       <div><span class="small"><b>Without the filler</b> · <span id="a-trimn">0</span> tokens</span><div class="outbox" id="a-trim"></div></div>
     </section>
-    <section class="card">
-      <h3 class="h2">Build a focused prompt</h3>
+    <details class="ta-more card"><summary>Build a focused prompt <em>optional</em></summary>
       <div class="tpl">
         <label for="t-task">Task: what to do, and where<input id="t-task" value="Add input validation to CreateOrder in OrderController.cs"></label>
         <label for="t-ctx">Context: files, errors, logs<input id="t-ctx" value="#file:OrderController.cs #file:CreateOrderRequest.cs"></label>
@@ -253,16 +222,10 @@
         <label for="t-done">Done when: stopping point and output format<input id="t-done" value="Validator class and controller change only. Show the diff."></label>
       </div>
       <div><span class="small"><b>Your prompt</b> · <span id="t-n">0</span> tokens</span><div class="outbox" id="t-out"></div></div>
-    </section>
-    <section class="card">
-      <h3 class="h2">Broad vs focused, counted</h3>
-      <p>Prompt tokens are counted live. The session totals are illustrative: they include the context, retries and answer length each style typically leads to.</p>
-      <div class="pairs" id="a-pairs"></div>
-    </section>
-<!--check:ask-->
+    </details>
 </section>
 <section class="ta-step" id="continue" aria-labelledby="continue-h">
-  <header class="ta-head"><span class="ta-num">6</span><div><p class="eyebrow">Lesson 6 of 12</p><h2 id="continue-h" class="display">Continue the chat, or start fresh?</h2><p class="ta-sub">Every message re-sends the whole chat. Sometimes that is the cheapest way to work, and sometimes the most expensive. Here is how to tell, and how to carry your context over when you do start again.</p></div></header><!--qa:continue-->
+  <header class="ta-head"><span class="ta-num">5</span><div><p class="eyebrow">Lesson 5 of 9</p><h2 id="continue-h" class="display">Continue the chat, or start fresh?</h2><p class="ta-sub">Every message re-sends the whole chat. Sometimes that is the cheapest way to work, and sometimes the most expensive. Here is how to tell, and how to carry your context over when you do start again.</p></div></header><!--qa:continue-->
     <section class="card">
       <h3 class="h2">Same chat or new chat? Run the numbers</h3>
       <p>Describe where you are. The next five messages are priced both ways on Claude Sonnet 5.5, with 800 output tokens each.</p>
@@ -299,6 +262,7 @@
           <li>You want a different model: the cache is lost anyway</li>
           <li>The history is full of logs and files you no longer need</li></ul></div>
       </div>
+      <div class="explain"><b>How long does the cache last?</b> GitHub doesn’t publish Copilot’s cache lifetime, so here is what the providers document. Anthropic keeps a cached prefix for 5 minutes, refreshed each time it is reused (a 1-hour option costs more to write). OpenAI keeps it for 30 minutes on GPT‑5.6 and later, and for about 5–10 minutes of inactivity, up to an hour, on earlier models. Very short prompts aren’t cached at all: the minimum is 512 to 4,096 tokens depending on the model.</div>
     </section>
     <section class="card">
       <h3 class="h2">Carry your context over, cheaply</h3>
@@ -311,10 +275,9 @@
         <div class="mini"><b>⏱️ Mind the clock</b><span>Back after a few minutes? Continue. After a long break? Summarize and start fresh.</span></div>
       </div>
     </section>
-<!--check:continue-->
 </section>
 <section class="ta-step" id="patterns" aria-labelledby="patterns-h">
-  <header class="ta-head"><span class="ta-num">7</span><div><p class="eyebrow">Lesson 7 of 12</p><h2 id="patterns-h" class="display">Calculation patterns</h2><p class="ta-sub">The same price formula behaves very differently depending on how you work. Pick a pattern, move the sliders, and watch each model call stack up.</p></div></header><!--qa:patterns-->
+  <header class="ta-head"><span class="ta-num">6</span><div><p class="eyebrow">Lesson 6 of 9 · Advanced</p><h2 id="patterns-h" class="display">Calculation patterns</h2><p class="ta-sub">The same price formula behaves very differently depending on how you work. Pick a pattern, move the sliders, and watch each model call stack up.</p></div></header><!--qa:patterns-->
     
     <section class="card">
       <div class="pbtns" id="p-btns" role="group" aria-label="Patterns"></div>
@@ -333,10 +296,8 @@
       </div>
       <div class="explain" id="p-lesson"></div>
     </section>
-<!--check:patterns-->
-</section>
-<section class="ta-step" id="scenarios" aria-labelledby="scenarios-h">
-  <header class="ta-head"><span class="ta-num">8</span><div><p class="eyebrow">Lesson 8 of 12</p><h2 id="scenarios-h" class="display">Token scenarios</h2><p class="ta-sub">Eleven common situations, each with a before and after you can replay. Every bar is one model call; its height is the tokens it carries.</p></div></header><!--qa:scenarios-->
+<details class="ta-more" id="scenarios"><summary>Eleven before-and-after scenarios <em>optional</em></summary>
+<p class="ta-sub">Common situations, each replayed both ways. Every bar is one model call; its height is the tokens it carries.</p>
     
     <section class="card">
       <div class="pbtns" id="sc-btns" role="group" aria-label="Scenarios"></div>
@@ -359,24 +320,24 @@
       </div>
       <p class="small">A 40-tool GitHub MCP server can add 10–15 KB of tool schema to every turn; pruning unused tools saved 8–12 KB per call. Source: GitHub blog, “Improving token efficiency in GitHub Agentic Workflows”.</p>
     </section>
-<!--check:scenarios-->
+</details>
 </section>
 <section class="ta-step" id="customize" aria-labelledby="customize-h">
-  <header class="ta-head"><span class="ta-num">9</span><div><p class="eyebrow">Lesson 9 of 12</p><h2 id="customize-h" class="display">Instructions, skills &amp; hooks</h2><p class="ta-sub">Copilot lets you add knowledge and automation to every session. Each piece enters the model’s context at a different moment, so each has a different token cost.</p></div></header><!--qa:customize-->
+  <header class="ta-head"><span class="ta-num">7</span><div><p class="eyebrow">Lesson 7 of 9 · Advanced</p><h2 id="customize-h" class="display">Instructions, skills &amp; hooks</h2><p class="ta-sub">Copilot lets you add knowledge and automation to every session. Each piece enters the model’s context at a different moment, so each has a different token cost.</p></div></header><!--qa:customize-->
     
     <section class="card">
       <h3 class="h2">When each one costs tokens</h3>
       <div class="tbl"><table class="t">
         <tr><th>Feature</th><th>Where it lives</th><th>When it is in the request</th><th>How to keep it cheap</th></tr>
-        <tr><td><b>Custom instructions</b></td><td><code>.github/copilot-instructions.md</code>, <code>AGENTS.md</code></td><td>Every chat and agent request in the repo</td><td>A short map: stack, build and test commands, real pitfalls</td></tr>
-        <tr><td><b>Path-specific instructions</b></td><td><code>.github/instructions/*.instructions.md</code></td><td>Only when files matching its <code>applyTo</code> pattern are involved</td><td>Move language- or folder-specific rules here</td></tr>
+        <tr><td><b>Custom instructions</b></td><td><code>.github/copilot-instructions.md</code>, or <code>AGENTS.md</code> files (the nearest one wins)</td><td>Every chat and agent request in the repo</td><td>A short map: stack, build and test commands, real pitfalls</td></tr>
+        <tr><td><b>Path-specific instructions</b></td><td><code>.github/instructions/*.instructions.md</code></td><td>Only when files matching its <code>applyTo</code> pattern are involved (on GitHub.com, cloud agent and code review only)</td><td>Move language- or folder-specific rules here</td></tr>
         <tr><td><b>Prompt files</b></td><td><code>.github/prompts/*.prompt.md</code></td><td>Only when you run that prompt</td><td>Save your best focused prompts for the team</td></tr>
-        <tr><td><b>Agent skills</b></td><td><code>.github/skills/&lt;name&gt;/SKILL.md</code></td><td>Loaded when relevant to the task</td><td>Put long how-tos here instead of in instructions</td></tr>
-        <tr><td><b>Custom agents</b></td><td><code>.github/agents/*.agent.md</code></td><td>While that agent is selected</td><td>Give each agent only the tools it needs</td></tr>
+        <tr><td><b>Agent skills</b></td><td><code>.github/skills/&lt;name&gt;/</code> (also <code>.claude/skills</code> or <code>.agents/skills</code>)</td><td>Loaded when Copilot judges it relevant to the task</td><td>Put long how-tos here instead of in instructions</td></tr>
+        <tr><td><b>Custom agents</b></td><td><code>.github/agents/</code></td><td>While that agent is selected</td><td>Give each agent only the tools it needs</td></tr>
         <tr><td><b>MCP tools</b></td><td>MCP server configuration</td><td>Every enabled tool’s definition, on every request</td><td>Enable only the toolsets the task needs</td></tr>
         <tr><td><b>Hooks</b></td><td><code>.github/hooks/*.json</code></td><td>Run as commands outside the model; add tokens only when they add context</td><td>Trim noisy tool output, block wasteful reads</td></tr>
       </table></div>
-      <p class="small">Skills follow the open Agent Skills standard, where a skill’s short description is visible to the agent and its full instructions are read when the task calls for it. Hooks are supported in Copilot CLI and the cloud agent.</p>
+      <p class="small">Skills follow the open Agent Skills standard: Copilot loads a skill’s instructions when they are relevant, instead of including them in every conversation. Hooks are supported in Copilot CLI and Copilot cloud agent, and in preview in VS Code.</p>
     </section>
     <section class="card">
       <h3 class="h2">Your setup’s cost on every request</h3>
@@ -424,10 +385,8 @@
       </div>
       <p class="small">Illustrative sizes. See GitHub’s hooks reference for events and configuration.</p>
     </section>
-<!--check:customize-->
-</section>
-<section class="ta-step" id="project" aria-labelledby="project-h">
-  <header class="ta-head"><span class="ta-num">10</span><div><p class="eyebrow">Lesson 10 of 12</p><h2 id="project-h" class="display">One project, step by step</h2><p class="ta-sub">Take one real task in one project and run it five times: first with nothing set up, then adding instructions, custom agents, skills and hooks one at a time. Watch what each addition costs and what it saves.</p></div></header><!--qa:project-->
+<details class="ta-more" id="project"><summary>One project, five setups: what each addition costs and saves <em>optional</em></summary>
+<p class="ta-sub">One task in one project, run with nothing set up, then adding instructions, custom agents, skills and hooks one at a time.</p>
     
     <section class="card">
       <div class="proj">
@@ -471,10 +430,10 @@
       <div class="card"><h3>🧰 Skills: know-how on demand</h3><p>Only a short description sits in context. The full steps load when the task matches, so detailed procedures don’t ride along on every request, yet the agent follows them first time.</p></div>
       <div class="card"><h3>🪝 Hooks: automatic guard rails</h3><p>Commands that run outside the model at set moments. They can block wasteful tool calls (reading generated files) and shrink noisy tool output, so less text is re-sent on every later call.</p></div>
     </section>
-<!--check:project-->
+</details>
 </section>
 <section class="ta-step" id="guide" aria-labelledby="guide-h">
-  <header class="ta-head"><span class="ta-num">11</span><div><p class="eyebrow">Lesson 11 of 12</p><h2 id="guide-h" class="display">How to write them well</h2><p class="ta-sub">Templates, do’s and don’ts for instructions, custom agents, skills and hooks. Start with “Which one do I need?”, then open the tab you need.</p></div></header><!--qa:guide-->
+  <header class="ta-head"><span class="ta-num">8</span><div><p class="eyebrow">Lesson 8 of 9 · Advanced</p><h2 id="guide-h" class="display">How to write them well</h2><p class="ta-sub">Templates, do’s and don’ts for instructions, custom agents, skills and hooks. Start with “Which one do I need?”, then open the tab you need.</p></div></header><!--qa:guide-->
     
     <section class="card">
       <h3 class="h2">Which one do I need?</h3>
@@ -485,10 +444,9 @@
       <div class="seg2 big2" role="tablist" aria-label="Guides" id="gtabs"></div>
       <div id="gbody"></div>
     </section>
-<!--check:guide-->
 </section>
 <section class="ta-step" id="tips-quiz" aria-labelledby="tips-quiz-h">
-  <header class="ta-head"><span class="ta-num">12</span><div><p class="eyebrow">Lesson 12 of 12</p><h2 id="tips-quiz-h" class="display">Tips &amp; quiz</h2><p class="ta-sub">Habits that keep usage low without lowering quality, then five questions to check your understanding.</p></div></header><!--qa:tips-quiz-->
+  <header class="ta-head"><span class="ta-num">9</span><div><p class="eyebrow">Lesson 9 of 9</p><h2 id="tips-quiz-h" class="display">Habits and final check</h2><p class="ta-sub">Habits that keep usage low without lowering quality, then ten questions, one on each big idea, to check your understanding.</p></div></header><!--qa:tips-quiz-->
     
       <!-- 8 PRO TIPS -->
   <section class="way wide" id="w8">
@@ -500,27 +458,8 @@
     <div class="tips" id="tips"></div>
   </section>
 
-  <!-- QUIZ -->
-  <section class="way wide" id="quiz">
-    <div class="tx">
-      <span class="tag">Check yourself</span>
-      <h3 class="h2">Check your understanding</h3>
-      <p>Five quick questions. Pick an answer to see if you’re right.</p>
-    </div>
-    <div class="quiz" id="q-box"></div>
-  </section>
 
-
-      <section class="rules" aria-label="Five habits">
-    <div class="rule"><b>Pack light</b><span>Select the code that matters instead of attaching whole files.</span></div>
-    <div class="rule"><b>Short ride</b><span>Ask for the changed lines, not the whole file.</span></div>
-    <div class="rule"><b>Keep the box</b><span>Stay on one model while you work on a task.</span></div>
-    <div class="rule"><b>Melt the snowball</b><span>Start a new chat when you change topic.</span></div>
-    <div class="rule"><b>Right courier</b><span>Light model for routine work, strong model for hard thinking.</span></div>
-  </section>
-
-
-<!--check:tips-quiz-->
+<!--check:final-->
 </section>
 <footer class="ta-sources">
     <span>Sources: <a href="https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing">Models and pricing</a> · <a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/concepts/billing/organizations-and-enterprises/usage-based-billing">Usage-based billing</a> · <a href="https://docs.github.com/en/enterprise-cloud@latest/copilot/tutorials/optimize-ai-usage">Optimizing your AI usage</a> · <a href="https://docs.github.com/en/copilot/concepts/agents/about-agent-skills">About agent skills</a> · <a href="https://docs.github.com/en/copilot/reference/hooks-reference">Hooks reference</a> · <a href="https://docs.github.com/en/copilot/reference/copilot-billing/request-based-billing-legacy/model-multipliers-for-annual-plans">Legacy model multipliers</a> · <a href="https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/">Copilot is moving to usage-based billing</a> · <a href="https://github.blog/changelog/2026-10-19-github-copilot-models-deprecated-on-october-19-2026">Models deprecated Oct 19, 2026</a> · <a href="https://github.blog/ai-and-ml/llms/improving-token-efficiency-in-github-agentic-workflows/">Improving token efficiency in GitHub Agentic Workflows</a>. Read 6 Nov 2026; prices can change. Tokenizer: gpt-tokenizer (o200k_base, cl100k_base).</span>

@@ -1187,11 +1187,8 @@
     padding: 0;
   }
   .tc-opts legend { margin-bottom: 0.4rem; font-weight: 700; font-size: 0.95rem; }
-  .tc-opts label { font-size: 13px; }
-  .tc-opts input, .tc-opts select, .tc-inline select { padding: 7px 9px; font-size: 15px; border-radius: 10px; }
+  .tc-settings input, .tc-settings select, .tc-inline select, .tc-usage input { padding: 7px 9px; font-size: 15px; border-radius: 10px; }
   .tc-wide { grid-column: span 3; }
-  .tc-opts label[for='c-model'], .tc-opts label[for='c-mode'] { grid-column: span 3; }
-  .tc-opts .chk { align-self: end; grid-column: span 3; }
   [aria-invalid] { border-color: var(--warn) !important; }
   .tc-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
   .tc-presets button {
@@ -1205,7 +1202,7 @@
     cursor: pointer;
   }
   .tc-presets button:hover { border-color: var(--accent); }
-  .tc details > summary, .ta-check-wrap > summary {
+  .tc details > summary {
     cursor: pointer;
     font-weight: 650;
     color: var(--deep);
@@ -1224,8 +1221,6 @@
   .tc-kpis .small { font-size: 0.75rem; }
   .tc-kpis .badge { display: inline-block; margin-left: 0.3rem; border-radius: 5px; padding: 0 5px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; vertical-align: 1px; }
   .tc-warn { border-left: 4px solid var(--warn); background: var(--bg); padding: 0.45rem 0.7rem; font-size: 0.85rem; }
-  .tc-receipt { padding: 0.8rem 0.9rem 1.5rem; font-size: 13px; box-shadow: none; border: 1px solid var(--line); }
-  .tc-receipt .ln { animation: none; }
   .tc-assume ul { margin: 0.4rem 0 0; padding-left: 1.1rem; font-size: 0.82rem; color: var(--muted); display: grid; gap: 0.25rem; }
   .tc-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .tc-more { padding: 0.85rem 1.2rem !important; }
@@ -1264,19 +1259,57 @@
   }
   @media (max-width: 520px) {
     .tc-opts { grid-template-columns: 1fr 1fr; }
-    .tc-wide, .tc-opts label[for='c-model'], .tc-opts label[for='c-mode'], .tc-opts .chk { grid-column: span 2; }
-    .tc-opts label[for='c-req'] { grid-column: span 2; }
+    .tc-wide { grid-column: span 2; }
     .tc-kpis dd { font-size: 1.3rem; }
     .tc-tools .small { margin-left: 0; width: 100%; }
   }
 
+  .tc [hidden] { display: none !important; }
+  .tc-field { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+  .tc-field > label, .tc-fl label { font: 650 13px var(--f-body); }
+  .tc-fl { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
+  .tc-fl .chk { font-size: 14px; }
+  .tc-tip {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border: 1.5px solid var(--line);
+    border-radius: 50%;
+    background: var(--bg);
+    font: italic 700 12px Georgia, serif;
+    color: var(--deep);
+    cursor: pointer;
+  }
+  .tc-tip[aria-expanded='true'] { border-color: #0078d4; background: #0078d4; color: #fff; }
+  .tc-hint { border-radius: 0.6rem; background: var(--bg); padding: 0.45rem 0.6rem; font-size: 0.8rem; line-height: 1.45; color: var(--ink); }
+  .tc-simple { border-left: 3px solid var(--accent); padding-left: 0.7rem; }
+  .tc-long { margin: 0; }
+  .tc-reset { display: flex; justify-content: flex-end; }
+  .tc-break { font-size: 13.5px; }
+  .tc-break td, .tc-break th { padding: 6px 8px; }
+  .tc-break tbody th { font-size: 13.5px; }
+  .tc-break tr.is-sub th, .tc-break tr.is-sub td { color: var(--muted); font-weight: 500; }
+  .tc-break tr.is-total th, .tc-break tr.is-total td { border-top: 2px solid var(--line); border-bottom: 0; font-weight: 700; color: var(--ink); }
+  .tc-break td small { display: block; font-size: 11px; color: var(--muted); font-weight: 500; }
+  .tc-formula { margin: 0.5rem 0 0; border-radius: 0.6rem; background: var(--bg); padding: 0.5rem 0.65rem; font: 12.5px/1.5 var(--f-mono); overflow-wrap: anywhere; }
+  .tc-actual { margin: 0; border-left: 3px solid var(--warn); padding-left: 0.65rem; }
+  .tc-sub { margin-top: 0.75rem; font-size: 0.95rem; font-weight: 700; }
+  .tc-share { width: 4rem; height: 0.55rem; border-radius: 999px; background: var(--bg); overflow: hidden; }
+  .tc-share i { display: block; height: 100%; background: #0078d4; }
+  .tc-usage table.t { min-width: 32rem; }
+
+  /* ---------- optional blocks inside a lesson ---------- */
+  details.ta-more { border: 1px solid var(--border); border-radius: 1.25rem; background: var(--gp-fill); padding: 0.85rem 1.1rem; }
+  details.ta-more[open] { display: flex; flex-direction: column; gap: 1.25rem; padding-bottom: 1.25rem; }
+  details.ta-more > summary { cursor: pointer; font-weight: 700; color: var(--deep); }
+  details.ta-more > summary em { margin-left: 0.4rem; border-radius: 999px; background: var(--accent-soft); padding: 0.05rem 0.5rem; font-size: 0.72rem; font-style: normal; font-weight: 650; }
+  .ta-pager .ta-to-calc { margin-right: auto; }
+  #final-check h3 { margin: 0; font-size: 1.15rem; }
+
   /* ---------- the lesson bar's way back to the tool ---------- */
   .ta-path a.ta-path-tool { padding: 0.3rem 0.8rem; background: var(--bg); border: 1px solid var(--border); }
-
-  /* ---------- optional checks ---------- */
-  .ta-check-wrap { border: 1px dashed var(--accent); border-radius: 1.25rem; background: var(--gp-fill); padding: 0.75rem 1.1rem; }
-  .ta-check-wrap > summary em { margin-left: 0.4rem; border-radius: 999px; background: var(--accent-soft); padding: 0.05rem 0.5rem; font-size: 0.72rem; font-style: normal; }
-  .ta-check-wrap .ta-check { border: 0; background: none; padding: 0.75rem 0 0; }
 
   /* ---------- Section C: costs ---------- */
   .ta-costs { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 4rem; scroll-margin-top: 6rem; }

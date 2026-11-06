@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { SITE, AUTHOR } from '../../config';
 import { getPublishedPosts, postUrl } from '../../lib/posts';
 import { STEPS, UPDATED } from '../../lib/token-academy/steps';
-import { STEP_QA, FAQ } from '../../lib/token-academy/questions';
+import { STEP_QA, FAQ, FINAL_CHECK } from '../../lib/token-academy/questions';
 import { MAKEOVERS, PART_LABEL } from '../../lib/token-academy/prompts';
 import { MODELS, PRICES_CHECKED, SOURCES, fmtDate } from '../../lib/token-academy/pricing';
 
@@ -11,7 +11,7 @@ import { MODELS, PRICES_CHECKED, SOURCES, fmtDate } from '../../lib/token-academ
  *
  * The page is interactive and shows one step at a time; an assistant reading
  * it needs the substance in order instead: every step's question and plain
- * answer, the check questions with their answers, the price list,
+ * answer, the final check with its answers, the price list,
  * the prompt makeovers and the FAQ. Built from the same data as the page, so
  * the two never disagree.
  */
@@ -48,12 +48,11 @@ export const GET: APIRoute = async () => {
         lines.push('', `Why: ${m.why.join(' ')}`, '');
       }
     }
-    if (qa?.checks?.length) {
-      lines.push('**Check yourself:**', '');
-      qa.checks.forEach((c, i) => lines.push(`${i + 1}. ${c.q} — **${c.options[c.correct]}.** ${c.why}`));
-      lines.push('');
-    }
   }
+
+  lines.push('## Final check', '');
+  FINAL_CHECK.forEach((c, i) => lines.push(`${i + 1}. ${c.q} — **${c.options[c.correct]}.** ${c.why}`));
+  lines.push('');
 
   // The calculator and the cost section sit outside the course but answer questions too.
   for (const id of ['calculator', 'billing']) {

@@ -94,27 +94,6 @@ async function w6(anim){const ok=guard(6),max=req(MODELS[K[K.length-1][0]]);
   for(const k of K){if(!ok())return;const c=req(MODELS[k[0]]);$("k-"+k[0]).style.width=Math.max(14,c/max*100)+"%";
     anim?tween($("k-p"+k[0]),c,{dec:2,suf:" cr",ms:900}):setv($("k-p"+k[0]),c,2," cr");if(anim)await sleep(300)}}
 
-/* receipt */
-const PRE=[["Quick question",2000,0,300,1],["Small function",4000,0,600,1],["Whole class",8000,0,3000,1],["Debug (3 msgs)",25000,0,1300,3],["Long chat (30 msgs)",30000,85,1000,30],["Agent task (20 calls)",60000,85,2000,20]];
-$("r-model").innerHTML=MODELS.map((m,i)=>`<option value="${i}">${m[0]}</option>`).join("");$("r-model").value=SON;
-$("r-pre").innerHTML=PRE.map((p,i)=>`<button type="button" data-i="${i}">${p[0]}</button>`).join("");
-$("r-pre").onclick=e=>{const b=e.target.closest("button");if(!b)return;const p=PRE[b.dataset.i];$("r-in").value=p[1];$("r-cache").value=p[2];$("r-out").value=p[3];$("r-req").value=p[4];receipt()};
-function receipt(){const v=id=>Math.max(0,parseFloat($(id).value)||0),m=MODELS[$("r-model").value];
-  const n=Math.max(1,Math.round(v("r-req"))),inp=v("r-in"),cp=Math.min(100,v("r-cache"))/100,out=v("r-out"),auto=$("r-auto").checked;
-  const fresh=inp*(1-cp)*n,cached=inp*cp*n,o=out*n;
-  const a=fresh*m[1]/1e6,b=cached*m[2]/1e6,c=o*m[3]/1e6,sub=a+b+c,disc=auto?sub*.1:0,usd=sub-disc,cr=usd*100;
-  const L=(l,r,s="")=>`<div class="ln"><span>${l}${s?`<small>${s}</small>`:""}</span><span class="num">${r}</span></div>`;
-  $("r-paper").innerHTML=`<h3>COPILOT RECEIPT</h3><div class="c">${m[0]} · ${n} request${n>1?"s":""}</div><hr>`+
-    L("Fresh input","$"+fmt(a,4),`${fmt(fresh)} tokens × $${m[1]} / 1M`)+
-    L("Cached input","$"+fmt(b,4),`${fmt(cached)} tokens × $${m[2]} / 1M`)+
-    L("Output","$"+fmt(c,4),`${fmt(o)} tokens × $${m[3]} / 1M`)+
-    (auto?L("Auto model discount","−$"+fmt(disc,4),"10% off model costs"):"")+"<hr>"+
-    L("Total","$"+fmt(usd,4))+`<div class="ln tot"><span>AI Credits</span><span class="num">${fmt(cr,cr<10?2:1)}</span></div>`+
-    L("Share of a Business seat",fmt(cr/1900*100,2)+"%","1,900 credits per month")+
-    `<hr><div class="c">1 AI Credit = $0.01 · Estimate only</div>`}
-["r-model","r-req","r-in","r-out","r-cache","r-auto"].forEach(id=>$(id).addEventListener("input",receipt));receipt();
-
-
 /* 7 instructions & skills */
 const RUNS=[
  ["bad","No instructions","The agent explores and guesses",[["List project folders",8],["Read README",10],["Read 6 files to learn style",22],["Guess the test framework",26],["Write the endpoint",30],["Run tests: wrong command","x",34],["Fix the test command",37],["Fix style it guessed wrong","x",41],["Run tests: pass",44]]],
@@ -141,19 +120,6 @@ const TIPS=[["🗺️","Give a map, not a manual","copilot-instructions.md is se
  ["🔍","Let Copilot audit you","Session analysis finds your repeated waste so you can fix it once in instructions.","/chronicle cost-tips"]];
 $("tips").innerHTML=TIPS.map(t=>`<button class="tip" type="button" aria-expanded="false"><span class="e" aria-hidden="true">${t[0]}</span><b>${t[1]}</b><span class="why">${t[2]}</span><code>${t[3]}</code><span class="more">Show why</span></button>`).join("");
 $("tips").onclick=e=>{const b=e.target.closest(".tip");if(!b)return;const x=b.getAttribute("aria-expanded")==="true";b.setAttribute("aria-expanded",!x);b.querySelector(".more").textContent=x?"Show why":"Hide"};
-
-/* quiz */
-const QZ=[["Which tokens usually cost the most per token?",["Input","Output","Cached"],1,"Output tokens are priced about 5× input on most models."],
- ["Why does message 10 of a chat cost more than message 1?",["The model gets slower","The whole chat is re-sent","Copilot adds a fee"],1,"The model has no memory, so earlier messages are sent again."],
- ["What happens to the cache if you switch models mid-chat?",["Nothing","It is lost","It gets cheaper"],1,"A new model can’t reuse another model’s cache."],
- ["Are inline code completions billed in AI Credits on paid plans?",["Yes","No"],1,"Completions and next edit suggestions are not billed in AI Credits."],
- ["Your instructions file is 6,000 tokens. What’s the problem?",["None","It is sent on every request","It slows typing"],1,"Instructions ride along on every call, so keep them short."]];
-let score=0;
-$("q-box").innerHTML=QZ.map((q,i)=>`<div class="q" data-i="${i}"><p>${i+1}. ${q[0]}</p><div class="opts">${q[1].map((o,k)=>`<button type="button" data-k="${k}">${o}</button>`).join("")}</div><div class="fb" id="q-f${i}"></div></div>`).join("")+`<div class="score" id="q-s">Score: 0 / ${QZ.length}</div>`;
-$("q-box").onclick=e=>{const b=e.target.closest(".opts button");if(!b)return;const q=b.closest(".q"),i=+q.dataset.i;if(q.dataset.done)return;q.dataset.done=1;
-  const right=+b.dataset.k===QZ[i][2];b.classList.add(right?"right":"wrong");if(!right)q.querySelectorAll(".opts button")[QZ[i][2]].classList.add("right");
-  if(right)score++;$("q-f"+i).textContent=(right?"Correct. ":"Not quite. ")+QZ[i][3];$("q-s").textContent=`Score: ${score} / ${QZ.length}`+(score===QZ.length?" · All correct!":"")};
-
 
 /* ================= academy ================= */
 const enc=()=>window.GPTTokenizer_o200k_base, enc2=()=>window.GPTTokenizer_cl100k_base;
@@ -219,15 +185,6 @@ $("a-in").addEventListener("input",askRun);
 function tplRun(){const v=id=>$(id).value.trim();const p=[v("t-task"),v("t-ctx")&&("Context: "+v("t-ctx")),v("t-con")&&("Constraints: "+v("t-con")),v("t-done")&&("Done when: "+v("t-done"))].filter(Boolean).join("\n");
   $("t-out").textContent=p;$("t-n").textContent=fmt(tokO(p))}
 ["t-task","t-ctx","t-con","t-done"].forEach(id=>$(id).addEventListener("input",tplRun));
-const PAIRS=[["REST endpoint","create an api for orders","In OrdersController (ASP.NET Core 8), add GET /orders/{id} using IOrderRepository. Return 404 if not found. Controller method only.",48,9],
- ["Null reference","why is my app crashing?","NullReferenceException at InvoiceService.cs:42 (stack trace selected). Explain the cause and give the minimal fix.",62,6],
- ["Unit tests","write tests","Write xUnit tests for PriceCalculator.ApplyDiscount: zero, negative and over-100% cases. Reuse the Moq setup in TestBase.",40,12],
- ["Refactor","rewrite this whole file to be better","Extract the retry logic in PaymentService.SendAsync into a RetryPolicy class. Keep the public API unchanged. Show only changed methods.",55,11],
- ["Follow-up","that didn't work, try again","Test still fails: expected 90, got 100 (output selected). Fix only ApplyDiscount; don't regenerate the class.",30,4]];
-function pairsRun(){$("a-pairs").innerHTML=PAIRS.map(p=>`<div><span class="small"><b>${p[0]}</b></span><div class="pair">
-  <div class="pq bad"><span class="k">Broad · ${fmt(tokO(p[1]))} prompt tokens</span><span>“${esc(p[1])}”</span><span class="m">Typical session: ~${p[3]}K tokens (exploring, retries, long answer)</span></div>
-  <div class="pq good"><span class="k">Focused · ${fmt(tokO(p[2]))} prompt tokens</span><span>${esc(p[2])}</span><span class="m">Typical session: ~${p[4]}K tokens · about ${Math.round(p[3]/p[4])}× less</span></div></div></div>`).join("")}
-
 /* ---------- patterns ---------- */
 const PAT=[
  {id:"single",name:"Single question",desc:"One request, one answer. The cost is simply input plus output at the model’s rates.",
@@ -358,7 +315,7 @@ $("j-play").onclick=()=>jRun(true);$("j-model").addEventListener("change",()=>jS
 const PICK=[["Every request in this repo should know it (stack, commands, rules)","inst","Use <b>custom instructions</b>: a short map in <code>.github/copilot-instructions.md</code>. It rides on every request, so keep it small."],
  ["Only some files or folders need these rules","path","Use <b>path-specific instructions</b>: <code>.github/instructions/*.instructions.md</code> with an <code>applyTo</code> pattern, so the rules load only for matching files."],
  ["Only some tasks need a detailed recipe","skill","Use a <b>skill</b>: <code>.github/skills/&lt;name&gt;/SKILL.md</code>. The description decides when it loads; the steps cost tokens only then."],
- ["I want a specialist with its own tools, model or role","agent","Use a <b>custom agent</b>: <code>.github/agents/&lt;name&gt;.agent.md</code> with a clear description and a short tool list."],
+ ["I want a specialist with its own tools, model or role","agent","Use a <b>custom agent</b>: <code>.github/agents/&lt;name&gt;.md</code> with a clear description and a short tool list."],
  ["Something must always happen automatically, or a rule must be enforced","hook","Use a <b>hook</b>: <code>.github/hooks/*.json</code> runs your command at a set moment, like before a tool runs. It doesn’t rely on the model remembering."],
  ["I keep typing the same prompt","prompt","Use a <b>prompt file</b>: <code>.github/prompts/&lt;name&gt;.prompt.md</code>. Run it when you need it; it costs nothing otherwise."]];
 $("pick").innerHTML=PICK.map((p,i)=>`<button type="button" data-p="${i}">${p[0]}</button>`).join("");
@@ -390,8 +347,8 @@ const GUIDE=[
 - Show diffs, not whole files. Be concise.`,
   dos:["Keep it to one screen: stack, commands, folder map, real pitfalls","Write rules the agent actually broke (from real mistakes)","Include exact build and test commands","Ask for concise answers and diffs","Review it when the project changes"],
   donts:["Paste architecture docs or long guidelines","Copy AI-generated advice that doesn’t match your code","Add one-off preferences","Repeat what the code already shows clearly","Put task-specific recipes here (use skills)"]},
- {key:"agent",tab:"🤖 Custom agents",title:"Custom agents",file:".github/agents/test-writer.agent.md",
-  what:"A specialist profile: a description (required) that says when to use it, an optional tool list and model, and a Markdown prompt (up to 30,000 characters). Select it yourself, or let Copilot pick it from the description.",
+ {key:"agent",tab:"🤖 Custom agents",title:"Custom agents",file:".github/agents/test-writer.md",
+  what:"A specialist profile: a description (required) that says when to use it, an optional tool list and model, and a Markdown prompt. Select it yourself, or let Copilot pick it from the description.",
   cost:"Its prompt is sent while the agent is in use. A short tool list cuts tool definitions from every call, and a lighter model makes routine work cheaper.",
   tpl:`---
 name: test-writer
@@ -429,7 +386,7 @@ See examples/OrderServiceTests.cs for the expected style.`,
   dos:["Write the description as “what it does + when to use it”","Name the folder and name field in lowercase-with-hyphens, the same","Use numbered steps and a clear finish line","Put examples and scripts in the skill folder and reference them","One skill per procedure"],
   donts:["Write a vague description (the skill won’t be picked)","Pre-approve shell or bash in allowed-tools unless you trust the scripts","Copy the whole team wiki into one skill","Repeat repository instructions inside the skill","Rely on a skill for rules that must always apply (use instructions or a hook)"]},
  {key:"hook",tab:"🪝 Hooks",title:"Hooks",file:".github/hooks/guard.json",
-  what:"Your own commands that run at set moments in an agent session: before or after a tool runs, when a session starts, when the agent stops. They run outside the model, so running them uses no model tokens. Supported in Copilot CLI and the cloud agent.",
+  what:"Your own commands that run at set moments in an agent session: before or after a tool runs, when a session starts, when the agent stops. They run outside the model, so running them uses no model tokens. Supported in Copilot CLI and Copilot cloud agent (preview in VS Code). The template is illustrative: check the hooks reference for the exact input and output fields.",
   cost:"Zero model tokens to run. Tokens only when a hook adds context (for example sessionStart’s additionalContext). Used well, they reduce tokens by stopping waste.",
   tpl:`// .github/hooks/guard.json
 {
@@ -580,7 +537,7 @@ $("strat").innerHTML=SCN.map(s=>`<button type="button" data-go="${s.id}"><b>${s.
 $("strat").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;location.hash="scenarios";setTimeout(()=>scSel(b.dataset.go,true),400)};
 prRun();whyRun(false);mpRun(false);ag2Run(false);tcRun();scSel("context-bloat",false);
 
-function onTok(){askRun();tplRun();pairsRun();const gb=document.querySelector("#gtabs [aria-pressed=true]");if(gb)gShow(+gb.dataset.g);if(!gauto&&!gbusy&&gi===0)greset()}
+function onTok(){askRun();tplRun();const gb=document.querySelector("#gtabs [aria-pressed=true]");if(gb)gShow(+gb.dataset.g);if(!gauto&&!gbusy&&gi===0)greset()}
 onTok();
 loadTokenizers().then(()=>{if(alive())onTok()});
 pSel("single");oRun();hRun(false);
@@ -680,36 +637,30 @@ $("l-steps").onclick=e=>{const b=e.target.closest("button");if(b)lShow(+b.datase
 addEventListener("keydown",e=>{if(!lvis||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
   if(e.key==="ArrowRight"&&lcur<LS.length-1)lShow(lcur+1);if(e.key==="ArrowLeft"&&lcur>0)lShow(lcur-1)},{signal});
 
-/* scroll-triggered animations inside views */
+/* demos: each shows its end state, and plays only when its button is pressed */
 const RUN={1:w1,2:w2,3:w3,4:w4,5:w5,6:w6,7:w7};
 Object.values(RUN).forEach(f=>f(false));
 document.addEventListener("click",e=>{const b=e.target.closest("[data-play]");if(b)RUN[b.dataset.play](true)},{signal});
-const played={};
-if("IntersectionObserver" in window){const io=new IntersectionObserver(es=>es.forEach(en=>{if(!en.isIntersecting)return;const id=en.target.id;
-  const n=/^w\d$/.test(id)?id.slice(1):null;if(n&&RUN[n]&&!played[n]){played[n]=1;RUN[n](true)}}),{threshold:.25});
-  document.querySelectorAll(".way").forEach(s=>io.observe(s))}
 addEventListener("resize",()=>w3(false),{signal});
-if("IntersectionObserver" in window){const bo=new IntersectionObserver(es=>es.forEach(en=>{if(!en.isIntersecting||en.target.dataset.done)return;en.target.dataset.done=1;({b2:()=>whyRun(true),b5:()=>mpRun(true),b6:()=>ag2Run(true)}[en.target.id]||(()=>{}))()}),{threshold:.3});["b2","b5","b6"].forEach(i=>bo.observe($(i)))}
+// Optional blocks are laid out while closed, so the ones that measure width redraw on opening.
+const onOpen={picture:()=>w3(false),scenarios:()=>scRun(false),project:()=>jShow(false)};
+document.querySelectorAll("#ta details.ta-more[id]").forEach(d=>d.addEventListener("toggle",()=>{if(d.open)onOpen[d.id]?.()},{signal}));
 
 /* ---------- a guided course: one step on screen at a time ---------- */
 // Every step stays in the HTML (search engines and no-JS readers get the whole
-// page); with JavaScript, the reader sees one lesson, a map of all twelve, and
+// page); with JavaScript, the reader sees one lesson, a map of all nine, and
 // a clear way on. Progress is a per-reader convenience, so it lives in
 // localStorage and the page works the same when that is unavailable.
 const onFirstView = {
   continue: () => cvRun(),
-  customize: () => hRun(true),
-  patterns: () => pRun(true),
-  picture: () => w3(false),
-  project: () => jRun(true),
-  scenarios: () => scRun(true),
+  patterns: () => pRun(false),
 };
 const seenStep = {};
 const path = $("ta-path");
 const steps = [...document.querySelectorAll("#ta .ta-step:not(#faq)")];
 const ids = steps.map(s => s.id);
 const titleOf = s => s.querySelector(".ta-head h2").textContent.trim();
-const KEY = "ta-course-v2";
+const KEY = "ta-course-v3";
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
 const state = Object.assign({ done: [], ans: {}, last: null }, load());
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
@@ -722,11 +673,12 @@ steps.forEach((s, i) => {
   const prev = steps[i - 1], next = steps[i + 1];
   const pager = document.createElement("nav");
   pager.className = "ta-pager";
-  pager.setAttribute("aria-label", "Step navigation");
+  pager.setAttribute("aria-label", "Lesson navigation");
   pager.innerHTML =
     (prev ? `<a class="btn btn-outline btn-sm" href="#${prev.id}">← Back</a>` : "<span></span>") +
+    `<a class="btn btn-outline btn-sm ta-to-calc" href="#calculator">↑ Back to the calculator</a>` +
     (next
-      ? `<a class="btn btn-accent ta-next" href="#${next.id}" data-from="${s.id}"><span>Next: Step ${i + 2}</span><b></b><i aria-hidden="true">→</i></a>`
+      ? `<a class="btn btn-accent ta-next" href="#${next.id}" data-from="${s.id}"><span>Next: Lesson ${i + 2}</span><b></b><i aria-hidden="true">→</i></a>`
       : `<div class="ta-finish" id="ta-finish"></div>`);
   if (next) pager.querySelector("b").textContent = titleOf(next);
   s.append(pager);
@@ -758,14 +710,14 @@ function stepScore(step) {
   const qs = [...box.querySelectorAll(".ta-q")], done = qs.filter(q => q.dataset.done);
   const right = done.filter(q => q.classList.contains("is-right")).length;
   box.querySelector(".ta-check-score").innerHTML = `<b>${done.length}</b> / ${qs.length} answered`;
-  const ready = box.querySelector(".ta-ready"), next = step.querySelector(".ta-next");
-  const nextName = next ? `Step ${ids.indexOf(step.id) + 2}: ${next.querySelector("b").textContent}` : "the last step";
+  const ready = box.querySelector(".ta-ready");
   box.classList.toggle("is-complete", done.length === qs.length);
-  next?.classList.toggle("is-ready", done.length === qs.length);
   if (done.length < qs.length) { ready.innerHTML = ""; return; }
+  // Point back to the lessons behind the questions that were missed.
+  const missed = qs.filter(q => q.classList.contains("is-wrong")).map(q => q.dataset.from).filter((v, i, a) => v && a.indexOf(v) === i);
   ready.innerHTML = right === qs.length
-    ? `<b>🎉 ${right} of ${qs.length} right.</b> You’re ready for ${nextName}.`
-    : `<b>${right} of ${qs.length} right.</b> Read the explanations above, then carry on to ${nextName} when you’re ready.`;
+    ? `<b>🎉 ${right} of ${qs.length} right.</b> You have the whole picture. Put it to use in the <a href="#calculator">calculator</a>.`
+    : `<b>${right} of ${qs.length} right.</b> Worth another look: ${missed.map(id => `<a href="#${id}">${document.querySelector(`#${id} h2, #${id} summary`)?.textContent.replace(/optional$/, "").trim() ?? id}</a>`).join(" · ")}.`;
 }
 
 // ---- the idea in 3 frames: a looping storyboard beside each answer ----
@@ -906,8 +858,8 @@ function show(id, { scroll = true } = {}) {
   if (!seenStep[id]) { seenStep[id] = 1; onFirstView[id]?.(); }
 }
 
-// A hash can name a step, or anything inside one (#b5, #receipt): open the
-// step that holds it and scroll there.
+// A hash can name a lesson, or anything inside one (#scenarios, #w3): open the
+// lesson that holds it, and any optional block around it, and scroll there.
 function route({ scroll = true } = {}) {
   const h = decodeURIComponent(location.hash.slice(1));
   if (!h) return false;
@@ -916,6 +868,7 @@ function route({ scroll = true } = {}) {
   const step = el && el.closest("#ta .ta-step");
   if (step && step.id !== "faq") {
     show(step.id, { scroll: false });
+    for (let d = el.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true;
     requestAnimationFrame(() => el.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "start" }));
     return true;
   }

@@ -34,6 +34,7 @@ export const SOURCES = {
   prices: 'https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing',
   billing: 'https://docs.github.com/en/copilot/concepts/billing-and-usage/organizations-and-enterprises/billing',
   auto: 'https://docs.github.com/en/copilot/concepts/auto-model-selection',
+  reports: 'https://docs.github.com/en/billing/reference/billing-reports',
 };
 
 /** Plan facts the estimates use, all from GitHub's billing docs. */

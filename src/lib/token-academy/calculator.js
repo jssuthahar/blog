@@ -5,6 +5,10 @@
  * (#ta-data, built from pricing.ts), counts with gpt-tokenizer in the browser,
  * and never sends the text anywhere. Only the reader's settings, never their
  * text, are remembered on this device.
+ *
+ * Simple mode prices one typical Copilot Chat request. Advanced mode exposes
+ * every assumption: context, output, cache reads and writes, agent model calls
+ * and monthly volume.
  */
 import { loadO200k, loadCl100k } from './tokenizer.js';
 import { SAMPLES } from './samples.js';
@@ -14,6 +18,7 @@ let controller = null;
 const fmt = (n, d = 0) => Number(n).toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
 const cr = (n) => fmt(n, n < 1 ? 3 : n < 100 ? 2 : 0);
 const usd = (n) => '$' + fmt(n, n < 0.01 ? 4 : n < 100 ? 2 : 0);
+const rate = (n) => '$' + fmt(n, n < 0.1 ? 3 : 2);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 /**
@@ -31,9 +36,13 @@ const CONTEXT = [
   ['hist', 'Earlier messages in this chat', 3200, false],
   ['files', 'Referenced code files', 4000, true],
 ];
+const CONTEXT_DEFAULT = CONTEXT.reduce((a, c) => a + (c[3] ? c[2] : 0), 0);
 
-const KEY = 'ta-calc-v1';
-const FIELDS = ['c-model', 'c-mode', 'c-out', 'c-cache', 'c-req', 'c-auto'];
+/** What Simple mode assumes; Advanced starts from the same values. */
+const DEFAULTS = { mode: 'chat', out: 800, cache: 0, write: 0, calls: 1, grow: 3000, req: 400, auto: false };
+
+const KEY = 'ta-calc-v2';
+const FIELDS = ['c-model', 'c-mode', 'c-out', 'c-cache', 'c-write', 'c-calls', 'c-grow', 'c-req', 'c-auto'];
 
 export function initCalculator() {
   const root = document.getElementById('calculator');
@@ -49,6 +58,7 @@ export function initCalculator() {
   const MODELS = DATA.models;
   const byName = (n) => MODELS.find((m) => m.name === n) ?? MODELS[0];
   let enc = window.GPTTokenizer_o200k_base ?? null;
+  let level = 'simple';
 
   // ---- inputs ----
   const text = $('c-text');
@@ -72,10 +82,12 @@ export function initCalculator() {
       if (id === 'c-auto') $(id).checked = !!saved[id];
       else if (id !== 'c-model' || MODELS.some((m) => m.name === saved[id])) $(id).value = saved[id];
     }
+    if (saved.level === 'advanced') level = 'advanced';
   } catch {}
   const persist = () => {
     try {
-      localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(FIELDS.map((id) => [id, id === 'c-auto' ? $(id).checked : $(id).value]))));
+      const v = Object.fromEntries(FIELDS.map((id) => [id, id === 'c-auto' ? $(id).checked : $(id).value]));
+      localStorage.setItem(KEY, JSON.stringify({ ...v, level }));
     } catch {}
   };
   text.value = SAMPLES.prompt.text;
@@ -92,10 +104,35 @@ export function initCalculator() {
     return { n: Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : Math.max(0, min), err };
   };
 
+  // ---- Simple / Advanced ----
+  function setLevel(next) {
+    level = next;
+    root.dataset.level = level;
+    root.querySelectorAll('[data-level]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.level === level));
+    root.querySelectorAll('.tc-adv').forEach((el) => (el.hidden = level !== 'advanced'));
+    root.querySelectorAll('.tc-simple').forEach((el) => (el.hidden = level === 'advanced'));
+    price();
+  }
+  root.querySelectorAll('[data-level]').forEach((b) => on(b, 'click', () => setLevel(b.dataset.level)));
+  on($('c-reset'), 'click', () => {
+    $('c-mode').value = DEFAULTS.mode;
+    for (const k of ['out', 'cache', 'write', 'calls', 'grow', 'req']) $(`c-${k}`).value = DEFAULTS[k];
+    $('c-auto').checked = DEFAULTS.auto;
+    CONTEXT.forEach(([id, , size, onByDefault]) => { $(`cx-${id}`).value = size; $(`cx-${id}c`).checked = onByDefault; });
+    price();
+  });
+
+  // Explanations sit behind an (i) button next to each setting, so the form stays short.
+  root.querySelectorAll('.tc-tip').forEach((b) => on(b, 'click', () => {
+    const hint = $(b.getAttribute('aria-controls'));
+    const open = b.getAttribute('aria-expanded') !== 'true';
+    b.setAttribute('aria-expanded', open);
+    hint.hidden = !open;
+  }));
+
   // ---- counting ----
   let ids = [];
   let count = 0;
-  const countText = (s) => (enc ? enc.encode(s) : null);
   const kindOf = (s) => {
     const t = s.trim();
     if (!t) return '';
@@ -108,7 +145,7 @@ export function initCalculator() {
 
   function recount() {
     const s = text.value;
-    const enc1 = countText(s);
+    const enc1 = enc ? enc.encode(s) : null;
     ids = enc1 ?? [];
     count = enc1 ? enc1.length : Math.ceil(s.length / 4);
     const words = (s.trim().match(/\S+/g) || []).length;
@@ -125,7 +162,7 @@ export function initCalculator() {
         const m = enc ? enc.encode(min).length : Math.ceil(min.length / 4);
         if (m < count) msg.push(`Valid JSON. Minified, it would be ${fmt(m)} tokens: ${fmt(count - m)} fewer (${fmt((1 - m / count) * 100)}%).`);
         else msg.push('Valid JSON, already compact.');
-      } catch (e) {
+      } catch {
         msg.push('This looks like JSON but doesn’t parse, so it’s counted as plain text.');
       }
     }
@@ -139,28 +176,66 @@ export function initCalculator() {
   // ---- pricing ----
   let last = null;
   function settings() {
+    if (level === 'simple') {
+      $('c-err').textContent = '';
+      return { ...DEFAULTS, cache: 0, write: 0, ctx: CONTEXT_DEFAULT, chat: true };
+    }
     const out = num('c-out', 'Output tokens');
-    const cache = num('c-cache', 'Cache share');
+    const cache = num('c-cache', 'Cache reads');
+    const write = num('c-write', 'Cache writes');
+    const calls = num('c-calls', 'Model calls');
+    const grow = num('c-grow', 'Context growth');
     const req = num('c-req', 'Requests per month');
-    const errs = [out, cache, req].map((x) => x.err).filter(Boolean);
+    const errs = [out, cache, write, calls, grow, req].map((x) => x.err).filter(Boolean);
+    if (cache.n + write.n > 100) {
+      errs.push('Cache reads and writes together can’t be more than 100% of the input.');
+      $('c-write').setAttribute('aria-invalid', '');
+    }
     $('c-err').textContent = errs.join(' ');
     const chat = $('c-mode').value === 'chat';
     $('c-ctx-box').hidden = !chat;
+    $('c-grow').disabled = calls.n <= 1;
     const ctx = chat ? CONTEXT.reduce((a, [id]) => a + ($(`cx-${id}c`).checked ? Math.max(0, +$(`cx-${id}`).value || 0) : 0), 0) : 0;
-    return { out: Math.round(out.n), cache: cache.n / 100, req: Math.round(req.n), auto: $('c-auto').checked, ctx, chat };
+    return {
+      mode: chat ? 'chat' : 'api', chat, ctx,
+      out: Math.round(out.n), cache: cache.n / 100, write: Math.min(write.n, 100 - cache.n) / 100,
+      calls: Math.round(calls.n), grow: Math.round(grow.n), req: Math.round(req.n), auto: $('c-auto').checked,
+    };
   }
-  /** One request on one model. Uses the long-context rates once input passes the model's threshold. */
+
+  /**
+   * One request (or one agent task) on one model. Each model call re-sends the
+   * prompt and context plus everything the earlier calls added. A call whose
+   * input passes the model's long-context threshold is priced at the higher
+   * rates for the whole call. Cache writes are charged at the model's
+   * cache-write price where GitHub lists one, otherwise as normal input.
+   */
   function costOn(m, textTokens, st) {
-    const input = textTokens + st.ctx;
-    const cached = Math.round(input * st.cache);
-    const fresh = input - cached;
-    const long = !!(m.long && input > m.long.over);
-    const r = long ? m.long : m;
-    const parts = { fresh: (fresh * r.in) / 1e6, cached: (cached * r.cached) / 1e6, out: (st.out * r.out) / 1e6 };
-    const sub = parts.fresh + parts.cached + parts.out;
+    const t = { prompt: textTokens, ctx: st.ctx, fresh: 0, cached: 0, written: 0, out: 0, input: 0 };
+    const usdOf = { fresh: 0, cached: 0, written: 0, out: 0 };
+    let base = 0, longCalls = 0, firstInput = 0;
+    for (let k = 0; k < st.calls; k++) {
+      const input = textTokens + st.ctx + k * st.grow;
+      if (!k) firstInput = input;
+      const cached = Math.round(input * st.cache);
+      const written = Math.round(input * st.write);
+      const fresh = input - cached - written;
+      const long = !!(m.long && input > m.long.over);
+      const r = long ? m.long : m;
+      const w = (x) => x.write ?? x.in;
+      usdOf.fresh += (fresh * r.in) / 1e6;
+      usdOf.cached += (cached * r.cached) / 1e6;
+      usdOf.written += (written * w(r)) / 1e6;
+      usdOf.out += (st.out * r.out) / 1e6;
+      // The same call at standard rates, to show what the long-context tier added.
+      base += (fresh * m.in + cached * m.cached + written * w(m) + st.out * m.out) / 1e6;
+      if (long) longCalls++;
+      Object.assign(t, { fresh: t.fresh + fresh, cached: t.cached + cached, written: t.written + written, out: t.out + st.out, input: t.input + input });
+    }
+    const sub = usdOf.fresh + usdOf.cached + usdOf.written + usdOf.out;
     const disc = st.auto ? sub * DATA.plan.autoDiscount : 0;
     const dollars = sub - disc;
-    return { input, cached, fresh, long, r, parts, disc, dollars, credits: dollars / DATA.plan.usdPerCredit };
+    return { t, usdOf, sub, longExtra: sub - base, longCalls, firstInput, disc, dollars, credits: dollars / DATA.plan.usdPerCredit };
   }
   const tokensFor = (m) => {
     const [a, b] = rangeOf(m.provider);
@@ -170,48 +245,73 @@ export function initCalculator() {
   function price() {
     const st = settings();
     const m = byName(sel.value);
-    const t = tokensFor(m);
-    const c = costOn(m, t.mid, st);
-    const basis = !enc ? 'estimate: 4 characters per token' : t.exact ? 'o200k_base count' : `estimate, ${fmt(t.lo)}–${fmt(t.hi)}`;
-    $('c-in').textContent = fmt(c.input);
-    $('c-in-note').innerHTML = `${st.chat ? `${fmt(t.mid)} your text + ${fmt(st.ctx)} context` : 'your text only'}<span class="badge ${enc && t.exact ? 'ex' : 'es'}">${basis}</span>`;
-    $('c-o').textContent = fmt(st.out);
+    const tk = tokensFor(m);
+    const c = costOn(m, tk.mid, st);
+    const basis = !enc ? 'estimate: 4 characters per token' : tk.exact ? 'o200k_base count' : `estimate, ${fmt(tk.lo)}–${fmt(tk.hi)}`;
+    const agent = st.calls > 1;
+    $('c-in').textContent = fmt(c.t.input);
+    $('c-in-note').innerHTML = `${agent ? `across ${fmt(st.calls)} model calls` : st.chat ? `${fmt(tk.mid)} your text + ${fmt(st.ctx)} context` : 'your text only'}<span class="badge ${enc && tk.exact ? 'ex' : 'es'}">${basis}</span>`;
+    $('c-o').textContent = fmt(c.t.out);
+    $('c-cr-l').textContent = agent ? 'AI Credits per task' : 'AI Credits per request';
     $('c-cr').textContent = cr(c.credits);
-    $('c-usd').textContent = `${usd(c.dollars)} per request`;
+    $('c-usd').textContent = `${usd(c.dollars)} per ${agent ? 'task' : 'request'}`;
     $('c-mcr').textContent = cr(c.credits * st.req);
-    $('c-musd').textContent = `${usd(c.dollars * st.req)} for ${fmt(st.req)} requests · ${fmt((c.credits * st.req) / DATA.plan.businessCredits * 100, 1)}% of one Business seat`;
-
-    const L = (label, value, sub = '') => `<div class="ln"><span>${label}${sub ? `<small>${sub}</small>` : ''}</span><span class="num">${value}</span></div>`;
-    $('c-receipt').innerHTML =
-      L('Fresh input', usd(c.parts.fresh), `${fmt(c.fresh)} × $${c.r.in} / 1M`) +
-      L('Cached input', usd(c.parts.cached), `${fmt(c.cached)} × $${c.r.cached} / 1M`) +
-      L('Output', usd(c.parts.out), `${fmt(st.out)} × $${c.r.out} / 1M`) +
-      (st.auto ? L('Auto model discount', '−' + usd(c.disc), '10% off model costs') : '') +
-      L('<b>Total</b>', `<b>${usd(c.dollars)} · ${cr(c.credits)} credits</b>`);
+    $('c-musd').textContent = `${usd(c.dollars * st.req)} for ${fmt(st.req)} ${agent ? 'tasks' : 'requests'} · ${fmt((c.credits * st.req) / DATA.plan.businessCredits * 100, 1)}% of one Business seat`;
+    breakdown(m, tk, c, st);
 
     const warn = [];
-    if (c.long) warn.push(`This request passes ${m.name}’s long-context threshold of ${fmt(m.long.over)} input tokens, so the whole request is priced at the higher rates.`);
+    if (c.longCalls) warn.push(`${c.longCalls === st.calls ? (agent ? 'Every call' : 'This request') : `${c.longCalls} of ${st.calls} calls`} passes ${m.name}’s long-context threshold of ${fmt(m.long.over)} input tokens, so ${c.longCalls === 1 && !agent ? 'it is' : 'those calls are'} priced at the higher rates.`);
     if (m.note) warn.push(`${m.name}: ${m.note}.`);
+    if (st.write && !m.write) warn.push(`GitHub lists no cache-write price for ${m.name}, so cache writes are charged as normal input.`);
     $('c-warn').hidden = !warn.length;
     $('c-warn').textContent = warn.join(' ');
+    $('c-long').textContent = m.long
+      ? `${m.name} moves to higher rates above ${fmt(m.long.over)} input tokens per call: $${m.long.in} in / $${m.long.out} out per 1M. Applied automatically.`
+      : `${m.name} has no long-context tier on GitHub’s price list.`;
 
     $('c-assume').innerHTML = [
       enc
-        ? (t.exact
-          ? 'Token count uses OpenAI’s o200k_base tokenizer. GitHub doesn’t say which tokenizer each Copilot model uses, so treat it as a close estimate for this model.'
+        ? (tk.exact
+          ? 'Prompt tokens use OpenAI’s o200k_base tokenizer. GitHub doesn’t say which tokenizer each Copilot model uses, so treat it as a close estimate for this model.'
           : `${m.provider} doesn’t publish a browser tokenizer: the count is the o200k_base count × ${rangeOf(m.provider).join('–')}, a rough range. Use the provider’s token-counting API for an exact figure.`)
         : 'The tokenizer hasn’t loaded, so tokens are estimated at 4 characters each.',
-      st.chat ? `Copilot context of ${fmt(st.ctx)} tokens uses typical example sizes; yours depends on your setup.` : 'Only your text is sent: no system prompt, tools or history.',
-      `Output of ${fmt(st.out)} tokens is your estimate. Reasoning models also write hidden thinking tokens, which providers bill as output.`,
-      st.cache ? `${fmt(st.cache * 100)}% of input is read from cache. Cache-write charges, where a model has them, are not included.` : 'No caching assumed.',
+      st.chat ? `Copilot context of ${fmt(st.ctx)} tokens uses typical example sizes; GitHub doesn’t publish them, and yours depends on your setup.` : 'Only your text is sent: no system prompt, tools or history.',
+      `Output of ${fmt(st.out)} tokens per call is an estimate. Reasoning models also write hidden thinking tokens, which OpenAI and Anthropic bill as output.`,
+      agent ? `${fmt(st.calls)} model calls, each re-sending the prompt and context plus ${fmt(st.grow)} more tokens per earlier call (answers and tool output).` : 'One model call.',
+      st.cache || st.write ? `${fmt(st.cache * 100)}% of input read from cache and ${fmt(st.write * 100)}% written to it. Real caching depends on the provider: short prompts aren’t cached, and entries expire after minutes of inactivity.` : 'No caching assumed.',
+      st.auto ? 'Auto model selection: 10% off model costs, on paid plans in Copilot Chat and Copilot cloud agent.' : 'No Auto model discount.',
       `Prices: GitHub’s per-1M-token rates, checked ${DATA.checked}. 1 AI Credit = $0.01.`,
-      'Actual usage is what GitHub reports in your billing settings under AI usage.',
     ].map((x) => `<li>${esc(x)}</li>`).join('');
 
-    last = { m, t, c, st };
+    last = { m, tk, c, st };
     table(st);
     announce();
     persist();
+  }
+
+  // ---- the breakdown: every line of the sum ----
+  function breakdown(m, tk, c, st) {
+    const agent = st.calls > 1;
+    const row = (label, tokens, r, cost, cls = '') =>
+      `<tr${cls ? ` class="${cls}"` : ''}><th scope="row">${label}</th><td class="r">${tokens}</td><td class="r">${r}</td><td class="r">${cost}</td></tr>`;
+    const longR = (k) => (c.longCalls && m.long ? ` <small>long: ${rate(m.long[k] ?? m.long.in)}</small>` : '');
+    let rows = '';
+    if (level === 'advanced') {
+      rows += row('Prompt tokens (your text)', fmt(tk.mid), '', '', 'is-sub');
+      rows += row('+ Copilot context', fmt(st.ctx), '', '', 'is-sub');
+      if (agent) rows += row(`× ${fmt(st.calls)} model calls, growing ${fmt(st.grow)} per call`, fmt(c.t.input), '', '', 'is-sub');
+      rows += row('Fresh input', fmt(c.t.fresh), rate(m.in) + longR('in'), usd(c.usdOf.fresh));
+      rows += row('Cached input (read)', fmt(c.t.cached), rate(m.cached) + longR('cached'), usd(c.usdOf.cached));
+      rows += row('Cache writes', fmt(c.t.written), (m.write ? rate(m.write) : `${rate(m.in)} <small>no write price</small>`) + longR('write'), usd(c.usdOf.written));
+      rows += row('Output', fmt(c.t.out), rate(m.out) + longR('out'), usd(c.usdOf.out));
+      if (c.longCalls) rows += row(`Long-context rates (${c.longCalls} call${c.longCalls > 1 ? 's' : ''})`, '', '', `+${usd(c.longExtra)} <small>included above</small>`, 'is-sub');
+    } else {
+      rows += row('Input', fmt(c.t.input), rate(m.in), usd(c.usdOf.fresh + c.usdOf.cached + c.usdOf.written));
+      rows += row('Output', fmt(c.t.out), rate(m.out), usd(c.usdOf.out));
+    }
+    if (st.auto) rows += row('Auto model discount', '', '−10%', '−' + usd(c.disc));
+    rows += row('Estimated total', '', '', `${usd(c.dollars)}<small>${cr(c.credits)} AI Credits</small>`, 'is-total');
+    $('c-break').innerHTML = `<thead><tr><th scope="col">Item</th><th scope="col" class="r">Tokens</th><th scope="col" class="r">Price / 1M</th><th scope="col" class="r">Cost</th></tr></thead><tbody>${rows}</tbody>`;
   }
 
   // ---- every model ----
@@ -220,10 +320,11 @@ export function initCalculator() {
     const cur = sel.value;
     const rows = MODELS.map((m) => ({ m, t: tokensFor(m), c: costOn(m, tokensFor(m).mid, st) }));
     if (sortBy === 'cost') rows.sort((a, b) => a.c.dollars - b.c.dollars);
-    const head = `<thead><tr><th scope="col">Model</th><th scope="col" class="r">Input tokens</th><th scope="col" class="r">Credits / request</th><th scope="col" class="r">Credits / month</th><th scope="col" class="r">$ / month</th></tr></thead>`;
+    const unit = st.calls > 1 ? 'task' : 'request';
+    const head = `<thead><tr><th scope="col">Model</th><th scope="col" class="r">Input tokens</th><th scope="col" class="r">Credits / ${unit}</th><th scope="col" class="r">Credits / month</th><th scope="col" class="r">$ / month</th></tr></thead>`;
     $('c-table').innerHTML = head + '<tbody>' + rows.map(({ m, t, c }) =>
-      `<tr${m.name === cur ? ' class="sel" aria-current="true"' : ''}><th scope="row"><button type="button" data-pick="${esc(m.name)}">${esc(m.name)}</button><small>${esc(m.provider)} · ${esc(m.tier)}${c.long ? ' · long-context rate' : ''}</small></th>` +
-      `<td class="r">${t.exact && enc ? '' : '~'}${fmt(c.input)}</td><td class="r">${cr(c.credits)}</td><td class="r">${cr(c.credits * st.req)}</td><td class="r">${usd(c.dollars * st.req)}</td></tr>`).join('') + '</tbody>';
+      `<tr${m.name === cur ? ' class="sel" aria-current="true"' : ''}><th scope="row"><button type="button" data-pick="${esc(m.name)}">${esc(m.name)}</button><small>${esc(m.provider)} · ${esc(m.tier)}${c.longCalls ? ' · long-context rate' : ''}</small></th>` +
+      `<td class="r">${t.exact && enc ? '' : '~'}${fmt(c.t.input)}</td><td class="r">${cr(c.credits)}</td><td class="r">${cr(c.credits * st.req)}</td><td class="r">${usd(c.dollars * st.req)}</td></tr>`).join('') + '</tbody>';
   }
   on($('c-sort'), 'change', (e) => { sortBy = e.target.value; price(); });
   on($('c-table'), 'click', (e) => {
@@ -287,14 +388,15 @@ export function initCalculator() {
   // ---- result text, for copy and for screen readers ----
   function summary() {
     const { m, c, st } = last;
+    const unit = st.calls > 1 ? 'task' : 'request';
     return [
-      `AI Token Calculator · ${m.name}`,
-      `Input tokens: ${fmt(c.input)}${st.chat ? ` (${fmt(c.input - st.ctx)} text + ${fmt(st.ctx)} Copilot context)` : ''}`,
-      `Output tokens: ${fmt(st.out)} (estimate)`,
-      `Cached input: ${fmt(st.cache * 100)}%${st.auto ? ' · Auto model −10%' : ''}`,
-      `Per request: ${usd(c.dollars)} = ${cr(c.credits)} AI Credits${c.long ? ' (long-context rate)' : ''}`,
-      `Per month (${fmt(st.req)} requests): ${usd(c.dollars * st.req)} = ${cr(c.credits * st.req)} AI Credits`,
-      `Estimate. Prices checked ${DATA.checked}: ${DATA.source}`,
+      `AI Token Calculator · ${m.name} · ${level} mode`,
+      `Input tokens: ${fmt(c.t.input)}${st.chat ? ` (${fmt(c.t.prompt)} text + ${fmt(st.ctx)} Copilot context${st.calls > 1 ? `, ${st.calls} model calls` : ''})` : ''}`,
+      `  fresh ${fmt(c.t.fresh)} · cached ${fmt(c.t.cached)} · cache writes ${fmt(c.t.written)}`,
+      `Output tokens: ${fmt(c.t.out)} (estimate)`,
+      `Per ${unit}: ${usd(c.dollars)} = ${cr(c.credits)} AI Credits${c.longCalls ? ' (includes long-context rates)' : ''}${st.auto ? ' (Auto −10%)' : ''}`,
+      `Per month (${fmt(st.req)} ${unit}s): ${usd(c.dollars * st.req)} = ${cr(c.credits * st.req)} AI Credits`,
+      `Estimate, not provider-reported usage. Prices checked ${DATA.checked}: ${DATA.source}`,
     ].join('\n');
   }
   let liveTimer = 0;
@@ -302,7 +404,7 @@ export function initCalculator() {
     clearTimeout(liveTimer);
     liveTimer = setTimeout(() => {
       if (!last) return;
-      $('c-live').textContent = `${fmt(last.c.input)} input tokens. ${cr(last.c.credits)} AI Credits per request on ${last.m.name}.`;
+      $('c-live').textContent = `${fmt(last.c.t.input)} input tokens. ${cr(last.c.credits)} AI Credits per ${last.st.calls > 1 ? 'task' : 'request'} on ${last.m.name}.`;
     }, 900);
   }
   const flash = (btn, label) => { const old = btn.dataset.label ??= btn.textContent; btn.textContent = label; setTimeout(() => (btn.textContent = old), 1800); };
@@ -314,18 +416,21 @@ export function initCalculator() {
   on($('c-csv'), 'click', () => {
     const st = last.st;
     const q = (v) => `"${String(v).replace(/"/g, '""')}"`;
-    const rows = [['Model', 'Provider', 'Input tokens', 'Token basis', 'Output tokens', 'Cached input %', 'Auto discount', 'USD per request', 'AI Credits per request', 'Requests per month', 'USD per month', 'AI Credits per month', 'Long-context rate']];
+    const rows = [['Model', 'Provider', 'Prompt tokens', 'Token basis', 'Context tokens', 'Model calls', 'Input tokens', 'Fresh input', 'Cached input', 'Cache writes', 'Output tokens', 'Auto discount', 'USD per request', 'AI Credits per request', 'Requests per month', 'USD per month', 'AI Credits per month', 'Calls at long-context rate']];
     for (const m of MODELS) {
       const t = tokensFor(m), c = costOn(m, t.mid, st);
-      rows.push([m.name, m.provider, c.input, t.exact && enc ? 'o200k_base' : 'estimate', st.out, st.cache * 100, st.auto ? 'yes' : 'no',
-        c.dollars.toFixed(6), c.credits.toFixed(4), st.req, (c.dollars * st.req).toFixed(4), (c.credits * st.req).toFixed(2), c.long ? 'yes' : 'no']);
+      rows.push([m.name, m.provider, t.mid, t.exact && enc ? 'o200k_base' : 'estimate', st.ctx, st.calls, c.t.input, c.t.fresh, c.t.cached, c.t.written, c.t.out, st.auto ? 'yes' : 'no',
+        c.dollars.toFixed(6), c.credits.toFixed(4), st.req, (c.dollars * st.req).toFixed(4), (c.credits * st.req).toFixed(2), c.longCalls]);
     }
-    rows.push([], [`Estimate only. Prices from GitHub, checked ${DATA.checked}: ${DATA.source}`]);
-    const blob = new Blob([rows.map((r) => r.map(q).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
-    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'ai-token-estimate.csv' });
+    rows.push([], [`Estimate only, not provider-reported usage. Prices from GitHub, checked ${DATA.checked}: ${DATA.source}`]);
+    download(rows.map((r) => r.map(q).join(',')).join('\r\n'), 'ai-token-estimate.csv');
+  });
+  const download = (body, name) => {
+    const blob = new Blob([body], { type: 'text/csv;charset=utf-8' });
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name });
     document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  });
+  };
 
   // ---- text tools ----
   root.querySelectorAll('[data-sample]').forEach((b) => on(b, 'click', () => {
@@ -337,8 +442,7 @@ export function initCalculator() {
   on($('c-paste'), 'click', async (e) => {
     const btn = e.currentTarget;
     try {
-      const clip = await navigator.clipboard.readText();
-      text.value = clip;
+      text.value = await navigator.clipboard.readText();
       recount();
       text.focus();
     } catch {
@@ -350,12 +454,20 @@ export function initCalculator() {
   // Large pastes are counted after a short pause instead of on every keystroke.
   let t0 = 0;
   on(text, 'input', () => { clearTimeout(t0); t0 = setTimeout(recount, text.value.length > 50_000 ? 350 : 60); });
-  on(root.querySelector('.tc-opts'), 'input', price);
-  on(root.querySelector('.tc-opts'), 'change', price);
-  on($('c-ctx'), 'input', price);
+  on(root.querySelector('.tc-settings'), 'input', price);
+  on(root.querySelector('.tc-settings'), 'change', price);
   root.querySelectorAll('[data-out]').forEach((b) => on(b, 'click', () => { $('c-out').value = b.dataset.out; price(); }));
 
+  // The usage report analyser loads only when someone picks a file.
+  on($('u-file'), 'change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const { analyseUsage } = await import('./usage.js');
+    analyseUsage(file, { DATA, estimate: () => last, download });
+  });
+
   $('c-status').textContent = enc ? '' : 'Loading the tokenizer…';
+  setLevel(level);
   recount();
   loadO200k().then((m) => {
     if (signal.aborted) return;

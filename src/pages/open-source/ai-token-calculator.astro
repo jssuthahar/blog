@@ -7,7 +7,7 @@ import { SITE, AUTHOR } from '../../config';
 import markup from '../../lib/token-academy/markup.html?raw';
 import costsMarkup from '../../lib/token-academy/costs.html?raw';
 import '../../lib/token-academy/academy.css';
-import { STEP_QA, FAQ } from '../../lib/token-academy/questions';
+import { STEP_QA, FAQ, FINAL_CHECK } from '../../lib/token-academy/questions';
 import { getPublishedPosts, postUrl } from '../../lib/posts';
 import { STORIES, type Visual } from '../../lib/token-academy/stories';
 import { MAKEOVERS, PART_LABEL } from '../../lib/token-academy/prompts';
@@ -15,6 +15,7 @@ import { STEPS, UPDATED } from '../../lib/token-academy/steps';
 import { MODELS, PRICES_CHECKED, SOURCES, PLAN, DEFAULT_MODEL, fmtDate } from '../../lib/token-academy/pricing';
 import { SAMPLES } from '../../lib/token-academy/samples.js';
 import { getImage } from 'astro:assets';
+import Tip from '../../components/CalcTip.astro';
 import journeyFlow from '../../lib/token-academy/images/token-journey-flow.png';
 import requestSequence from '../../lib/token-academy/images/token-request-sequence.png';
 
@@ -31,6 +32,16 @@ const readNote = (slugs: string[] = []) => {
 };
 
 const MODEL_COUNT = MODELS.length;
+const CONTEXT_TYPICAL = 8500;
+// Advanced settings. Each tip says what the number means and where its default comes from.
+const ADV = [
+  { id: 'c-out', label: 'Output tokens per call', min: 0, max: 200000, step: 100, value: 800, tip: 'What the model writes back: about 300 for a short reply, 800 for a diff, thousands for a whole file. Reasoning models also write hidden thinking tokens, which OpenAI and Anthropic bill as output even though you don’t see them.' },
+  { id: 'c-cache', label: 'Input read from cache (%)', min: 0, max: 100, step: 5, value: 0, tip: 'The share of each call’s input that repeats a recent request and is billed at the cached price, often 10% of input or less. Providers only cache prompts above a minimum size (512 to 4,096 tokens) and drop entries after minutes of inactivity; switching models loses the cache.' },
+  { id: 'c-write', label: 'Input written to cache (%)', min: 0, max: 100, step: 5, value: 0, tip: 'The share stored for later reuse. GitHub lists a cache-write price, about 1.25× input, for Anthropic models and the GPT-5.6, GPT-6 and GPT-6.1 families; elsewhere it costs the same as normal input. Usually the first call of a session writes and later calls read.' },
+  { id: 'c-calls', label: 'Model calls per task', min: 1, max: 200, step: 1, value: 1, tip: 'Keep 1 for a chat question. In agent mode one prompt starts many model calls (read files, run tools, edit, test) and every call is billed.' },
+  { id: 'c-grow', label: 'Context added per call', min: 0, max: 100000, step: 500, value: 3000, tip: 'What each call adds to the next: the answer it wrote plus tool output such as file reads and test logs. Every later call re-sends it. Used only with more than one model call.' },
+  { id: 'c-req', label: 'Requests or tasks per month', min: 1, max: 10000000, step: 10, value: 400, wide: true, tip: 'For the monthly estimate. A Copilot Business seat includes 1,900 AI Credits a month and Enterprise 3,900, pooled across the organization.' },
+];
 const LESSONS = STEPS.length;
 const checked = fmtDate(PRICES_CHECKED);
 const pageUrl = `${SITE.url}/open-source/ai-token-calculator/`;
@@ -130,8 +141,8 @@ const makeoverHtml = `<section class="card ta-mk" id="makeover">
   <p class="small">The better prompt is often longer. It still costs less, because it gets the right answer first time: no exploring, no retries, and no long answer to skim.</p>
 </section>`;
 
-// Each lesson opens with the question it answers in plain words, and closes
-// with optional questions the reader can check themselves against.
+// Each lesson opens with the question it answers in plain words. One final
+// check at the end tests each big idea once.
 const answer = (id: string) => {
   const s = STEP_QA[id];
   if (!s) return '';
@@ -141,30 +152,28 @@ const academy = markup
   .replace('<!--makeover-->', makeoverHtml)
   .replace(/<!--fig:([\w-]+)-->/g, (_, id: string) => figureHtml[id] ?? '')
   .replace(/<!--qa:([\w-]+)-->/g, (_, id: string) => answer(id))
-  .replace(/<!--check:([\w-]+)-->/g, (_, id: string) => {
-    const checks = STEP_QA[id].checks;
-    if (!checks?.length) return '';
-    const stepIndex = Object.keys(STEP_QA).indexOf(id);
+  .replace('<!--check:final-->', () => {
+    const checks = FINAL_CHECK;
     // Rotate each question's options by a fixed amount, so the right answer is
     // not always in the same place yet stays put between visits.
     const items = checks
       .map((c, qi) => {
         const n = c.options.length;
-        const r = (stepIndex * 2 + qi) % n;
+        const r = (qi * 2 + 1) % n;
         const opts = [...c.options.slice(r), ...c.options.slice(0, r)];
         const correct = (c.correct - r + n) % n;
-        return `<li class="ta-q" data-correct="${correct}" data-why="${esc(c.why)}">
+        return `<li class="ta-q" data-correct="${correct}" data-why="${esc(c.why)}" data-from="${c.from}">
           <p class="ta-check-q"><span>${qi + 1}</span>${esc(c.q)}</p>
           <div class="ta-check-opts">${opts.map((o, k) => `<button type="button" data-i="${k}">${esc(o)}</button>`).join('')}</div>
           <p class="ta-check-fb" aria-live="polite"></p></li>`;
       })
       .join('');
-    return `<details class="ta-check-wrap"><summary><span class="ta-kicker">Check yourself</span> ${checks.length} quick questions <em>optional</em></summary>
-      <div class="ta-check" data-total="${checks.length}">
-      <div class="ta-check-head"><span class="ta-check-intro">Each answer explains why. Skip ahead whenever you like.</span>
+    return `<section class="ta-check" id="final-check" data-total="${checks.length}" aria-labelledby="final-check-h">
+      <div class="ta-check-head"><h3 id="final-check-h" class="h2">Final check: ${checks.length} questions</h3>
       <span class="ta-check-score" aria-live="polite"><b>0</b> / ${checks.length} answered</span></div>
+      <p class="ta-check-intro">One question on each big idea. Each answer explains why, and links back to the lesson if you miss it.</p>
       <ol class="ta-qs">${items}</ol>
-      <p class="ta-ready" aria-live="polite"></p></div></details>`;
+      <p class="ta-ready" aria-live="polite"></p></section>`;
   });
 const costs = costsMarkup.replace(/<!--fig:([\w-]+)-->/g, (_, id: string) => figureHtml[id] ?? '');
 
@@ -298,32 +307,54 @@ const schema = [
         </div>
 
         <div class="tc-settings card">
-          <fieldset class="tc-opts">
-            <legend>Request settings</legend>
-            <label for="c-model" class="tc-wide">Model<select id="c-model"></select></label>
-            <label for="c-mode" class="tc-wide">What is sent
+          <div class="tc-bar">
+            <span class="tc-label" id="c-level-l">Settings</span>
+            <div class="seg2" role="group" aria-labelledby="c-level-l">
+              <button type="button" data-level="simple" aria-pressed="true">Simple</button>
+              <button type="button" data-level="advanced" aria-pressed="false">Advanced</button>
+            </div>
+          </div>
+          <div class="tc-field">
+            <label for="c-model">AI model</label>
+            <select id="c-model"></select>
+          </div>
+          <p class="tc-simple small">Simple mode prices one typical Copilot Chat request: about {CONTEXT_TYPICAL.toLocaleString('en-US')} tokens of Copilot context around your text, an 800-token answer and no caching. Switch to <b>Advanced</b> to change any of these.</p>
+
+          <div class="tc-adv tc-opts" hidden>
+            <div class="tc-field tc-wide">
+              <div class="tc-fl"><label for="c-mode">What is sent</label><Tip id="mode" label="what is sent" /></div>
               <select id="c-mode">
                 <option value="chat">Your text inside a Copilot Chat request</option>
                 <option value="api">Only your text (a bare API call)</option>
               </select>
-            </label>
-            <label for="c-out">Output tokens (estimate)<input id="c-out" type="number" inputmode="numeric" min="0" max="200000" step="100" value="800" /></label>
-            <label for="c-cache">Input from cache (%)<input id="c-cache" type="number" inputmode="numeric" min="0" max="100" step="5" value="0" /></label>
-            <label for="c-req">Requests per month<input id="c-req" type="number" inputmode="numeric" min="1" max="10000000" step="10" value="400" /></label>
-            <label class="chk" for="c-auto"><input id="c-auto" type="checkbox" /> Auto model selection (−10%)</label>
+              <p class="tc-hint" id="tip-mode" hidden>Copilot never sends your prompt alone: it adds its own instructions, your repository instructions, tool definitions, chat history and referenced files. Choose “Only your text” to price a direct API call.</p>
+            </div>
+            {ADV.map((f) => (
+              <div class={`tc-field${f.wide ? ' tc-wide' : ''}`}>
+                <div class="tc-fl"><label for={f.id}>{f.label}</label><Tip id={f.id} label={f.label} /></div>
+                <input id={f.id} type="number" inputmode="numeric" min={f.min} max={f.max} step={f.step} value={f.value} />
+                <p class="tc-hint" id={`tip-${f.id}`} hidden>{f.tip}</p>
+              </div>
+            ))}
             <div class="tc-presets tc-wide" role="group" aria-label="Typical output sizes">
               <span class="small">Typical answers:</span>
               <button type="button" data-out="300">Short reply · 300</button>
               <button type="button" data-out="800">A diff · 800</button>
               <button type="button" data-out="4000">Whole file · 4,000</button>
             </div>
-            <p class="tc-err tc-wide" id="c-err" role="alert"></p>
-          </fieldset>
-          <details class="tc-ctx" id="c-ctx-box">
-            <summary>Copilot context sent with your text</summary>
-            <p class="small">Copilot wraps every prompt in more input. These are typical sizes, not published figures: change them to match your setup.</p>
-            <div class="rb" id="c-ctx"></div>
-          </details>
+            <div class="tc-field tc-wide">
+              <div class="tc-fl"><label class="chk" for="c-auto"><input id="c-auto" type="checkbox" /> Auto model selection (−10%)</label><Tip id="auto" label="Auto model selection" /></div>
+              <p class="tc-hint" id="tip-auto" hidden>On paid plans, letting Copilot choose the model takes 10% off model costs in Copilot Chat and Copilot cloud agent. Usage is still priced at the rates of the model Auto picks.</p>
+            </div>
+            <p class="tc-long small tc-wide" id="c-long"></p>
+            <details class="tc-ctx tc-wide" id="c-ctx-box">
+              <summary>Copilot context sent with your text</summary>
+              <p class="small">Typical sizes, not published figures: change them to match your setup.</p>
+              <div class="rb" id="c-ctx"></div>
+            </details>
+            <div class="tc-wide tc-reset"><button type="button" class="btn btn-outline btn-sm" id="c-reset">Reset to typical values</button></div>
+          </div>
+          <p class="tc-err" id="c-err" role="alert"></p>
         </div>
 
         <div class="tc-out card" aria-labelledby="c-res-h">
@@ -331,15 +362,17 @@ const schema = [
           <dl class="tc-kpis">
             <div><dt>Input tokens</dt><dd id="c-in">0</dd><p id="c-in-note" class="small"></p></div>
             <div><dt>Output tokens</dt><dd id="c-o">0</dd><p class="small">your estimate <span class="badge es">estimate</span></p></div>
-            <div class="hot"><dt>AI Credits per request</dt><dd id="c-cr">0</dd><p id="c-usd" class="small"></p></div>
-            <div><dt>AI Credits per month</dt><dd id="c-mcr">0</dd><p id="c-musd" class="small"></p></div>
+            <div class="hot"><dt id="c-cr-l">AI Credits per request</dt><dd id="c-cr">0</dd><p id="c-usd" class="small"></p></div>
+            <div class="tc-adv" hidden><dt>AI Credits per month</dt><dd id="c-mcr">0</dd><p id="c-musd" class="small"></p></div>
           </dl>
           <p class="tc-warn" id="c-warn" hidden></p>
-          <div class="paper tc-receipt" id="c-receipt"></div>
+          <div class="tbl"><table class="t tc-break" id="c-break" aria-label="Cost breakdown"></table></div>
           <details class="tc-assume">
-            <summary>How this is calculated</summary>
+            <summary>Formula and assumptions</summary>
+            <p class="tc-formula">credits = (fresh input × input price + cached × cached price + cache writes × write price + output × output price) ÷ 1,000,000 × 100, summed over model calls, less 10% with Auto</p>
             <ul id="c-assume"></ul>
           </details>
+          <p class="tc-actual small"><b>This is an estimate.</b> What you are actually billed is what GitHub reports under Billing → AI usage. <a href="#usage">Import that report below</a> to compare.</p>
           <div class="tc-actions">
             <button type="button" class="btn btn-accent btn-sm" id="c-copy">Copy result</button>
             <button type="button" class="btn btn-outline btn-sm" id="c-csv">Download CSV</button>
@@ -368,6 +401,15 @@ const schema = [
         <div class="tbl"><table class="t" id="c-table"></table></div>
         <p class="small">Uses your text and settings above. Pick a model name to select it. “~” marks an estimated token count.</p>
       </section>
+
+      <section class="card tc-usage" id="usage" aria-labelledby="usage-h">
+        <h3 id="usage-h" class="tc-label">Compare with your actual usage</h3>
+        <p class="small">Import the AI usage report from GitHub to see the credits you really used, by model and by person, the most expensive days, and how GitHub’s figures compare with this calculator’s prices. To get it: <b>Billing → AI usage → Get usage report</b>; GitHub emails a CSV covering up to 31 days (<a href={SOURCES.reports} rel="noopener">GitHub’s guide</a>).</p>
+        <p class="tc-privacy"><span aria-hidden="true">🔒</span> <span><b>The file is read in this browser and never uploaded.</b> Nothing from it is stored after you leave the page.</span></p>
+        <div class="tc-field"><label for="u-file">Usage report (.csv)</label><input type="file" id="u-file" accept=".csv,text/csv" /></div>
+        <p class="tc-msg" id="u-status" role="status"></p>
+        <div id="u-out"></div>
+      </section>
       <Fragment set:html={answer('calculator')} />
     </section>
 
@@ -375,7 +417,7 @@ const schema = [
     <header class="ta-course" id="course">
       <p class="eyebrow">Understand AI tokens</p>
       <h2 class="display">How Copilot counts and bills tokens, in {LESSONS} short lessons</h2>
-      <p>Start anywhere: pick a lesson from the bar below, or go in order. Each answers one question in plain words. The check questions are optional, and your place is saved on this device.</p>
+      <p>Optional, and in any order: pick a lesson from the bar below. Each answers one question in plain words; lessons 6 to 8 are advanced. One final check at the end, and your place is saved on this device.</p>
     </header>
 
     <Fragment set:html={academy} />
@@ -489,7 +531,7 @@ const schema = [
     if (!steps.length) return;
     let open = location.hash.slice(1);
     if (!steps.some((s) => s.id === open || s.querySelector(`[id="${CSS.escape(open)}"]`))) {
-      try { open = JSON.parse(localStorage.getItem('ta-course-v2') || '{}').last || steps[0].id; } catch { open = steps[0].id; }
+      try { open = JSON.parse(localStorage.getItem('ta-course-v3') || '{}').last || steps[0].id; } catch { open = steps[0].id; }
     }
     steps.forEach((s) => (s.hidden = s.id !== open && !s.querySelector(`[id="${CSS.escape(open)}"]`)));
     if (steps.every((s) => s.hidden)) steps[0].hidden = false;

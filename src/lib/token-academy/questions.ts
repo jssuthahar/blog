@@ -1,6 +1,6 @@
 /**
  * The words around the Token Academy's lessons: the question each lesson
- * answers, a plain-language answer, and one check-yourself question.
+ * answers, a plain-language answer, and a pool of check questions.
  *
  * Answers lead with the direct answer and stand on their own (40–340
  * characters), because answer engines lift them as written. Every figure here
@@ -16,7 +16,7 @@ export interface Check {
 export interface StepQA {
   q: string;
   a: string;
-  /** Two or three questions that close the step, so the reader moves on with confidence. */
+  /** A pool of questions on this lesson; FINAL_CHECK picks from these. */
   checks?: Check[];
   /** Published articles that cover this step in depth, by slug. Unpublished ones are skipped at build. */
   read?: string[];
@@ -89,7 +89,7 @@ export const STEP_QA: Record<string, StepQA> = {
   generate: {
     read: ['what-is-ai-token-cost-calculated'],
     q: 'Why do output tokens cost more than input tokens?',
-    a: 'The model reads all input tokens together in one pass, but writes output one token at a time, with a separate pass for each. That extra work is why most models price output tokens about 5 times higher than input tokens.',
+    a: 'The model reads all input tokens together in one pass, but writes output one token at a time, with a separate pass for each. Every model on GitHub’s list prices output higher, 3–8 times the input price and 5 times on most.',
     checks: [{
       q: 'When does the model stop writing its answer?',
       options: ['After a fixed 100 tokens', 'When it predicts an end token or hits a length limit', 'When the input runs out'],
@@ -239,7 +239,7 @@ export const STEP_QA: Record<string, StepQA> = {
   customize: {
     read: ['github-copilot-custom-instructions', 'github-copilot-skills-deep-dive', 'github-copilot-hooks-for-beginners'],
     q: 'Do custom instructions, skills and hooks use tokens?',
-    a: 'Custom instructions are sent with every request, so keep them short. A skill costs only its short description until a task needs it, then its full steps load. Hooks run as commands outside the model and use no model tokens unless they add text to the context.',
+    a: 'Custom instructions are sent with every request, so keep them short. Copilot loads a skill only when it judges the skill relevant, so its steps aren’t in every request. Hooks run as commands outside the model (in Copilot CLI and Copilot cloud agent) and use no model tokens unless they add text to the context.',
     checks: [{
       q: 'Which of these is sent with every single request?',
       options: ['A skill’s full steps', 'The custom instructions file', 'A hook script'],
@@ -296,7 +296,7 @@ export const STEP_QA: Record<string, StepQA> = {
       q: 'What decides when a skill is loaded?',
       options: ['Its description', 'Its file size', 'Alphabetical order'],
       correct: 0,
-      why: 'Copilot matches the task against the skill’s description, so write it as what it does and when to use it.',
+      why: 'Copilot chooses a skill when it is relevant to your prompt, judging from its description, so write it as what it does and when to use it.',
     }],
   },
   'tips-quiz': {
@@ -349,3 +349,13 @@ export const FAQ: { q: string; a: string }[] = [
     a: 'They are GitHub’s published per-million-token rates, checked on 6 November 2026, including the higher long-context rates some models charge above a size threshold. Prices change, so check GitHub’s Copilot models and pricing page before you plan a budget.',
   },
 ];
+
+/**
+ * The final check: one question on each big idea, picked from the per-lesson
+ * pools above so no idea is tested twice. Swap a pick to change a question.
+ */
+const PICKS: [string, number][] = [
+  ['start', 1], ['learn', 0], ['picture', 0], ['generate', 2], ['continue', 2],
+  ['patterns', 1], ['patterns', 2], ['billing', 2], ['customize', 0], ['guide', 0],
+];
+export const FINAL_CHECK: (Check & { from: string })[] = PICKS.map(([id, i]) => ({ ...STEP_QA[id].checks![i], from: id }));

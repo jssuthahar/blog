@@ -85,6 +85,25 @@ export const MODELS: ModelPrice[] = [
   { name: 'Kimi K3', provider: 'Moonshot AI', tier: 'Powerful', in: 3, cached: 0.3, out: 15 },
 ];
 
+/** A model's URL slug: its page under /open-source/ai-token-calculator/ and the calculator's ?m= link. */
+export const modelSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+/**
+ * The calculator's formula for build-time figures: each call is priced on its
+ * input, and a call whose input passes the long-context threshold is priced at
+ * the higher rates.
+ */
+export type Call = { input: number; cached?: number; out: number };
+export const creditsOf = (m: ModelPrice, calls: Call[]) =>
+  calls.reduce((sum, c) => {
+    const r = m.long && c.input > m.long.over ? m.long : m;
+    const cached = Math.round(c.input * (c.cached ?? 0));
+    return sum + ((c.input - cached) * r.in + cached * r.cached + c.out * r.out) / 1e6 / PLAN.usdPerCredit;
+  }, 0);
+
+/** One typical Copilot Chat request in a new chat: what Simple mode prices. */
+export const CHAT_REQUEST: Call[] = [{ input: 8_500, out: 800 }];
+
 /** The model every example on the page is priced on unless the reader picks another. */
 export const DEFAULT_MODEL = 'Claude Sonnet 5.5';
 

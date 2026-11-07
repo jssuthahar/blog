@@ -1,0 +1,193 @@
+---
+/**
+ * One page per Copilot model: /open-source/ai-token-calculator/<model-slug>/.
+ * Every figure is worked out at build time from pricing.ts, so a price change
+ * there updates all of these pages; nothing here is typed in by hand.
+ */
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { SITE, AUTHOR } from '../../../config';
+import '../../../lib/token-academy/academy.css';
+import { MODELS, PRICES_CHECKED, SOURCES, PLAN, fmtDate, modelSlug, creditsOf, CHAT_REQUEST as CHAT, type Call, type ModelPrice } from '../../../lib/token-academy/pricing';
+import { UPDATED } from '../../../lib/token-academy/steps';
+
+export const getStaticPaths = (() =>
+  MODELS.map((m) => ({ params: { model: modelSlug(m.name) }, props: { m } }))) satisfies GetStaticPaths;
+
+const { m } = Astro.props as { m: ModelPrice };
+const slug = modelSlug(m.name);
+const TOOL = '/open-source/ai-token-calculator/';
+const pageUrl = `${SITE.url}${TOOL}${slug}/`;
+const checked = fmtDate(PRICES_CHECKED);
+const modified = (UPDATED > PRICES_CHECKED ? UPDATED : PRICES_CHECKED).toISOString().slice(0, 10);
+
+const fmt = (n: number, d = 0) => n.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
+const cr = (n: number) => fmt(n, n < 1 ? 3 : n < 100 ? 2 : 0);
+const usd = (n: number) => `$${n < 0.1 ? n.toFixed(3).replace(/0$/, '') : n.toFixed(2)}`;
+const money = (n: number) => '$' + fmt(n, n < 0.01 ? 4 : n < 100 ? 2 : 0);
+
+// The same three jobs the calculator and course use, so the numbers agree.
+const QUICK: Call[] = [{ input: 2_000, out: 300 }];
+const AGENT_CALLS = 20;
+const AGENT: Call[] = Array.from({ length: AGENT_CALLS }, (_, k) => ({ input: 12_000 + k * 3_000, cached: k ? 0.85 : 0, out: 800 }));
+const MONTH = 400;
+
+const quick = creditsOf(m, QUICK);
+const chat = creditsOf(m, CHAT);
+const agent = creditsOf(m, AGENT);
+const perSeat = Math.floor(PLAN.businessCredits / chat);
+
+// Where this model sits among all of them, on the typical chat request.
+const ranked = MODELS.map((x) => ({ x, c: creditsOf(x, CHAT) })).sort((a, b) => a.c - b.c);
+const rank = ranked.findIndex((r) => r.x.name === m.name) + 1;
+const cheapest = ranked[0];
+const priciest = ranked[ranked.length - 1];
+const times = chat / cheapest.c;
+const near = ranked.slice(Math.max(0, rank - 3), rank + 2).filter((r) => r.x.name !== m.name);
+const family = MODELS.filter((x) => x.provider === m.provider && x.name !== m.name);
+
+const cachedPct = Math.round((m.cached / m.in) * 100);
+const longLine = m.long
+  ? `Yes. Above ${fmt(m.long.over)} input tokens in one call, the whole call moves to ${usd(m.long.in)} input, ${usd(m.long.cached)} cached and ${usd(m.long.out)} output per 1M tokens. The calculator applies this automatically.`
+  : `No. GitHub lists one set of rates for ${m.name}, whatever the request size.`;
+
+const faq = [
+  {
+    q: `How much does ${m.name} cost in GitHub Copilot?`,
+    a: `${m.name} costs ${usd(m.in)} per 1M input tokens, ${usd(m.cached)} per 1M cached input tokens${m.write ? `, ${usd(m.write)} per 1M cache-write tokens` : ''} and ${usd(m.out)} per 1M output tokens. At 1 AI Credit = $0.01, a typical Copilot Chat request of 8,500 input and 800 output tokens costs about ${cr(chat)} AI Credits.`,
+  },
+  {
+    q: `How many ${m.name} requests fit in a Copilot Business seat?`,
+    a: `A Business seat includes ${fmt(PLAN.businessCredits)} AI Credits a month, pooled across the organization. At about ${cr(chat)} credits per typical chat request, that is roughly ${fmt(perSeat)} requests on ${m.name}. Agent tasks use far more: the 20-call example on this page costs about ${cr(agent)} credits.`,
+  },
+  {
+    q: `Does ${m.name} have a long-context price?`,
+    a: longLine,
+  },
+];
+
+// A long name drops "GitHub" to keep the title inside Google's 600px.
+const title = m.name.length > 20 ? `${m.name} cost in Copilot` : `${m.name} cost in GitHub Copilot`;
+const description = `${m.name} in ${m.name.length > 20 ? '' : 'GitHub '}Copilot: ${usd(m.in)} in, ${usd(m.out)} out per 1M tokens. A typical chat request is about ${cr(chat)} AI Credits. See worked examples.`;
+const calcLink = `${TOOL}?m=${slug}#calculator`;
+
+const schema = [
+  {
+    '@type': 'WebPage',
+    '@id': `${pageUrl}#page`,
+    url: pageUrl,
+    name: title,
+    description,
+    dateModified: modified,
+    author: { '@id': `${SITE.url}/#person` },
+    isPartOf: { '@id': `${SITE.url}${TOOL}#app` },
+  },
+  {
+    '@type': 'FAQPage',
+    '@id': `${pageUrl}#faq`,
+    dateModified: modified,
+    mainEntity: faq.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+  },
+  {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Open source', item: `${SITE.url}/open-source` },
+      { '@type': 'ListItem', position: 3, name: 'AI Token Calculator', item: `${SITE.url}${TOOL}` },
+      { '@type': 'ListItem', position: 4, name: m.name, item: pageUrl },
+    ],
+  },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  schema={schema}
+  image={`/og/copilot-cost-${slug}.png`}
+  updatedAt={new Date(modified)}
+  keywords={[`${m.name} Copilot cost`, `${m.name} AI Credits`, 'GitHub Copilot AI Credits', 'AI Token Calculator']}
+>
+  <div id="ta" class="ta-model">
+    <header class="ta-top">
+      <div>
+        <p class="eyebrow"><a href={TOOL}>AI Token Calculator</a> · {m.provider} · {m.tier}</p>
+        <h1 class="display">{m.name} <span>cost in GitHub Copilot</span></h1>
+        <p class="ta-hero-lede">{usd(m.in)} input and {usd(m.out)} output per 1M tokens. A typical Copilot Chat request is about <b>{cr(chat)} AI Credits</b>, number {rank} of {MODELS.length} from cheapest.</p>
+        <p class="ta-byline">By <a href="/about/">{AUTHOR.name}</a> · Prices checked <time datetime={PRICES_CHECKED.toISOString().slice(0, 10)}>{checked}</time> from GitHub’s <a href={SOURCES.prices} rel="noopener">Models and pricing</a> page</p>
+      </div>
+    </header>
+
+    <section class="card" aria-labelledby="rates-h">
+      <h2 class="h2" id="rates-h">{m.name} prices</h2>
+      {m.note && <p class="tc-warn">{m.note}.</p>}
+      <div class="tbl">
+        <table class="t">
+          <thead><tr><th scope="col">Rate, USD per 1M tokens</th><th scope="col" class="r">Standard</th>{m.long && <th scope="col" class="r">Above {fmt(m.long.over / 1000)}K input</th>}</tr></thead>
+          <tbody>
+            <tr><th scope="row">Input</th><td class="r">{usd(m.in)}</td>{m.long && <td class="r">{usd(m.long.in)}</td>}</tr>
+            <tr><th scope="row">Cached input</th><td class="r">{usd(m.cached)}</td>{m.long && <td class="r">{usd(m.long.cached)}</td>}</tr>
+            <tr><th scope="row">Cache write</th><td class="r">{m.write ? usd(m.write) : '—'}</td>{m.long && <td class="r">{m.long.write ? usd(m.long.write) : '—'}</td>}</tr>
+            <tr><th scope="row">Output</th><td class="r">{usd(m.out)}</td>{m.long && <td class="r">{usd(m.long.out)}</td>}</tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small">Cached input is {cachedPct}% of the input price on {m.name}. {m.write ? 'Storing a prefix for reuse is charged at the cache-write rate.' : 'GitHub lists no cache-write price, so cache writes are charged as normal input.'} Output costs {fmt(m.out / m.in, 1)}× input. 1 AI Credit = $0.01.</p>
+    </section>
+
+    <section class="card" aria-labelledby="ex-h">
+      <h2 class="h2" id="ex-h">What a request costs on {m.name}</h2>
+      <div class="counters">
+        <div class="ct"><div class="v">{cr(quick)}</div><div class="l">AI Credits · quick question, 2,000 in and 300 out ({money(quick / 100)})</div></div>
+        <div class="ct hot"><div class="v">{cr(chat)}</div><div class="l">AI Credits · typical chat request, 8,500 in and 800 out ({money(chat / 100)})</div></div>
+        <div class="ct"><div class="v">{cr(agent)}</div><div class="l">AI Credits · agent task, {AGENT_CALLS} model calls ({money(agent / 100)})</div></div>
+        <div class="ct"><div class="v">{cr(chat * MONTH)}</div><div class="l">AI Credits a month for {MONTH} chat requests, {fmt((chat * MONTH) / PLAN.businessCredits * 100)}% of one Business seat</div></div>
+      </div>
+      <p class="small">The chat request is Copilot’s typical context in a new chat (instructions, tool definitions and a referenced file) around a short prompt, with an 800-token answer. The agent task starts at 12,000 input tokens, adds 3,000 per call for answers and tool output, and reads 85% of each later call from cache. These are examples: your own requests can be larger or smaller.</p>
+      <p><a class="btn btn-accent btn-sm" href={calcLink}>Price your own text on {m.name}</a></p>
+    </section>
+
+    <section class="card" aria-labelledby="cmp-h">
+      <h2 class="h2" id="cmp-h">{m.name} compared with other Copilot models</h2>
+      <p>On the typical chat request, {m.name} is number {rank} of {MODELS.length} from cheapest.{' '}
+        {rank === 1
+          ? `It is the cheapest model on GitHub’s list; ${priciest.x.name} costs ${fmt(priciest.c / chat, 0)}× as much.`
+          : `${cheapest.x.name} is the cheapest at ${cr(cheapest.c)} credits, so ${m.name} costs ${fmt(times, 1)}× as much.`}
+        A cheaper model is only cheaper if it gets the answer right first time: retries and long answers cost more than the price gap.</p>
+      <div class="tbl">
+        <table class="t">
+          <thead><tr><th scope="col">Model</th><th scope="col" class="r">Credits per chat request</th><th scope="col" class="r">Input / output per 1M</th></tr></thead>
+          <tbody>
+            {near.concat([{ x: m, c: chat }]).sort((a, b) => a.c - b.c).map(({ x, c }) => (
+              <tr class={x.name === m.name ? 'sel' : undefined}>
+                <th scope="row">{x.name === m.name ? x.name : <a href={`${TOOL}${modelSlug(x.name)}/`}>{x.name}</a>}<small>{x.provider} · {x.tier}</small></th>
+                <td class="r">{cr(c)}</td>
+                <td class="r">{usd(x.in)} / {usd(x.out)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {family.length > 0 && (
+        <p class="small">Other {m.provider} models: {family.map((x, i) => <>{i ? ' · ' : ''}<a href={`${TOOL}${modelSlug(x.name)}/`}>{x.name}</a></>)}</p>
+      )}
+      <p class="small">All {MODELS.length} models, side by side: <a href={`${TOOL}#prices`}>GitHub Copilot model prices</a>.</p>
+    </section>
+
+    <section class="card" id="faq" aria-labelledby="faq-h">
+      <h2 class="h2" id="faq-h">Questions about {m.name} pricing</h2>
+      {faq.map(({ q, a }) => (
+        <>
+          <h3>{q}</h3>
+          <p>{a}</p>
+        </>
+      ))}
+      <p class="small"><b>These are estimates.</b> What you are billed is what GitHub reports under Billing → AI usage.</p>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  /* The course page spaces its cards inside lessons; here they stack on their own. */
+  .ta-model { display: flex; flex-direction: column; gap: 16px; }
+</style>

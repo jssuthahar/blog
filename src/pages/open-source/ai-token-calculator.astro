@@ -12,7 +12,7 @@ import { getPublishedPosts, postUrl } from '../../lib/posts';
 import { STORIES, type Visual } from '../../lib/token-academy/stories';
 import { MAKEOVERS, PART_LABEL } from '../../lib/token-academy/prompts';
 import { STEPS, UPDATED } from '../../lib/token-academy/steps';
-import { MODELS, PRICES_CHECKED, SOURCES, PLAN, DEFAULT_MODEL, fmtDate } from '../../lib/token-academy/pricing';
+import { MODELS, PRICES_CHECKED, SOURCES, PLAN, DEFAULT_MODEL, fmtDate, modelSlug } from '../../lib/token-academy/pricing';
 import { SAMPLES } from '../../lib/token-academy/samples.js';
 import { getImage } from 'astro:assets';
 import Tip from '../../components/CalcTip.astro';
@@ -49,7 +49,7 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const usd = (n: number) => `$${n < 0.1 ? n.toFixed(3).replace(/0$/, '') : n.toFixed(2)}`;
 
 // What the two scripts read: the price list and the plan facts, in one place.
-const data = JSON.stringify({ models: MODELS, defaultModel: DEFAULT_MODEL, plan: PLAN, checked, source: SOURCES.prices });
+const data = JSON.stringify({ models: MODELS.map((m) => ({ ...m, slug: modelSlug(m.name) })), defaultModel: DEFAULT_MODEL, plan: PLAN, checked, source: SOURCES.prices });
 
 // "The idea in 3 frames": the first frame is on by default, so a reader
 // without JavaScript still sees one frame; the dots step through the rest.
@@ -375,6 +375,7 @@ const schema = [
           <p class="tc-actual small"><b>This is an estimate.</b> What you are actually billed is what GitHub reports under Billing → AI usage. <a href="#usage">Import that report below</a> to compare.</p>
           <div class="tc-actions">
             <button type="button" class="btn btn-accent btn-sm" id="c-copy">Copy result</button>
+            <button type="button" class="btn btn-outline btn-sm" id="c-link">Copy link</button>
             <button type="button" class="btn btn-outline btn-sm" id="c-csv">Download CSV</button>
           </div>
           <p class="sr-only" aria-live="polite" id="c-live"></p>
@@ -451,7 +452,7 @@ const schema = [
                 <tr class="grp"><th scope="rowgroup" colspan="6">{p}</th></tr>
                 {MODELS.filter((m) => m.provider === p).map((m) => (
                   <tr>
-                    <th scope="row">{m.name}<small>{m.tier}{m.note ? ` · ${m.note}` : ''}</small></th>
+                    <th scope="row"><a href={`/open-source/ai-token-calculator/${modelSlug(m.name)}/`}>{m.name}</a><small>{m.tier}{m.note ? ` · ${m.note}` : ''}</small></th>
                     <td class="r">{usd(m.in)}</td>
                     <td class="r">{usd(m.cached)}</td>
                     <td class="r">{m.write ? usd(m.write) : '—'}</td>

@@ -3,6 +3,8 @@ import type { APIRoute } from 'astro';
 import { SITE, AUTHOR, MAIN_SITE, IMPACT } from '../config';
 import { CATEGORIES, getPublishedPosts, postMarkdownUrl, type CategoryId } from '../lib/posts';
 import { shortUrl, getShorts } from '../lib/shorts';
+import { MODELS as TOKEN_MODELS, modelSlug, creditsOf, CHAT_REQUEST } from '../lib/token-academy/pricing';
+import { STEPS } from '../lib/token-academy/steps';
 
 /**
  * /llms.txt — a Markdown map of the site for large language models.
@@ -81,7 +83,8 @@ ${sections.join('\n\n')}
 ${shortSection ? `${shortSection}\n` : ''}
 ## Tools
 
-- [AI Token Calculator](${SITE.url}/open-source/ai-token-calculator/): counts the tokens in a prompt, code, JSON or log in the browser and estimates the cost per request and per month in GitHub Copilot AI Credits on every Copilot model, with the full price list and a twelve-lesson guide to how Copilot counts and bills tokens. Markdown version: ${SITE.url}/open-source/ai-token-calculator.md
+- [AI Token Calculator](${SITE.url}/open-source/ai-token-calculator/): counts the tokens in a prompt, code, JSON or log in the browser and estimates the cost per request and per month in GitHub Copilot AI Credits on every Copilot model, with the full price list and a ${STEPS.length}-lesson guide to how Copilot counts and bills tokens. Markdown version: ${SITE.url}/open-source/ai-token-calculator.md
+${TOKEN_MODELS.map((m) => `  - [${m.name} cost in GitHub Copilot](${SITE.url}/open-source/ai-token-calculator/${modelSlug(m.name)}/): ${m.provider}, $${m.in.toFixed(2)} input and $${m.out.toFixed(2)} output per 1M tokens, about ${creditsOf(m, CHAT_REQUEST).toFixed(2)} AI Credits per typical chat request`).join('\n')}
 
 ## Optional
 

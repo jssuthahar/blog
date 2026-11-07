@@ -4,7 +4,7 @@
  * Independent of the course below it: it reads the price list the page embeds
  * (#ta-data, built from pricing.ts), counts with gpt-tokenizer in the browser,
  * and never sends the text anywhere. Only the reader's settings, never their
- * text, are remembered on this device.
+ * text, are remembered on this device or put in a shared link.
  *
  * Simple mode prices one typical Copilot Chat request. Advanced mode exposes
  * every assumption: context, output, cache reads and writes, agent model calls
@@ -43,6 +43,9 @@ const DEFAULTS = { mode: 'chat', out: 800, cache: 0, write: 0, calls: 1, grow: 3
 
 const KEY = 'ta-calc-v2';
 const FIELDS = ['c-model', 'c-mode', 'c-out', 'c-cache', 'c-write', 'c-calls', 'c-grow', 'c-req', 'c-auto'];
+/** Advanced number fields a shared link carries, as ?out=…&cache=… */
+const LINK_NUMS = ['out', 'cache', 'write', 'calls', 'grow', 'req'];
+const PAGE = '/open-source/ai-token-calculator/';
 
 export function initCalculator() {
   const root = document.getElementById('calculator');
@@ -90,7 +93,34 @@ export function initCalculator() {
       localStorage.setItem(KEY, JSON.stringify({ ...v, level }));
     } catch {}
   };
-  text.value = SAMPLES.prompt.text;
+
+  // A shared link overrides what this device remembered. It holds the prompt's
+  // token count (t), never its text; the count stands in until the reader types.
+  let shared = null;
+  const q = new URLSearchParams(location.search);
+  if (q.has('m') || q.has('t')) {
+    const m = MODELS.find((x) => x.slug === q.get('m'));
+    if (m) sel.value = m.name;
+    if (q.get('lvl') === 'advanced') level = 'advanced';
+    if (q.has('mode')) $('c-mode').value = q.get('mode') === 'api' ? 'api' : 'chat';
+    for (const k of LINK_NUMS) if (q.has(k)) $(`c-${k}`).value = q.get(k);
+    if (q.has('auto')) $('c-auto').checked = q.get('auto') === '1';
+    (q.get('cx') ?? '').split('.').forEach((v, i) => {
+      if (!CONTEXT[i] || !/^-?\d+$/.test(v)) return;
+      $(`cx-${CONTEXT[i][0]}`).value = Math.abs(+v);
+      $(`cx-${CONTEXT[i][0]}c`).checked = !v.startsWith('-');
+    });
+    const t = Number(q.get('t'));
+    if (q.has('t') && Number.isInteger(t) && t >= 0) shared = t;
+  }
+  // Once the reader types or clears, the link's numbers no longer describe the page.
+  const unshare = () => {
+    if (shared === null) return;
+    shared = null;
+    history.replaceState(history.state, '', location.pathname + location.hash);
+  };
+  const blank = () => !text.value.trim() && shared === null;
+  text.value = shared === null ? SAMPLES.prompt.text : '';
 
   // A number field: clamped to its limits, marked invalid with a reason when out of range.
   const num = (id, label) => {
@@ -145,9 +175,10 @@ export function initCalculator() {
 
   function recount() {
     const s = text.value;
+    if (s) unshare();
     const enc1 = enc ? enc.encode(s) : null;
     ids = enc1 ?? [];
-    count = enc1 ? enc1.length : Math.ceil(s.length / 4);
+    count = shared ?? (enc1 ? enc1.length : Math.ceil(s.length / 4));
     const words = (s.trim().match(/\S+/g) || []).length;
     const lines = s ? s.split('\n').length : 0;
     const kind = kindOf(s);
@@ -155,7 +186,8 @@ export function initCalculator() {
 
     // Help that depends on the text itself.
     const msg = [];
-    if (!s.trim()) msg.push('Paste or type some text to count its tokens and estimate the cost.');
+    if (shared !== null) msg.push(`Opened from a shared link: ${fmt(shared)} prompt tokens. The link never holds the text itself; paste your own to count it.`);
+    else if (!s.trim()) msg.push('Paste or type some text to count its tokens and estimate the cost.');
     if (kind === 'JSON') {
       try {
         const min = JSON.stringify(JSON.parse(s));
@@ -284,7 +316,7 @@ export function initCalculator() {
     ].map((x) => `<li>${esc(x)}</li>`).join('');
 
     // No text yet (or just cleared): show zeros, not the context and answer on their own.
-    if (!text.value.trim()) {
+    if (blank()) {
       for (const id of ['c-in', 'c-o', 'c-cr', 'c-mcr']) $(id).textContent = '0';
       $('c-in-note').textContent = $('c-usd').textContent = $('c-musd').textContent = '';
       $('c-break').innerHTML = '';
@@ -393,6 +425,24 @@ export function initCalculator() {
   on($('c-compare'), 'toggle', compare);
   on(text2, 'input', compare);
 
+  // ---- a link that reopens this estimate ----
+  function shareUrl() {
+    const p = new URLSearchParams({ m: byName(sel.value).slug, t: String(count) });
+    if (level === 'advanced') {
+      p.set('lvl', 'advanced');
+      p.set('mode', $('c-mode').value);
+      for (const k of LINK_NUMS) p.set(k, $(`c-${k}`).value);
+      p.set('auto', $('c-auto').checked ? '1' : '0');
+      p.set('cx', CONTEXT.map(([id]) => ($(`cx-${id}c`).checked ? '' : '-') + Math.max(0, Math.round(+$(`cx-${id}`).value || 0))).join('.'));
+    }
+    return `${location.origin}${PAGE}?${p}#calculator`;
+  }
+  on($('c-link'), 'click', async (e) => {
+    const btn = e.currentTarget;
+    try { await navigator.clipboard.writeText(shareUrl()); flash(btn, 'Link copied'); }
+    catch { flash(btn, 'Copy blocked by the browser'); }
+  });
+
   // ---- result text, for copy and for screen readers ----
   function summary() {
     const { m, c, st } = last;
@@ -405,6 +455,7 @@ export function initCalculator() {
       `Per ${unit}: ${usd(c.dollars)} = ${cr(c.credits)} AI Credits${c.longCalls ? ' (includes long-context rates)' : ''}${st.auto ? ' (Auto −10%)' : ''}`,
       `Per month (${fmt(st.req)} ${unit}s): ${usd(c.dollars * st.req)} = ${cr(c.credits * st.req)} AI Credits`,
       `Estimate, not provider-reported usage. Prices checked ${DATA.checked}: ${DATA.source}`,
+      `Open this estimate: ${shareUrl()}`,
     ].join('\n');
   }
   let liveTimer = 0;
@@ -412,7 +463,7 @@ export function initCalculator() {
     clearTimeout(liveTimer);
     liveTimer = setTimeout(() => {
       if (!last) return;
-      if (!text.value.trim()) { $('c-live').textContent = 'Text cleared. 0 input tokens.'; return; }
+      if (blank()) { $('c-live').textContent = 'Text cleared. 0 input tokens.'; return; }
       $('c-live').textContent = `${fmt(last.c.t.input)} input tokens. ${cr(last.c.credits)} AI Credits per ${last.st.calls > 1 ? 'task' : 'request'} on ${last.m.name}.`;
     }, 900);
   }
@@ -447,7 +498,7 @@ export function initCalculator() {
     recount();
     text.focus();
   }));
-  on($('c-clear'), 'click', () => { text.value = ''; recount(); text.focus(); });
+  on($('c-clear'), 'click', () => { unshare(); text.value = ''; recount(); text.focus(); });
   on($('c-paste'), 'click', async (e) => {
     const btn = e.currentTarget;
     try {

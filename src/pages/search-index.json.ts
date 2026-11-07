@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { getPublishedPosts, postUrl, CATEGORIES } from '../lib/posts';
 import { allArticles, primaryCategory } from '../lib/articles';
 import { shortSearchText, shortUrl, getShorts } from '../lib/shorts';
+import { MODELS as TOKEN_MODELS, modelSlug } from '../lib/token-academy/pricing';
 
 /**
  * One combined search index for the whole site — blog posts, the 236 main-site
@@ -48,6 +49,7 @@ export const GET: APIRoute = async () => {
       { title: 'Speaking', url: '/speaking/', text: 'speaking talks sessions conference book' },
       { title: 'Open source', url: '/open-source/', text: 'open source github repositories code' },
       { title: 'AI Token Calculator', url: '/open-source/ai-token-calculator/', text: 'ai token calculator counter github copilot tokens ai credits cost pricing billing prompt tips cache chat agent llm' },
+      ...TOKEN_MODELS.map((m) => ({ title: `${m.name} cost in GitHub Copilot`, url: `/open-source/ai-token-calculator/${modelSlug(m.name)}/`, text: `${m.provider} price pricing ai credits tokens per request model cost` })),
       { title: 'Articles', url: '/articles/', text: 'all articles archive library' },
       { title: 'Topics & technologies', url: '/topics/', text: 'topics technologies dotnet azure ai mobile architecture devops career tags' },
       { title: 'Testimonials', url: '/testimonials/', text: 'testimonials reviews feedback readers' },

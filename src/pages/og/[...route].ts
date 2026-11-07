@@ -3,7 +3,7 @@ import { getCollection } from 'astro:content';
 import { SITE } from '../../config';
 import { CATEGORIES, readingTime } from '../../lib/posts';
 import { getShorts } from '../../lib/shorts';
-import { MODELS as TOKEN_MODELS } from '../../lib/token-academy/pricing';
+import { MODELS as TOKEN_MODELS, modelSlug, creditsOf, CHAT_REQUEST } from '../../lib/token-academy/pricing';
 import { renderOGCard, type OGCardOptions, type OGOutput } from '../../lib/og-card';
 
 /**
@@ -90,6 +90,18 @@ const cards: Record<string, OGCardOptions> = {
     eyebrow: 'Free tool',
     meta: `${TOKEN_MODELS.length} Copilot models · runs in your browser`,
   },
+  // One card per model page, leading with the number people search for.
+  ...Object.fromEntries(
+    TOKEN_MODELS.map((m) => [
+      `copilot-cost-${modelSlug(m.name)}`,
+      {
+        title: `${m.name} cost in GitHub Copilot`,
+        description: `$${m.in.toFixed(2)} input and $${m.out.toFixed(2)} output per 1M tokens. About ${creditsOf(m, CHAT_REQUEST).toFixed(2)} AI Credits for a typical chat request.`,
+        eyebrow: `${m.provider} · AI Token Calculator`,
+        meta: `Prices from GitHub · ${TOKEN_MODELS.length} models compared`,
+      } satisfies OGCardOptions,
+    ]),
+  ),
 };
 
 export function getStaticPaths() {

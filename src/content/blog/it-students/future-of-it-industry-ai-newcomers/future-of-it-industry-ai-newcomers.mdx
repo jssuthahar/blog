@@ -1,0 +1,152 @@
+---
+title: 'New to IT? The Future of the IT Industry Now That AI Writes Code'
+seoTitle: 'The Future of the IT Industry for Newcomers'
+description: 'AI agents now open many code changes. What that means if you are new to IT: what juniors do now, what AI cannot do, and whether IT is still worth it.'
+highlight: 'The future of IT is not fewer people writing code; it is people doing different work around code. Agents now start more than 40% of GitHub pull requests, so a newcomer spends less time typing and more time reviewing, testing, connecting and explaining. Junior hiring has tightened, yet software jobs are still projected to grow. The bottom rung changed shape. It did not disappear.'
+publishedAt: 2026-11-07
+category: career
+categories: ['ai']
+tags: ['New to IT', 'Future of IT', 'AI Era', 'IT Careers', 'AI Agents', 'GitHub Copilot']
+series: 'new-to-ai'
+seriesOrder: 1
+cover: './images/future-of-it-industry-ai-newcomers-cover.png'
+coverAlt: 'Article banner. On the left, the eyebrow "New to AI" above the title "What IT looks like now" and the line "Your first ticket is a review, not a feature", with the MSDEVBUILD wordmark and the author name below. On the right, three stacked boxes joined by arrows: an amber box reading "Junior work, five years ago", an arrow labelled "agents arrive" to a red box reading "Routine tasks go to AI", and an arrow labelled "what is left" to a green box reading "Review, test, connect, explain".'
+draft: false
+faq:
+  - q: 'Is IT still a good career with AI?'
+    a: 'Yes, with a changed starting point. Employment for developers aged 22 to 25 has fallen since 2024, but the US Bureau of Labor Statistics still projects 10% growth for software developers, QA analysts and testers from 2025 to 2035. The routine starter tasks are going to AI; people who can review, debug, secure and deploy are still needed.'
+  - q: 'What does a junior developer do when AI writes the code?'
+    a: 'Less typing and more checking. A junior now reviews AI-generated changes, writes and fixes tests, debugs what the agent could not, connects systems together, and explains decisions to the team. Those tasks need the same computer science fundamentals as before, applied as a reviewer.'
+  - q: 'Which IT tasks is AI automating first?'
+    a: 'Boilerplate and CRUD code, unit tests for existing code, explanations of unfamiliar code, first-draft SQL, log triage and documentation drafts. In each case a person still decides the data model, the access rules, which cases matter and whether the output is actually correct.'
+  - q: 'Is an IT or computer science degree still worth it in the AI era?'
+    a: 'Yes, as a foundation. Many employers still require a degree, and the fundamentals it teaches are what you use to check AI output. It is no longer enough on its own: pair it with finished projects, real use of AI tools and early internships.'
+  - q: 'Is it too late to start a career in IT?'
+    a: 'No. Every developer, student or veteran, is learning to work with AI agents at the same time, so newcomers are not as far behind as it feels. The entry point is tighter than it was, so start building and showing finished work early rather than waiting for the degree to finish.'
+  - q: 'Will AI replace IT jobs completely?'
+    a: 'The data does not show that. It shows a shift: AI takes routine tasks, and the work that remains is judgement, integration, security and communication. Developers themselves verify AI output rather than trust it, with only 6.6% trusting it for important decisions in the 2026 Stack Overflow survey.'
+---
+
+If you are new to IT, the future of the industry is not fewer people working with code. It is people doing different work around code. AI agents now write and open a large share of changes, so a newcomer spends less time typing and more time reviewing, testing, connecting systems and explaining decisions. The fundamentals still matter. You just use them as a reviewer now.
+
+This first part describes what the work looks like today, what AI does and does not do, and whether IT is still worth entering.
+
+## Your first ticket is a review
+
+It is Monday morning, your first week as a graduate developer. You expected to be handed a small feature to build. Instead your team lead opens the board and assigns you three pull requests.
+
+None of them was written by a person. An AI agent opened all three overnight from issues the team wrote last week. Each one has a green build and passing tests. All three look ready.
+
+"Review these," your lead says. "Tell me which one you would merge, and why not the other two."
+
+The first changes a database query. It passes its tests, but the tests were written by the same agent that wrote the query, they only check the happy path, and nobody has asked what happens when the table holds ten million rows instead of the forty in the test fixture. The second adds an endpoint that returns every customer's account details to anyone who is signed in. The third looks fine, though you read it twice to be sure.
+
+Nobody asked you to type much code that week. Everyone asked you to read it, and to read it closely enough to say no.
+
+## What has changed in the IT industry?
+
+AI moved from suggesting lines of code to doing whole tasks, in about a year, which is faster than most university courses can rewrite a single module outline. Developers now hand routine work to agents and spend their own time checking it. The numbers below are the ones worth knowing.
+
+| What changed | Source |
+| --- | --- |
+| Developers started more than 40% of pull requests with an agent in September 2026, up from 17% in March. GitHub now serves over 225 million developers | [GitHub Octoverse 2026](https://github.blog/news-insights/octoverse/octoverse-commits-pushes-reach-new-highs-in-2026-as-developers-build-with-agents/), 28 Oct 2026 |
+| 48% of developers trust AI only for low-risk tasks they can easily verify; 6.6% trust it for important decisions | [Stack Overflow Developer Survey 2026](https://survey.stackoverflow.co/2026/ai), 6 Oct 2026 |
+| AI-generated code introduced risky security flaws in 45% of tests | [Veracode GenAI Code Security Report](https://www.veracode.com/resources/analyst-reports/2025-genai-code-security-report/), Oct 2025 update |
+| 90% of technology professionals use AI at work, and it amplifies a team's strengths and its weaknesses | [DORA, State of AI-assisted Software Development](https://cloud.google.com/devops/state-of-devops), Sep 2025 |
+
+Put the second and third rows together and the shape of the future is clear. AI writes more of the code, and nearly half of what it writes needs fixing for security alone. Someone has to catch that, and catching it means reading a change you did not write, understanding what it was meant to do, imagining the inputs its author never considered and deciding whether it is safe to ship to real users. In most teams, that someone increasingly includes the newest person.
+
+## What a junior's work looks like now
+
+The tasks that used to teach juniors the job are the first tasks agents do well. What is left is still junior work, but it starts a rung higher.
+
+<figure>
+  <img src="./images/junior-work-then-and-now.png" alt="Two columns comparing a junior developer's work. Five years ago: build simple CRUD screens, write tests for existing code, fix small bugs with a clear stack trace, write first-draft documentation. Now: review what the agent wrote, find the cases its tests missed, debug what the agent could not fix, and explain the decision to the team." />
+  <figcaption>The work did not vanish. It moved from producing code to judging it.</figcaption>
+</figure>
+
+| Task | What AI does well | What still needs a person |
+| --- | --- | --- |
+| Boilerplate and CRUD code | Generates it in seconds | Deciding the data model, the access rules and what happens on failure |
+| Unit tests for existing code | Writes many quickly | Knowing which cases matter, and noticing tests that only confirm the bug |
+| Explaining unfamiliar code | Summarises a file well | Spotting where the summary is confidently wrong |
+| SQL queries | Writes correct-looking queries | Knowing why one is slow and what an index changes |
+| Log and alert triage | Groups and summarises noise | Deciding what is an incident and who to wake |
+| Security scanning | Flags known patterns | Judging real risk, and finding the logic flaw no scanner knows |
+
+<figure>
+  <img src="./images/what-ai-does-what-you-do.png" alt="Two columns. What AI does well: generates boilerplate code, writes many tests quickly, summarises unfamiliar code, drafts SQL and documentation. What still needs you: decides the data model and access rules, chooses which cases matter, spots where AI is confidently wrong, and explains the decision to people." />
+  <figcaption>AI is fast at producing. You are needed for deciding and checking.</figcaption>
+</figure>
+
+Look at the right-hand column. Every item needs computer science fundamentals: data modelling, testing, query plans, networks, security. AI did not make them optional. It made them the part that cannot be handed off.
+
+## Is IT still a good career to enter?
+
+Yes, but go in with accurate expectations. The entry point is tighter than it was, and the long-term direction is still growth.
+
+- **The squeeze is real.** The [Stanford AI Index 2026](https://hai.stanford.edu/ai-index/2026-ai-index-report/economy) reports that employment for software developers aged 22 to 25 has fallen nearly 20% from 2024. A Stanford Digital Economy Lab study, [revised in August 2026](https://digitaleconomy.stanford.edu/publications/canaries-in-the-coal-mine/), finds young workers in AI-exposed occupations 19% below where employment would otherwise be.
+- **So is the growth.** The [US Bureau of Labor Statistics](https://www.bls.gov/ooh/computer-and-information-technology/software-developers.htm) still projects software developer, QA and tester jobs to grow 10% from 2025 to 2035.
+
+Both are true at once. That is uncomfortable, and it is also useful to know. Companies hire fewer people for routine work and expect each newcomer to start further up. Nobody can promise you a job or a salary, whatever a course advert or a social media post says, because hiring depends on your country, the economy, the employers near you and a dozen things no article can see. Be wary of anyone who does. What you can control is whether you arrive ready for the rung that is still there.
+
+## What this means if you are new to IT
+
+Five things follow.
+
+1. **Read code as well as you write it.** Reviewing an agent's work is a daily task now.
+2. **Keep the fundamentals.** Data structures, databases, networking and security are how you tell when AI is wrong.
+3. **Learn to use AI tools well.** Every team uses them; the skill is directing and checking them, not avoiding them. Project instruction files are a good place to start, and the [guide to GitHub Copilot custom instructions](/blog/github-copilot-custom-instructions) shows how a real team sets them up.
+4. **Treat security as everyone's job.** If nearly half of AI-written code has security flaws, every developer is a security reviewer. The [blast radius of a hardcoded key](/blog/hardcoded-key-blast-radius) shows how far one small mistake travels.
+5. **Practise explaining.** When code is cheap, the person who can say why a change is right is the valuable one.
+
+## Questions newcomers ask about the future of IT
+
+These are the questions that come up again and again on student forums and in careers sessions. Short, honest answers.
+
+**Will AI replace programmers?** No, not on the data so far. It replaces a lot of routine programming tasks, which is a different thing. Someone still has to decide what to build, check what the AI produced, fix what it got wrong and take responsibility when it fails. Developers are the people doing that today, and job descriptions are shifting toward it. That work is growing.
+
+**Is an IT or computer science degree still worth it?** Yes, as a foundation. Many employers still require one, and the fundamentals it teaches (data structures, databases, networks, operating systems) are exactly what you need to judge AI output. What has changed is simple. The degree alone is not enough. Pair it with finished projects, real use of AI tools and internships.
+
+**Is it too late to start?** No. Everyone in the industry, from first-years to people with twenty years' experience, is learning to work with AI agents at the same time. The entry point is tighter, so start building and showing your work early instead of waiting until the final semester.
+
+**Which IT field is safest from AI?** None is completely safe, and none is disappearing. Work that combines judgement, responsibility and real systems holds up best: security, infrastructure and cloud operations, data quality, and software engineering done as review and design rather than typing. Pick the field you are curious about, then build depth in it. Curiosity lasts longer than fear.
+
+**Do I have to become an AI specialist?** No. You have to become good at your field while using AI well, which is a different and much more achievable goal for most people starting out. A network engineer who automates with AI and checks its output is more useful than a beginner with "AI" in every line of their CV.
+
+## Your first-year guide to the future of IT
+
+Use this list in your first year, or in your first months if you are changing careers into IT. Each line is something you can start this term.
+
+- [ ] Learn one programming language properly, and solve problems in it by hand before asking AI.
+- [ ] Take the databases, networking and operating systems modules seriously. They are how you judge AI output.
+- [ ] Use an AI coding assistant every week, and read every line it writes before you keep it.
+- [ ] Review someone else's code once a week: a classmate's, or an open-source project's.
+- [ ] Learn the basics of security: passwords, input validation, keeping secrets out of code.
+- [ ] Explain one thing you learned each week to someone who does not study IT.
+
+## Key takeaways
+
+- AI agents now start more than 40% of pull requests on GitHub. Writing code is no longer the scarce part of IT work.
+- A newcomer's work has moved from producing code to reviewing, testing, debugging, connecting and explaining it.
+- AI-written code often needs fixing, especially for security. That checking needs real fundamentals.
+- Junior hiring has tightened, while long-term software job growth is still projected. The bottom rung changed shape.
+- Come into IT ready to read code critically, use AI tools well and explain your decisions.
+
+## Friday afternoon
+
+Back to the first week. By Friday you have reviewed eleven pull requests. You flagged the endpoint that leaked every customer's details, and the team added a test so the agent cannot make that mistake again. You rejected the query change because its tests only checked the happy path, and you wrote the missing cases yourself.
+
+On Friday afternoon your lead asks what you learned. You say the code was the easy part to read. Knowing what it should have done was the hard part. Your lead nods. Good answer.
+
+That is the industry you are walking into, and it rewards exactly that kind of reading.
+
+## Sources
+
+- GitHub, [Octoverse: Commits, pushes reach new highs in 2026 as developers build with agents](https://github.blog/news-insights/octoverse/octoverse-commits-pushes-reach-new-highs-in-2026-as-developers-build-with-agents/), 28 October 2026.
+- Stack Overflow, [2026 Developer Survey: AI](https://survey.stackoverflow.co/2026/ai), results published 6 October 2026.
+- Veracode, [GenAI Code Security Report](https://www.veracode.com/resources/analyst-reports/2025-genai-code-security-report/), October 2025 update.
+- Google Cloud DORA, [State of AI-assisted Software Development](https://cloud.google.com/devops/state-of-devops), September 2025.
+- Stanford HAI, [AI Index Report 2026: Economy](https://hai.stanford.edu/ai-index/2026-ai-index-report/economy), 2026.
+- Brynjolfsson, Chandar and Chen, [Canaries in the Coal Mine?](https://digitaleconomy.stanford.edu/publications/canaries-in-the-coal-mine/), Stanford Digital Economy Lab, revised 12 August 2026.
+- US Bureau of Labor Statistics, [Occupational Outlook Handbook: Software Developers, Quality Assurance Analysts, and Testers](https://www.bls.gov/ooh/computer-and-information-technology/software-developers.htm), updated 27 August 2026.

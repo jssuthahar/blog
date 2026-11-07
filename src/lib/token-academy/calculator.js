@@ -155,7 +155,7 @@ export function initCalculator() {
 
     // Help that depends on the text itself.
     const msg = [];
-    if (!s.trim()) msg.push('Paste or type some text to count its tokens. The cost below is then only the context and output.');
+    if (!s.trim()) msg.push('Paste or type some text to count its tokens and estimate the cost.');
     if (kind === 'JSON') {
       try {
         const min = JSON.stringify(JSON.parse(s));
@@ -283,6 +283,14 @@ export function initCalculator() {
       `Prices: GitHub’s per-1M-token rates, checked ${DATA.checked}. 1 AI Credit = $0.01.`,
     ].map((x) => `<li>${esc(x)}</li>`).join('');
 
+    // No text yet (or just cleared): show zeros, not the context and answer on their own.
+    if (!text.value.trim()) {
+      for (const id of ['c-in', 'c-o', 'c-cr', 'c-mcr']) $(id).textContent = '0';
+      $('c-in-note').textContent = $('c-usd').textContent = $('c-musd').textContent = '';
+      $('c-break').innerHTML = '';
+      $('c-warn').hidden = true;
+    }
+
     last = { m, tk, c, st };
     table(st);
     announce();
@@ -404,6 +412,7 @@ export function initCalculator() {
     clearTimeout(liveTimer);
     liveTimer = setTimeout(() => {
       if (!last) return;
+      if (!text.value.trim()) { $('c-live').textContent = 'Text cleared. 0 input tokens.'; return; }
       $('c-live').textContent = `${fmt(last.c.t.input)} input tokens. ${cr(last.c.credits)} AI Credits per ${last.st.calls > 1 ? 'task' : 'request'} on ${last.m.name}.`;
     }, 900);
   }

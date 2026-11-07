@@ -318,7 +318,7 @@ const schema = [
             <label for="c-model">AI model</label>
             <select id="c-model"></select>
           </div>
-          <p class="tc-simple small">Simple mode prices one typical Copilot Chat request: about {CONTEXT_TYPICAL.toLocaleString('en-US')} tokens of Copilot context around your text, an 800-token answer and no caching. Switch to <b>Advanced</b> to change any of these.</p>
+          <p class="tc-simple small">Simple mode prices one typical Copilot Chat request: about {CONTEXT_TYPICAL.toLocaleString('en-US')} tokens of Copilot context around your text, an 800-token answer and no caching. That is a new chat; the lessons below use about 12,000, because a chat a few messages in also resends its history. Switch to <b>Advanced</b> to change any of these.</p>
 
           <div class="tc-adv tc-opts" hidden>
             <div class="tc-field tc-wide">
@@ -456,7 +456,7 @@ const schema = [
                     <td class="r">{usd(m.cached)}</td>
                     <td class="r">{m.write ? usd(m.write) : '—'}</td>
                     <td class="r">{usd(m.out)}</td>
-                    <td>{m.long ? `Above ${(m.long.over / 1000).toFixed(0)}K input: ${usd(m.long.in)} / ${usd(m.long.out)}` : '—'}</td>
+                    <td>{m.long ? `Above ${(m.long.over / 1000).toFixed(0)}K input: ${usd(m.long.in)} in · ${usd(m.long.cached)} cached · ${usd(m.long.out)} out` : '—'}</td>
                   </tr>
                 ))}
               </tbody>

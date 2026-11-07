@@ -440,7 +440,7 @@ const whyA=crOf(S46,2000,0,300),whyB=crOf(S46,4500000*.15,4500000*.85,90000);
 async function whyRun(anim){const ok=guard("why");const set=(id,w)=>$(id).style.width=w+"%";
   ["why-a1","why-a2","why-b1","why-b2"].forEach(i=>set(i,0));if(anim)await sleep(150);if(!ok())return;
   set("why-a1",50);set("why-b1",50);$("why-a1v").textContent="9 PRU";$("why-b1v").textContent="9 PRU";if(anim)await sleep(900);if(!ok())return;
-  set("why-a2",Math.max(.6,whyA/whyB*100));set("why-b2",100);$("why-a2v").textContent=fmt(whyA,1)+" cr";$("why-b2v").textContent=fmt(whyB,0)+" cr"}
+  set("why-a2",Math.max(.6,whyA/whyB*100));set("why-b2",100);$("why-a2v").textContent=fmt(whyA,2)+" cr";$("why-b2v").textContent=fmt(whyB,0)+" cr"}
 $("why-play").onclick=()=>whyRun(true);
 
 /* 4 real costs */

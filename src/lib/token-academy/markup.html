@@ -15,7 +15,8 @@
     <section class="formula" aria-label="The whole idea in one line">
       <div class="frow">
         <div class="pill in"><b>What you send</b><small>input tokens</small></div><span class="op">+</span>
-        <div class="pill ca"><b>What’s reused</b><small>cached tokens, ~10% of input or less</small></div><span class="op">+</span>
+        <div class="pill ca"><b>What’s reused</b><small>cached tokens, ~10% of input on most models</small></div><span class="op">+</span>
+        <div class="pill wr"><b>What’s stored</b><small>cache writes, ~1.25× input</small></div><span class="op">+</span>
         <div class="pill out"><b>What comes back</b><small>output tokens, ~5× price</small></div><span class="op">=</span>
         <div class="pill cr"><b>AI Credits</b><small>1 credit = $0.01</small></div>
       </div>
@@ -27,7 +28,7 @@
         <div class="s4"><b>1</b><strong>Split into tokens</strong><span>Your text becomes small pieces with ID numbers.</span></div>
         <div class="s4"><b>2</b><strong>Packed with context</strong><span>Copilot adds instructions, tools, history and code. All of it is input.</span></div>
         <div class="s4"><b>3</b><strong>Generated one by one</strong><span>The model predicts the answer a token at a time. Those are output.</span></div>
-        <div class="s4"><b>4</b><strong>Priced per model</strong><span>Input, cached and output tokens × the model’s rates = AI Credits.</span></div>
+        <div class="s4"><b>4</b><strong>Priced per model</strong><span>Input, cached, cache-write and output tokens × the model’s rates = AI Credits.</span></div>
       </div>
     </section>
 <!--fig:token-journey-flow-->

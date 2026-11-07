@@ -52,7 +52,7 @@
   .pill b{font:700 20px var(--f-fun)}
   .pill small{font-size:13px;font-weight:600}
   .pill.in{background:var(--inS);color:var(--inC)} .pill.ca{background:var(--cacheS);color:var(--cacheC)} .pill.out{background:var(--outS);color:var(--outC)}
-  .pill.cr{background:var(--blue);color:#fff}
+  .pill.wr{background:var(--thinkS);color:var(--think)} .pill.cr{background:var(--blue);color:#fff}
   .op{font:700 28px var(--f-fun);color:var(--muted)}
   .fnote{text-align:center;color:var(--muted);font-size:15px;margin:0}
   .way{background:var(--card);border-radius:28px;box-shadow:var(--shadow);display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:28px;padding:28px;scroll-margin-top:84px;align-items:center}

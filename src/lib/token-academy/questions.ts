@@ -26,7 +26,7 @@ export const STEP_QA: Record<string, StepQA> = {
   start: {
     read: ['what-is-ai-token-cost-calculated'],
     q: 'How does GitHub Copilot count and bill tokens?',
-    a: 'Copilot adds up three kinds of tokens per request: input (everything sent), cached input (repeated parts, usually 10% of the input price or less) and output (everything written back, about 5× the input price). Each is multiplied by the model’s price, and the total is billed in AI Credits.',
+    a: 'Copilot adds up four kinds of tokens per request: input (everything sent), cached input (repeated parts, usually 10% of the input price, 25% on Grok), cache writes (storing a prefix for reuse, about 1.25× input, on Anthropic and the newer GPT families) and output (everything written back, about 5× the input price). Each is multiplied by the model’s price, and the total is billed in AI Credits.',
     checks: [{
       q: 'Since June 1, 2026, what does Copilot bill you for?',
       options: ['The number of prompts you send', 'The tokens each request uses, in AI Credits', 'Only a flat fee per seat'],

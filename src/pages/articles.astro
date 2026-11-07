@@ -77,7 +77,6 @@ const articleEntries: Entry[] = articles.map((article) => {
 const entries: Entry[] = [...postEntries, ...articleEntries].sort(
   (a, b) => b.published.getTime() - a.published.getTime(),
 );
-const total = entries.length;
 
 // Unified category filter — counted across the whole library, largest first.
 const catCounts = new Map<string, { label: string; count: number }>();
@@ -104,9 +103,9 @@ const slides: GlassSlide[] = [
     kicker: 'MSDEVBUILD · Technical knowledge base',
     title: `${AUTHOR.name.split(' ')[0]}'s`,
     accent: 'technical articles',
-    text: `${total}+ hands-on articles on Azure, AI, GitHub Copilot, .NET, Flutter, Python, Firebase, and modern software architecture.`,
+    text: `Hands-on articles on Azure, AI, GitHub Copilot, .NET, Flutter, Python, Firebase, and modern software architecture.`,
     tiles: [
-      { value: `${total}+`, label: 'articles' },
+      { value: `${AUTHOR.yearsExperience}+`, label: 'years writing' },
       { value: String(filterCategories.length), label: 'technologies' },
       { value: `Since ${Math.min(...entries.map((e) => e.published.getFullYear()))}`, label: 'oldest article here' },
     ],
@@ -135,12 +134,11 @@ const slides: GlassSlide[] = [
     title: 'Pick a technology,',
     accent: 'read everything on it',
     text: 'The library is grouped by technology, so one subject is a single click away.',
-    tiles: filterCategories.slice(0, 3).map((c) => ({ value: String(c.count), label: c.label })),
     actions: [{ label: 'All topics →', href: '/topics/', primary: true }],
     panel: {
       demo: { kind: 'flow', labels: ['Topic', 'Articles', 'Depth'], caption: 'Choose a topic, then go as deep as you need.' },
       title: 'Largest topics',
-      steps: filterCategories.slice(0, 3).map((c) => ({ title: c.label, note: `${c.count} articles`, href: '/topics/' })),
+      steps: filterCategories.slice(0, 3).map((c) => ({ title: c.label, href: '/topics/' })),
     },
   },
   {
@@ -159,7 +157,7 @@ const schema = [
     '@type': 'CollectionPage',
     '@id': `${SITE.url}/articles#page`,
     name: `Technical articles by ${AUTHOR.name}`,
-    description: `${total} technical articles by ${AUTHOR.name} on Azure, AI, GitHub Copilot, .NET, Flutter, Python, Firebase, and modern software architecture.`,
+    description: `Technical articles by ${AUTHOR.name} on Azure, AI, GitHub Copilot, .NET, Flutter, Python, Firebase, and modern software architecture.`,
     about: { '@id': `${SITE.url}/#person` },
     isPartOf: { '@id': `${SITE.url}/#website` },
   },
@@ -168,7 +166,7 @@ const schema = [
 
 <BaseLayout
   title="Azure, AI & .NET Technical Articles"
-  description={`${total} technical articles by ${AUTHOR.name} on Azure, AI, GitHub Copilot, .NET, Flutter, Python and software architecture — all searchable.`}
+  description={`Technical articles by ${AUTHOR.name} on Azure, AI, GitHub Copilot, .NET, Flutter, Python and software architecture — all searchable.`}
   schema={schema}
   wide
 >
@@ -203,7 +201,7 @@ const schema = [
           Browse by technology
         </h2>
         <p id="articles-count" role="status" aria-live="polite" class="text-sm text-muted">
-          Showing all {total} articles
+          Showing all articles
         </p>
       </div>
 
@@ -214,16 +212,16 @@ const schema = [
           aria-pressed="true"
           class="filter-chip rounded-full border border-default px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-subtle"
         >
-          All <span class="text-xs text-muted">{total}</span>
+          All
         </button>
-        {filterCategories.map(({ label, count, slug }) => (
+        {filterCategories.map(({ label, slug }) => (
           <button
             type="button"
             data-filter={slug}
             aria-pressed="false"
             class="filter-chip rounded-full border border-default px-3.5 py-1.5 text-sm font-medium transition-colors hover:bg-subtle"
           >
-            {label} <span class="text-xs text-muted">{count}</span>
+            {label}
           </button>
         ))}
       </div>
@@ -354,7 +352,7 @@ const schema = [
           shown === 0
             ? 'No matching articles'
             : shown === items.length
-              ? `Showing all ${shown} articles`
+              ? 'Showing all articles'
               : shown === 1
                 ? 'Showing 1 article'
                 : `Showing ${shown} articles`;

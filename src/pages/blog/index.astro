@@ -21,9 +21,8 @@ const slides: GlassSlide[] = [
     kicker: 'MSDEVBUILD · The blog',
     title: 'The engineering blog,',
     accent: 'on Azure, AI and .NET',
-    text: `${posts.length} articles on .NET, Azure, and AI engineering.`,
+    text: 'Articles on .NET, Azure, and AI engineering.',
     tiles: [
-      { value: String(posts.length), label: 'articles' },
       { value: String(seriesIndex.length), label: 'series' },
       { value: String(new Set(posts.map((p) => p.data.category)).size), label: 'topics' },
     ],
@@ -124,7 +123,6 @@ const schema: Record<string, unknown>[] = [
       <p class="eyebrow">Newest first</p>
       <h2 class="display mt-1.5 text-2xl sm:text-[1.75rem]">Every post</h2>
     </div>
-    <p class="text-sm text-muted">{posts.length} articles</p>
   </div>
 
   <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

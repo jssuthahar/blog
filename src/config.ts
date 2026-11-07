@@ -73,8 +73,8 @@ export const AUTHOR = {
   xHandle: '@jssuthahar',
   jobTitle: 'Cloud, AI & Mobile Solutions Architect',
   location: 'Malaysia',
-  yearsExperience: 18,
-  bio: 'Cloud, AI & Mobile Solutions Architect with 18+ years in enterprise architecture across Azure, Google Cloud and Firebase, building with C#, Python, .NET MAUI and Flutter, and applying AI with Azure AI, Claude and GitHub Copilot. Creator of MSDEVBUILD.',
+  yearsExperience: 19,
+  bio: 'Cloud, AI & Mobile Solutions Architect with 19+ years in enterprise architecture across Azure, Google Cloud and Firebase, building with C#, Python, .NET MAUI and Flutter, and applying AI with Azure AI, Claude and GitHub Copilot. Creator of MSDEVBUILD.',
   avatar: '/images/author.jpg',
 
   /**
@@ -190,7 +190,7 @@ export const EXPERTISE: readonly string[] = AUTHOR.skillGroups.flatMap((g) => g.
 /**
  * Articles published each year on platforms this site cannot index — C# Corner,
  * community sites, and guest posts. Reconciles the ~236 posts in the Blogger
- * feed with the 500+ total published since 2007.
+ * feed with the wider body of work published since 2007.
  *
  * Rendered as a separate, labelled band on the timeline rather than folded into
  * the feed counts, so the verifiable number stays visibly distinct from the
@@ -205,8 +205,7 @@ export const ARTICLES_ELSEWHERE_PER_YEAR = 20;
  * Update these rather than letting them drift stale.
  */
 export const IMPACT = [
-  { value: '18+', label: 'Years in enterprise architecture' },
-  { value: '500+', label: 'Articles published since 2007' },
+  { value: '19+', label: 'Years in enterprise architecture' },
   { value: '5M+', label: 'Total content views' },
   { value: '15,000+', label: 'Developers reached' },
   { value: '50+', label: 'Conference talks delivered' },

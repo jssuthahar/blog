@@ -15,7 +15,7 @@ import { allArticles, articleCategories, primaryCategory, capturePayload } from 
 import { getShorts, shortUrl } from '../lib/shorts';
 import { featuredRepos, repoIndex, languageColor } from '../lib/repos';
 import { getUpcomingEvents, eventSchema } from '../lib/speaking';
-import { contributionPillars, publishingSpan } from '../lib/evidence';
+import { contributionPillars } from '../lib/evidence';
 import ContributionTimeline from '../components/ContributionTimeline.astro';
 import AdUnit from '../components/AdUnit.astro';
 import HomeCarousel from '../components/HomeCarousel.astro';
@@ -49,7 +49,6 @@ const repos = featuredRepos(4);
 const upcoming = await getUpcomingEvents();
 
 const pillars = contributionPillars();
-const span = publishingSpan();
 
 // One row of four — the newest, and the whole row plays. Eight filled two rows
 // of static cards, which read as a contact sheet of everything rather than an
@@ -94,7 +93,7 @@ const schema = [
 
   <!-- ══════════════ Hero: one carousel, slide by slide like a session deck ══════════════ -->
   <section class="mx-auto max-w-6xl px-4 pt-8 pb-10 sm:px-6 lg:pt-10 lg:pb-12">
-    <HomeCarousel activeYears={span.activeYears} bookingHref={bookingHref} />
+    <HomeCarousel bookingHref={bookingHref} />
     <TopicLinks class="mt-6" />
   </section>
 
@@ -122,7 +121,7 @@ const schema = [
             </h2>
           </div>
           <div class="flex flex-wrap items-center gap-3">
-            <a href="/blog/" class="btn btn-primary btn-sm">All {posts.length} posts</a>
+            <a href="/blog/" class="btn btn-primary btn-sm">All posts</a>
             <!-- The feed is also the newsletter pipeline, so it gets a real
                  control here rather than only a footer link. -->
             <a
@@ -403,10 +402,10 @@ const schema = [
       <div>
         <p class="eyebrow">Articles</p>
         <h2 id="articles-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">
-          500+ articles, written from production
+          Articles written from production
         </h2>
       </div>
-      <a href="/articles/" class="btn btn-outline btn-sm">Browse all {articles.length}</a>
+      <a href="/articles/" class="btn btn-outline btn-sm">Browse all articles</a>
     </div>
 
     <!-- Topic chips double as an at-a-glance map of what the library covers.
@@ -484,7 +483,7 @@ const schema = [
         ))}
       </ul>
       <a href="/articles/" class="mt-4 inline-block text-sm font-semibold text-accent hover:underline">
-        See all {articles.length} articles →
+        See all articles →
       </a>
     </div>
 

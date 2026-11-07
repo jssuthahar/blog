@@ -27,7 +27,7 @@ const schema = [
     '@type': 'CollectionPage',
     '@id': `${SITE.url}${path}#page`,
     name: `${label} articles`,
-    description: `${description} — ${posts.length} articles.`,
+    description,
     about: { '@id': `${SITE.url}/#person` },
     isPartOf: { '@id': `${SITE.url}/#website` },
   },
@@ -45,7 +45,7 @@ const schema = [
 <BaseLayout
   title={`${label} articles`}
   keywords={[label]}
-  description={`${description} ${posts.length} articles by Suthahar Jegatheesan.`}
+  description={`${description} Articles by Suthahar Jegatheesan.`}
   canonical={path}
   schema={schema}
 >

@@ -1,6 +1,6 @@
 import { allArticles } from './articles';
 import { repoIndex } from './repos';
-import { ARTICLES_ELSEWHERE_PER_YEAR } from '../config';
+import { ARTICLES_ELSEWHERE_PER_YEAR, AUTHOR } from '../config';
 
 /**
  * Derived proof of contribution.
@@ -176,14 +176,13 @@ export function topicsCovered(): number {
 
 /** The headline pillars, each backed by a source the reader can open. */
 export function contributionPillars() {
-  const span = publishingSpan();
 
   return [
     {
-      value: '500+',
-      label: 'Articles published',
-      detail: `${allArticles().length} indexed here since ${span.firstYear}`,
-      href: '/articles/',
+      value: `${AUTHOR.yearsExperience}+`,
+      label: 'Years contributing',
+      detail: 'publishing since 2007',
+      href: '/contributions/',
     },
     {
       value: '5M+',

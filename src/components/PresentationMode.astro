@@ -69,9 +69,9 @@ const [firstName, ...restOfName] = AUTHOR.name.split(' ');
 const recognition = [...AUTHOR.awards, 'Microsoft Certified Trainer'];
 const stats = [
   { value: IMPACT[0].value, label: 'years in IT' },
-  { value: IMPACT[1].value, label: 'articles' },
-  { value: IMPACT[4].value, label: 'sessions' },
-  { value: IMPACT[3].value, label: 'developers' },
+  { value: IMPACT[1].value, label: 'views' },
+  { value: IMPACT[3].value, label: 'sessions' },
+  { value: IMPACT[2].value, label: 'developers' },
 ];
 const linkedinQr = mode === 'sections' ? await qrSvg(AUTHOR.linkedin, { size: 120, margin: 1 }) : '';
 ---

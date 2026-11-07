@@ -16,7 +16,6 @@ import {
 } from '../lib/eventhub';
 import {
   contributionPillars,
-  publishingSpan,
   recentActivity,
   mvpActivityBreakdown,
 } from '../lib/evidence';
@@ -47,7 +46,6 @@ const logged = (await getCollection('contributions'))
 
 const posts = await getPublishedPosts();
 const articles = allArticles();
-const span = publishingSpan();
 const pillars = contributionPillars();
 const recent = recentActivity();
 const upcoming = await getUpcomingEvents();
@@ -127,9 +125,6 @@ const items: Item[] = [
 
 const recentCount = items.filter((i) => i.date >= recent.since).length;
 
-// Split by source rather than summed. The two libraries are different bodies of
-// work on different domains, and a merged figure hides which one is still moving.
-const recentPosts = posts.filter((p) => p.data.publishedAt >= recent.since).length;
 const sessionsDelivered = [...past, ...pastHosted].filter(
   (e) => ('startDate' in e.data ? e.data.startDate : e.data.date) >= recent.since,
 ).length;
@@ -139,10 +134,8 @@ const recentShorts = datedShorts.filter((s) => s.publishedAt! >= recent.since).l
 
 const stats = [
   { label: 'Contributions logged', value: recentCount },
-  { label: `Articles — ${new URL(SITE.url).hostname}`, value: recentPosts },
   // Only shown once there are shorts to count — an empty row is not evidence.
   ...(recentShorts > 0 ? [{ label: 'Short videos', value: recentShorts }] : []),
-  { label: `Articles — ${MAIN_SITE.label}`, value: recent.articles.length },
   { label: 'Repositories updated', value: recent.repos.length },
   { label: 'Sessions delivered', value: sessionsDelivered },
   // A scheduled-sessions row with nothing in it is noise, not evidence.
@@ -176,7 +169,7 @@ const schema = [
 
 <BaseLayout
   title="Contribution record"
-  description={`${items.length} dated public contributions by ${AUTHOR.name} since ${span.firstYear} — ${articles.length} articles, ${repoIndex.count} open-source repos and 50+ conference sessions.`}
+  description={`${items.length} dated public contributions by ${AUTHOR.name} since 2007 — writing, ${repoIndex.count} open-source repos and 50+ conference sessions.`}
   schema={schema}
   wide
 >
@@ -184,7 +177,7 @@ const schema = [
     <header class="max-w-3xl">
       <p class="eyebrow">Contribution record</p>
       <h1 class="display mt-3 text-3xl sm:text-4xl">
-        {span.activeYears} years of contribution to the developer community
+        {AUTHOR.yearsExperience}+ years of contribution to the developer community
       </h1>
       <p class="mt-4 text-lg leading-relaxed text-muted text-pretty">
         Every public contribution — writing, speaking, open source, and community work —
@@ -210,10 +203,10 @@ const schema = [
     <div class="mt-12 grid gap-10 lg:grid-cols-[1.3fr_1fr]">
       <section class="rounded-lg border border-default p-6" aria-labelledby="consistency">
         <h2 id="consistency" class="text-lg font-semibold tracking-tight">
-          Sustained over {span.years} years
+          Sustained over {AUTHOR.yearsExperience}+ years
         </h2>
         <p class="mt-2 text-sm leading-relaxed text-muted">
-          Publishing continuously since {span.firstYear} — through framework generations
+          Publishing continuously since 2007 — through framework generations
           from Xamarin to .NET MAUI, and from Cognitive Services to Azure OpenAI.
         </p>
         <div class="mt-6">

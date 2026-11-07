@@ -89,8 +89,8 @@ const scale = (n: number) => (n / max) * PLOT;
   </div>
 
   <p class="mt-3 text-xs text-muted">
-    {`${span.activeYears} of ${span.years} years with work indexed here${
-      hasEstimate ? `, alongside an estimated ${series[0].elsewhere}+ per year published elsewhere` : ''
+    {`Work indexed here, ${span.firstYear}–${span.lastYear}${
+      hasEstimate ? ', alongside an estimate of work published elsewhere' : ''
     }.`}
   </p>
 </figure>

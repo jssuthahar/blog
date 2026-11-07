@@ -10,24 +10,22 @@ import { getShorts, shortUrl } from '../lib/shorts';
 import { qrSvg } from '../lib/qr';
 
 interface Props {
-  activeYears: number;
   bookingHref: string;
 }
 
-const { activeYears, bookingHref } = Astro.props;
+const { bookingHref } = Astro.props;
 
-const articlesTotal = IMPACT[1].value;
-const sessions = IMPACT[4].value;
-const developers = IMPACT[3].value;
+const sessions = IMPACT[3].value;
+const developers = IMPACT[2].value;
 const shorts = getShorts();
 
 const slides: GlassSlide[] = [
   {
     tab: 'Intro',
     kicker: `MSDEVBUILD · ${SITE.alternateName}`,
-    title: `${activeYears} years contributing to the`,
+    title: `${AUTHOR.yearsExperience}+ years contributing to the`,
     accent: 'developer community',
-    text: `${AUTHOR.yearsExperience}+ years as a solutions architect across Cloud, AI, Mobile and Web: Azure, .NET, Flutter and modern web. ${articlesTotal} articles, ${sessions} conference sessions, ${developers} developers reached.`,
+    text: `${AUTHOR.yearsExperience}+ years as a solutions architect across Cloud, AI, Mobile and Web: Azure, .NET, Flutter and modern web. ${sessions} conference sessions, ${developers} developers reached.`,
     pills: [...AUTHOR.awards, 'Microsoft Certified Trainer'],
     actions: [
       { label: 'Book me to speak', href: bookingHref, primary: true },

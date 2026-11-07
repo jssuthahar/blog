@@ -14,7 +14,7 @@ import { SITE, AUTHOR, BOOKING, MAIN_SITE, IMPACT, EXPERTISE, MICROSOFT_ACHIEVEM
 const faq = [
   {
     q: `Who is ${AUTHOR.name}?`,
-    a: `${AUTHOR.name} is a ${AUTHOR.jobTitle} based in ${AUTHOR.location}, with ${AUTHOR.yearsExperience}+ years in enterprise architecture. Publishing as MSDEVBUILD since 2007, with ${IMPACT[1].value} technical articles.`,
+    a: `${AUTHOR.name} is a ${AUTHOR.jobTitle} based in ${AUTHOR.location}, with ${AUTHOR.yearsExperience}+ years in enterprise architecture. Publishing as MSDEVBUILD since 2007.`,
   },
   {
     q: 'What is MSDEVBUILD?',
@@ -26,7 +26,7 @@ const faq = [
   },
   {
     q: `Does ${AUTHOR.name.split(' ')[0]} speak at conferences?`,
-    a: `Yes. ${IMPACT[4].value} sessions delivered to ${IMPACT[3].value} developers on Azure, applied AI and .NET, in English or Tamil, on site or online. Invitations go through the contact page.`,
+    a: `Yes. ${IMPACT[3].value} sessions delivered to ${IMPACT[2].value} developers on Azure, applied AI and .NET, in English or Tamil, on site or online. Invitations go through the contact page.`,
   },
 ];
 
@@ -80,8 +80,8 @@ const slides: GlassSlide[] = [
     accent: 'since 2007',
     text: 'Conference sessions, webinars and community meetups, with material published in both English and Tamil.',
     tiles: [
-      { value: IMPACT[4].value, label: 'conference talks' },
-      { value: IMPACT[3].value, label: 'developers reached' },
+      { value: IMPACT[3].value, label: 'conference talks' },
+      { value: IMPACT[2].value, label: 'developers reached' },
       { value: '2', label: 'English and Tamil' },
     ],
     panel: {
@@ -188,7 +188,7 @@ const links = [
         <span class="about-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d={FOCUS_ICONS.blog} /></svg></span>
         <h3>Why this blog exists</h3>
         <p>
-          Across 500+ published articles the pattern that keeps recurring is this: the
+          Across nineteen years of writing, the pattern that keeps recurring is this: the
           tutorial gets you to "hello world", then leaves before the hard part. This blog is
           the other half — the configuration that silently disables your security, the
           layout that stops scaling at twenty endpoints, the retrieval step that quietly

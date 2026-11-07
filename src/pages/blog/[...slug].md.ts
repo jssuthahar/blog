@@ -1,6 +1,6 @@
 import type { APIRoute, GetStaticPaths } from 'astro';
-import { SITE, AUTHOR } from '../../config';
-import { CATEGORIES, getPublishedPosts, postUrl, stripAuthorNotes, type Post } from '../../lib/posts';
+import { getPublishedPosts, type Post } from '../../lib/posts';
+import { postMarkdown } from '../../lib/post-markdown';
 
 /**
  * Markdown twin of every post.
@@ -15,44 +15,9 @@ export const getStaticPaths: GetStaticPaths = async () => {
   return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
 };
 
-export const GET: APIRoute = ({ props }) => {
-  const post = props.post as Post;
-  const { data } = post;
-  const url = new URL(postUrl(post), SITE.url).href;
-
-  const frontmatter = [
-    `# ${data.title}`,
-    '',
-    `> ${data.description}`,
-    '',
-    `- **Author:** ${AUTHOR.name} (${AUTHOR.alternateName})`,
-    `- **Published:** ${data.publishedAt.toISOString().slice(0, 10)}`,
-    data.updatedAt ? `- **Updated:** ${data.updatedAt.toISOString().slice(0, 10)}` : null,
-    `- **Category:** ${CATEGORIES[data.category].label}`,
-    data.tags.length ? `- **Tags:** ${data.tags.join(', ')}` : null,
-    `- **Canonical URL:** ${url}`,
-    '',
-    '---',
-    '',
-    // The highlight is the passage most often quoted, and it no longer lives
-    // in the body — emit it so the Markdown twin is not missing the summary.
-    `**Highlight:** ${data.highlight ?? data.description}`,
-    '',
-    '',
-  ]
-    .filter((line) => line !== null)
-    .join('\n');
-
-  const faq = data.faq.length
-    ? '\n\n---\n\n## Frequently asked questions\n\n' +
-      data.faq.map(({ q, a }) => `### ${q}\n\n${a}`).join('\n\n')
-    : '';
-
-  const body = `${frontmatter}${stripAuthorNotes(post.body ?? '')}${faq}\n`;
-
-  return new Response(body, {
+export const GET: APIRoute = ({ props }) =>
+  new Response(postMarkdown(props.post as Post), {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
     },
   });
-};

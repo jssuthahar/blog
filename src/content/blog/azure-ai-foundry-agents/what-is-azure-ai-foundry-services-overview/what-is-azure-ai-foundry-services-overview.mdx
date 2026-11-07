@@ -1,9 +1,10 @@
 ---
 title: 'What Is Microsoft Foundry (Azure AI Foundry)? The Services, and When You Actually Need Them'
-seoTitle: 'What Is Azure AI Foundry?'
+seoTitle: 'What Is Microsoft Foundry (Azure AI Foundry)?'
 description: 'A plain tour of Microsoft Foundry for developers: the resource, projects, models, agents, tools, and when Azure OpenAI on its own is enough.'
 highlight: "Foundry is one Azure resource that gives you a model catalogue, a managed agent runtime, a shared tool layer and the tracing around all of it, behind a single project endpoint. If you only need chat completions or embeddings, Azure OpenAI on its own is still the right answer and costs you less to reason about."
 publishedAt: 2026-07-20
+updatedAt: 2026-11-07
 cover: './images/what-is-azure-ai-foundry-services-overview-cover.png'
 coverAlt: 'Share banner headed AZURE AI FOUNDRY · THE MAP with the title "One resource, four things" and the line "Model catalogue, agent runtime, tool layer, tracing. Behind one project endpoint." above the MSDEVBUILD wordmark and the author name. On the right, a three-step chain: a plain box reading "Azure OpenAI alone", a model endpoint. often enough.; then a good box reading "Microsoft Foundry", agents, tools, memory, evaluation, tracing.'
 category: azure
@@ -13,8 +14,8 @@ series: 'azure-ai-foundry-agents'
 seriesOrder: 1
 draft: false
 faq:
-  - q: 'What is Azure AI Foundry?'
-    a: 'It is Microsoft''s platform for building and running AI applications on Azure, renamed Microsoft Foundry during 2026. One Azure resource gives you a model catalogue, a managed agent runtime, a shared tool layer, evaluation and tracing, all reachable through a single project endpoint.'
+  - q: 'What is Microsoft Foundry (formerly Azure AI Foundry)?'
+    a: 'Microsoft Foundry, formerly Azure AI Foundry, is Microsoft''s platform for building and running AI applications on Azure. One Azure resource gives you a model catalogue, a managed agent runtime, a shared tool layer, evaluation and tracing, all reachable through a single project endpoint.'
   - q: 'What is the difference between Azure AI Foundry and Azure OpenAI?'
     a: 'Azure OpenAI is a model endpoint. Foundry is the platform around models: agents, tools, memory, evaluation, tracing and publishing, plus models from vendors other than OpenAI. If all you need is chat completions or embeddings, an Azure OpenAI resource is simpler and enough.'
   - q: 'What is the difference between a prompt agent and a hosted agent?'
@@ -80,6 +81,8 @@ quiz:
 
 import Callout from '../../../../components/mdx/Callout.astro';
 import ShortHighlight from '../../../../components/ShortHighlight.astro';
+
+Microsoft Foundry (formerly Azure AI Foundry) is Azure's platform for building AI apps and agents. One Foundry resource gives you a model catalogue, the Agent Service, evaluations and safety tools behind a single project endpoint and SDK. Use it when you need agents, RAG or several models working together. If you need one chat model, Azure OpenAI on its own is simpler.
 
 The first serious conversation I had about this platform went badly, because three of us in the room meant three different things by "Foundry". One meant the portal. One meant the model endpoint. One meant the agent runtime. All three were partly right, which is the worst kind of confusion.
 

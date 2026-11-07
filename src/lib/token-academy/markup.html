@@ -266,6 +266,26 @@
       <div class="explain"><b>How long does the cache last?</b> GitHub doesn’t publish Copilot’s cache lifetime, so here is what the providers document. Anthropic keeps a cached prefix for 5 minutes, refreshed each time it is reused (a 1-hour option costs more to write). OpenAI keeps it for 30 minutes on GPT‑5.6 and later, and for about 5–10 minutes of inactivity, up to an hour, on earlier models. Very short prompts aren’t cached at all: the minimum is 512 to 4,096 tokens depending on the model.</div>
     </section>
     <section class="card">
+      <h3 class="h2">Tip: new task, new chat</h3>
+      <p>Make it a habit: when you finish one task and start another, clear the chat first. Saved files, custom instructions and memory are kept; only the conversation is dropped.</p>
+      <div class="explain"><b>Why clear it?</b> The model remembers nothing between messages, so Copilot re-sends the whole chat with every new one.
+        <ul>
+          <li><b>You pay for history you no longer need.</b> With the defaults in the calculator above (12,000 tokens of starting context and 15 messages of 3,000 tokens each), every new message carries about 57,000 tokens. In a fresh chat it carries about 12,000 plus your question: roughly 45,000 fewer input tokens on every message that follows.</li>
+          <li><b>On a new topic, none of that history helps.</b> Fresh from the cache it is cheap, but it is still sent, and after a break the cache has expired and it is billed at full input price.</li>
+          <li><b>Answers get better.</b> Old files, logs and decisions from the last task stay in front of the model and pull its answers toward that task. A clean chat answers the question you actually asked.</li>
+          <li><b>You stay further from the limits.</b> A shorter context keeps you under the context window and the long-context price line, so Copilot does not have to compact or trim mid-task.</li>
+        </ul>
+      </div>
+      <div class="grid3">
+        <div class="mini"><b>💻 VS Code</b><span>Type <code>/clear</code>, select <b>New Chat (+)</b>, or press Ctrl+N (⌘N on macOS). Note: <code>/new</code> here scaffolds a project, it does not clear the chat.</span></div>
+        <div class="mini"><b>⌨️ Copilot CLI</b><span><code>/clear</code> starts a new conversation (<code>/new</code> and <code>/reset</code> do the same). <code>/compact</code> keeps going on a summary instead.</span></div>
+        <div class="mini"><b>🪟 Visual Studio</b><span>Select <b>Create new thread</b> or press Ctrl+N in the chat window. There is no <code>/clear</code>; <code>/compact</code> summarizes instead.</span></div>
+        <div class="mini"><b>🤖 Claude Code</b><span><code>/clear</code> starts a new conversation with empty context. <code>/compact</code> summarizes and continues the same one.</span></div>
+        <div class="mini"><b>🧹 Clear or compact?</b><span>New topic: clear. Same task, but the chat has grown long: compact.</span></div>
+        <div class="mini"><b>📝 Clear without losing work</b><span>Before you clear, ask for a short summary or save the plan to a file, then open the new chat with it.</span></div>
+      </div>
+    </section>
+    <section class="card">
       <h3 class="h2">Carry your context over, cheaply</h3>
       <div class="grid3">
         <div class="mini"><b>📝 Summarize before you leave</b><span>Ask: “Summarize the decisions, changed files and open questions in 10 bullets.” Start the new chat with that.</span></div>

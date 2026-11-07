@@ -107,9 +107,10 @@ async function w7(anim){const ok=guard(7),tot=[0,0,0];RUNS.forEach((r,j)=>{r[3].
       if(anim){tween($("i-t"+j),tot[j],{dec:0,suf:"K",ms:300});tween($("i-c"+j),cr,{dec:1,suf:" cr",ms:300})}else{setv($("i-t"+j),tot[j],0,"K");setv($("i-c"+j),cr,1," cr")}});
     if(anim)await sleep(600)}}
 
-/* 8 tips */
+/* tips */
 const TIPS=[["🗺️","Give a map, not a manual","copilot-instructions.md is sent with every request. Keep it to your stack, commands and real pitfalls.",".github/copilot-instructions.md"],
  ["🧰","Detail goes in skills","Skills and prompt files load only when a task needs them, so they don’t ride on every call.",".github/prompts/*.prompt.md"],
+ ["🧹","New task, new chat","Every message re-sends the whole chat. When the task changes, clear it so the old history stops riding along on each request.","/clear · New Chat (Ctrl+N / ⌘N)"],
  ["📝","Plan to a file, then start fresh","Plan with a strong model, save it, then implement in a new chat that carries one page instead of the whole history.","Implement step 1 of #file:PLAN.md"],
  ["🤖","Cheap helpers","Sub-agents don’t inherit the main chat history, so a light model is often enough for them.","Light model for sub-agents"],
  ["🔌","Unplug unused tools","Every enabled MCP tool adds its description to every request.","Enable only the toolsets you need"],

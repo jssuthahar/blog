@@ -66,6 +66,7 @@ Written by ${AUTHOR.name} (${AUTHOR.alternateName}). ${AUTHOR.bio}
 This is the articles subdomain of ${MAIN_SITE.label}; the main site is ${MAIN_SITE.url}.
 
 Every article below links to its clean Markdown version: \`/blog/<slug>.md\`.
+Every article in full, as one file: ${SITE.url}/llms-full.txt
 Author profile and verified identity links: ${SITE.url}/about/
 
 ## Key facts
@@ -88,6 +89,7 @@ ${TOKEN_MODELS.map((m) => `  - [${m.name} cost in GitHub Copilot](${SITE.url}/op
 
 ## Optional
 
+- [Full text](${SITE.url}/llms-full.txt): every published article in full, as one Markdown file
 - [RSS feed](${SITE.url}/rss.xml): machine-readable index of all posts
 - [Sitemap](${SITE.url}/sitemap-index.xml): every indexable URL
 - [About the author](${SITE.url}/about): credentials and profile links

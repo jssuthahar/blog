@@ -46,7 +46,7 @@ const { slides, label } = Astro.props;
           <div class="hc-main glass-premium" data-spot>
             <p class="eyebrow">{slide.kicker}</p>
             <Heading class:list={['display', index === 0 ? 'hc-h1' : 'hc-h2']}>
-              {slide.title} {slide.accent && <span>{slide.accent}</span>}
+              {slide.title}{' '}{slide.accent && <span>{slide.accent}</span>}
             </Heading>
             {slide.text && <p class="hc-text">{slide.text}</p>}
             {slide.pills && (

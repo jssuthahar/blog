@@ -13,6 +13,8 @@ import { SITE, AUTHOR, MAIN_SITE, EXPERTISE } from '../config';
 
 interface Props {
   title: string;
+  /** og:title / twitter:title when it should differ from <title>. */
+  ogTitle?: string;
   description: string;
   canonical?: string;
   image?: string;
@@ -51,7 +53,7 @@ const baseSchema = [
     // so engines and LLMs classify MSDEVBUILD as multi-stack, not .NET-only.
     about: SITE.topics.map((name) => ({ '@type': 'Thing', name })),
     keywords: SITE_KEYWORDS.join(', '),
-    publisher: { '@id': `${SITE.url}/#person` },
+    publisher: { '@id': `${SITE.url}/#organization` },
     inLanguage: SITE.lang,
     // Sitelinks searchbox. /search already reads `?q=` for a deep link
     // (see search.astro) — this just tells Google that URL shape exists.
@@ -68,7 +70,7 @@ const baseSchema = [
     '@type': 'Person',
     '@id': `${SITE.url}/#person`,
     name: AUTHOR.name,
-    alternateName: ['Suthahar', AUTHOR.alternateName],
+    alternateName: ['Suthahar', 'jssuthahar'],
     description: AUTHOR.bio,
     jobTitle: AUTHOR.jobTitle,
     knowsAbout: [...new Set([...EXPERTISE, ...TOPIC_LINKS.map(({ term }) => term)])],
@@ -78,6 +80,17 @@ const baseSchema = [
     url: MAIN_SITE.url,
     image: new URL(AUTHOR.avatar, SITE.url).href,
     sameAs: [...AUTHOR.sameAs],
+  },
+  {
+    // MSDEVBUILD as its own entity, founded by the Person. Publisher of the
+    // site and every post, and the home of the brand channels.
+    '@type': 'Organization',
+    '@id': `${SITE.url}/#organization`,
+    name: AUTHOR.alternateName,
+    url: MAIN_SITE.url,
+    logo: new URL('/icon-512.png', SITE.url).href,
+    founder: { '@id': `${SITE.url}/#person` },
+    sameAs: [...AUTHOR.orgSameAs],
   },
 ];
 ---

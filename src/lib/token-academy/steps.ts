@@ -31,4 +31,4 @@ export const STEPS: Step[] = [...markup.matchAll(/<section class="ta-step" id="(
 );
 
 /** When the content and its prices were last checked. Shown on the page and in its schema. */
-export const UPDATED = new Date('2026-11-06');
+export const UPDATED = new Date('2026-11-07');

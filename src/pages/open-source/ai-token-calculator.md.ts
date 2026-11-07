@@ -36,6 +36,7 @@ export const GET: APIRoute = async () => {
     lines.push(`## Lesson ${step.n}: ${step.title}`, '', step.intro, '');
     if (qa) {
       lines.push(`### ${qa.q}`, '', qa.a, '');
+      if (qa.tip) lines.push(`### ${qa.tip.q}`, '', qa.tip.a, '');
       const reads = (qa.read ?? []).map((s) => posts.get(s)).filter((p) => p !== undefined);
       if (reads.length)
         lines.push(`Read more: ${reads.map((p) => `[${p.data.title}](${new URL(postUrl(p), SITE.url).href})`).join(' · ')}`, '');

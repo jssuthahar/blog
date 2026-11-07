@@ -134,7 +134,7 @@ const schema: Record<string, unknown>[] = [
     datePublished: data.publishedAt.toISOString(),
     dateModified: (data.updatedAt ?? data.publishedAt).toISOString(),
     author: { '@id': `${SITE.url}/#person` },
-    publisher: { '@id': `${SITE.url}/#person` },
+    publisher: { '@id': `${SITE.url}/#organization` },
     mainEntityOfPage: { '@type': 'WebPage', '@id': new URL(path, SITE.url).href },
     articleSection: category.label,
     keywords: data.tags.join(', '),
@@ -187,6 +187,7 @@ const shareImage = data.cover
 
 <BaseLayout
   title={data.seoTitle ?? data.title}
+  ogTitle={data.title}
   description={data.description}
   canonical={data.canonical ?? path}
   type="article"

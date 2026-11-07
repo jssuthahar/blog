@@ -20,6 +20,8 @@ export interface StepQA {
   checks?: Check[];
   /** Published articles that cover this step in depth, by slug. Unpublished ones are skipped at build. */
   read?: string[];
+  /** A practical how-to for the lesson, emitted in the Markdown twin as its own section. */
+  tip?: { q: string; a: string };
 }
 
 export const STEP_QA: Record<string, StepQA> = {
@@ -154,6 +156,10 @@ export const STEP_QA: Record<string, StepQA> = {
   },
   continue: {
     read: ['save-ai-tokens-tips-copilot-context', 'ai-token-budget-daily-copilot-workflow'],
+    tip: {
+      q: 'Why and how should I start a new chat in GitHub Copilot?',
+      a: 'Every message re-sends the whole chat, so on a new task the old history costs tokens and pulls answers off topic. In VS Code type /clear or press Ctrl+N (⌘N on macOS); in Copilot CLI use /clear; in Visual Studio select Create new thread. /compact summarizes instead of clearing.',
+    },
     q: 'Does continuing a Copilot chat cost more than starting a new one?',
     a: 'It depends on the cache and the topic. Each message re-sends the whole chat, but soon after the last message most of it is read from cache, usually at 10% of the input price or less. A quick follow-up on the same task is usually cheapest in the same chat; after a break, or for a new topic, a new chat with a short summary costs less.',
     checks: [{

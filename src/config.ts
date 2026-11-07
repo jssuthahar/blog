@@ -67,7 +67,7 @@ export const AUTHOR = {
    * No email is published anywhere on the site — enquiries route through
    * LinkedIn or the contact form so the address is never scrapeable.
    */
-  linkedin: 'https://my.linkedin.com/in/jssuthahar',
+  linkedin: 'https://www.linkedin.com/in/jssuthahar',
   x: 'https://x.com/jssuthahar',
   /** Bare handle, for the `twitter:creator` / `twitter:site` card metadata. */
   xHandle: '@jssuthahar',
@@ -85,13 +85,22 @@ export const AUTHOR = {
   sameAs: [
     'https://www.msdevbuild.com',
     'https://suthahar.msdevbuild.com',
-    'https://my.linkedin.com/in/jssuthahar',
+    // www, not my.linkedin.com: the country subdomain is a redirect, and
+    // engines match the canonical host.
+    'https://www.linkedin.com/in/jssuthahar',
     'https://github.com/jssuthahar',
+    'https://www.c-sharpcorner.com/members/suthahar-j',
+    'https://learn.microsoft.com/en-us/users/jssuthahar/',
     'https://www.youtube.com/@MSDEVBUILD',
     'https://x.com/jssuthahar',
-    // The two MSDEVBUILD-branded channels. They belong on the Person node
-    // because this Person is also the publisher — MSDEVBUILD is its
-    // alternateName, not a separate Organization entity anywhere in the graph.
+  ],
+
+  /**
+   * The MSDEVBUILD-branded channels. They belong to the Organization node
+   * (BaseLayout.astro), not the Person: a company page on a Person makes the
+   * person read as a company, and the 7 Nov 2026 audit flagged exactly that.
+   */
+  orgSameAs: [
     'https://www.linkedin.com/company/31318247/',
     'https://whatsapp.com/channel/0029Va5j2rHEFeXcTlUhQB0J',
     'https://www.instagram.com/msdevbuild/',
@@ -232,7 +241,7 @@ export const SOCIAL = [
     handle: 'in/jssuthahar',
     action: 'Follow',
     cta: 'Follow on LinkedIn',
-    href: 'https://my.linkedin.com/in/jssuthahar',
+    href: 'https://www.linkedin.com/in/jssuthahar',
     blurb: 'Architecture notes and career posts',
   },
   {

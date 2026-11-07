@@ -1,10 +1,10 @@
 ---
 title: 'What Is GitHub Copilot Custom Instructions? (And Why Your Project Needs One)'
-seoTitle: 'Copilot Custom Instructions'
+seoTitle: 'GitHub Copilot Custom Instructions Explained'
 description: 'GitHub Copilot custom instructions explained with a real Flutter app you can clone: what the file is, why every project needs one, and beginner mistakes.'
 highlight: 'Custom instructions are one file, .github/copilot-instructions.md, that Copilot reads before every suggestion in your repo. Skip it and Copilot guesses your conventions from the open file each time; write it once and every suggestion starts from your stack, your architecture and your off-limits list.'
 publishedAt: 2026-05-01
-updatedAt: 2026-09-30
+updatedAt: 2026-11-07
 category: copilot
 tags: ['GitHub Copilot', 'Custom Instructions', 'AI Coding Assistant', 'C#', '.NET MAUI', 'Flutter', 'Web API', '.NET 10']
 cover: './images/github-copilot-custom-instructions-cover.png'
@@ -145,7 +145,7 @@ Eleven lines. Eleven of the fourteen review comments. The other three were about
 
 ## What is GitHub Copilot custom instructions?
 
-It is a plain Markdown file, `.github/copilot-instructions.md`, that tells Copilot how your project works before it writes anything. Rather than guessing your stack from whatever file is open, Copilot adds this file to every chat request in the repository automatically. You never have to paste it or remind it.
+It is a plain Markdown file, `.github/copilot-instructions.md`, that tells Copilot how your project works before it writes anything. Rather than guessing your stack from whatever file is open, Copilot adds this file to every chat request in the repository automatically. You never have to paste it or remind it. GitHub documents the file and its path-specific variants in [Adding repository custom instructions for GitHub Copilot](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions), and VS Code covers how the editor loads it in [Use custom instructions in VS Code](https://code.visualstudio.com/docs/copilot/customization/custom-instructions).
 
 Think of it as the onboarding document you would hand a new developer on day one, except this reader actually reads the whole thing every single time, instead of skimming the first page and forgetting the rest by Friday.
 

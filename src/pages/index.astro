@@ -1,26 +1,16 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import AppLaunchRedirect from '../components/AppLaunchRedirect.astro';
-import EventCard from '../components/EventCard.astro';
 import Newsletter from '../components/Newsletter.astro';
 import SubscribePopup from '../components/SubscribePopup.astro';
-import TestimonialCard from '../components/TestimonialCard.astro';
 import ShareRow from '../components/ShareRow.astro';
 import SiteChat from '../components/SiteChat.astro';
-import TestimonialForm from '../components/TestimonialForm.astro';
-import { homeTestimonials } from '../lib/testimonials';
-import { SITE, AUTHOR, BOOKING, SPEAKING_TOPICS, ADSENSE_SLOT_DISPLAY } from '../config';
-import { CATEGORIES, coverArt, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
+import { SITE, ADSENSE_SLOT_DISPLAY } from '../config';
+import { CATEGORIES, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
 import { allArticles, articleCategories, primaryCategory, capturePayload } from '../lib/articles';
 import { getShorts, shortUrl } from '../lib/shorts';
-import { featuredRepos, repoIndex, languageColor } from '../lib/repos';
-import { getUpcomingEvents, eventSchema } from '../lib/speaking';
-import { contributionPillars } from '../lib/evidence';
-import ContributionTimeline from '../components/ContributionTimeline.astro';
 import AdUnit from '../components/AdUnit.astro';
-import HomeCarousel from '../components/HomeCarousel.astro';
 import TopicLinks from '../components/TopicLinks.astro';
-import MicrosoftBadges from '../components/MicrosoftBadges.astro';
 import RecentlyRead from '../components/RecentlyRead.astro';
 import SeriesQuickNav from '../components/SeriesQuickNav.astro';
 import CoverArt from '../components/CoverArt.astro';
@@ -30,25 +20,21 @@ import ViewCount from '../components/ViewCount.astro';
 const posts = await getPublishedPosts();
 
 // The blog leads the page: the newest post gets the large card, the next five
-// sit beside it as rows. Everything else on the home page is supporting proof.
+// sit beside it as rows.
 const [latestPost, ...olderPosts] = posts;
 const nextPosts = olderPosts.slice(0, 5);
 const latestCategory = latestPost ? CATEGORIES[latestPost.data.category] : undefined;
 
-// The main-site library is the deepest proof of expertise — lead with it
-// rather than leaving 236 articles one click away.
+// The main-site library: the older articles, surfaced here rather than left
+// one click away.
 const articles = allArticles();
 const spotlight = articles.filter((a) => a.image).slice(0, 3);
 
-// A dense second tier: showing 12 more titles proves the depth of the library
-// in roughly the height three more cards would have cost.
+// A dense second tier: 12 more titles in roughly the height three more cards
+// would have cost.
 const spotlightUrls = new Set(spotlight.map((a) => a.url));
 const moreArticles = articles.filter((a) => !spotlightUrls.has(a.url)).slice(0, 12);
 const topics = articleCategories(8).slice(0, 9);
-const repos = featuredRepos(4);
-const upcoming = await getUpcomingEvents();
-
-const pillars = contributionPillars();
 
 // One row of four — the newest, and the whole row plays. Eight filled two rows
 // of static cards, which read as a contact sheet of everything rather than an
@@ -57,12 +43,8 @@ const allShorts = getShorts();
 const shorts = allShorts.slice(0, 4);
 const shortCount = allShorts.length;
 
-const testimonials = homeTestimonials(5);
-const leadQuote = testimonials.filter((t) => t.featured).slice(0, 2);
-const restQuotes = testimonials.filter((t) => !t.featured);
 
 // No email is published; booking goes to the scheduler or the contact page.
-const bookingHref = BOOKING.scheduler || '/contact/';
 
 const schema = [
   {
@@ -80,7 +62,6 @@ const schema = [
       url: new URL(postUrl(p), SITE.url).href,
     })),
   },
-  ...eventSchema(upcoming, SITE.url, `${SITE.url}/#person`),
   // No Review schema: self-serving testimonials reviewing the site's own author
   // aren't eligible for review rich results and fail validation (Person is not a
   // valid itemReviewed type). The quotes remain visible on the page.
@@ -91,9 +72,24 @@ const schema = [
   <!-- An installed launch belongs on the app feed, not the marketing page. -->
   <AppLaunchRedirect />
 
-  <!-- ══════════════ Hero: one carousel, slide by slide like a session deck ══════════════ -->
-  <section class="mx-auto max-w-6xl px-4 pt-8 pb-10 sm:px-6 lg:pt-10 lg:pb-12">
-    <HomeCarousel bookingHref={bookingHref} />
+  <!-- ══════════════ Hero ══════════════
+       The home page sells the articles, not the author: the headline names the
+       topics people search for, and every action leads into reading. The
+       author lives on /about, /contributions and /speaking. -->
+  <section class="mx-auto max-w-6xl px-4 pt-8 pb-8 sm:px-6 lg:pt-10">
+    <p class="eyebrow">{SITE.title} · Articles and short videos</p>
+    <h1 class="display mt-2 max-w-3xl text-3xl sm:text-4xl text-balance">
+      Azure, AI and GitHub Copilot, explained from production
+    </h1>
+    <p class="mt-3 max-w-2xl leading-relaxed text-muted text-pretty">
+      Hands-on articles on Azure, Microsoft Foundry, GitHub Copilot, Flutter and .NET, with real
+      code, measured numbers and the trade-offs behind each decision.
+    </p>
+    <div class="mt-5 flex flex-wrap gap-3">
+      <a href="#latest" class="btn btn-primary">Read the latest</a>
+      <a href="/series/" class="btn btn-outline">Start a series</a>
+      <a href="/shorts/" class="btn btn-outline">Short videos</a>
+    </div>
     <TopicLinks class="mt-6" />
   </section>
 
@@ -357,45 +353,6 @@ const schema = [
     </section>
   )}
 
-  <!-- ══════════════ Contribution at a glance ══════════════
-       Each number links to the evidence behind it, so the claim and the proof
-       are never more than one click apart. -->
-  <section class="border-y border-default bg-subtle" aria-labelledby="impact-heading">
-    <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <div class="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 id="impact-heading" class="text-sm font-semibold tracking-wider uppercase text-muted">
-          Contribution to the developer community
-        </h2>
-        <a href="/contributions/" class="text-sm font-semibold text-accent hover:underline">
-          Full contribution record →
-        </a>
-      </div>
-
-      <div class="mt-6 grid grid-cols-2 gap-x-6 gap-y-7 md:grid-cols-3 lg:grid-cols-6">
-        {pillars.map(({ value, label, detail, href }) => (
-          <a href={href} class="group">
-            <div class="text-[1.75rem] leading-none font-bold tracking-tight text-accent">
-              {value}
-            </div>
-            <div class="mt-1.5 text-sm font-medium group-hover:text-accent">{label}</div>
-            <div class="mt-0.5 text-xs leading-snug text-muted">{detail}</div>
-          </a>
-        ))}
-      </div>
-
-      <div class="mt-10 border-t border-default pt-6">
-        <ContributionTimeline />
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════ Microsoft recognition ══════════════
-       Verifiable Microsoft achievements as visual badges, each linking to its
-       Microsoft Learn record — proof placed high on the page. -->
-  <section class="mx-auto max-w-6xl px-4 py-10 sm:px-6" aria-label="Microsoft recognition">
-    <MicrosoftBadges variant="compact" />
-  </section>
-
   <!-- ══════════════ Articles ══════════════ -->
   <section class="mx-auto max-w-6xl px-4 section sm:px-6" aria-labelledby="articles-heading">
     <div class="section-head">
@@ -489,181 +446,26 @@ const schema = [
 
   </section>
 
-  <!-- ══════════════ Speaker ══════════════
-       A deep neutral band rather than a saturated gradient: it separates the
-       section without introducing a second brand colour. -->
-  <section
-    id="speaking"
-    class="scroll-mt-16"
-    style="background: var(--band); color: #fff;"
-    aria-labelledby="speaking-heading"
-  >
-    <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-      <div class="grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
-        <div>
-          <span class="badge-chip" style="opacity: 0.9;">Speaker</span>
-          <h2 id="speaking-heading" class="display mt-4 text-2xl sm:text-[2rem]">
-            50+ sessions. 15,000+ developers reached.
-          </h2>
-          <p class="mt-3 max-w-md leading-relaxed" style="opacity: 0.9;">
-            Conference sessions, webinars, and community meetups on Azure, applied AI,
-            and .NET — in English or Tamil, on site or online.
-          </p>
-
-          <div class="mt-6 flex flex-wrap gap-3">
-            <a href={bookingHref} class="btn" style="background: #fff; color: var(--navy);">
-              Book an appointment
-            </a>
-            <a
-              href="/speaking/"
-              class="btn"
-              style="background: transparent; color: #fff; border: 1.5px solid rgb(255 255 255 / 0.35);"
-            >
-              Talks &amp; topics
-            </a>
-          </div>
-
-          <p class="mt-3 text-sm" style="opacity: 0.88;">{BOOKING.responseTime}</p>
-        </div>
-
-        <div>
-          <h3 class="text-xs font-semibold tracking-wider uppercase" style="opacity: 0.88;">
-            {upcoming.length > 0 ? 'Upcoming' : 'Talks I give'}
-          </h3>
-
-          {upcoming.length > 0 ? (
-            <div class="mt-3 space-y-2">
-              {upcoming.slice(0, 3).map((event) => (
-                <div class="rounded-lg bg-white/95 p-1" style="color: var(--navy);">
-                  <EventCard event={event} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <ul class="mt-3 grid gap-x-6 sm:grid-cols-2">
-              {SPEAKING_TOPICS.map(({ title, description }) => (
-                <li class="border-t py-3.5" style="border-color: rgb(255 255 255 / 0.16);">
-                  <h4 class="text-sm font-semibold">{title}</h4>
-                  <p class="mt-1 text-sm leading-relaxed" style="opacity: 0.9;">{description}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════ Open source ══════════════ -->
-  <section class="mx-auto max-w-6xl px-4 section sm:px-6" aria-labelledby="oss-heading">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">Open source</p>
-        <h2 id="oss-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">Code you can read</h2>
-      </div>
-      <p class="text-sm text-muted">
-        {repoIndex.count} repos · {repoIndex.totalStars} stars · {repoIndex.totalForks} forks
-        <a href="/open-source/" class="ml-3 font-semibold text-accent hover:underline">All projects →</a>
-      </p>
-    </div>
-
-    <ul class="mt-2 divide-y divide-[var(--border)]">
-      {repos.map((repo) => (
-        <li class="group relative flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3.5">
-          <a href={repo.url} rel="noopener" class="font-semibold after:absolute after:inset-0 group-hover:text-accent">
-            {repo.name}
-          </a>
-          <p class="min-w-0 flex-1 truncate text-sm text-muted">{repo.description}</p>
-          {repo.language && (
-            <span class="inline-flex items-center gap-1.5 text-xs text-muted">
-              <span class="size-2.5 rounded-full" style={`background: ${languageColor(repo.language)};`}></span>
-              {repo.language}
-            </span>
-          )}
-          <span class="w-16 text-right text-xs text-muted">{repo.stars}★ {repo.forks}⑂</span>
-        </li>
-      ))}
-    </ul>
-  </section>
-
-  <!-- One display ad between the open-source and testimonials sections. -->
+  <!-- One display ad, after the article library. -->
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
     <AdUnit slot={ADSENSE_SLOT_DISPLAY} format="display" class="!max-w-none" />
   </div>
 
-  <!-- ══════════════ Testimonials ══════════════ -->
-  {testimonials.length > 0 && (
-    <section class="mx-auto max-w-6xl px-4 section sm:px-6" aria-labelledby="testimonials-heading">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">Testimonials</p>
-          <h2 id="testimonials-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">
-            How these articles helped
-          </h2>
-        </div>
-        <div class="flex flex-wrap gap-3">
-          <!-- The form is on this page already, so the button jumps to it rather
-               than opening the popup — a second copy of the form would repeat
-               its heading and help text in the page source. -->
-          <a href="#write-testimonial" class="btn btn-accent btn-sm">Add your feedback</a>
-          <a href="/testimonials/" class="btn btn-outline btn-sm">All testimonials</a>
-        </div>
-      </div>
-
-      {leadQuote.length > 0 && (
-        <div class="mt-6 grid gap-5 md:grid-cols-2">
-          {leadQuote.map((t) => <TestimonialCard testimonial={t} highlight />)}
-        </div>
-      )}
-
-      {restQuotes.length > 0 && (
-        <div class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {restQuotes.map((t) => <TestimonialCard testimonial={t} />)}
-        </div>
-      )}
-
-      <!-- The one form on this page: a reader who scrolls this far should not
-           have to open a dialog to answer. -->
-      <div class="mt-8">
-        <TestimonialForm compact formId="home" />
-      </div>
-    </section>
-  )}
-
-  <!-- ══════════════ Contact + Subscribe ══════════════ -->
-  <section class="border-t border-default bg-subtle" aria-labelledby="contact-heading">
+  <!-- ══════════════ Subscribe ══════════════ -->
+  <section class="border-t border-default bg-subtle" aria-labelledby="subscribe-heading">
     <div class="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2">
       <div>
-        <p class="eyebrow">Contact</p>
-        <h2 id="contact-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">
-          Invite me to your event
+        <p class="eyebrow">Subscribe</p>
+        <h2 id="subscribe-heading" class="display mt-1.5 text-2xl sm:text-[1.75rem]">
+          Get the next article first
         </h2>
         <p class="mt-3 max-w-lg leading-relaxed text-muted text-pretty">
-          Based in {AUTHOR.location}, speaking globally. Conference sessions, webinars,
-          and community meetups — or just feedback on something I wrote.
+          New articles and short videos on Azure, AI, GitHub Copilot and mobile, by email or RSS.
         </p>
-
         <div class="mt-6 flex flex-wrap gap-3">
-          <a href="/contact/" class="btn btn-primary">Get in touch</a>
-          <a href={bookingHref} class="btn btn-outline">Book an appointment</a>
+          <a href="/rss.xml" class="btn btn-outline">RSS feed</a>
+          <a href="/topics/" class="btn btn-outline">Browse topics</a>
         </div>
-
-        <dl class="mt-8 grid max-w-md grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          {[
-            { label: 'LinkedIn', value: 'in/jssuthahar', href: AUTHOR.linkedin },
-            { label: 'GitHub', value: '@jssuthahar', href: 'https://github.com/jssuthahar' },
-            { label: 'YouTube', value: '@MSDEVBUILD', href: 'https://www.youtube.com/@MSDEVBUILD' },
-            { label: 'X', value: '@jssuthahar', href: AUTHOR.x },
-            { label: 'Contact', value: 'Send a message', href: '/contact/' },
-          ].map(({ label, value, href }) => (
-            <div class="min-w-0">
-              <dt class="text-xs text-muted">{label}</dt>
-              <dd class="truncate font-medium">
-                <a href={href} rel="noopener" class="hover:text-accent">{value}</a>
-              </dd>
-            </div>
-          ))}
-        </dl>
 
         <!-- Sharing the site itself. Only one ShareRow may render per page —
              its script wires up the first [data-share-row] it finds — so this

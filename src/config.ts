@@ -1,12 +1,23 @@
+import { BRAND, SOCIAL as SHARED_SOCIAL } from '@msdevbuild/config';
+
+/** A profile URL from the shared MSDEVBUILD brand (msdevbuild-config), by its id there. */
+const shared = (id: string): string => {
+  const link = SHARED_SOCIAL.find((s) => s.id === id);
+  if (!link) throw new Error(`@msdevbuild/config has no social link "${id}"`);
+  return link.href;
+};
+
 /**
  * Single source of truth for site-wide values.
+ * Identity (name, author, profile links) comes from @msdevbuild/config, shared
+ * with azure.msdevbuild.com; only blog-specific values are defined here.
  * Anything that appears in SEO tags, JSON-LD, or llms.txt is defined here.
  */
 
 export const SITE = {
-  title: 'MSDEVBUILD',
+  title: BRAND.org,
   /** Expands the wordmark: MSDEVBUILD = Multi-Stack Dev Build. */
-  alternateName: 'Multi-Stack Dev Build',
+  alternateName: BRAND.orgFull,
   /** Shown beside the wordmark so the blog is always attributed. */
   byline: 'by Suthahar',
   /** Also used as the home-page <title> suffix, so it must read as a positioning line. */
@@ -31,7 +42,7 @@ export const SITE = {
     'Programming & software engineering fundamentals',
     'Firebase, analytics & modern application platforms',
   ],
-  url: 'https://blog.msdevbuild.com',
+  url: BRAND.blog,
   locale: 'en_US',
   lang: 'en',
   postsPerPage: 12,
@@ -61,18 +72,18 @@ export const REPO = {
 } as const;
 
 export const AUTHOR = {
-  name: 'Suthahar Jegatheesan',
-  alternateName: 'MSDEVBUILD',
+  name: BRAND.author,
+  alternateName: BRAND.org,
   /**
    * No email is published anywhere on the site — enquiries route through
    * LinkedIn or the contact form so the address is never scrapeable.
    */
-  linkedin: 'https://www.linkedin.com/in/jssuthahar',
-  x: 'https://x.com/jssuthahar',
+  linkedin: shared('linkedin'),
+  x: shared('x'),
   /** Bare handle, for the `twitter:creator` / `twitter:site` card metadata. */
   xHandle: '@jssuthahar',
-  jobTitle: 'Cloud, AI & Mobile Solutions Architect',
-  location: 'Malaysia',
+  jobTitle: BRAND.authorTitle,
+  location: BRAND.authorLocation,
   yearsExperience: 19,
   bio: 'Cloud, AI & Mobile Solutions Architect with 19+ years in enterprise architecture across Azure, Google Cloud and Firebase, building with C#, Python, .NET MAUI and Flutter, and applying AI with Azure AI, Claude and GitHub Copilot. Creator of MSDEVBUILD.',
   avatar: '/images/author.jpg',
@@ -241,7 +252,7 @@ export const SOCIAL = [
     handle: 'in/jssuthahar',
     action: 'Follow',
     cta: 'Follow on LinkedIn',
-    href: 'https://www.linkedin.com/in/jssuthahar',
+    href: shared('linkedin'),
     blurb: 'Architecture notes and career posts',
   },
   {
@@ -251,7 +262,7 @@ export const SOCIAL = [
     handle: 'MSDEVBUILD channel',
     action: 'Follow',
     cta: 'Follow the WhatsApp channel',
-    href: 'https://whatsapp.com/channel/0029Va5j2rHEFeXcTlUhQB0J',
+    href: shared('whatsapp'),
     blurb: 'Every new article, straight to your chats',
   },
   {
@@ -268,7 +279,7 @@ export const SOCIAL = [
      * for logged-in page admins and 404s for everyone else. LinkedIn redirects
      * the numeric company id to the page's vanity URL.
      */
-    href: 'https://www.linkedin.com/company/31318247/',
+    href: shared('linkedin-org'),
     blurb: 'The publication feed for the blog',
   },
   {
@@ -278,7 +289,7 @@ export const SOCIAL = [
     handle: '@msdevbuild',
     action: 'Follow',
     cta: 'Follow on Instagram',
-    href: 'https://www.instagram.com/msdevbuild/',
+    href: shared('instagram'),
     // The short videos are drawn at 1080×1920 — the same frame Instagram is
     // built around — so this is where they land natively rather than embedded.
     blurb: 'The short videos, in the feed they were drawn for',
@@ -290,7 +301,7 @@ export const SOCIAL = [
     handle: '@jssuthahar',
     action: 'Follow',
     cta: 'Follow on GitHub',
-    href: 'https://github.com/jssuthahar',
+    href: shared('github'),
     blurb: 'Sample code and open-source projects',
   },
   {
@@ -300,7 +311,7 @@ export const SOCIAL = [
     handle: '@MSDEVBUILD',
     action: 'Subscribe',
     cta: 'Subscribe on YouTube',
-    href: 'https://www.youtube.com/@MSDEVBUILD?sub_confirmation=1',
+    href: shared('youtube'),
     blurb: 'Video walkthroughs in English and Tamil',
   },
   {
@@ -310,7 +321,7 @@ export const SOCIAL = [
     handle: '@jssuthahar',
     action: 'Follow',
     cta: 'Follow on X',
-    href: 'https://x.com/jssuthahar',
+    href: shared('x'),
     blurb: 'Short takes and new posts as they publish',
   },
 ] as const;

@@ -91,7 +91,7 @@ const exams = [...new Set(quiz.map((q) => q.exam))];
 <style>
   /* Clears the sticky header when the reveal scrolls back to the top. */
   .quiz {
-    scroll-margin-top: 9rem;
+    scroll-margin-top: calc(var(--header-h) + 5rem);
   }
 
   .quiz-eyebrow {

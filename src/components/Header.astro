@@ -7,14 +7,17 @@ const path = Astro.url.pathname;
 const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 ---
 
-<header class="site-header sticky top-0 z-50 border-b border-default">
-  <div class="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
+<!-- The glass header, menu and dropdown styles are shared with azure.msdevbuild.com
+     through @msdevbuild/config (.hdr-glass, .glass-pill-nav). Only the layout and
+     the blog's own controls live here. -->
+<header class="site-header hdr-glass sticky top-0 z-50">
+  <div class="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
     <a
       href="/"
-      class="flex min-w-0 items-center gap-2.5 xl:shrink-0"
+      class="flex min-w-0 items-center gap-2.5"
       aria-label={`${SITE.title} blog ${SITE.byline} — home`}
     >
-      <Avatar size={32} eager class="shrink-0 ring-2 ring-white/80" />
+      <Avatar size={32} eager class="shrink-0 ring-2 ring-[var(--accent)]/30" />
       <span class="min-w-0 leading-tight">
         <span class="block truncate font-semibold tracking-tight">
           <span class="header-ms">MS</span>DEVBUILD
@@ -24,34 +27,16 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
       </span>
     </a>
 
-    <nav class="ml-auto hidden items-center gap-0.5 xl:flex" aria-label="Main">
-      {NAV.map(({ label, href }) => (
-        <a
-          href={href}
-          aria-current={isActive(href) ? 'page' : undefined}
-          class:list={[
-            'rounded-full px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent-deep)]',
-            isActive(href) ? 'bg-[var(--accent-soft)] font-semibold text-[var(--accent-deep)]' : 'text-muted',
-          ]}
-        >
-          {label}
-        </a>
-      ))}
-    </nav>
-
-    <div class="ml-auto flex shrink-0 items-center gap-1 xl:ml-0">
+    <div class="ml-auto flex shrink-0 items-center gap-1">
       <!-- A returning reader's own streak, reflected back at them. Hidden until
            the script below finds one — most visits are still a stranger's
            first, and a "0 day streak" badge would read as an accusation
-           rather than a reward. Links to /history, which has carried this
-           stat (plus resume, bookmarks, most-read) since before this chip
-           existed; the chip's only job is making it visible from anywhere
-           instead of a page nobody thinks to open unprompted. -->
+           rather than a reward. Links to /history, which carries the full stat. -->
       <a
         id="streak-chip"
         href="/history/"
         hidden
-        class="inline-flex items-center gap-1 rounded-full border border-default px-2.5 py-1 text-xs font-semibold transition-colors hover:bg-subtle"
+        class="glass-field inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors hover:border-[var(--accent)]"
         title="Your reading streak"
       >
         <span aria-hidden="true">🔥</span>
@@ -68,18 +53,12 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
           <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
         </svg>
         <!-- Anchor text for crawlers, which read markup and do not credit
-             aria-label. The aria-label still wins for assistive tech, so this
-             is not announced twice. -->
+             aria-label. The aria-label still wins for assistive tech. -->
         <span class="sr-only">Search</span>
       </a>
       <!-- Install as an app (PWA). Hidden until the browser reports the site is
-           installable, or on iOS where it opens Add-to-Home-Screen steps. Solid
-           accent pill so it stands out and invites the install.
-
-           Icon only on phones: with the label, this button is 126px wide, which
-           on a 390px iPhone pushed the burger past the viewport edge — and since
-           the page clips horizontal overflow, the menu simply vanished. The
-           aria-label carries the name for anyone who needs it. -->
+           installable, or on iOS where it opens Add-to-Home-Screen steps.
+           Icon only on phones, so the header never overflows a 390px screen. -->
       <button
         id="pwa-install"
         type="button"
@@ -93,85 +72,82 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
         <span class="max-sm:hidden">Install app</span>
       </button>
       <ThemeToggle />
-      <button
-        id="menu-toggle"
-        type="button"
-        class="rounded-md p-2 transition-colors hover:bg-subtle xl:hidden"
-        aria-label="Open menu"
-        aria-expanded="false"
-        aria-controls="mobile-nav"
-      >
-        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-          <path d="M4 7h16M4 12h16M4 17h16" />
-        </svg>
-      </button>
     </div>
   </div>
 
-  <nav id="mobile-nav" class="hidden border-t border-default px-4 py-2 xl:hidden" aria-label="Mobile">
-    {NAV.map(({ label, href }) => (
-      <a
-        href={href}
-        aria-current={isActive(href) ? 'page' : undefined}
-        class:list={[
-          'block rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent-deep)]',
-          isActive(href) && 'bg-[var(--accent-soft)] font-semibold text-[var(--accent-deep)]',
-        ]}
-      >
-        {label}
-      </a>
-    ))}
-  </nav>
+  <!-- The pill menu, as on azure.msdevbuild.com: every link visible at every
+       width, scrolling sideways on a phone with a "more" hint at the edge. -->
+  <div class="topbar-wrap relative">
+    <nav class="topbar h-[3.25rem] overflow-x-auto px-2" aria-label="Main">
+      <ul class="glass-pill-nav text-sm">
+        {NAV.map(({ label, href }) => (
+          <li class="flex">
+            <a href={href} aria-current={isActive(href) ? 'page' : undefined}>{label}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    <span class="topbar-more" aria-hidden="true">›</span>
+  </div>
 </header>
 
 <style>
-  /* Fully opaque, no backdrop-filter. A translucent + blurred sticky header
-     forces the browser to recompute a gaussian blur over the scrolling content
-     on every frame; on Chrome — especially Retina Macs — that shows up as scroll
-     jank and flicker. A solid header composites once and scrolls perfectly. */
-  .site-header {
-    /* The footer's azure, so the page is framed in the brand colour at both ends.
-       Redefining the tokens here restyles everything inside at once, including
-       the theme toggle and the mobile menu, in both themes. */
-    --text: #ffffff;
-    --text-muted: rgb(255 255 255 / 0.88);
-    --border: rgb(255 255 255 / 0.22);
-    --bg-subtle: rgb(255 255 255 / 0.14);
-    --accent-soft: #ffffff;
-    --accent-deep: #005a9e;
-    background: linear-gradient(100deg, #00528f, #003a6a);
+  .topbar {
+    scrollbar-width: none;
+  }
+  .topbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Fade + arrow when more links sit off to the right (phones). */
+  .topbar-more {
+    display: none;
+    position: absolute;
+    inset-block: 0 0.25rem;
+    right: 0;
+    width: 2.6rem;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 0.5rem;
+    font-size: 1.4rem;
+    font-weight: 700;
     color: var(--text);
-    box-shadow: 0 8px 24px -14px rgb(0 44 80 / 0.7);
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--bg) 65%);
   }
-  :global([data-theme='dark']) .site-header {
-    background: linear-gradient(100deg, #0a3f6c, #071f38);
+  .topbar-wrap.more-right .topbar-more {
+    display: flex;
   }
-  .site-header :global(:focus-visible) {
-    outline-color: #fff;
-  }
-  .header-ms {
-    color: #8fcbf7;
-  }
-  /* White, because the usual azure button would vanish on this bar. */
-  #pwa-install {
-    background: #fff;
-    color: #005a9e;
+  @media (max-width: 479px) {
+    .glass-pill-nav > li > a {
+      padding-inline: 0.75rem;
+    }
   }
 </style>
 
 <script>
-  function initMenu() {
-    const button = document.getElementById('menu-toggle');
-    const nav = document.getElementById('mobile-nav');
-    button?.addEventListener('click', () => {
-      const open = nav?.classList.toggle('hidden') === false;
-      button.setAttribute('aria-expanded', String(open));
-      button.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
-    });
-  }
+  // Glass header: a deeper shadow once the page scrolls under it, and the
+  // "more" hint on the pill menu. Re-run on every soft navigation, because
+  // ClientRouter swaps the header in with the rest of the page.
+  const onScroll = () => document.querySelector('.site-header')?.classList.toggle('is-scrolled', scrollY > 4);
+  addEventListener('scroll', onScroll, { passive: true });
 
-  initMenu();
-  document.addEventListener('astro:after-swap', initMenu);
+  function initPillNav() {
+    onScroll();
+    const bar = document.querySelector<HTMLElement>('.site-header .topbar');
+    const wrap = bar?.parentElement;
+    if (!bar || !wrap) return;
+    const more = () => wrap.classList.toggle('more-right', bar.scrollLeft + bar.clientWidth < bar.scrollWidth - 6);
+    bar.addEventListener('scroll', more, { passive: true });
+    more();
+    // Keep the current page's pill in view on phones.
+    bar.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }
+  initPillNav();
+  document.addEventListener('astro:page-load', initPillNav);
+  addEventListener('resize', () => {
+    const bar = document.querySelector<HTMLElement>('.site-header .topbar');
+    bar?.dispatchEvent(new Event('scroll'));
+  });
 
   // Any [data-open-search] element opens the command palette instead of
   // navigating; the href stays as a no-JS fallback.

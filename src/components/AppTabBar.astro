@@ -415,11 +415,11 @@ const moreActive = MORE.some(isActive);
       --app-nav-h: calc(4.8rem + env(safe-area-inset-bottom));
     }
 
-    /* The bar carries every destination the burger did — four tabs plus the
-       More sheet — so keeping the burger would leave two navigation systems
-       competing on one screen. */
-    #menu-toggle,
-    #mobile-nav {
+    /* The bar carries every destination the header's pill menu does — four
+       tabs plus the More sheet — so keeping the pill row would leave two
+       navigation systems competing on one screen. --header-h drops to match
+       in global.css. */
+    .site-header .topbar-wrap {
       display: none !important;
     }
   }

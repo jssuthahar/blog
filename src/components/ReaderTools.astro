@@ -230,7 +230,7 @@ const { slug, title, path, category, hue, present = false } = Astro.props;
   /*
    * Anchor jumps have to clear the sticky bar.
    *
-   * Headings carry `scroll-margin-top: 5.5rem` for the site header alone, and a
+   * Headings carry `scroll-margin-top: var(--header-h) + 1rem` for the site header alone, and a
    * step in a short carries `scroll-mt-24`. Both now land the target underneath
    * this bar — a table-of-contents link that appears to go nowhere. These rules
    * ship only on the pages that mount ReaderTools, which are exactly the pages
@@ -238,7 +238,7 @@ const { slug, title, path, category, hue, present = false } = Astro.props;
    */
   .prose-reading :is(h2, h3, h4),
   [data-short-steps] > li {
-    scroll-margin-top: 7.75rem;
+    scroll-margin-top: calc(var(--header-h) + 3.75rem);
   }
 
   /*
@@ -415,9 +415,9 @@ const { slug, title, path, category, hue, present = false } = Astro.props;
    */
   .reader-sticky {
     position: sticky;
-    /* The header is 4rem, and ReadingProgress pins a 2px bar directly under it.
-       Clearing both keeps the progress line visible rather than covered. */
-    top: calc(4rem + 2px);
+    /* ReadingProgress pins a 2px bar directly under the header. Clearing both
+       keeps the progress line visible rather than covered. */
+    top: calc(var(--header-h) + 2px);
     /* Above the article and the progress bar (40), below the site header (50). */
     z-index: 45;
     /* Full-bleed, so that once stuck it reads as a second row of the site header

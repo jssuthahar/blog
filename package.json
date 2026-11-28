@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "astro dev",
+    "prebuild": "node node_modules/@msdevbuild/config/scripts/auth-helper.mjs --host blog.msdevbuild.com --init-only",
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
@@ -21,7 +22,8 @@
     "check:covers": "node scripts/check-covers.mjs",
     "check:all": "npm run check:humanizer && npm run check:seo && npm run check:aeo && npm run check:covers",
     "push:announce": "node --env-file=.env scripts/announce-new-posts.mjs",
-    "push:announce:dry": "node scripts/announce-new-posts.mjs --dry-run"
+    "push:announce:dry": "node scripts/announce-new-posts.mjs --dry-run",
+    "auth-helper": "node node_modules/@msdevbuild/config/scripts/auth-helper.mjs --host blog.msdevbuild.com"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.7",

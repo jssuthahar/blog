@@ -145,6 +145,8 @@ const baseSchema = [
       startAccount({
         firebase: { ...SHARED, apiKey: FIREBASE.apiKey },
         load: () => Promise.all([import('firebase/app'), import('firebase/auth')]),
+        // Google then says "continue to blog.msdevbuild.com" (public/__/auth, npm run auth-helper).
+        authHost: 'blog.msdevbuild.com',
       });
     </script>
   </body>

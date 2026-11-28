@@ -34,3 +34,6 @@ pnpm-debug.log*
 .claude/agents/
 .claude/skills/
 /docs
+
+# Written at build time from PUBLIC_FIREBASE_API_KEY (npm run prebuild); keeps the key out of git.
+public/__/firebase/init.json

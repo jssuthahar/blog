@@ -5,7 +5,6 @@ import AppLaunchRedirect from '../components/AppLaunchRedirect.astro';
 import Newsletter from '../components/Newsletter.astro';
 import SubscribePopup from '../components/SubscribePopup.astro';
 import ShareRow from '../components/ShareRow.astro';
-import SiteChat from '../components/SiteChat.astro';
 import { SITE, ADSENSE_SLOT_DISPLAY } from '../config';
 import { CATEGORIES, getPublishedPosts, postUrl, formatDate, readingTime } from '../lib/posts';
 import { allArticles, articleCategories, primaryCategory, capturePayload } from '../lib/articles';
@@ -490,5 +489,4 @@ const schema = [
   <SubscribePopup />
 
   <!-- Site-wide find-an-article assistant (home only; posts have their own chat). -->
-  <SiteChat />
 </BaseLayout>

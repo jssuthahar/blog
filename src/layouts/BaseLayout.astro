@@ -10,6 +10,8 @@ import PwaController from '../components/PwaController.astro';
 import AppTabBar from '../components/AppTabBar.astro';
 import ViewCountLoader from '../components/ViewCountLoader.astro';
 import SiteEngage from '@msdevbuild/config/components/SiteEngage.astro';
+import AskNimbus from '../components/nimbus/AskNimbus.astro';
+import NimbusStage from '../components/nimbus/NimbusStage.astro';
 import { SITE, AUTHOR, MAIN_SITE, EXPERTISE } from '../config';
 
 interface Props {
@@ -135,6 +137,11 @@ const baseSchema = [
 
     <!-- Fills every listing card's view count with one Firestore request. -->
     <ViewCountLoader />
+
+    <!-- Nimbus, on every page: article finder, article guide, quiz, read aloud.
+         Persisted across navigation; its chat code loads on first tap. -->
+    <AskNimbus />
+    <NimbusStage />
 
     <!-- Optional sign-in (Google), one account for every MSDEVBUILD site.
          Firebase loads only on "Sign in" or for someone who signed in before. -->

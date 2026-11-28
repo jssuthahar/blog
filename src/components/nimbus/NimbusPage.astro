@@ -1,0 +1,39 @@
+---
+/**
+ * What Ask Nimbus knows about the article on screen: a small JSON island that
+ * the chat reads whenever the reader lands on (or navigates to) a post. The
+ * article's sections are read from the rendered page itself, so nothing here
+ * duplicates the body.
+ */
+interface Link { title: string; url: string; label?: string }
+interface Props {
+  title: string;
+  url: string;
+  description: string;
+  highlight?: string;
+  minutes: number;
+  category: string;
+  faq: { q: string; a: string }[];
+  quiz: { q: string; options: string[]; answer: 'A' | 'B' | 'C' | 'D'; explain: string; exam: string; skill: string }[];
+  next?: Link;
+  prev?: Link;
+  related: Link[];
+  short?: Link;
+}
+const p = Astro.props;
+const data = {
+  title: p.title,
+  url: p.url,
+  description: p.description,
+  highlight: p.highlight ?? '',
+  minutes: p.minutes,
+  category: p.category,
+  faq: p.faq,
+  quiz: p.quiz.map((q) => ({ q: q.q, o: q.options, a: 'ABCD'.indexOf(q.answer), e: q.explain, exam: q.exam, skill: q.skill })),
+  next: p.next ?? null,
+  prev: p.prev ?? null,
+  related: p.related,
+  short: p.short ?? null,
+};
+---
+<script is:inline type="application/json" id="nimbus-page" set:html={JSON.stringify(data).replace(/</g, '\\u003c')} />

@@ -436,22 +436,13 @@ const moreActive = MORE.some(isActive);
    * squarely on "More". Margin rather than `bottom` so each keeps whatever
    * offset and transform it already had.
    */
-  .site-fab,
-  .site-panel,
-  .chat-fab,
-  .chat-panel,
   .engagement-rail,
   .pwa-bar,
   [data-resume-prompt] {
     margin-bottom: var(--app-nav-h);
   }
 
-  /* The panels are sized against the viewport, so shortening them by the same
-     amount keeps a lifted panel from running off the top of the screen. */
-  .site-panel,
-  .chat-panel {
-    max-height: calc(100dvh - 2rem - var(--app-nav-h));
-  }
+  /* Ask Nimbus lifts itself by --app-nav-h (src/components/nimbus/AskNimbus.astro). */
 </style>
 
 <script>

@@ -1,0 +1,44 @@
+---
+/**
+ * Nimbus lives in @msdevbuild/config (shared with azure.msdevbuild.com). This
+ * wrapper adds what the blog layers on top: the character the reader picked
+ * in Meet my Nimbus (src/lib/nimbus/skins.ts), worn by every Nimbus on the
+ * page. The cloud is the server-rendered default, so the skin art only loads
+ * for a reader who picked something else.
+ */
+import Bot from '@msdevbuild/config/components/NimbusBot.astro';
+
+interface Props {
+  size?: number;
+  class?: string;
+  mood?: 'idle' | 'wave' | 'think' | 'talk' | 'cheer' | 'dance' | 'listen';
+  tap?: boolean;
+  react?: boolean;
+  level?: number;
+}
+---
+<Bot {...Astro.props} />
+
+<script>
+  import { SKIN_KEY } from '../../lib/nimbus/skins';
+  const chosen = () => { try { return localStorage.getItem(SKIN_KEY) || 'cloud'; } catch { return 'cloud'; } };
+  const wear = async () => {
+    const want = chosen();
+    const svgs = [...document.querySelectorAll<SVGElement>('svg.nb:not(.nb-mini):not([data-skin-fixed])')].filter((svg) => (svg.dataset.skin || 'cloud') !== want);
+    if (!svgs.length) return;
+    const { skinMarkup, skinOrDefault } = await import('../../lib/nimbus/skins');
+    const skin = skinOrDefault(want);
+    svgs.forEach((svg) => {
+      const g = svg.querySelector('.nb-skin');
+      if (g && svg.dataset.nbid) { g.innerHTML = skinMarkup(skin, svg.dataset.nbid); svg.dataset.skin = skin; }
+    });
+  };
+  wear();
+  addEventListener('nimbus-skin', wear);
+  addEventListener('storage', (e) => { if (e.key === SKIN_KEY) wear(); });
+  document.addEventListener('astro:page-load', wear);
+  // Calm mode (Meet my Nimbus) stops every Nimbus animation; page swaps reset <html> attributes.
+  const calm = () => { try { document.documentElement.toggleAttribute('data-nimbus-calm', localStorage.getItem('msdb-nimbus-calm') === '1'); } catch { /* blocked */ } };
+  calm();
+  document.addEventListener('astro:after-swap', calm);
+</script>

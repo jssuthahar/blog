@@ -9,7 +9,7 @@ import Reactions from '../../components/Reactions.astro';
 import LiveReaders from '../../components/LiveReaders.astro';
 import EngagementRail from '../../components/EngagementRail.astro';
 import FeedbackDialog from '../../components/FeedbackDialog.astro';
-import ArticleChat from '../../components/ArticleChat.astro';
+import NimbusPage from '../../components/nimbus/NimbusPage.astro';
 import ArticleQuiz from '../../components/ArticleQuiz.astro';
 import CodeCopyButton from '../../components/CodeCopyButton.astro';
 import PostCard from '../../components/PostCard.astro';
@@ -482,8 +482,21 @@ const shareImage = data.cover
   <!-- Floating prev/next buttons on the right margin, mirroring the rail. -->
   <PostNav next={next} prev={prev} />
 
-  <!-- Floating chat launcher; fixed-position, so it lives at the page root. -->
-  <ArticleChat faq={data.faq} body={stripAuthorNotes(post.body ?? '')} title={data.title} intro={data.highlight} />
+  <!-- What Ask Nimbus (mounted in BaseLayout) knows about this article. -->
+  <NimbusPage
+    title={data.title}
+    url={path}
+    description={data.description}
+    highlight={data.highlight}
+    minutes={minutes}
+    category={category.label}
+    faq={data.faq}
+    quiz={data.quiz}
+    next={next ? { title: next.post.data.title, url: postUrl(next.post), label: next.label } : undefined}
+    prev={prev ? { title: prev.post.data.title, url: postUrl(prev.post), label: prev.label } : undefined}
+    related={related.map((r) => ({ title: r.data.title, url: postUrl(r) }))}
+    short={stripShorts[0] ? { title: stripShorts[0].title, url: shortUrl(stripShorts[0]) } : undefined}
+  />
 
   <!-- Full-screen deck built from the article's own H2 sections on demand. -->
   <PresentationMode

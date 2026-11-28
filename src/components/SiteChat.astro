@@ -1,5 +1,7 @@
 ---
 import { AUTHOR } from '../config';
+// Nimbus, the MSDEVBUILD helper, shared with azure.msdevbuild.com.
+import NimbusBot from '@msdevbuild/config/components/NimbusBot.astro';
 
 /**
  * Site-wide help chat. A conversational front door to the search index: a
@@ -9,7 +11,6 @@ import { AUTHOR } from '../config';
  * page), so a page never shows two launchers.
  */
 
-const initials = AUTHOR.name.split(' ').map((p) => p[0]).slice(0, 2).join('');
 const firstName = AUTHOR.name.split(' ')[0];
 
 // Starter topics shown as chips.
@@ -22,13 +23,11 @@ const TOPICS = ['Azure', 'AI', '.NET MAUI', 'GitHub Copilot', 'Xamarin'];
     data-toggle
     aria-expanded="false"
     aria-controls="site-chat-panel"
-    aria-label="Find articles — ask me"
-    class="site-fab fixed right-4 bottom-4 z-[60] flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white shadow-xl transition-transform hover:-translate-y-0.5 sm:right-6 sm:bottom-6"
+    aria-label="Ask Nimbus to find an article"
+    class="site-fab fixed right-4 bottom-4 z-[60] flex items-center gap-2 rounded-full py-1.5 pr-4 pl-1.5 text-sm font-semibold text-white shadow-xl transition-transform hover:-translate-y-0.5 sm:right-6 sm:bottom-6"
   >
-    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" />
-    </svg>
-    <span class="hidden sm:inline">Find an article</span>
+    <span class="shrink-0"><NimbusBot size={40} tap /></span>
+    <span>Ask Nimbus</span>
   </button>
 
   <div
@@ -40,16 +39,9 @@ const TOPICS = ['Azure', 'AI', '.NET MAUI', 'GitHub Copilot', 'Xamarin'];
     class="site-panel fixed right-4 bottom-4 z-[61] flex flex-col overflow-hidden rounded-2xl border border-default shadow-2xl sm:right-6 sm:bottom-6"
   >
     <header class="flex items-center gap-3 border-b border-default p-4" style="background: var(--bg);">
-      <img
-        src={AUTHOR.avatar}
-        alt={AUTHOR.name}
-        width="40"
-        height="40"
-        class="size-10 shrink-0 rounded-full object-cover"
-        onerror={`this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${initials}',className:'flex size-10 items-center justify-center rounded-full text-sm font-semibold text-white',style:'background:linear-gradient(135deg,#0078d4,#005a9e)'}))`}
-      />
+      <span class="shrink-0"><NimbusBot size={48} mood="wave" /></span>
       <div class="min-w-0 flex-1">
-        <p class="text-sm font-semibold">Ask {firstName}</p>
+        <p class="text-sm font-semibold">Ask Nimbus</p>
         <p class="text-xs text-muted">Tell me a topic — I’ll find the article</p>
       </div>
       <button type="button" data-close aria-label="Close" class="rounded-md p-1.5 text-muted transition-colors hover:bg-subtle">
@@ -90,7 +82,7 @@ const TOPICS = ['Azure', 'AI', '.NET MAUI', 'GitHub Copilot', 'Xamarin'];
   @media (prefers-reduced-motion: reduce) { .site-panel[data-open], [data-site-chat] .dot { animation: none; } }
 </style>
 
-<script is:inline define:vars={{ firstName, avatar: AUTHOR.avatar, initials }}>
+<script is:inline define:vars={{ firstName }}>
   (() => {
     function init() {
       const root = document.querySelector('[data-site-chat]');
@@ -117,15 +109,11 @@ const TOPICS = ['Azure', 'AI', '.NET MAUI', 'GitHub Copilot', 'Xamarin'];
         const wrap = document.createElement('div');
         wrap.className = role === 'user' ? 'flex justify-end' : 'flex gap-2.5';
         if (role === 'bot') {
-          const av = document.createElement('img');
-          av.src = avatar; av.alt = ''; av.className = 'size-7 shrink-0 rounded-full object-cover';
-          av.onerror = () => {
-            const s = document.createElement('span');
-            s.textContent = initials;
-            s.className = 'flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white';
-            s.style.background = 'linear-gradient(135deg,#0078d4,#005a9e)';
-            av.replaceWith(s);
-          };
+          // A small Nimbus beside each answer: a copy of the one in the panel header.
+          const bot = panel.querySelector('header svg.nb');
+          const av = document.createElement('span');
+          av.className = 'size-8 shrink-0';
+          if (bot) { const c = bot.cloneNode(true); c.setAttribute('width', '32'); c.setAttribute('height', '32'); c.dataset.mood = 'idle'; av.appendChild(c); }
           wrap.appendChild(av);
         }
         const b = document.createElement('div');
@@ -182,7 +170,7 @@ const TOPICS = ['Azure', 'AI', '.NET MAUI', 'GitHub Copilot', 'Xamarin'];
       const open = () => {
         panel.hidden = false; panel.dataset.open = ''; fab.hidden = true;
         fab.setAttribute('aria-expanded', 'true');
-        if (!greeted) { bubble('bot', `Hi — I’m ${firstName}. Tell me what you’re after and I’ll find the article for you.`); greeted = true; }
+        if (!greeted) { bubble('bot', `Hi, I’m Nimbus. Tell me what you’re after and I’ll find ${firstName}’s article on it.`); greeted = true; }
         setTimeout(() => input.focus(), 50);
       };
       const close = () => {

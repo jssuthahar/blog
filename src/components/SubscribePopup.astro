@@ -1,5 +1,6 @@
 ---
 import { FIREBASE, NEWSLETTER } from '../config';
+import TopicPicker from './TopicPicker.astro';
 
 /**
  * One-time subscription invitation.
@@ -78,7 +79,8 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
         ))}
       </ul>
 
-      <form id="subscribe-popup-form" class="mt-6 flex flex-col gap-2 sm:flex-row" novalidate>
+      <form id="subscribe-popup-form" class="mt-6 grid gap-3" novalidate>
+        <div class="flex flex-col gap-2 sm:flex-row">
         <label for="popup-email" class="sr-only">Email address</label>
         <input
           id="popup-email"
@@ -90,6 +92,8 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
           class="flex-1 rounded-lg border border-default bg-[var(--bg)] px-4 py-2.5 text-sm"
         />
         <button type="submit" class="btn btn-accent btn-sm">Subscribe</button>
+        </div>
+        <TopicPicker id="popup-topics" />
       </form>
 
       <p id="subscribe-popup-status" role="status" aria-live="polite" class="mt-3 min-h-5 text-sm"></p>
@@ -130,6 +134,7 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
   // Shares the signup logic with every inline form, so a change to the
   // Firestore write or the provider hand-off applies in both places.
   import { subscribe } from '../lib/subscribe';
+  import { pickedTopics } from '../lib/subscribe-form';
 
   function initSubscribePopup() {
     const found = document.getElementById('subscribe-popup') as HTMLDialogElement | null;
@@ -169,7 +174,7 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
       status.style.color = 'var(--text-muted)';
 
       try {
-        const result = await subscribe(input.value, dialog.dataset.source || 'home-popup');
+        const result = await subscribe(input.value, dialog.dataset.source || 'home-popup', form ? pickedTopics(form) : undefined);
 
         // `subscribe` sets the subscribed flag; SEEN keeps the popup closed
         // even if that key is later cleared.
@@ -186,7 +191,9 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
         status.textContent =
           error instanceof Error && error.message === 'invalid-email'
             ? 'Please enter a valid email address.'
-            : 'Something went wrong. Please try again later.';
+            : error instanceof Error && error.message === 'no-topics'
+              ? 'Tick at least one topic.'
+              : 'Something went wrong. Please try again later.';
         status.style.color = 'var(--accent)';
         input.focus();
       }

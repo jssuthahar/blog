@@ -135,5 +135,17 @@ const baseSchema = [
 
     <!-- Fills every listing card's view count with one Firestore request. -->
     <ViewCountLoader />
+
+    <!-- Optional sign-in (Google), one account for every MSDEVBUILD site.
+         Firebase loads only on "Sign in" or for someone who signed in before. -->
+    <script>
+      import { startAccount } from '@msdevbuild/config/account';
+      import { FIREBASE as SHARED } from '@msdevbuild/config/firebase';
+      import { FIREBASE } from '../config';
+      startAccount({
+        firebase: { ...SHARED, apiKey: FIREBASE.apiKey },
+        load: () => Promise.all([import('firebase/app'), import('firebase/auth')]),
+      });
+    </script>
   </body>
 </html>

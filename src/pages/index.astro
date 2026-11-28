@@ -1,4 +1,5 @@
 ---
+import SiteLive from '@msdevbuild/config/components/SiteLive.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import AppLaunchRedirect from '../components/AppLaunchRedirect.astro';
 import Newsletter from '../components/Newsletter.astro';
@@ -90,6 +91,8 @@ const schema = [
       <a href="/series/" class="btn btn-outline">Start a series</a>
       <a href="/shorts/" class="btn btn-outline">Short videos</a>
     </div>
+    <!-- Real activity: online now, and the last 10 days for visitors not signed in. -->
+    <SiteLive class="mt-5" />
     <!-- Featured item, pinned in admin.msdevbuild.com → Site settings. -->
     <div data-msdb-featured hidden class="mt-6 max-w-2xl"></div>
     <TopicLinks class="mt-6" />

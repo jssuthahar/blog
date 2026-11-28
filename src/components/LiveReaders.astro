@@ -40,7 +40,7 @@
  * rather than guessed at.
  */
 import { FIREBASE } from '../config';
-import { ZONE_MAP, COUNTRY_NAMES } from '../lib/country';
+import { COUNTRY_NAMES } from '../lib/country';
 
 const enabled = FIREBASE.projectId.length > 0;
 ---
@@ -193,15 +193,13 @@ const enabled = FIREBASE.projectId.length > 0;
 </style>
 
 {enabled && (
-  <script is:inline define:vars={{ projectId: FIREBASE.projectId, ZONES: ZONE_MAP, NAMES: COUNTRY_NAMES }}>
+  <script is:inline define:vars={{ projectId: FIREBASE.projectId, NAMES: COUNTRY_NAMES }}>
     (() => {
       // Re-resolved per page: this site uses Astro's ClientRouter, so a soft
       // navigation swaps the DOM and any node captured at first load is stale.
       let box = null;
 
       const BASE = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
-      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const CC = ZONES[zone] || null;          // null = unknown zone, never guessed
 
       const flag = (c) =>
         /^[A-Z]{2}$/.test(c)
@@ -223,28 +221,6 @@ const enabled = FIREBASE.projectId.length > 0;
         for (const [k, v] of Object.entries(f.fields)) out[k] = Number(v.integerValue || 0);
         return out;
       };
-
-      /** One field transform: counts.<CC> += 1. Creates the doc if absent. */
-      async function bump(collection, docId) {
-        if (!CC) return;
-        await fetch(`${BASE}:commit`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            // update + updateMask + updateTransforms, matching Reactions.astro.
-            // A bare `transform` write is rejected by this API version with an
-            // HTML 404, which looks like a wrong URL rather than a wrong body.
-            writes: [{
-              update: {
-                name: `projects/${projectId}/databases/(default)/documents/${collection}/${docId}`,
-                fields: {},
-              },
-              updateMask: { fieldPaths: [] },
-              updateTransforms: [{ fieldPath: `counts.${CC}`, increment: { integerValue: '1' } }],
-            }],
-          }),
-        }).catch(() => {});
-      }
 
       async function getDoc(collection, docId) {
         try {
@@ -332,9 +308,11 @@ const enabled = FIREBASE.projectId.length > 0;
       // Once a minute while the tab is visible. A hidden tab stops writing, so
       // a background tab left open overnight is not counted as a reader.
       let timer = null;
+      // Counting moved to <SiteBell> (msdevbuild-config src/activity.ts), which
+      // writes the same buckets from every page. This widget only reads them,
+      // so an article view is never counted twice.
       function beat() {
         if (!box || document.visibilityState !== 'visible') return;
-        bump('presenceMinutes', minuteKey(new Date()));
         paintLive();
       }
       function start() {
@@ -355,15 +333,6 @@ const enabled = FIREBASE.projectId.length > 0;
         stop();                                   // drop the previous page's timer
         box = document.querySelector('[data-live-readers]');
         if (!box) return;                         // not an article page
-
-        // The daily bucket counts readers, not minutes, so it is written once
-        // per browser session rather than on every heartbeat or navigation.
-        try {
-          if (CC && !sessionStorage.getItem('lr-day-v1')) {
-            sessionStorage.setItem('lr-day-v1', '1');
-            bump('presenceDays', dayKey(new Date()));
-          }
-        } catch {}
 
         start();
         paintDays();

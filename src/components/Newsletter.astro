@@ -1,5 +1,6 @@
 ---
 import { FIREBASE, NEWSLETTER } from '../config';
+import TopicPicker from './TopicPicker.astro';
 
 interface Props {
   compact?: boolean;
@@ -34,9 +35,10 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
     <form
       data-newsletter-form
       data-source={source}
-      class="mt-5 flex flex-col gap-2 sm:flex-row"
+      class="mt-5 grid gap-3"
       novalidate
     >
+      <div class="flex flex-col gap-2 sm:flex-row">
       <label for={`newsletter-email-${source}`} class="sr-only">Email address</label>
       <input
         id={`newsletter-email-${source}`}
@@ -51,6 +53,8 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
       <button type="submit" disabled={!enabled} class="btn btn-accent btn-sm disabled:opacity-60">
         Subscribe
       </button>
+      </div>
+      <TopicPicker id={`newsletter-topics-${source}`} class="justify-self-center" />
     </form>
 
     <p data-newsletter-status role="status" aria-live="polite" class="mt-3 min-h-5 text-sm"></p>
@@ -66,6 +70,7 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
 
 <script>
   import { subscribe } from '../lib/subscribe';
+  import { pickedTopics } from '../lib/subscribe-form';
 
   function initNewsletterForms() {
     const forms = document.querySelectorAll<HTMLFormElement>('[data-newsletter-form]');
@@ -91,7 +96,7 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
         say('Subscribing…', 'muted');
 
         try {
-          const result = await subscribe(input.value, form.dataset.source ?? 'inline-form');
+          const result = await subscribe(input.value, form.dataset.source ?? 'inline-form', pickedTopics(form));
           say(
             result === 'already-subscribed'
               ? 'You are already subscribed.'
@@ -104,10 +109,12 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
           say(
             error instanceof Error && error.message === 'invalid-email'
               ? 'Please enter a valid email address.'
-              : 'Something went wrong. Please try again later.',
+              : error instanceof Error && error.message === 'no-topics'
+                ? 'Tick at least one topic.'
+                : 'Something went wrong. Please try again later.',
             'error',
           );
-          input.focus();
+          if (!(error instanceof Error && error.message === 'no-topics')) input.focus();
         }
       });
     });

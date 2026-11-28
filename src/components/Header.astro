@@ -1,6 +1,8 @@
 ---
 import { SITE, NAV } from '../config';
 import ThemeToggle from './ThemeToggle.astro';
+import SiteBell from '@msdevbuild/config/components/SiteBell.astro';
+import AccountMenu from '@msdevbuild/config/components/AccountMenu.astro';
 import Avatar from './Avatar.astro';
 
 const path = Astro.url.pathname;
@@ -71,7 +73,11 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
         </svg>
         <span class="max-sm:hidden">Install app</span>
       </button>
+      <!-- Announcements + who is online (admin.msdevbuild.com → Notifications). -->
+      <SiteBell site="blog" />
       <ThemeToggle />
+      <!-- Optional Google sign-in and profile, shared with azure.msdevbuild.com. -->
+      <AccountMenu />
     </div>
   </div>
 

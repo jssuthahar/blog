@@ -203,6 +203,26 @@ const brand = `${SITE.title} ${SITE.byline}`;
   </>
 )}
 
+<!-- Sign-in state before first paint, as on azure.msdevbuild.com: the header's
+     Sign in button (or avatar) shows at once instead of waiting for the account
+     script. ClientRouter copies the new page's <html> attributes on every soft
+     navigation, which would drop data-auth and hide both, so it is put back
+     after each swap. Key 'msdb-user' is the shared account hint. -->
+<script is:inline>
+  (() => {
+    const set = () => {
+      let u = null;
+      try { u = localStorage.getItem('msdb-user'); } catch {}
+      if (document.documentElement.dataset.auth !== 'none') document.documentElement.dataset.auth = u ? 'in' : 'out';
+    };
+    set();
+    if (!window.__authBound) {
+      window.__authBound = true;
+      document.addEventListener('astro:after-swap', set);
+    }
+  })();
+</script>
+
 <!-- Theme applied before first paint: no flash of the wrong theme. -->
 <script is:inline>
   (() => {

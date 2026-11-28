@@ -31,7 +31,7 @@
     "@astrojs/sitemap": "^3.7.0",
     "@fontsource-variable/inter": "^5.2.8",
     "@fontsource-variable/source-serif-4": "^5.2.7",
-    "@msdevbuild/config": "github:jssuthahar/msdevbuild-config#f16b8a9",
+    "@msdevbuild/config": "github:jssuthahar/msdevbuild-config#7ad6e38",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.16",
     "astro": "^5.16.2",

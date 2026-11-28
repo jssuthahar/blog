@@ -1,6 +1,6 @@
 name: Send push notifications
 
-# Delivers notifications composed in /admin. The admin console queues each one
+# Delivers notifications composed in the admin portal (admin.msdevbuild.com/blog/). The admin console queues each one
 # into Firestore (pushOutbox); this job signs each send with the VAPID private
 # key — which lives only in the secrets below, never in the repo or the browser.
 on:

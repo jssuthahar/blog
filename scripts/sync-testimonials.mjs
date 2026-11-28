@@ -14,7 +14,7 @@ import { writeFile, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-const PROJECT = 'msdevbuild-blog';
+const PROJECT = 'msdevbuild-azure'; // shared with azure.msdevbuild.com
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'data', 'testimonials.json');
 
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;

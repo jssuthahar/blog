@@ -439,26 +439,21 @@ export const PUSH = {
  * a Google-shaped credential in a public repo for scanners to flag.
  */
 export const FIREBASE = {
-  projectId: 'msdevbuild-blog',
+  // Shared with azure.msdevbuild.com (sender 716410365766). Rules live only in
+  // the private msdevbuild-admin repo (firebase/firestore.rules).
+  projectId: 'msdevbuild-azure',
   /**
-   * Needed only by /admin — Firebase Authentication requires it, while the
+   * Needed only by /preview sign-in — Firebase Authentication requires it, while the
    * Firestore REST calls on public pages do not. It is a public identifier by
    * design (Google documents it as safe in client code) but GitHub's scanner
    * flags the `AIza` prefix regardless, so restrict it by HTTP referrer to
    * blog.msdevbuild.com in Google Cloud Console → Credentials.
    */
-  apiKey: 'AIzaSyC1oOQOPnd4i-6W0vXkhDHrzRAFYpd0nDk',
+  apiKey: 'AIzaSyAUkdCvWJ-1_IaIe_PHa7xqqy3ZBDtGd4Q',
 } as const;
 
-/**
- * Admin console access. `uid` is the Firebase Auth UID allowed to moderate —
- * paste it from Authentication → Users after creating the account, and put the
- * same value in firestore.rules. The rules are the real gate; this constant
- * only decides what the UI offers.
- */
-export const ADMIN = {
-  uid: 'BVDLfgqNvJSZORv2zRitolBU3Cn2',
-} as const;
+/** Admin portal for every MSDEVBUILD site (private repo msdevbuild-admin). */
+export const ADMIN_PORTAL = 'https://admin.msdevbuild.com/blog/';
 
 /**
  * Event registration display.

@@ -12,8 +12,8 @@ whether an event is "upcoming" is worked out from `startDate` at build time, so
 nothing needs updating when a date passes. `draft: true` keeps a file out of the
 listing until it is ready.
 
-The quickest way to create one is the form at **/events/new** — fill it in and
-download the file into this folder. Or copy the frontmatter below by hand:
+The quickest way to create one is the event editor in the admin portal
+(**admin.msdevbuild.com/blog/events/new/**). Fill it in and download the file into this folder. Or copy the frontmatter below by hand:
 
 ```yaml
 ---

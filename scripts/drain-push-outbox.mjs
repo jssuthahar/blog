@@ -2,7 +2,7 @@
 /**
  * Drains the Firestore push outbox and delivers each queued notification.
  *
- * This is the server half of "compose in /admin, auto-send": the admin console
+ * This is the server half of "compose in the admin portal, auto-send": the admin console
  * writes a notification to the `pushOutbox` collection as `pending`; this script
  * (run on a schedule by .github/workflows/send-push.yml) signs in as the admin,
  * fans each pending row out to every push subscription with the VAPID private
@@ -18,8 +18,8 @@
 
 import webpush from 'web-push';
 
-const PROJECT = 'msdevbuild-blog';
-const API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyC1oOQOPnd4i-6W0vXkhDHrzRAFYpd0nDk';
+const PROJECT = 'msdevbuild-azure'; // shared with azure.msdevbuild.com
+const API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyAUkdCvWJ-1_IaIe_PHa7xqqy3ZBDtGd4Q';
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
 
 const VAPID_PUBLIC =

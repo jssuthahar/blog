@@ -103,6 +103,11 @@ const shortDates = readShortDates();
 // https://astro.build/config
 export default defineConfig({
   site: 'https://blog.msdevbuild.com',
+  // The console moved to the private admin portal shared by every MSDEVBUILD site.
+  redirects: {
+    '/admin': 'https://admin.msdevbuild.com/blog/',
+    '/events/new': 'https://admin.msdevbuild.com/blog/events/new/',
+  },
   trailingSlash: 'ignore',
 
   integrations: [

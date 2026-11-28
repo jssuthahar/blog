@@ -3,7 +3,7 @@
  * Queues a push notification for every newly published article AND short.
  *
  * This is the "automatic" half of the notification pipeline. Until now a send
- * started by hand in /admin; this script scans the blog collection and the
+ * started by hand in the admin portal; this script scans the blog collection and the
  * shorts collection after a deploy, finds items that went live recently and
  * have never been announced, and writes them to the same Firestore
  * `pushOutbox` the admin console writes to. scripts/drain-push-outbox.mjs
@@ -49,8 +49,8 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, extname, basename } from 'node:path';
 
-const PROJECT = 'msdevbuild-blog';
-const API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyC1oOQOPnd4i-6W0vXkhDHrzRAFYpd0nDk';
+const PROJECT = 'msdevbuild-azure'; // shared with azure.msdevbuild.com
+const API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyAUkdCvWJ-1_IaIe_PHa7xqqy3ZBDtGd4Q';
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
 
 const CONTENT_DIR = 'src/content/blog';

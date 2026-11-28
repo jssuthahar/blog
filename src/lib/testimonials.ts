@@ -30,9 +30,8 @@ export function featuredTestimonials(limit = 10): Testimonial[] {
 }
 
 /**
- * The five shown on the home page. Sourced entirely from Firestore — seed the
- * starter set with `npm run seed:testimonials`, approve them in the console,
- * then `npm run sync:testimonials`.
+ * The five shown on the home page. Sourced entirely from Firestore: real reader
+ * submissions, approved in the admin portal, then `npm run sync:testimonials`.
  */
 export function homeTestimonials(limit = 5): Testimonial[] {
   return allTestimonials().slice(0, limit);

@@ -1,4 +1,5 @@
 import { FIREBASE } from '../config';
+import { withCampaign, campaignField } from './campaign';
 
 /**
  * Contact-form submission.
@@ -66,7 +67,7 @@ export async function sendContactMessage(input: ContactInput): Promise<void> {
     fieldPaths.push('phone');
   }
 
-  const res = await fetch(`${base}:commit`, {
+  const res = await withCampaign((campaign) => fetch(`${base}:commit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -74,16 +75,16 @@ export async function sendContactMessage(input: ContactInput): Promise<void> {
         {
           update: {
             name: `projects/${FIREBASE.projectId}/databases/(default)/documents/contactMessages/${docId}`,
-            fields,
+            fields: { ...fields, ...campaignField(campaign).fields },
           },
-          updateMask: { fieldPaths },
+          updateMask: { fieldPaths: [...fieldPaths, ...campaignField(campaign).paths] },
           // Server-stamped so a submission cannot be backdated.
           updateTransforms: [{ fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME' }],
           currentDocument: { exists: false },
         },
       ],
     }),
-  });
+  }));
 
   if (res.ok) return;
 

@@ -9,6 +9,7 @@ import ArticleCapture from '../components/ArticleCapture.astro';
 import PwaController from '../components/PwaController.astro';
 import AppTabBar from '../components/AppTabBar.astro';
 import ViewCountLoader from '../components/ViewCountLoader.astro';
+import SiteEngage from '@msdevbuild/config/components/SiteEngage.astro';
 import { SITE, AUTHOR, MAIN_SITE, EXPERTISE } from '../config';
 
 interface Props {
@@ -103,6 +104,8 @@ const baseSchema = [
 
   <body class="flex min-h-dvh flex-col">
     <a href="#main" class="skip-link">Skip to content</a>
+    <!-- Promotions, feature switches and campaign counts from admin.msdevbuild.com. -->
+    <SiteEngage site="blog" />
     <Header />
 
     <main id="main" class="flex-1">

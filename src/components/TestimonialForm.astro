@@ -16,6 +16,7 @@ const id = (field: string) => `${formId}-${field}`;
 ---
 
 <div
+  data-msdb-feature="testimonials"
   id={bare ? undefined : 'write-testimonial'}
   class:list={[
     !bare && 'scroll-mt-24 rounded-xl border border-default',

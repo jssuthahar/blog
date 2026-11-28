@@ -15,6 +15,7 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
 ---
 
 <section
+  data-msdb-feature="newsletterInline"
   class:list={['rounded-xl border border-default bg-subtle', compact ? 'p-6' : 'p-8 md:p-12']}
   aria-labelledby={`newsletter-heading-${source}`}
 >

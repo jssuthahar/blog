@@ -198,7 +198,9 @@ const enabled = FIREBASE.projectId.length > 0 || NEWSLETTER.action.length > 0;
     const DEPTH = reading ? 0.65 : 0.35;
 
     function open() {
-      if (seen() || dialog.open) return;
+      // Switched off in admin.msdevbuild.com → Site settings (set by <SiteEngage>).
+      const off = (document.documentElement.dataset.msdbOff || '').split(' ').includes('newsletterPopup');
+      if (off || seen() || dialog.open) return;
       dialog.showModal();
       window.removeEventListener('scroll', onScroll);
     }

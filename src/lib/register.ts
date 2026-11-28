@@ -1,4 +1,5 @@
 import { FIREBASE } from '../config';
+import { withCampaign, campaignField } from './campaign';
 
 /**
  * Event registration, shared by every event detail page.
@@ -60,7 +61,7 @@ export async function register(input: RegistrationInput): Promise<RegisterResult
     fieldPaths.push('org');
   }
 
-  const res = await fetch(`${base}:commit`, {
+  const res = await withCampaign((campaign) => fetch(`${base}:commit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -68,9 +69,9 @@ export async function register(input: RegistrationInput): Promise<RegisterResult
         {
           update: {
             name: `projects/${FIREBASE.projectId}/databases/(default)/documents/eventRegistrations/${id}`,
-            fields,
+            fields: { ...fields, ...campaignField(campaign).fields },
           },
-          updateMask: { fieldPaths },
+          updateMask: { fieldPaths: [...fieldPaths, ...campaignField(campaign).paths] },
           // Server-stamped so a registration cannot be backdated.
           updateTransforms: [{ fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME' }],
           // A true create: a repeat sign-up fails instead of overwriting.
@@ -87,7 +88,7 @@ export async function register(input: RegistrationInput): Promise<RegisterResult
         },
       ],
     }),
-  });
+  }));
 
   if (res.ok) {
     try {

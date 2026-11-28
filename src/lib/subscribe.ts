@@ -1,4 +1,5 @@
 import { FIREBASE, NEWSLETTER } from '../config';
+import { withCampaign, campaignField } from './campaign';
 
 /**
  * Newsletter signup, shared by the home-page popup and every inline form.
@@ -27,7 +28,7 @@ async function saveToFirestore(email: string, source: string): Promise<boolean> 
   // break the path, and an email cannot contain one.
   const docId = email;
 
-  const res = await fetch(`${base}:commit`, {
+  const res = await withCampaign((campaign) => fetch(`${base}:commit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -38,9 +39,10 @@ async function saveToFirestore(email: string, source: string): Promise<boolean> 
             fields: {
               email: { stringValue: email },
               source: { stringValue: source },
+              ...campaignField(campaign).fields,
             },
           },
-          updateMask: { fieldPaths: ['email', 'source'] },
+          updateMask: { fieldPaths: ['email', 'source', ...campaignField(campaign).paths] },
           // Server-stamped so the rules can require createdAt == request.time.
           updateTransforms: [{ fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME' }],
           // A true create: a repeat signup fails rather than overwriting, so
@@ -49,7 +51,7 @@ async function saveToFirestore(email: string, source: string): Promise<boolean> 
         },
       ],
     }),
-  });
+  }));
 
   if (res.ok) return true;
 

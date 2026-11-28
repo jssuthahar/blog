@@ -35,6 +35,7 @@ jobs:
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
           # Optional overrides; the script has safe defaults for these.
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
         run: node scripts/drain-push-outbox.mjs

@@ -57,7 +57,7 @@ const rows = drafts.map((post) => {
       <div class="mt-8 rounded-lg border border-default bg-subtle p-6 text-sm leading-relaxed">
         <p class="font-semibold">Setup needed</p>
         <p class="mt-2 text-muted">
-          Configure <code>FIREBASE.apiKey</code> in <code>src/config.ts</code> first, and give your
+          Set <code>PUBLIC_FIREBASE_API_KEY</code> (GitHub secret <code>FIREBASE_API_KEY</code>, or <code>.env</code> locally) first, and give your
           account the <code>admin</code> claim from the <a href={ADMIN_PORTAL} class="text-accent hover:underline">admin portal</a> repo.
         </p>
       </div>

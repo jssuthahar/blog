@@ -416,8 +416,8 @@ export const NEWSLETTER = {
  *
  * `publicKey` is the VAPID *public* key and is safe to publish — it is what the
  * browser encrypts its subscription to. The matching *private* key lives only
- * in `.env` (VAPID_PRIVATE_KEY) and is used by `scripts/send-push.mjs` to sign
- * sends; it must never be committed. Regenerate both with `npm run push:keys`.
+ * in `.env` / GitHub Secrets (VAPID_PRIVATE_KEY) and is used by the push scripts to sign
+ * sends; it must never be committed. Regenerate both with `npm run push:keys` in msdevbuild-admin.
  *
  * Subscriptions are stored in Firestore (`pushSubscriptions`), so this reuses
  * the same free-tier Firestore already powering views and subscribers — no
@@ -443,13 +443,14 @@ export const FIREBASE = {
   // the private msdevbuild-admin repo (firebase/firestore.rules).
   projectId: 'msdevbuild-azure',
   /**
-   * Needed only by /preview sign-in — Firebase Authentication requires it, while the
-   * Firestore REST calls on public pages do not. It is a public identifier by
-   * design (Google documents it as safe in client code) but GitHub's scanner
-   * flags the `AIza` prefix regardless, so restrict it by HTTP referrer to
-   * blog.msdevbuild.com in Google Cloud Console → Credentials.
+   * Needed only by /preview sign-in. A public identifier by design, but it is
+   * kept out of this public repo so GitHub's secret scanner has nothing to
+   * flag: the build reads it from PUBLIC_FIREBASE_API_KEY (GitHub secret
+   * FIREBASE_API_KEY in deploy.yml, or .env locally). Restricted by HTTP
+   * referrer to MSDEVBUILD domains in Google Cloud → Credentials. Empty =
+   * /preview shows its setup notice; public pages never need it.
    */
-  apiKey: 'AIzaSyAUkdCvWJ-1_IaIe_PHa7xqqy3ZBDtGd4Q',
+  apiKey: (import.meta.env.PUBLIC_FIREBASE_API_KEY ?? '') as string,
 } as const;
 
 /** Admin portal for every MSDEVBUILD site (private repo msdevbuild-admin). */

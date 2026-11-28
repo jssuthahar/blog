@@ -43,14 +43,20 @@
  * a drain landing exactly between them would deliver that row for real.
  *
  * Required env (GitHub Secrets): ADMIN_EMAIL, ADMIN_PASSWORD.
- * Optional: FIREBASE_API_KEY.
+ * Required: FIREBASE_API_KEY.
  */
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, extname, basename } from 'node:path';
 
 const PROJECT = 'msdevbuild-azure'; // shared with azure.msdevbuild.com
-const API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyAUkdCvWJ-1_IaIe_PHa7xqqy3ZBDtGd4Q';
+// Firebase web API key: from the environment only (GitHub secret
+// FIREBASE_API_KEY, or .env locally), so no key sits in this public repo.
+const API_KEY = process.env.FIREBASE_API_KEY;
+if (!API_KEY) {
+  console.error('✗ Missing FIREBASE_API_KEY (GitHub secret, or .env locally).');
+  process.exit(1);
+}
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
 
 const CONTENT_DIR = 'src/content/blog';

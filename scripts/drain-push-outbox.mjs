@@ -13,13 +13,19 @@
  * Firebase Admin SDK, Cloud Functions, or billing.
  *
  * Required env (GitHub Secrets): VAPID_PRIVATE_KEY, ADMIN_EMAIL, ADMIN_PASSWORD.
- * Optional: VAPID_PUBLIC_KEY, VAPID_SUBJECT, FIREBASE_API_KEY (safe defaults).
+ * Also required: FIREBASE_API_KEY. Optional: VAPID_PUBLIC_KEY, VAPID_SUBJECT.
  */
 
 import webpush from 'web-push';
 
 const PROJECT = 'msdevbuild-azure'; // shared with azure.msdevbuild.com
-const API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyAUkdCvWJ-1_IaIe_PHa7xqqy3ZBDtGd4Q';
+// Firebase web API key: from the environment only (GitHub secret
+// FIREBASE_API_KEY, or .env locally), so no key sits in this public repo.
+const API_KEY = process.env.FIREBASE_API_KEY;
+if (!API_KEY) {
+  console.error('✗ Missing FIREBASE_API_KEY (GitHub secret, or .env locally).');
+  process.exit(1);
+}
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
 
 const VAPID_PUBLIC =

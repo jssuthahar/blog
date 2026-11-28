@@ -62,6 +62,9 @@ jobs:
         run: npx astro check
 
       - name: Build
+        env:
+          # Only /preview sign-in uses it; kept out of the repo (secret scanner).
+          PUBLIC_FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
         run: npm run build
 
       # A courtesy ping, not a requirement: tells Bing (and whoever else
@@ -124,4 +127,5 @@ jobs:
         env:
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
         run: node scripts/announce-new-posts.mjs
